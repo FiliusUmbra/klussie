@@ -28,6 +28,7 @@ import {
   subscribeToConversationsForUser,
   subscribeToMessages,
 } from "./lib/messages";
+import { uploadAvatar } from "./lib/storage";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -95,7 +96,7 @@ const STRINGS = {
     authCheckEmail:"Controleer je e-mail om je account te bevestigen.", authSignOut:"Uitloggen",
     becomeProPrompt:"Wil je diensten aanbieden op klussie? Stel je vakman-profiel in.", becomeProBtn:"Word vakman", becomeProTitle:"Stel je vakman-profiel in",
     businessNameLabel:"Bedrijfsnaam", vatNumberLabel:"Btw-nummer", bioLabel:"Korte omschrijving", becomeProSubmit:"Start met diensten aanbieden", saveServicesBtn:"Diensten opslaan", messagePlaceholder:"Typ een bericht...",
-    editProfileBtn:"Profiel bewerken", editProfileTitle:"Bewerk je profiel", cityLabel:"Stad", saveChangesBtn:"Wijzigingen opslaan",
+    editProfileBtn:"Profiel bewerken", editProfileTitle:"Bewerk je profiel", cityLabel:"Stad", saveChangesBtn:"Wijzigingen opslaan", uploadPhotoBtn:"Foto uploaden",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -149,7 +150,7 @@ const STRINGS = {
     authCheckEmail:"Vérifie tes e-mails pour confirmer ton compte.", authSignOut:"Se déconnecter",
     becomeProPrompt:"Tu veux proposer des services sur klussie ? Configure ton profil pro.", becomeProBtn:"Devenir pro", becomeProTitle:"Configure ton profil pro",
     businessNameLabel:"Nom de l'entreprise", vatNumberLabel:"Numéro de TVA", bioLabel:"Courte description", becomeProSubmit:"Commencer à proposer des services", saveServicesBtn:"Enregistrer les services", messagePlaceholder:"Écris un message...",
-    editProfileBtn:"Modifier le profil", editProfileTitle:"Modifie ton profil", cityLabel:"Ville", saveChangesBtn:"Enregistrer les modifications",
+    editProfileBtn:"Modifier le profil", editProfileTitle:"Modifie ton profil", cityLabel:"Ville", saveChangesBtn:"Enregistrer les modifications", uploadPhotoBtn:"Téléverser une photo",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -203,7 +204,7 @@ const STRINGS = {
     authCheckEmail:"Bestätige dein Konto über den Link in deiner E-Mail.", authSignOut:"Abmelden",
     becomeProPrompt:"Möchtest du Dienstleistungen auf klussie anbieten? Richte dein Profi-Profil ein.", becomeProBtn:"Profi werden", becomeProTitle:"Richte dein Profi-Profil ein",
     businessNameLabel:"Firmenname", vatNumberLabel:"USt-IdNr.", bioLabel:"Kurzbeschreibung", becomeProSubmit:"Jetzt Dienstleistungen anbieten", saveServicesBtn:"Dienste speichern", messagePlaceholder:"Nachricht schreiben...",
-    editProfileBtn:"Profil bearbeiten", editProfileTitle:"Profil bearbeiten", cityLabel:"Stadt", saveChangesBtn:"Änderungen speichern",
+    editProfileBtn:"Profil bearbeiten", editProfileTitle:"Profil bearbeiten", cityLabel:"Stadt", saveChangesBtn:"Änderungen speichern", uploadPhotoBtn:"Foto hochladen",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -257,7 +258,7 @@ const STRINGS = {
     authCheckEmail:"Check your email to confirm your account.", authSignOut:"Sign out",
     becomeProPrompt:"Want to offer services on klussie? Set up your pro profile.", becomeProBtn:"Become a pro", becomeProTitle:"Set up your pro profile",
     businessNameLabel:"Business name", vatNumberLabel:"VAT number", bioLabel:"Short bio", becomeProSubmit:"Start offering services", saveServicesBtn:"Save services", messagePlaceholder:"Type a message...",
-    editProfileBtn:"Edit profile", editProfileTitle:"Edit your profile", cityLabel:"City", saveChangesBtn:"Save changes",
+    editProfileBtn:"Edit profile", editProfileTitle:"Edit your profile", cityLabel:"City", saveChangesBtn:"Save changes", uploadPhotoBtn:"Upload photo",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -311,7 +312,7 @@ const STRINGS = {
     authCheckEmail:"تحقق من بريدك الإلكتروني لتأكيد حسابك.", authSignOut:"تسجيل الخروج",
     becomeProPrompt:"تريد تقديم خدمات على klussie؟ أنشئ ملفك كمحترف.", becomeProBtn:"كن محترفًا", becomeProTitle:"أنشئ ملفك كمحترف",
     businessNameLabel:"اسم الشركة", vatNumberLabel:"الرقم الضريبي", bioLabel:"نبذة قصيرة", becomeProSubmit:"ابدأ بتقديم الخدمات", saveServicesBtn:"حفظ الخدمات", messagePlaceholder:"اكتب رسالة...",
-    editProfileBtn:"تعديل الملف الشخصي", editProfileTitle:"عدّل ملفك الشخصي", cityLabel:"المدينة", saveChangesBtn:"حفظ التغييرات",
+    editProfileBtn:"تعديل الملف الشخصي", editProfileTitle:"عدّل ملفك الشخصي", cityLabel:"المدينة", saveChangesBtn:"حفظ التغييرات", uploadPhotoBtn:"تحميل صورة",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -365,7 +366,7 @@ const STRINGS = {
     authCheckEmail:"Hesabını onaylamak için e-postanı kontrol et.", authSignOut:"Çıkış yap",
     becomeProPrompt:"klussie'de hizmet sunmak mı istiyorsun? Profesyonel profilini oluştur.", becomeProBtn:"Profesyonel ol", becomeProTitle:"Profesyonel profilini oluştur",
     businessNameLabel:"Şirket adı", vatNumberLabel:"KDV numarası", bioLabel:"Kısa biyografi", becomeProSubmit:"Hizmet sunmaya başla", saveServicesBtn:"Hizmetleri kaydet", messagePlaceholder:"Bir mesaj yaz...",
-    editProfileBtn:"Profili düzenle", editProfileTitle:"Profilini düzenle", cityLabel:"Şehir", saveChangesBtn:"Değişiklikleri kaydet",
+    editProfileBtn:"Profili düzenle", editProfileTitle:"Profilini düzenle", cityLabel:"Şehir", saveChangesBtn:"Değişiklikleri kaydet", uploadPhotoBtn:"Fotoğraf yükle",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -419,7 +420,7 @@ const STRINGS = {
     authCheckEmail:"Проверьте почту, чтобы подтвердить аккаунт.", authSignOut:"Выйти",
     becomeProPrompt:"Хотите предлагать услуги на klussie? Настройте профиль специалиста.", becomeProBtn:"Стать специалистом", becomeProTitle:"Настройте профиль специалиста",
     businessNameLabel:"Название компании", vatNumberLabel:"Номер плательщика НДС", bioLabel:"Краткое описание", becomeProSubmit:"Начать предлагать услуги", saveServicesBtn:"Сохранить услуги", messagePlaceholder:"Введите сообщение...",
-    editProfileBtn:"Редактировать профиль", editProfileTitle:"Редактируйте свой профиль", cityLabel:"Город", saveChangesBtn:"Сохранить изменения",
+    editProfileBtn:"Редактировать профиль", editProfileTitle:"Редактируйте свой профиль", cityLabel:"Город", saveChangesBtn:"Сохранить изменения", uploadPhotoBtn:"Загрузить фото",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -473,7 +474,7 @@ const STRINGS = {
     authCheckEmail:"请查收邮件以确认你的账户。", authSignOut:"退出登录",
     becomeProPrompt:"想在 klussie 上提供服务吗？设置你的专业人士资料。", becomeProBtn:"成为专业人士", becomeProTitle:"设置你的专业人士资料",
     businessNameLabel:"公司名称", vatNumberLabel:"增值税号", bioLabel:"简介", becomeProSubmit:"开始提供服务", saveServicesBtn:"保存服务", messagePlaceholder:"输入消息...",
-    editProfileBtn:"编辑资料", editProfileTitle:"编辑你的资料", cityLabel:"城市", saveChangesBtn:"保存更改",
+    editProfileBtn:"编辑资料", editProfileTitle:"编辑你的资料", cityLabel:"城市", saveChangesBtn:"保存更改", uploadPhotoBtn:"上传照片",
   },
 };
 
@@ -502,6 +503,14 @@ function Stars({ value, size = 13 }) {
 
 function TicketTear() { return <div className="tear" />; }
 function Badge({ children, tone = "sage" }) { return <span className={`badge badge-${tone}`}>{children}</span>; }
+
+function Avatar({ url, initials, size }) {
+  return (
+    <div className={"avatar" + (size ? ` avatar-${size}` : "")}>
+      {url ? <img src={url} alt="" /> : initials}
+    </div>
+  );
+}
 
 /* ---------------------------------- APP ---------------------------------- */
 
@@ -745,8 +754,29 @@ function EditProfileSheet({ onClose, onSaved }) {
   const [bio, setBio] = useState(proProfile?.bio || "");
   const [businessName, setBusinessName] = useState(proProfile?.business_name || "");
   const [vatNumber, setVatNumber] = useState(proProfile?.vat_number || "");
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setError("");
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadAvatar(profile.id, file);
+      await updateProfile({ avatar_url: url });
+      setAvatarUrl(url);
+      if (onSaved) await onSaved();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const submit = async () => {
     setError("");
@@ -773,6 +803,16 @@ function EditProfileSheet({ onClose, onSaved }) {
   return (
     <Sheet onClose={onClose}>
       <div className="sheet-title">{t.editProfileTitle}</div>
+
+      <div className="avatar-upload-row">
+        <button type="button" className="avatar-upload" onClick={() => fileInputRef.current.click()} disabled={uploadingAvatar}>
+          <Avatar url={avatarUrl} initials={fullName[0] || "?"} size="lg" />
+        </button>
+        <button type="button" className="btn-secondary" onClick={() => fileInputRef.current.click()} disabled={uploadingAvatar}>
+          {t.uploadPhotoBtn}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
+      </div>
 
       <label className="field-label">{t.authFullNameLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
@@ -1061,7 +1101,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
             return (
               <div key={q.id} className="quote-card">
                 <div className="quote-top">
-                  <div className="avatar">{pro.initials}</div>
+                  <Avatar url={pro.avatarUrl} initials={pro.initials} />
                   <div style={{ flex: 1 }}>
                     <div className="quote-name">{pro.name} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
                     <div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating} ({fmt(pro.reviews)})</div>
@@ -1082,7 +1122,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
         return (
           <div className="quote-card quote-card-booked">
             <div className="quote-top">
-              <div className="avatar">{pro.initials}</div>
+              <Avatar url={pro.avatarUrl} initials={pro.initials} />
               <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating}</div></div>
               <div className="quote-price">\u20ac{fmt(bookedQuote.price)}</div>
             </div>
@@ -1160,7 +1200,7 @@ function CustomerProfile({ requests }) {
   const displayName = profile?.full_name || t.profileYou;
   return (
     <div className="pad">
-      <div className="profile-head"><div className="avatar avatar-lg">{displayName[0]}</div><div><div className="h1" style={{ fontSize: 19 }}>{displayName}</div><div className="ticket-sub">{user.email}</div></div></div>
+      <div className="profile-head"><Avatar url={profile?.avatar_url} initials={displayName[0]} size="lg" /><div><div className="h1" style={{ fontSize: 19 }}>{displayName}</div><div className="ticket-sub">{user.email}</div></div></div>
       <div className="stat-row">
         <div className="stat"><div className="stat-num">{requests.length}</div><div className="stat-label">{t.requestsSent}</div></div>
         <div className="stat"><div className="stat-num">{completed}</div><div className="stat-label">{t.jobsCompleted}</div></div>
@@ -1347,7 +1387,7 @@ function ProDashboard({ leads, onQuote, proInfo }) {
   const { proProfile } = useAuth();
   return (
     <div className="pad">
-      <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{proInfo.name}</div></div><div className="avatar">{proInfo.initials}</div></div>
+      <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{proInfo.name}</div></div><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} /></div>
 
       <div className="stat-row">
         <div className="stat"><div className="stat-num"><Stars value={proInfo.rating} size={12} /></div><div className="stat-label">{proInfo.rating} {t.statScore}</div></div>
@@ -1468,7 +1508,7 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
 
   return (
     <div className="pad">
-      <div className="profile-head"><div className="avatar avatar-lg">{proInfo.initials}</div><div><div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div><div className="quote-rating"><Stars value={proInfo.rating} size={12} /> {proInfo.rating} ({fmt(proInfo.reviews)})</div></div></div>
+      <div className="profile-head"><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" /><div><div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div><div className="quote-rating"><Stars value={proInfo.rating} size={12} /> {proInfo.rating} ({fmt(proInfo.reviews)})</div></div></div>
       {proProfile.bio && <p className="sheet-blurb">{proProfile.bio}</p>}
       <div className="stat-row">
         <div className="stat"><div className="stat-num">{completedCount}</div><div className="stat-label">{t.proJobsDone}</div></div>
@@ -1699,4 +1739,8 @@ const CSS = `
 .chat-input-row{ display:flex; gap:8px; align-items:center; }
 .chat-input-row input{ flex:1; border:1px solid var(--line); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); outline:none; }
 .chat-input-row button{ width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+
+.avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
+.avatar-upload-row{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.avatar-upload{ padding:0; border:none; background:none; border-radius:50%; cursor:pointer; flex-shrink:0; }
 `;
