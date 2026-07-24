@@ -95,6 +95,7 @@ const STRINGS = {
     authCheckEmail:"Controleer je e-mail om je account te bevestigen.", authSignOut:"Uitloggen",
     becomeProPrompt:"Wil je diensten aanbieden op klussie? Stel je vakman-profiel in.", becomeProBtn:"Word vakman", becomeProTitle:"Stel je vakman-profiel in",
     businessNameLabel:"Bedrijfsnaam", vatNumberLabel:"Btw-nummer", bioLabel:"Korte omschrijving", becomeProSubmit:"Start met diensten aanbieden", saveServicesBtn:"Diensten opslaan", messagePlaceholder:"Typ een bericht...",
+    editProfileBtn:"Profiel bewerken", editProfileTitle:"Bewerk je profiel", cityLabel:"Stad", saveChangesBtn:"Wijzigingen opslaan",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -148,6 +149,7 @@ const STRINGS = {
     authCheckEmail:"Vérifie tes e-mails pour confirmer ton compte.", authSignOut:"Se déconnecter",
     becomeProPrompt:"Tu veux proposer des services sur klussie ? Configure ton profil pro.", becomeProBtn:"Devenir pro", becomeProTitle:"Configure ton profil pro",
     businessNameLabel:"Nom de l'entreprise", vatNumberLabel:"Numéro de TVA", bioLabel:"Courte description", becomeProSubmit:"Commencer à proposer des services", saveServicesBtn:"Enregistrer les services", messagePlaceholder:"Écris un message...",
+    editProfileBtn:"Modifier le profil", editProfileTitle:"Modifie ton profil", cityLabel:"Ville", saveChangesBtn:"Enregistrer les modifications",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -201,6 +203,7 @@ const STRINGS = {
     authCheckEmail:"Bestätige dein Konto über den Link in deiner E-Mail.", authSignOut:"Abmelden",
     becomeProPrompt:"Möchtest du Dienstleistungen auf klussie anbieten? Richte dein Profi-Profil ein.", becomeProBtn:"Profi werden", becomeProTitle:"Richte dein Profi-Profil ein",
     businessNameLabel:"Firmenname", vatNumberLabel:"USt-IdNr.", bioLabel:"Kurzbeschreibung", becomeProSubmit:"Jetzt Dienstleistungen anbieten", saveServicesBtn:"Dienste speichern", messagePlaceholder:"Nachricht schreiben...",
+    editProfileBtn:"Profil bearbeiten", editProfileTitle:"Profil bearbeiten", cityLabel:"Stadt", saveChangesBtn:"Änderungen speichern",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -254,6 +257,7 @@ const STRINGS = {
     authCheckEmail:"Check your email to confirm your account.", authSignOut:"Sign out",
     becomeProPrompt:"Want to offer services on klussie? Set up your pro profile.", becomeProBtn:"Become a pro", becomeProTitle:"Set up your pro profile",
     businessNameLabel:"Business name", vatNumberLabel:"VAT number", bioLabel:"Short bio", becomeProSubmit:"Start offering services", saveServicesBtn:"Save services", messagePlaceholder:"Type a message...",
+    editProfileBtn:"Edit profile", editProfileTitle:"Edit your profile", cityLabel:"City", saveChangesBtn:"Save changes",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -307,6 +311,7 @@ const STRINGS = {
     authCheckEmail:"تحقق من بريدك الإلكتروني لتأكيد حسابك.", authSignOut:"تسجيل الخروج",
     becomeProPrompt:"تريد تقديم خدمات على klussie؟ أنشئ ملفك كمحترف.", becomeProBtn:"كن محترفًا", becomeProTitle:"أنشئ ملفك كمحترف",
     businessNameLabel:"اسم الشركة", vatNumberLabel:"الرقم الضريبي", bioLabel:"نبذة قصيرة", becomeProSubmit:"ابدأ بتقديم الخدمات", saveServicesBtn:"حفظ الخدمات", messagePlaceholder:"اكتب رسالة...",
+    editProfileBtn:"تعديل الملف الشخصي", editProfileTitle:"عدّل ملفك الشخصي", cityLabel:"المدينة", saveChangesBtn:"حفظ التغييرات",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -360,6 +365,7 @@ const STRINGS = {
     authCheckEmail:"Hesabını onaylamak için e-postanı kontrol et.", authSignOut:"Çıkış yap",
     becomeProPrompt:"klussie'de hizmet sunmak mı istiyorsun? Profesyonel profilini oluştur.", becomeProBtn:"Profesyonel ol", becomeProTitle:"Profesyonel profilini oluştur",
     businessNameLabel:"Şirket adı", vatNumberLabel:"KDV numarası", bioLabel:"Kısa biyografi", becomeProSubmit:"Hizmet sunmaya başla", saveServicesBtn:"Hizmetleri kaydet", messagePlaceholder:"Bir mesaj yaz...",
+    editProfileBtn:"Profili düzenle", editProfileTitle:"Profilini düzenle", cityLabel:"Şehir", saveChangesBtn:"Değişiklikleri kaydet",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -413,6 +419,7 @@ const STRINGS = {
     authCheckEmail:"Проверьте почту, чтобы подтвердить аккаунт.", authSignOut:"Выйти",
     becomeProPrompt:"Хотите предлагать услуги на klussie? Настройте профиль специалиста.", becomeProBtn:"Стать специалистом", becomeProTitle:"Настройте профиль специалиста",
     businessNameLabel:"Название компании", vatNumberLabel:"Номер плательщика НДС", bioLabel:"Краткое описание", becomeProSubmit:"Начать предлагать услуги", saveServicesBtn:"Сохранить услуги", messagePlaceholder:"Введите сообщение...",
+    editProfileBtn:"Редактировать профиль", editProfileTitle:"Редактируйте свой профиль", cityLabel:"Город", saveChangesBtn:"Сохранить изменения",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -466,6 +473,7 @@ const STRINGS = {
     authCheckEmail:"请查收邮件以确认你的账户。", authSignOut:"退出登录",
     becomeProPrompt:"想在 klussie 上提供服务吗？设置你的专业人士资料。", becomeProBtn:"成为专业人士", becomeProTitle:"设置你的专业人士资料",
     businessNameLabel:"公司名称", vatNumberLabel:"增值税号", bioLabel:"简介", becomeProSubmit:"开始提供服务", saveServicesBtn:"保存服务", messagePlaceholder:"输入消息...",
+    editProfileBtn:"编辑资料", editProfileTitle:"编辑你的资料", cityLabel:"城市", saveChangesBtn:"保存更改",
   },
 };
 
@@ -725,6 +733,78 @@ function BecomeProSheet({ onClose, onDone }) {
 
       {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
       <button className="btn-primary" disabled={busy} onClick={submit}>{t.becomeProSubmit}</button>
+    </Sheet>
+  );
+}
+
+function EditProfileSheet({ onClose, onSaved }) {
+  const { t } = useLang();
+  const { profile, proProfile, updateProfile, refreshProfile } = useAuth();
+  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [city, setCity] = useState(profile?.city || "");
+  const [bio, setBio] = useState(proProfile?.bio || "");
+  const [businessName, setBusinessName] = useState(proProfile?.business_name || "");
+  const [vatNumber, setVatNumber] = useState(proProfile?.vat_number || "");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await updateProfile({ full_name: fullName, city });
+      if (proProfile) {
+        await updateProProfile(profile.id, {
+          bio,
+          business_name: proProfile.pro_type === "business" ? businessName : null,
+          vat_number: proProfile.pro_type === "business" ? vatNumber : null,
+        });
+        await refreshProfile();
+      }
+      if (onSaved) await onSaved();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet onClose={onClose}>
+      <div className="sheet-title">{t.editProfileTitle}</div>
+
+      <label className="field-label">{t.authFullNameLabel}</label>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+      </div>
+
+      <label className="field-label">{t.cityLabel}</label>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input value={city} onChange={(e) => setCity(e.target.value)} />
+      </div>
+
+      {proProfile && (
+        <>
+          {proProfile.pro_type === "business" && (
+            <>
+              <label className="field-label">{t.businessNameLabel}</label>
+              <div className="search" style={{ marginBottom: 14 }}>
+                <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+              </div>
+              <label className="field-label">{t.vatNumberLabel}</label>
+              <div className="search" style={{ marginBottom: 14 }}>
+                <input value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} />
+              </div>
+            </>
+          )}
+          <label className="field-label">{t.bioLabel}</label>
+          <textarea className="textarea" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
+        </>
+      )}
+
+      {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
+      <button className="btn-primary" disabled={busy} onClick={submit}>{t.saveChangesBtn}</button>
     </Sheet>
   );
 }
@@ -1073,12 +1153,14 @@ function ReviewSheet({ onClose, onSubmit }) {
 
 function CustomerProfile({ requests }) {
   const { t, serviceInfo } = useLang();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const [editOpen, setEditOpen] = useState(false);
   const completed = requests.filter((r) => r.status === "completed" || r.status === "reviewed").length;
   const reviews = requests.filter((r) => r.review);
+  const displayName = profile?.full_name || t.profileYou;
   return (
     <div className="pad">
-      <div className="profile-head"><div className="avatar avatar-lg">{t.profileYou[0]}</div><div><div className="h1" style={{ fontSize: 19 }}>{t.profileYou}</div><div className="ticket-sub">{user.email}</div></div></div>
+      <div className="profile-head"><div className="avatar avatar-lg">{displayName[0]}</div><div><div className="h1" style={{ fontSize: 19 }}>{displayName}</div><div className="ticket-sub">{user.email}</div></div></div>
       <div className="stat-row">
         <div className="stat"><div className="stat-num">{requests.length}</div><div className="stat-label">{t.requestsSent}</div></div>
         <div className="stat"><div className="stat-num">{completed}</div><div className="stat-label">{t.jobsCompleted}</div></div>
@@ -1088,7 +1170,9 @@ function CustomerProfile({ requests }) {
       {reviews.map((r) => (
         <div key={r.id} className="quote-card"><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Stars value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></div>
       ))}
-      <button className="btn-secondary" style={{ marginTop: 14 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
+      <button className="btn-secondary" style={{ marginTop: 14 }} onClick={() => setEditOpen(true)}>{t.editProfileBtn}</button>
+      <button className="btn-secondary" style={{ marginTop: 8 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
+      {editOpen && <EditProfileSheet onClose={() => setEditOpen(false)} />}
     </div>
   );
 }
@@ -1187,6 +1271,7 @@ function ProApp({ showToast }) {
   const refreshLeads = () => fetchProLeads(user.id).then(setLeads);
   const refreshJobs = () => fetchProJobs(user.id).then(setJobs);
   const refreshConversations = () => fetchConversations(user.id).then(setConversations);
+  const refreshProInfo = () => fetchPublicProInfo([user.id]).then((m) => setProInfo(m[user.id]));
 
   useEffect(() => {
     fetchProServices(user.id).then(setOfferedServiceIds);
@@ -1233,7 +1318,7 @@ function ProApp({ showToast }) {
         {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && (
-          <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} />
+          <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} />
         )}
       </div>
 
@@ -1353,11 +1438,12 @@ function ProJobs({ sent, booked, completed, proId }) {
   );
 }
 
-function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, onServicesChange }) {
+function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, onServicesChange, onProfileSaved }) {
   const { t, fmt, catName, serviceInfo, proBadgeLabel, CATS, BASE_SERVICES } = useLang();
   const { user, proProfile, refreshProfile, signOut } = useAuth();
   const [selected, setSelected] = useState(offeredServiceIds);
   const [saving, setSaving] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const flexiPct = Math.min(100, Math.round((earnedGross / FLEXI_TAX_FREE_THRESHOLD) * 100));
   const isBoosted = proProfile.boosted_until && new Date(proProfile.boosted_until) > new Date();
 
@@ -1435,7 +1521,9 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
       </div>
 
       <div className="fineprint" style={{ marginTop: 14 }}><ThumbsUp size={12} /> {t.proFineprint}</div>
-      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => setEditOpen(true)}>{t.editProfileBtn}</button>
+      <button className="btn-secondary" style={{ marginTop: 8 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
+      {editOpen && <EditProfileSheet onClose={() => setEditOpen(false)} onSaved={onProfileSaved} />}
     </div>
   );
 }
