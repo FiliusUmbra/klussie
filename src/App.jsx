@@ -1,9 +1,33 @@
-import React, { useState, useRef, useContext, createContext } from "react";
+import React, { useState, useRef, useEffect, useContext, createContext } from "react";
 import {
-  Search, Sparkles, Truck, Hammer, Wrench, BookOpen, PartyPopper, MoreHorizontal,
-  Star, MapPin, ChevronRight, X, Check, User, Home, ClipboardList,
-  MessageCircle, Send, Briefcase, TrendingUp, ThumbsUp, Clock, ShieldCheck, Globe, BadgeCheck,
+  Search, Star, MapPin, ChevronRight, X, Check, User, Home, ClipboardList,
+  MessageCircle, Send, Briefcase, TrendingUp, ThumbsUp, Clock, ShieldCheck, Globe, BadgeCheck, LogOut, Mail, Lock,
 } from "lucide-react";
+import { AuthProvider, useAuth } from "./lib/auth.jsx";
+import { fetchCatalog } from "./lib/catalog";
+import {
+  createServiceRequest,
+  fetchCustomerRequests,
+  fetchProLeads,
+  fetchProJobs,
+  sendQuote as sendQuoteApi,
+  acceptQuote as acceptQuoteApi,
+  markComplete as markCompleteApi,
+  submitReview as submitReviewApi,
+  subscribeToCustomerRequests,
+  subscribeToRequestQuotes,
+  subscribeToProLeads,
+  subscribeToProQuoteUpdates,
+} from "./lib/requests";
+import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo } from "./lib/pros";
+import {
+  fetchConversations,
+  fetchMessages,
+  sendMessage,
+  markConversationRead,
+  subscribeToConversationsForUser,
+  subscribeToMessages,
+} from "./lib/messages";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -66,6 +90,11 @@ const STRINGS = {
     invoiceAmount:"Bedrag excl. btw", invoiceVat:"Btw (21%)", invoiceTotal:"Totaal", invoiceRef:"Referentie",
     certifiedOnlyBadge:"Enkel erkende specialisten",
     flexiHiddenNote:"Opdrachten enkel voor erkende specialisten zijn verborgen zolang je als flexi-jobber staat ingesteld.",
+    authSignInTitle:"Inloggen", authSignUpTitle:"Account aanmaken", authFullNameLabel:"Volledige naam", authEmailLabel:"E-mailadres", authPasswordLabel:"Wachtwoord",
+    authSignInBtn:"Inloggen", authSignUpBtn:"Account aanmaken", authSwitchToSignUp:"Nog geen account? Registreer je", authSwitchToSignIn:"Al een account? Log in",
+    authCheckEmail:"Controleer je e-mail om je account te bevestigen.", authSignOut:"Uitloggen",
+    becomeProPrompt:"Wil je diensten aanbieden op klussie? Stel je vakman-profiel in.", becomeProBtn:"Word vakman", becomeProTitle:"Stel je vakman-profiel in",
+    businessNameLabel:"Bedrijfsnaam", vatNumberLabel:"Btw-nummer", bioLabel:"Korte omschrijving", becomeProSubmit:"Start met diensten aanbieden", saveServicesBtn:"Diensten opslaan", messagePlaceholder:"Typ een bericht...",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -114,6 +143,11 @@ const STRINGS = {
     invoiceAmount:"Montant hors TVA", invoiceVat:"TVA (21%)", invoiceTotal:"Total", invoiceRef:"Référence",
     certifiedOnlyBadge:"Réservé aux spécialistes agréés",
     flexiHiddenNote:"Les missions réservées aux spécialistes agréés sont masquées tant que tu es enregistré comme flexi-jobbeur.",
+    authSignInTitle:"Se connecter", authSignUpTitle:"Créer un compte", authFullNameLabel:"Nom complet", authEmailLabel:"Adresse e-mail", authPasswordLabel:"Mot de passe",
+    authSignInBtn:"Se connecter", authSignUpBtn:"Créer un compte", authSwitchToSignUp:"Pas encore de compte ? Inscris-toi", authSwitchToSignIn:"Déjà un compte ? Connecte-toi",
+    authCheckEmail:"Vérifie tes e-mails pour confirmer ton compte.", authSignOut:"Se déconnecter",
+    becomeProPrompt:"Tu veux proposer des services sur klussie ? Configure ton profil pro.", becomeProBtn:"Devenir pro", becomeProTitle:"Configure ton profil pro",
+    businessNameLabel:"Nom de l'entreprise", vatNumberLabel:"Numéro de TVA", bioLabel:"Courte description", becomeProSubmit:"Commencer à proposer des services", saveServicesBtn:"Enregistrer les services", messagePlaceholder:"Écris un message...",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -162,6 +196,11 @@ const STRINGS = {
     invoiceAmount:"Betrag exkl. MwSt.", invoiceVat:"MwSt. (21%)", invoiceTotal:"Gesamt", invoiceRef:"Referenz",
     certifiedOnlyBadge:"Nur für zertifizierte Fachleute",
     flexiHiddenNote:"Nur für Fachleute reservierte Aufträge sind ausgeblendet, solange du als Flexi-Jobber registriert bist.",
+    authSignInTitle:"Anmelden", authSignUpTitle:"Konto erstellen", authFullNameLabel:"Vollständiger Name", authEmailLabel:"E-Mail-Adresse", authPasswordLabel:"Passwort",
+    authSignInBtn:"Anmelden", authSignUpBtn:"Konto erstellen", authSwitchToSignUp:"Noch kein Konto? Registrieren", authSwitchToSignIn:"Schon ein Konto? Anmelden",
+    authCheckEmail:"Bestätige dein Konto über den Link in deiner E-Mail.", authSignOut:"Abmelden",
+    becomeProPrompt:"Möchtest du Dienstleistungen auf klussie anbieten? Richte dein Profi-Profil ein.", becomeProBtn:"Profi werden", becomeProTitle:"Richte dein Profi-Profil ein",
+    businessNameLabel:"Firmenname", vatNumberLabel:"USt-IdNr.", bioLabel:"Kurzbeschreibung", becomeProSubmit:"Jetzt Dienstleistungen anbieten", saveServicesBtn:"Dienste speichern", messagePlaceholder:"Nachricht schreiben...",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -210,6 +249,11 @@ const STRINGS = {
     invoiceAmount:"Amount excl. VAT", invoiceVat:"VAT (21%)", invoiceTotal:"Total", invoiceRef:"Reference",
     certifiedOnlyBadge:"Certified professionals only",
     flexiHiddenNote:"Certified-only jobs are hidden while you're registered as a flexi-job worker.",
+    authSignInTitle:"Sign in", authSignUpTitle:"Create account", authFullNameLabel:"Full name", authEmailLabel:"Email address", authPasswordLabel:"Password",
+    authSignInBtn:"Sign in", authSignUpBtn:"Create account", authSwitchToSignUp:"No account yet? Sign up", authSwitchToSignIn:"Already have an account? Sign in",
+    authCheckEmail:"Check your email to confirm your account.", authSignOut:"Sign out",
+    becomeProPrompt:"Want to offer services on klussie? Set up your pro profile.", becomeProBtn:"Become a pro", becomeProTitle:"Set up your pro profile",
+    businessNameLabel:"Business name", vatNumberLabel:"VAT number", bioLabel:"Short bio", becomeProSubmit:"Start offering services", saveServicesBtn:"Save services", messagePlaceholder:"Type a message...",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -258,6 +302,11 @@ const STRINGS = {
     invoiceAmount:"المبلغ دون ضريبة القيمة المضافة", invoiceVat:"ضريبة القيمة المضافة (21%)", invoiceTotal:"الإجمالي", invoiceRef:"المرجع",
     certifiedOnlyBadge:"للمتخصصين المعتمدين فقط",
     flexiHiddenNote:"المهام المخصصة للمعتمدين فقط مخفية طالما أنك مسجل كعامل فليكسي جوب.",
+    authSignInTitle:"تسجيل الدخول", authSignUpTitle:"إنشاء حساب", authFullNameLabel:"الاسم الكامل", authEmailLabel:"البريد الإلكتروني", authPasswordLabel:"كلمة المرور",
+    authSignInBtn:"تسجيل الدخول", authSignUpBtn:"إنشاء حساب", authSwitchToSignUp:"ليس لديك حساب؟ سجّل الآن", authSwitchToSignIn:"لديك حساب بالفعل؟ سجّل الدخول",
+    authCheckEmail:"تحقق من بريدك الإلكتروني لتأكيد حسابك.", authSignOut:"تسجيل الخروج",
+    becomeProPrompt:"تريد تقديم خدمات على klussie؟ أنشئ ملفك كمحترف.", becomeProBtn:"كن محترفًا", becomeProTitle:"أنشئ ملفك كمحترف",
+    businessNameLabel:"اسم الشركة", vatNumberLabel:"الرقم الضريبي", bioLabel:"نبذة قصيرة", becomeProSubmit:"ابدأ بتقديم الخدمات", saveServicesBtn:"حفظ الخدمات", messagePlaceholder:"اكتب رسالة...",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -306,6 +355,11 @@ const STRINGS = {
     invoiceAmount:"KDV hariç tutar", invoiceVat:"KDV (%21)", invoiceTotal:"Toplam", invoiceRef:"Referans",
     certifiedOnlyBadge:"Sadece sertifikalı uzmanlar",
     flexiHiddenNote:"Flexi-job çalışanı olarak kayıtlıyken sadece sertifikalı uzmanlara ait işler gizlenir.",
+    authSignInTitle:"Giriş yap", authSignUpTitle:"Hesap oluştur", authFullNameLabel:"Ad soyad", authEmailLabel:"E-posta adresi", authPasswordLabel:"Şifre",
+    authSignInBtn:"Giriş yap", authSignUpBtn:"Hesap oluştur", authSwitchToSignUp:"Hesabın yok mu? Kaydol", authSwitchToSignIn:"Zaten hesabın var mı? Giriş yap",
+    authCheckEmail:"Hesabını onaylamak için e-postanı kontrol et.", authSignOut:"Çıkış yap",
+    becomeProPrompt:"klussie'de hizmet sunmak mı istiyorsun? Profesyonel profilini oluştur.", becomeProBtn:"Profesyonel ol", becomeProTitle:"Profesyonel profilini oluştur",
+    businessNameLabel:"Şirket adı", vatNumberLabel:"KDV numarası", bioLabel:"Kısa biyografi", becomeProSubmit:"Hizmet sunmaya başla", saveServicesBtn:"Hizmetleri kaydet", messagePlaceholder:"Bir mesaj yaz...",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -354,6 +408,11 @@ const STRINGS = {
     invoiceAmount:"Сумма без НДС", invoiceVat:"НДС (21%)", invoiceTotal:"Итого", invoiceRef:"Номер",
     certifiedOnlyBadge:"Только для сертифицированных специалистов",
     flexiHiddenNote:"Заказы только для сертифицированных специалистов скрыты, пока вы зарегистрированы как флекси-джоб работник.",
+    authSignInTitle:"Войти", authSignUpTitle:"Создать аккаунт", authFullNameLabel:"Полное имя", authEmailLabel:"Электронная почта", authPasswordLabel:"Пароль",
+    authSignInBtn:"Войти", authSignUpBtn:"Создать аккаунт", authSwitchToSignUp:"Нет аккаунта? Зарегистрируйтесь", authSwitchToSignIn:"Уже есть аккаунт? Войдите",
+    authCheckEmail:"Проверьте почту, чтобы подтвердить аккаунт.", authSignOut:"Выйти",
+    becomeProPrompt:"Хотите предлагать услуги на klussie? Настройте профиль специалиста.", becomeProBtn:"Стать специалистом", becomeProTitle:"Настройте профиль специалиста",
+    businessNameLabel:"Название компании", vatNumberLabel:"Номер плательщика НДС", bioLabel:"Краткое описание", becomeProSubmit:"Начать предлагать услуги", saveServicesBtn:"Сохранить услуги", messagePlaceholder:"Введите сообщение...",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -402,94 +461,19 @@ const STRINGS = {
     invoiceAmount:"不含增值税金额", invoiceVat:"增值税 (21%)", invoiceTotal:"总计", invoiceRef:"参考编号",
     certifiedOnlyBadge:"仅限认证专业人士",
     flexiHiddenNote:"当你以 flexi-job 身份注册时，仅限认证专业人士的工作将被隐藏。",
+    authSignInTitle:"登录", authSignUpTitle:"创建账户", authFullNameLabel:"姓名", authEmailLabel:"电子邮箱", authPasswordLabel:"密码",
+    authSignInBtn:"登录", authSignUpBtn:"创建账户", authSwitchToSignUp:"还没有账户？注册", authSwitchToSignIn:"已有账户？登录",
+    authCheckEmail:"请查收邮件以确认你的账户。", authSignOut:"退出登录",
+    becomeProPrompt:"想在 klussie 上提供服务吗？设置你的专业人士资料。", becomeProBtn:"成为专业人士", becomeProTitle:"设置你的专业人士资料",
+    businessNameLabel:"公司名称", vatNumberLabel:"增值税号", bioLabel:"简介", becomeProSubmit:"开始提供服务", saveServicesBtn:"保存服务", messagePlaceholder:"输入消息...",
   },
 };
 
 /* ---------------------------------- DATA ---------------------------------- */
 
-const CATS = [
-  { id: "cleaning", icon: Sparkles },
-  { id: "moving", icon: Truck },
-  { id: "renovation", icon: Hammer },
-  { id: "repair", icon: Wrench },
-  { id: "tutoring", icon: BookOpen },
-  { id: "events", icon: PartyPopper },
-  { id: "specialist", icon: BadgeCheck },
-  { id: "other", icon: MoreHorizontal },
-];
-
-const CAT_I18N = {
-  nl:{cleaning:"Schoonmaak",moving:"Verhuizing",renovation:"Renovatie",repair:"Herstelling",tutoring:"Bijles",events:"Evenementen",specialist:"Specialisten",other:"Overig"},
-  fr:{cleaning:"Nettoyage",moving:"Déménagement",renovation:"Rénovation",repair:"Réparation",tutoring:"Cours particuliers",events:"Événements",specialist:"Spécialistes",other:"Autre"},
-  de:{cleaning:"Reinigung",moving:"Umzug",renovation:"Renovierung",repair:"Reparatur",tutoring:"Nachhilfe",events:"Veranstaltungen",specialist:"Spezialisten",other:"Sonstiges"},
-  en:{cleaning:"Cleaning",moving:"Moving",renovation:"Renovation",repair:"Repair",tutoring:"Tutoring",events:"Events",specialist:"Specialists",other:"Other"},
-  ar:{cleaning:"تنظيف",moving:"نقل",renovation:"تجديد",repair:"إصلاح",tutoring:"دروس خصوصية",events:"مناسبات",specialist:"متخصصون",other:"أخرى"},
-  tr:{cleaning:"Temizlik",moving:"Nakliyat",renovation:"Tadilat",repair:"Tamir",tutoring:"Özel Ders",events:"Organizasyon",specialist:"Uzmanlar",other:"Diğer"},
-  ru:{cleaning:"Уборка",moving:"Переезд",renovation:"Ремонт",repair:"Починка",tutoring:"Репетиторство",events:"Мероприятия",specialist:"Специалисты",other:"Другое"},
-  zh:{cleaning:"清洁",moving:"搬家",renovation:"装修",repair:"维修",tutoring:"家教",events:"活动策划",specialist:"专业认证服务",other:"其他"},
-};
-
-const BASE_SERVICES = [
-  { id:"s1", cat:"renovation", pros:1842, rating:4.8, reviews:12163, mode:"quote", base:320 },
-  { id:"s2", cat:"moving", pros:604, rating:4.9, reviews:19700, mode:"quote", base:480 },
-  { id:"s3", cat:"cleaning", pros:1995, rating:4.6, reviews:41042, mode:"book", base:65 },
-  { id:"s4", cat:"cleaning", pros:1230, rating:4.6, reviews:4683, mode:"quote", base:90 },
-  { id:"s5", cat:"renovation", pros:1091, rating:4.6, reviews:1187, mode:"quote", base:1500 },
-  { id:"s6", cat:"repair", pros:1425, rating:4.7, reviews:2370, mode:"quote", base:210 },
-  { id:"s7", cat:"moving", pros:1222, rating:4.9, reviews:6542, mode:"quote", base:90 },
-  { id:"s8", cat:"tutoring", pros:639, rating:4.9, reviews:1718, mode:"quote", base:35 },
-  { id:"s9", cat:"repair", pros:1367, rating:4.8, reviews:3079, mode:"quote", base:70 },
-  { id:"s10", cat:"cleaning", pros:730, rating:4.9, reviews:7468, mode:"quote", base:55 },
-  { id:"s11", cat:"repair", pros:1104, rating:4.7, reviews:15420, mode:"quote", base:120 },
-  { id:"s12", cat:"specialist", pros:340, rating:4.8, reviews:890, mode:"quote", base:150, certifiedOnly:true },
-  { id:"s13", cat:"specialist", pros:512, rating:4.9, reviews:2210, mode:"quote", base:60, certifiedOnly:true },
-  { id:"s14", cat:"specialist", pros:210, rating:4.8, reviews:640, mode:"quote", base:450, certifiedOnly:true },
-  { id:"s15", cat:"specialist", pros:380, rating:4.9, reviews:1340, mode:"quote", base:90, certifiedOnly:true },
-];
-
-const SERVICE_I18N = {
-  nl:{ s1:{name:"Schilderwerken",blurb:"Binnen- en buitenschilderwerk, muurvoorbereiding en afwerking door erkende schilders."}, s2:{name:"Verhuisservice",blurb:"Volledige verhuizingen inclusief inpakken, dragen en transport."}, s3:{name:"Woningreiniging",blurb:"Terugkerende of eenmalige grondige schoonmaak voor appartement of huis."}, s4:{name:"Ontruimingsschoonmaak",blurb:"Schoonmaak bij verhuis zodat je je waarborg zonder stress terugkrijgt."}, s5:{name:"Keukenkasten op maat",blurb:"Keukenkasten op maat gemeten en gebouwd voor jouw ruimte."}, s6:{name:"Tegelwerken",blurb:"Vloer- en wandtegels voor badkamer, keuken en terras."}, s7:{name:"Meubeltransport",blurb:"Transport van losse meubels of toestellen, ook kleine ladingen."}, s8:{name:"Engelse bijles (online)",blurb:"1-op-1 online Engelse les op elk niveau, op een moment dat jou past."}, s9:{name:"Elektriciteitswerken",blurb:"Bekabeling, stopcontacten, verlichting en veiligheidscontroles door erkende elektriciens."}, s10:{name:"Zetel- en tapijtreiniging",blurb:"Stoom- en dieptereiniging voor zetels, fauteuils en matrassen."}, s11:{name:"Loodgieterswerken",blurb:"Lekkages, leidingwerk en sanitaire installaties door erkende loodgieters."}, s12:{name:"Juridisch advies voor buitenlanders",blurb:"Hulp bij verblijfsvergunningen, contracten en administratieve procedures door erkende juristen."}, s13:{name:"Beëdigde vertaling",blurb:"Officiële vertaling van documenten voor overheidsinstanties, erkend door de rechtbank."}, s14:{name:"Asbestverwijdering",blurb:"Veilige, wettelijk erkende verwijdering en afvoer van asbesthoudend materiaal."}, s15:{name:"EPC-certificatie",blurb:"Verplicht energieprestatiecertificaat opgesteld door een erkende EPC-deskundige."} },
-  fr:{ s1:{name:"Travaux de peinture",blurb:"Peinture intérieure et extérieure, préparation des murs et finitions par des peintres agréés."}, s2:{name:"Service de déménagement",blurb:"Déménagements complets incluant emballage, portage et transport."}, s3:{name:"Nettoyage de maison",blurb:"Nettoyage récurrent ou ponctuel pour appartement ou maison."}, s4:{name:"Nettoyage de fin de bail",blurb:"Nettoyage lors d'un déménagement pour récupérer ta garantie sans stress."}, s5:{name:"Cuisine sur mesure",blurb:"Meubles de cuisine mesurés et construits sur mesure pour ton espace."}, s6:{name:"Carrelage",blurb:"Carrelage sol et mur pour salle de bain, cuisine et terrasse."}, s7:{name:"Transport de meubles",blurb:"Transport de meubles ou d'appareils isolés, même en petite quantité."}, s8:{name:"Cours d'anglais (en ligne)",blurb:"Cours particuliers d'anglais en ligne à tous les niveaux, à ton rythme."}, s9:{name:"Travaux d'électricité",blurb:"Câblage, prises, luminaires et contrôles de sécurité par des électriciens agréés."}, s10:{name:"Nettoyage canapé et tapis",blurb:"Nettoyage vapeur en profondeur pour canapés, fauteuils et matelas."}, s11:{name:"Plomberie",blurb:"Fuites, tuyauterie et installations sanitaires par des plombiers agréés."}, s12:{name:"Conseil juridique pour étrangers",blurb:"Aide pour permis de séjour, contrats et démarches administratives par des juristes agréés."}, s13:{name:"Traduction assermentée",blurb:"Traduction officielle de documents pour les administrations, agréée par le tribunal."}, s14:{name:"Désamiantage",blurb:"Enlèvement et évacuation sécurisés et agréés des matériaux contenant de l'amiante."}, s15:{name:"Certification PEB",blurb:"Certificat de performance énergétique obligatoire établi par un expert agréé."} },
-  de:{ s1:{name:"Malerarbeiten",blurb:"Innen- und Außenanstrich, Wandvorbereitung und Ausführung durch geprüfte Maler."}, s2:{name:"Umzugsservice",blurb:"Komplette Umzüge inklusive Verpacken, Tragen und Transport."}, s3:{name:"Wohnungsreinigung",blurb:"Wiederkehrende oder einmalige Tiefenreinigung für Wohnung oder Haus."}, s4:{name:"Endreinigung",blurb:"Reinigung beim Auszug, damit du deine Kaution stressfrei zurückbekommst."}, s5:{name:"Küchenschränke nach Maß",blurb:"Maßgeschneiderte Küchenschränke, vermessen und gebaut für deinen Raum."}, s6:{name:"Fliesenarbeiten",blurb:"Boden- und Wandfliesen für Bad, Küche und Terrasse."}, s7:{name:"Möbeltransport",blurb:"Transport einzelner Möbel oder Geräte, auch kleine Ladungen."}, s8:{name:"Englisch-Nachhilfe (online)",blurb:"1:1-Online-Englischunterricht für jedes Niveau, zeitlich flexibel."}, s9:{name:"Elektroarbeiten",blurb:"Verkabelung, Steckdosen, Beleuchtung und Sicherheitsprüfungen durch geprüfte Elektriker."}, s10:{name:"Sofa- und Teppichreinigung",blurb:"Dampf- und Tiefenreinigung für Sofas, Sessel und Matratzen."}, s11:{name:"Klempnerarbeiten",blurb:"Lecks, Rohrleitungen und Sanitärinstallationen durch geprüfte Klempner."}, s12:{name:"Rechtsberatung für Ausländer",blurb:"Unterstützung bei Aufenthaltstiteln, Verträgen und Behördengängen durch zugelassene Juristen."}, s13:{name:"Beglaubigte Übersetzung",blurb:"Amtlich anerkannte Übersetzung von Dokumenten für Behörden."}, s14:{name:"Asbestsanierung",blurb:"Sichere, behördlich zugelassene Entfernung und Entsorgung asbesthaltiger Materialien."}, s15:{name:"EPC-Zertifizierung",blurb:"Vorgeschriebener Energieausweis, erstellt von einem zugelassenen Sachverständigen."} },
-  en:{ s1:{name:"Painting & Whitewash",blurb:"Interior/exterior painting, wall prep, and touch-ups from vetted painters."}, s2:{name:"Moving Service",blurb:"Full household moves with packing, loading, and transport."}, s3:{name:"Home Cleaning",blurb:"Recurring or one-off deep cleans for apartments and houses."}, s4:{name:"Move-out Cleaning",blurb:"End-of-tenancy cleaning to get your deposit back, stress-free."}, s5:{name:"Custom Kitchen Cabinets",blurb:"Bespoke kitchen cabinetry, measured and built for your space."}, s6:{name:"Tiling",blurb:"Floor and wall tiling for bathrooms, kitchens, and terraces."}, s7:{name:"Furniture Moving",blurb:"Single-item or small-load transport for furniture and appliances."}, s8:{name:"English Tutoring (Online)",blurb:"1:1 online English lessons for any level, scheduled around you."}, s9:{name:"Electrical Work",blurb:"Wiring, outlets, fixtures, and safety checks by licensed electricians."}, s10:{name:"Sofa & Carpet Cleaning",blurb:"Steam and deep-clean for sofas, armchairs, and mattresses."}, s11:{name:"Plumbing",blurb:"Leaks, pipework, and sanitary installations from licensed plumbers."}, s12:{name:"Legal Advice for Foreigners",blurb:"Help with residence permits, contracts, and administrative procedures from licensed legal advisors."}, s13:{name:"Certified Translation",blurb:"Official, court-recognised translation of documents for government procedures."}, s14:{name:"Asbestos Removal",blurb:"Safe, legally certified removal and disposal of asbestos-containing materials."}, s15:{name:"EPC Certification",blurb:"Mandatory energy performance certificate prepared by a licensed EPC assessor."} },
-  ar:{ s1:{name:"أعمال الدهان",blurb:"دهان داخلي وخارجي، تحضير الجدران واللمسات الأخيرة من قبل دهانين معتمدين."}, s2:{name:"خدمة النقل",blurb:"نقل كامل للمنزل يشمل التغليف والحمل والنقل."}, s3:{name:"تنظيف المنزل",blurb:"تنظيف عميق متكرر أو لمرة واحدة للشقق والمنازل."}, s4:{name:"تنظيف الإخلاء",blurb:"تنظيف عند الانتقال لاسترجاع تأمينك دون أي إزعاج."}, s5:{name:"خزائن مطبخ حسب الطلب",blurb:"خزائن مطبخ مقاسة ومصنوعة خصيصًا لمساحتك."}, s6:{name:"أعمال البلاط",blurb:"تركيب بلاط الأرضيات والجدران للحمامات والمطابخ والشرفات."}, s7:{name:"نقل الأثاث",blurb:"نقل قطعة أثاث واحدة أو حمولة صغيرة للأثاث والأجهزة."}, s8:{name:"دروس اللغة الإنجليزية (عبر الإنترنت)",blurb:"دروس فردية عبر الإنترنت لجميع المستويات، بمواعيد تناسبك."}, s9:{name:"أعمال الكهرباء",blurb:"أسلاك، مقابس، تركيبات، وفحوصات سلامة من قبل كهربائيين معتمدين."}, s10:{name:"تنظيف الأرائك والسجاد",blurb:"تنظيف بالبخار وتنظيف عميق للأرائك والكراسي والمراتب."}, s11:{name:"أعمال السباكة",blurb:"تسريبات، أنابيب، وتركيبات صحية من قبل سباكين مرخّصين."}, s12:{name:"استشارات قانونية للأجانب",blurb:"مساعدة في تصاريح الإقامة والعقود والإجراءات الإدارية من قبل مستشارين قانونيين مرخّصين."}, s13:{name:"ترجمة معتمدة",blurb:"ترجمة رسمية للمستندات معتمدة من المحكمة للإجراءات الحكومية."}, s14:{name:"إزالة الأسبستوس",blurb:"إزالة والتخلص الآمن والمعتمد قانونيًا من المواد المحتوية على الأسبستوس."}, s15:{name:"شهادة الأداء الطاقي (EPC)",blurb:"شهادة الأداء الطاقي الإلزامية يعدها خبير معتمد."} },
-  tr:{ s1:{name:"Boya Badana",blurb:"Onaylı ustalar tarafından iç/dış boya, duvar hazırlığı ve rötuş."}, s2:{name:"Nakliyat Hizmeti",blurb:"Paketleme, taşıma ve nakliye dahil komple ev taşımacılığı."}, s3:{name:"Ev Temizliği",blurb:"Daire ve evler için tekrarlayan veya tek seferlik detaylı temizlik."}, s4:{name:"Boş Ev Temizliği",blurb:"Depozitonu sorunsuzca geri almak için çıkış temizliği."}, s5:{name:"Özel Mutfak Dolabı",blurb:"Mekanına özel ölçülüp yapılan mutfak dolapları."}, s6:{name:"Fayans Döşeme",blurb:"Banyo, mutfak ve teras için zemin ve duvar fayansı."}, s7:{name:"Eşya Taşıma",blurb:"Tek parça eşya veya küçük yük taşımacılığı."}, s8:{name:"İngilizce Özel Ders (Online)",blurb:"Her seviyeye uygun, sana uygun saatlerde birebir online İngilizce dersi."}, s9:{name:"Elektrik İşleri",blurb:"Lisanslı elektrikçiler tarafından kablolama, priz, aydınlatma ve güvenlik kontrolü."}, s10:{name:"Koltuk ve Halı Yıkama",blurb:"Koltuk, berjer ve yatak için buharla derin temizlik."}, s11:{name:"Su Tesisatı",blurb:"Lisanslı tesisatçılar tarafından kaçak, boru döşeme ve sıhhi tesisat işleri."}, s12:{name:"Yabancılar için Hukuki Danışmanlık",blurb:"Lisanslı hukuk danışmanlarından oturma izni, sözleşmeler ve idari işlemler konusunda destek."}, s13:{name:"Yeminli Tercüme",blurb:"Resmi kurumlar için mahkemece onaylı belge tercümesi."}, s14:{name:"Asbest Sökümü",blurb:"Asbest içeren malzemelerin güvenli ve yasal olarak onaylı şekilde sökülmesi ve bertarafı."}, s15:{name:"EPC Sertifikası",blurb:"Lisanslı bir uzman tarafından hazırlanan zorunlu enerji performans sertifikası."} },
-  ru:{ s1:{name:"Малярные работы",blurb:"Внутренняя и наружная покраска, подготовка стен и отделка проверенными мастерами."}, s2:{name:"Служба переезда",blurb:"Полный переезд с упаковкой, погрузкой и транспортировкой."}, s3:{name:"Уборка дома",blurb:"Регулярная или разовая глубокая уборка квартир и домов."}, s4:{name:"Уборка при выезде",blurb:"Уборка при переезде, чтобы без стресса вернуть залог."}, s5:{name:"Кухонные шкафы на заказ",blurb:"Кухонная мебель, изготовленная по индивидуальным размерам."}, s6:{name:"Укладка плитки",blurb:"Напольная и настенная плитка для ванной, кухни и террасы."}, s7:{name:"Перевозка мебели",blurb:"Перевозка отдельных предметов мебели или техники, даже небольших грузов."}, s8:{name:"Репетитор по английскому (онлайн)",blurb:"Индивидуальные онлайн-уроки английского для любого уровня, в удобное время."}, s9:{name:"Электромонтажные работы",blurb:"Проводка, розетки, освещение и проверка безопасности лицензированными электриками."}, s10:{name:"Химчистка дивана и ковров",blurb:"Паровая глубокая чистка диванов, кресел и матрасов."}, s11:{name:"Сантехнические работы",blurb:"Утечки, трубопроводы и сантехнические установки от лицензированных сантехников."}, s12:{name:"Юридическая консультация для иностранцев",blurb:"Помощь с видом на жительство, договорами и административными процедурами от лицензированных юристов."}, s13:{name:"Заверенный перевод",blurb:"Официальный, признанный судом перевод документов для государственных процедур."}, s14:{name:"Удаление асбеста",blurb:"Безопасное, юридически сертифицированное удаление и утилизация асбестосодержащих материалов."}, s15:{name:"Сертификация EPC",blurb:"Обязательный сертификат энергоэффективности, подготовленный лицензированным экспертом."} },
-  zh:{ s1:{name:"油漆粉刷",blurb:"由认证油漆工提供的室内外油漆、墙面处理及修补。"}, s2:{name:"搬家服务",blurb:"包含打包、搬运和运输的全套搬家服务。"}, s3:{name:"住宅清洁",blurb:"为公寓和住宅提供定期或一次性深度清洁。"}, s4:{name:"退租清洁",blurb:"搬家时的清洁服务，助你无忧拿回押金。"}, s5:{name:"定制厨柜",blurb:"根据你的空间量身定制并安装的厨房橱柜。"}, s6:{name:"贴砖服务",blurb:"卫生间、厨房和露台的地砖与墙砖铺贴。"}, s7:{name:"家具搬运",blurb:"单件家具或小件货物及电器的运输。"}, s8:{name:"英语家教（在线）",blurb:"适合任何水平的一对一在线英语课程，时间灵活安排。"}, s9:{name:"电气维修",blurb:"由持证电工提供的布线、插座、灯具安装及安全检查。"}, s10:{name:"沙发地毯清洗",blurb:"沙发、扶手椅和床垫的蒸汽深度清洁。"}, s11:{name:"水管维修",blurb:"由持证水管工提供的漏水处理、管道及卫浴安装服务。"}, s12:{name:"外籍人士法律咨询",blurb:"由持证法律顾问提供居留许可、合同及行政手续方面的协助。"}, s13:{name:"认证翻译",blurb:"面向政府手续的官方文件翻译，经法院认可。"}, s14:{name:"石棉清除",blurb:"安全、具备法定资质的石棉材料清除与处理服务。"}, s15:{name:"EPC能效认证",blurb:"由持证EPC评估师出具的强制性能效证书。"} },
-};
-
-const BASE_PROS = [
-  { id:"p1", cats:["cleaning","repair"], rating:4.8, reviews:342, badgeTier:"top", initials:"JP", name:"Jan Peeters", proType:"flexi" },
-  { id:"p2", cats:["cleaning"], rating:4.9, reviews:611, badgeTier:"elite", initials:"SM", name:"Sofie Maes", proType:"business" },
-  { id:"p3", cats:["renovation"], rating:4.7, reviews:208, badgeTier:null, initials:"KW", name:"Kevin Willems", proType:"business" },
-  { id:"p4", cats:["moving"], rating:4.9, reviews:455, badgeTier:"top", initials:"AD", name:"Anke De Wilde", proType:"business" },
-  { id:"p5", cats:["renovation","repair"], rating:4.6, reviews:129, badgeTier:null, initials:"BV", name:"Bram Van Damme", proType:"flexi" },
-  { id:"p6", cats:["tutoring"], rating:5.0, reviews:88, badgeTier:"elite", initials:"NV", name:"Nele Verbruggen", proType:"flexi" },
-  { id:"p7", cats:["moving","cleaning"], rating:4.8, reviews:301, badgeTier:null, initials:"TC", name:"Tom Coppens", proType:"business" },
-  { id:"p8", cats:["specialist"], rating:4.9, reviews:156, badgeTier:"elite", initials:"LP", name:"Laurens Peeters", proType:"business" },
-  { id:"p9", cats:["specialist"], rating:4.8, reviews:302, badgeTier:"top", initials:"YB", name:"Yasmine Benali", proType:"business" },
-  { id:"p10", cats:["specialist","repair"], rating:4.7, reviews:98, badgeTier:null, initials:"DP", name:"Dirk Praet", proType:"business" },
-];
-
 const PLATFORM_COMMISSION_RATE = 0.12;
 const FLEXI_TAX_FREE_THRESHOLD = 18440;
 const BOOST_WEEKLY_PRICE = 9;
-
-const PRO_BIO_I18N = {
-  nl:{p1:"12 jaar ervaring in klussen door heel Vlaanderen. Erkend elektricien, stipt en steeds net werk.",p2:"Gespecialiseerd in dieptereiniging. Ecologische producten op aanvraag.",p3:"Schilderwerk en kleine renovaties. Gratis kleuradvies inbegrepen.",p4:"Zorgvuldige verhuizers, eigen vrachtwagen, verzekerd tegen schade.",p5:"Tegelwerk en algemene klussen. Deze week nog beschikbaar.",p6:"Gediplomeerd leerkracht Engels, 8 jaar ervaring met online bijles.",p7:"Snelle, vriendelijke verhuisploeg, ook schoonmaak na de verhuis.",p8:"Erkend juridisch adviseur, gespecialiseerd in verblijfsrecht en administratieve procedures voor buitenlanders.",p9:"Beëdigd vertaler Frans-Nederlands-Engels, gespecialiseerd in officiële documenten.",p10:"Erkend EPC-deskundige en gecertificeerd voor asbestinventarisatie en -verwijdering."},
-  fr:{p1:"12 ans d'expérience en travaux à travers toute la Flandre. Électricien agréé, ponctuel, travail toujours soigné.",p2:"Spécialiste du nettoyage en profondeur. Produits écologiques sur demande.",p3:"Peinture et petites rénovations. Conseil couleur gratuit inclus.",p4:"Déménageurs soigneux, camion propre, assurés contre la casse.",p5:"Carrelage et petits travaux. Disponible cette semaine.",p6:"Professeure d'anglais diplômée, 8 ans d'expérience en cours en ligne.",p7:"Équipe de déménagement rapide et sympathique, aussi nettoyage après déménagement.",p8:"Conseiller juridique agréé, spécialisé en droit de séjour et démarches administratives pour étrangers.",p9:"Traductrice assermentée français-néerlandais-anglais, spécialisée en documents officiels.",p10:"Expert PEB agréé et certifié pour l'inventaire et le désamiantage."},
-  de:{p1:"12 Jahre Erfahrung mit Reparaturen in ganz Flandern. Geprüfter Elektriker, pünktlich, stets saubere Arbeit.",p2:"Spezialistin für Tiefenreinigung. Ökologische Produkte auf Anfrage.",p3:"Malerarbeiten und kleine Renovierungen. Kostenlose Farbberatung inklusive.",p4:"Sorgfältige Umzugshelfer, eigener LKW, gegen Schäden versichert.",p5:"Fliesenarbeiten und allgemeine Reparaturen. Diese Woche noch verfügbar.",p6:"Diplomierte Englischlehrerin, 8 Jahre Erfahrung mit Online-Nachhilfe.",p7:"Schnelles, freundliches Umzugsteam, auch Reinigung nach dem Umzug.",p8:"Zugelassener Rechtsberater, spezialisiert auf Aufenthaltsrecht und Behördengänge für Ausländer.",p9:"Beeidigte Übersetzerin Französisch-Niederländisch-Englisch, spezialisiert auf amtliche Dokumente.",p10:"Zugelassener EPC-Sachverständiger, zertifiziert für Asbestinventar und -sanierung."},
-  en:{p1:"12 years fixing homes across Flanders. Licensed electrician, punctual, and clean work every time.",p2:"Deep-cleaning specialist. Eco-friendly products available on request.",p3:"Painting and small renovation jobs. Free colour consultation included.",p4:"Careful movers, own truck, insured against breakage.",p5:"Tiling and general handyman repairs. Available this week.",p6:"Certified English teacher, 8 years of online tutoring experience.",p7:"Fast, friendly moving crew, also offers post-move cleaning.",p8:"Licensed legal advisor specialising in residence law and administrative procedures for foreigners.",p9:"Certified French-Dutch-English translator, specialising in official documents.",p10:"Licensed EPC assessor, certified for asbestos inventory and removal."},
-  ar:{p1:"12 عامًا من الخبرة في إصلاح المنازل في جميع أنحاء فلاندرز. كهربائي مرخّص، دقيق المواعيد، وعمل نظيف دائمًا.",p2:"متخصصة في التنظيف العميق. منتجات صديقة للبيئة عند الطلب.",p3:"أعمال دهان وتجديدات صغيرة. استشارة ألوان مجانية ضمن الخدمة.",p4:"عمال نقل حريصون، شاحنة خاصة، مؤمَّن ضد الأضرار.",p5:"أعمال بلاط وإصلاحات عامة. متاح هذا الأسبوع.",p6:"معلمة لغة إنجليزية معتمدة، 8 سنوات خبرة في التدريس عبر الإنترنت.",p7:"فريق نقل سريع وودود، ويقدم أيضًا تنظيفًا بعد الانتقال.",p8:"مستشار قانوني مرخّص، متخصص في قانون الإقامة والإجراءات الإدارية للأجانب.",p9:"مترجمة معتمدة فرنسي-هولندي-إنجليزي، متخصصة في المستندات الرسمية.",p10:"خبير معتمد لشهادات الأداء الطاقي (EPC)، ومعتمد لجرد وإزالة الأسبستوس."},
-  tr:{p1:"Flandre genelinde 12 yıllık tamirat deneyimi. Lisanslı elektrikçi, dakik ve her zaman temiz iş.",p2:"Derinlemesine temizlik uzmanı. Talep üzerine çevre dostu ürünler.",p3:"Boya ve küçük tadilat işleri. Ücretsiz renk danışmanlığı dahil.",p4:"Titiz nakliyeciler, kendi kamyonu, hasara karşı sigortalı.",p5:"Fayans döşeme ve genel tamirat işleri. Bu hafta müsait.",p6:"Sertifikalı İngilizce öğretmeni, 8 yıllık online özel ders deneyimi.",p7:"Hızlı, samimi nakliye ekibi, taşıma sonrası temizlik de sunuyor.",p8:"Yabancılar için oturma hakkı ve idari işlemler konusunda uzman, lisanslı hukuk danışmanı.",p9:"Fransızca-Felemenkçe-İngilizce yeminli tercüman, resmi belgeler konusunda uzman.",p10:"Lisanslı EPC uzmanı, asbest tespiti ve sökümü konusunda sertifikalı."},
-  ru:{p1:"12 лет опыта ремонта домов по всей Фландрии. Лицензированный электрик, пунктуален, всегда аккуратная работа.",p2:"Специалист по глубокой уборке. Экологичные средства по запросу.",p3:"Покраска и небольшой ремонт. Бесплатная консультация по цвету включена.",p4:"Аккуратные грузчики, собственный грузовик, застрахованы от повреждений.",p5:"Укладка плитки и общий ремонт. Свободен на этой неделе.",p6:"Дипломированный преподаватель английского, 8 лет опыта онлайн-репетиторства.",p7:"Быстрая, дружелюбная бригада переезда, также предлагает уборку после переезда.",p8:"Лицензированный юридический консультант, специализирующийся на праве проживания и административных процедурах для иностранцев.",p9:"Сертифицированный переводчик французский-нидерландский-английский, специализируется на официальных документах.",p10:"Лицензированный эксперт по EPC, сертифицирован для инвентаризации и удаления асбеста."},
-  zh:{p1:"12年家居维修经验，服务遍及弗兰德斯地区。持证电工，准时守信，工作干净利落。",p2:"深度清洁专家，可应要求提供环保清洁产品。",p3:"油漆粉刷及小型装修工程，免费提供配色建议。",p4:"细心的搬运团队，自备货车，并有损坏保险。",p5:"贴砖及各类维修工作，本周有空。",p6:"持证英语教师，拥有8年在线家教经验。",p7:"高效友善的搬家团队，同时提供搬家后清洁服务。",p8:"持证法律顾问，专注于外籍人士居留法律与行政手续。",p9:"持证法语-荷兰语-英语翻译，专长官方文件翻译。",p10:"持证EPC评估师，具备石棉检测与清除资质。"},
-};
-
-const CURRENT_PRO_ID = "p1";
-
-let idCounter = 1;
-const nextId = (p) => `${p}${idCounter++}`;
 
 /* --------------------------------- CONTEXT --------------------------------- */
 
@@ -514,23 +498,42 @@ function Badge({ children, tone = "sage" }) { return <span className={`badge bad
 /* ---------------------------------- APP ---------------------------------- */
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  );
+}
+
+const WHEN_PREFS = ["this_week", "next_week", "flexible"];
+
+function AppShell() {
   const [langCode, setLangCode] = useState("nl");
   const [role, setRole] = useState("customer");
-  const [requests, setRequests] = useState([]);
   const [toast, setToast] = useState(null);
+  const [catalog, setCatalog] = useState(null);
+  const [catalogError, setCatalogError] = useState(null);
+  const [becomeProOpen, setBecomeProOpen] = useState(false);
   const toastTimer = useRef(null);
+  const { session, loading: authLoading, proProfile } = useAuth();
+
+  useEffect(() => {
+    fetchCatalog().then(setCatalog).catch((err) => setCatalogError(err.message));
+  }, []);
 
   const langMeta = LANGS.find((l) => l.code === langCode);
   const t = STRINGS[langCode];
   const dir = langCode === "ar" ? "rtl" : "ltr";
   const fmt = (n) => Number(n).toLocaleString(langMeta.locale);
   const fmtDate = (ts) => new Date(ts).toLocaleDateString(langMeta.locale);
-  const catName = (id) => CAT_I18N[langCode][id];
-  const serviceInfo = (id) => SERVICE_I18N[langCode][id];
-  const proBio = (id) => PRO_BIO_I18N[langCode][id];
+  const CATS = catalog?.CATS ?? [];
+  const BASE_SERVICES = catalog?.BASE_SERVICES ?? [];
+  const catName = (id) => catalog?.CAT_I18N[langCode]?.[id] ?? id;
+  const serviceInfo = (id) => catalog?.SERVICE_I18N[langCode]?.[id] ?? { name: "", blurb: "" };
   const proBadgeLabel = (tier) => (tier === "top" ? t.topRated : tier === "elite" ? t.elitePro : null);
+  const whenLabel = (whenPref) => ({ this_week: t.whenThisWeek, next_week: t.whenNextWeek, flexible: t.whenFlexible }[whenPref] ?? whenPref);
 
-  const ctx = { t, dir, fmt, fmtDate, catName, serviceInfo, proBio, proBadgeLabel, langCode };
+  const ctx = { t, dir, fmt, fmtDate, catName, serviceInfo, proBadgeLabel, langCode, CATS, BASE_SERVICES, whenLabel };
 
   const showToast = (msg) => {
     setToast(msg);
@@ -538,41 +541,22 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2600);
   };
 
-  const createRequest = (service, answers) => {
-    const id = nextId("r");
-    const req = { id, cat: service.cat, serviceId: service.id, mode: service.mode, answers, base: service.base, createdAt: Date.now(), status: "collecting", quotes: [], bookedProId: null, review: null };
-    setRequests((r) => [req, ...r]);
-
-    const candidates = BASE_PROS.filter((p) => p.cats.includes(service.cat));
-    const n = Math.min(candidates.length, 2 + Math.floor(Math.random() * 2));
-    const chosen = [...candidates].sort(() => 0.5 - Math.random()).slice(0, n);
-    chosen.forEach((pro, i) => {
-      setTimeout(() => {
-        setRequests((rs) => rs.map((r) => {
-          if (r.id !== id || r.quotes.some((q) => q.proId === pro.id)) return r;
-          const price = Math.round((service.base * (0.85 + Math.random() * 0.5)) / 5) * 5;
-          return { ...r, status: "quotes_ready", quotes: [...r.quotes, { proId: pro.id, price, sentAt: Date.now() }] };
-        }));
-      }, 1400 + i * 1600);
-    });
-  };
-
-  const acceptQuote = (requestId, proId) => {
-    setRequests((rs) => rs.map((r) => (r.id === requestId ? { ...r, status: "booked", bookedProId: proId } : r)));
-    showToast(t.toastBooked);
-  };
-  const markComplete = (requestId) => setRequests((rs) => rs.map((r) => (r.id === requestId ? { ...r, status: "completed" } : r)));
-  const submitReview = (requestId, review) => {
-    setRequests((rs) => rs.map((r) => (r.id === requestId ? { ...r, status: "reviewed", review } : r)));
-    showToast(t.toastThanks);
-  };
-  const proSendQuote = (requestId, price, message) => {
-    setRequests((rs) => rs.map((r) => {
-      if (r.id !== requestId || r.quotes.some((q) => q.proId === CURRENT_PRO_ID)) return r;
-      return { ...r, status: "quotes_ready", quotes: [...r.quotes, { proId: CURRENT_PRO_ID, price, message, sentAt: Date.now() }] };
-    }));
-    showToast(t.toastQuoteSent);
-  };
+  let body;
+  if (authLoading || (session && !catalog && !catalogError)) {
+    body = <div className="pad"><div className="empty-block"><p>...</p></div></div>;
+  } else if (catalogError) {
+    body = <div className="pad"><div className="empty-block"><p>{catalogError}</p></div></div>;
+  } else if (!session) {
+    body = <AuthScreen />;
+  } else if (role === "pro") {
+    body = proProfile ? (
+      <ProApp showToast={showToast} />
+    ) : (
+      <BecomeProPrompt onStart={() => setBecomeProOpen(true)} />
+    );
+  } else {
+    body = <CustomerApp showToast={showToast} />;
+  }
 
   return (
     <LangContext.Provider value={ctx}>
@@ -580,13 +564,15 @@ export default function App() {
         <style>{CSS}</style>
 
         <div className="topbar">
-          <div className="role-switch">
-            <span className="role-switch-label">{t.previewingAs}</span>
-            <div className="segmented">
-              <button className={role === "customer" ? "seg-on" : ""} onClick={() => setRole("customer")}>{t.roleCustomer}</button>
-              <button className={role === "pro" ? "seg-on" : ""} onClick={() => setRole("pro")}>{t.rolePro}</button>
+          {session && (
+            <div className="role-switch">
+              <span className="role-switch-label">{t.previewingAs}</span>
+              <div className="segmented">
+                <button className={role === "customer" ? "seg-on" : ""} onClick={() => setRole("customer")}>{t.roleCustomer}</button>
+                <button className={role === "pro" ? "seg-on" : ""} onClick={() => setRole("pro")}>{t.rolePro}</button>
+              </div>
             </div>
-          </div>
+          )}
           <div className="lang-switch">
             <Globe size={13} color="#c9d6cd" />
             <select value={langCode} onChange={(e) => setLangCode(e.target.value)}>
@@ -599,11 +585,8 @@ export default function App() {
           <div className="notch" />
           <div className="statusbar"><span>9:41</span><span className="statusbar-dots">\u2022 \u2022 \u2022</span></div>
           <div className="screen">
-            {role === "customer" ? (
-              <CustomerApp requests={requests} createRequest={createRequest} acceptQuote={acceptQuote} markComplete={markComplete} submitReview={submitReview} />
-            ) : (
-              <ProApp requests={requests} proSendQuote={proSendQuote} />
-            )}
+            {body}
+            {becomeProOpen && <BecomeProSheet onClose={() => setBecomeProOpen(false)} onDone={() => { setBecomeProOpen(false); setRole("pro"); }} />}
           </div>
           {toast && <div className="toast">{toast}</div>}
         </div>
@@ -612,45 +595,243 @@ export default function App() {
   );
 }
 
+function AuthScreen() {
+  const { t } = useLang();
+  const { signIn, signUp } = useAuth();
+  const [mode, setMode] = useState("signin");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setNotice("");
+    setBusy(true);
+    try {
+      if (mode === "signin") {
+        await signIn(email, password);
+      } else {
+        const { needsEmailConfirmation } = await signUp(email, password, fullName);
+        if (needsEmailConfirmation) setNotice(t.authCheckEmail);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="pad">
+      <div className="hello"><div className="h1">{mode === "signin" ? t.authSignInTitle : t.authSignUpTitle}</div></div>
+      <form onSubmit={submit}>
+        {mode === "signup" && (
+          <>
+            <label className="field-label">{t.authFullNameLabel}</label>
+            <div className="search" style={{ marginBottom: 14 }}>
+              <User size={15} color="var(--ink-soft)" />
+              <input required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            </div>
+          </>
+        )}
+        <label className="field-label">{t.authEmailLabel}</label>
+        <div className="search" style={{ marginBottom: 14 }}>
+          <Mail size={15} color="var(--ink-soft)" />
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <label className="field-label">{t.authPasswordLabel}</label>
+        <div className="search" style={{ marginBottom: 18 }}>
+          <Lock size={15} color="var(--ink-soft)" />
+          <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
+        {notice && <div className="fineprint">{notice}</div>}
+        <button className="btn-primary" type="submit" disabled={busy}>
+          {mode === "signin" ? t.authSignInBtn : t.authSignUpBtn}
+        </button>
+      </form>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); setNotice(""); }}>
+        {mode === "signin" ? t.authSwitchToSignUp : t.authSwitchToSignIn}
+      </button>
+    </div>
+  );
+}
+
+function BecomeProPrompt({ onStart }) {
+  const { t } = useLang();
+  return (
+    <div className="pad">
+      <div className="empty-block">
+        <Briefcase size={26} color="var(--ink-soft)" />
+        <p>{t.becomeProPrompt}</p>
+        <button className="btn-primary" onClick={onStart}>{t.becomeProBtn}</button>
+      </div>
+    </div>
+  );
+}
+
+function BecomeProSheet({ onClose, onDone }) {
+  const { t } = useLang();
+  const { becomePro } = useAuth();
+  const [proType, setProType] = useState("flexi");
+  const [businessName, setBusinessName] = useState("");
+  const [vatNumber, setVatNumber] = useState("");
+  const [bio, setBio] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await becomePro({ proType, businessName, vatNumber, bio });
+      onDone();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet onClose={onClose}>
+      <div className="sheet-title">{t.becomeProTitle}</div>
+
+      <label className="field-label">{t.proTypeLabel}</label>
+      <div className="segmented segmented-block">
+        <button className={proType === "flexi" ? "seg-on" : ""} onClick={() => setProType("flexi")}>{t.proTypeFlexi}</button>
+        <button className={proType === "business" ? "seg-on" : ""} onClick={() => setProType("business")}>{t.proTypeBusiness}</button>
+      </div>
+
+      {proType === "business" && (
+        <>
+          <label className="field-label">{t.businessNameLabel}</label>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+          </div>
+          <label className="field-label">{t.vatNumberLabel}</label>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <input value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} />
+          </div>
+        </>
+      )}
+
+      <label className="field-label">{t.bioLabel}</label>
+      <textarea className="textarea" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
+
+      {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
+      <button className="btn-primary" disabled={busy} onClick={submit}>{t.becomeProSubmit}</button>
+    </Sheet>
+  );
+}
+
 /* ------------------------------- CUSTOMER APP ------------------------------ */
 
-function CustomerApp({ requests, createRequest, acceptQuote, markComplete, submitReview }) {
+function CustomerApp({ showToast }) {
   const { t } = useLang();
+  const { user } = useAuth();
   const [tab, setTab] = useState("discover");
   const [activeService, setActiveService] = useState(null);
   const [quoteForm, setQuoteForm] = useState(null);
   const [openRequest, setOpenRequest] = useState(null);
   const [reviewFor, setReviewFor] = useState(null);
+  const [requests, setRequests] = useState(null);
+  const [conversations, setConversations] = useState(null);
+  const [openConversation, setOpenConversation] = useState(null);
+
+  const refresh = () => fetchCustomerRequests(user.id).then(setRequests);
+  const refreshConversations = () => fetchConversations(user.id).then(setConversations);
+
+  useEffect(() => {
+    refresh();
+    return subscribeToCustomerRequests(user.id, refresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
+
+  useEffect(() => {
+    if (!openRequest) return;
+    return subscribeToRequestQuotes(openRequest, refresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRequest]);
+
+  useEffect(() => {
+    refreshConversations();
+    return subscribeToConversationsForUser(user.id, refreshConversations);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
+
+  if (!requests || !conversations) return <div className="pad"><div className="empty-block"><p>...</p></div></div>;
 
   const openRequestObj = requests.find((r) => r.id === openRequest);
   const reviewReq = requests.find((r) => r.id === reviewFor);
+
+  const createRequest = async (service, { whenPref, details, budget }) => {
+    await createServiceRequest({
+      customerId: user.id,
+      serviceId: service.id,
+      categoryId: service.cat,
+      details,
+      whenPref,
+      budget: budget === "" || budget == null ? null : Number(budget),
+    });
+    await refresh();
+  };
+
+  const acceptQuote = async (quoteId) => {
+    await acceptQuoteApi(quoteId);
+    await refresh();
+    showToast(t.toastBooked);
+  };
+
+  const markComplete = async (requestId) => {
+    await markCompleteApi(requestId);
+    await refresh();
+  };
+
+  const submitReview = async (request, review) => {
+    await submitReviewApi({ requestId: request.id, customerId: user.id, proId: request.bookedProId, stars: review.stars, text: review.text });
+    await refresh();
+    showToast(t.toastThanks);
+  };
 
   return (
     <div className="view">
       <div className="content">
         {tab === "discover" && <Discover onOpenService={(s) => setActiveService(s)} />}
         {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
-        {tab === "messages" && <MessagesStub />}
+        {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && <CustomerProfile requests={requests} />}
       </div>
 
       <BottomNav tab={tab} setTab={setTab} items={[
         { id: "discover", label: t.navDiscover, icon: Home },
         { id: "requests", label: t.navRequests, icon: ClipboardList, badge: requests.filter((r) => r.status === "quotes_ready").length },
-        { id: "messages", label: t.navMessages, icon: MessageCircle },
+        { id: "messages", label: t.navMessages, icon: MessageCircle, badge: conversations.reduce((sum, c) => sum + c.unreadCount, 0) },
         { id: "profile", label: t.navProfile, icon: User },
       ]} />
 
       {activeService && <ServiceSheet service={activeService} onClose={() => setActiveService(null)} onRequest={() => { setQuoteForm(activeService); setActiveService(null); }} />}
       {quoteForm && <QuoteFormSheet service={quoteForm} onClose={() => setQuoteForm(null)} onSubmit={(answers) => { createRequest(quoteForm, answers); setQuoteForm(null); setTab("requests"); }} />}
-      {openRequestObj && <RequestDetailSheet request={openRequestObj} onClose={() => setOpenRequest(null)} onAccept={(proId) => acceptQuote(openRequestObj.id, proId)} onComplete={() => markComplete(openRequestObj.id)} onReview={() => { setOpenRequest(null); setReviewFor(openRequestObj.id); }} />}
-      {reviewReq && <ReviewSheet request={reviewReq} onClose={() => setReviewFor(null)} onSubmit={(review) => { submitReview(reviewReq.id, review); setReviewFor(null); }} />}
+      {openRequestObj && <RequestDetailSheet request={openRequestObj} onClose={() => setOpenRequest(null)} onAccept={acceptQuote} onComplete={() => markComplete(openRequestObj.id)} onReview={() => { setOpenRequest(null); setReviewFor(openRequestObj.id); }} />}
+      {reviewReq && <ReviewSheet onClose={() => setReviewFor(null)} onSubmit={(review) => { submitReview(reviewReq, review); setReviewFor(null); }} />}
+      {openConversation && (
+        <ConversationSheet
+          conversationId={openConversation.id}
+          userId={user.id}
+          otherName={openConversation.otherName}
+          onClose={() => { setOpenConversation(null); refreshConversations(); }}
+        />
+      )}
     </div>
   );
 }
 
 function Discover({ onOpenService }) {
-  const { t, fmt, catName, serviceInfo } = useLang();
+  const { t, fmt, catName, serviceInfo, CATS, BASE_SERVICES } = useLang();
   const [cat, setCat] = useState("all");
   const [q, setQ] = useState("");
   const list = BASE_SERVICES.filter((s) => (cat === "all" || s.cat === cat) && serviceInfo(s.id).name.toLowerCase().includes(q.toLowerCase()));
@@ -693,7 +874,7 @@ function Discover({ onOpenService }) {
 }
 
 function ServiceSheet({ service, onClose, onRequest }) {
-  const { t, fmt, serviceInfo } = useLang();
+  const { t, fmt, serviceInfo, CATS } = useLang();
   const info = serviceInfo(service.id);
   const Icon = CATS.find((c) => c.id === service.cat).icon;
   return (
@@ -710,10 +891,10 @@ function ServiceSheet({ service, onClose, onRequest }) {
 }
 
 function QuoteFormSheet({ service, onClose, onSubmit }) {
-  const { t, serviceInfo } = useLang();
+  const { t, serviceInfo, whenLabel } = useLang();
   const info = serviceInfo(service.id);
   const [details, setDetails] = useState("");
-  const [when, setWhen] = useState(t.whenThisWeek);
+  const [whenPref, setWhenPref] = useState("this_week");
   const [budget, setBudget] = useState("");
 
   return (
@@ -723,8 +904,8 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
 
       <label className="field-label">{t.whenLabel}</label>
       <div className="chiprow">
-        {[t.whenThisWeek, t.whenNextWeek, t.whenFlexible].map((w) => (
-          <button key={w} className={"chip" + (when === w ? " chip-on" : "")} onClick={() => setWhen(w)}>{w}</button>
+        {WHEN_PREFS.map((w) => (
+          <button key={w} className={"chip" + (whenPref === w ? " chip-on" : "")} onClick={() => setWhenPref(w)}>{whenLabel(w)}</button>
         ))}
       </div>
 
@@ -737,14 +918,14 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
         <input placeholder={t.budgetPlaceholder} value={budget} onChange={(e) => setBudget(e.target.value)} />
       </div>
 
-      <button className="btn-primary" onClick={() => onSubmit({ when, details: details || "\u2014", budget })}><Send size={15} /> {t.sendRequestBtn}</button>
+      <button className="btn-primary" onClick={() => onSubmit({ whenPref, details: details || "\u2014", budget })}><Send size={15} /> {t.sendRequestBtn}</button>
       <div className="fineprint"><ShieldCheck size={12} /> {t.privacyNote}</div>
     </Sheet>
   );
 }
 
 function RequestsList({ requests, onOpen }) {
-  const { t, fmtDate, serviceInfo } = useLang();
+  const { t, fmtDate, serviceInfo, whenLabel } = useLang();
   return (
     <div className="pad">
       <div className="h1" style={{ marginBottom: 14 }}>{t.myRequestsTitle}</div>
@@ -756,7 +937,7 @@ function RequestsList({ requests, onOpen }) {
           <TicketTear />
           <div className="ticket-body">
             <div className="ticket-row"><div className="ticket-title">{serviceInfo(r.serviceId).name}</div><StatusPill status={r.status} /></div>
-            <div className="ticket-sub">{r.answers.when} \u00b7 {fmtDate(r.createdAt)}</div>
+            <div className="ticket-sub">{whenLabel(r.answers.when)} \u00b7 {fmtDate(r.createdAt)}</div>
             <div className="ticket-divider" />
             <div className="ticket-foot">
               {r.status === "collecting" && <span className="waiting"><Clock size={12} /> {t.waitingForQuotes}</span>}
@@ -773,21 +954,20 @@ function RequestsList({ requests, onOpen }) {
 function StatusPill({ status }) {
   const { t } = useLang();
   const map = { collecting: [t.statusCollecting, "amber"], quotes_ready: [t.statusQuotesReady, "forest"], booked: [t.statusBooked, "forest"], completed: [t.statusCompleted, "sage"], reviewed: [t.statusReviewed, "sage"] };
-  const [label, tone] = map[status];
+  const [label, tone] = map[status] || [status, "sage"];
   return <Badge tone={tone}>{label}</Badge>;
 }
 
 function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }) {
-  const { t, fmt, serviceInfo, proBadgeLabel } = useLang();
+  const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
   const [showInvoice, setShowInvoice] = useState(false);
   const info = serviceInfo(request.serviceId);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
-  const proOf = (proId) => BASE_PROS.find((p) => p.id === proId);
 
   return (
     <Sheet onClose={onClose}>
       <div className="sheet-title">{info.name}</div>
-      <div className="sheet-sub">{request.answers.when} \u00b7 "{request.answers.details}"</div>
+      <div className="sheet-sub">{whenLabel(request.answers.when)} \u00b7 "{request.answers.details}"</div>
 
       {request.status === "collecting" && (
         <div className="empty-block"><Clock size={22} color="var(--ink-soft)" /><p>{t.waitingMsg}</p></div>
@@ -797,9 +977,9 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
         <>
           <div className="section-title" style={{ marginTop: 6 }}>{t.quotesTitle} ({request.quotes.length})</div>
           {request.quotes.map((q) => {
-            const pro = proOf(q.proId);
+            const pro = q.pro;
             return (
-              <div key={q.proId} className="quote-card">
+              <div key={q.id} className="quote-card">
                 <div className="quote-top">
                   <div className="avatar">{pro.initials}</div>
                   <div style={{ flex: 1 }}>
@@ -808,7 +988,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
                   </div>
                   <div className="quote-price">\u20ac{fmt(q.price)}</div>
                 </div>
-                <button className="btn-secondary" onClick={() => onAccept(q.proId)}>{t.acceptQuoteBtn}</button>
+                <button className="btn-secondary" onClick={() => onAccept(q.id)}>{t.acceptQuoteBtn}</button>
               </div>
             );
           })}
@@ -816,7 +996,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
       )}
 
       {request.status === "booked" && bookedQuote && (() => {
-        const pro = proOf(bookedQuote.proId);
+        const pro = bookedQuote.pro;
         const fee = Math.round(bookedQuote.price * PLATFORM_COMMISSION_RATE * 100) / 100;
         const net = Math.round((bookedQuote.price - fee) * 100) / 100;
         return (
@@ -852,7 +1032,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
 function InvoiceSheet({ request, quote, onClose }) {
   const { t, fmt, serviceInfo } = useLang();
   const info = serviceInfo(request.serviceId);
-  const pro = BASE_PROS.find((p) => p.id === quote.proId);
+  const pro = quote.pro;
   const vat = Math.round(quote.price * 0.21 * 100) / 100;
   const total = Math.round((quote.price + vat) * 100) / 100;
   return (
@@ -873,7 +1053,7 @@ function InvoiceSheet({ request, quote, onClose }) {
   );
 }
 
-function ReviewSheet({ request, onClose, onSubmit }) {
+function ReviewSheet({ onClose, onSubmit }) {
   const { t } = useLang();
   const [stars, setStars] = useState(5);
   const [text, setText] = useState("");
@@ -893,11 +1073,12 @@ function ReviewSheet({ request, onClose, onSubmit }) {
 
 function CustomerProfile({ requests }) {
   const { t, serviceInfo } = useLang();
+  const { user, signOut } = useAuth();
   const completed = requests.filter((r) => r.status === "completed" || r.status === "reviewed").length;
   const reviews = requests.filter((r) => r.review);
   return (
     <div className="pad">
-      <div className="profile-head"><div className="avatar avatar-lg">{t.profileYou[0]}</div><div><div className="h1" style={{ fontSize: 19 }}>{t.profileYou}</div><div className="ticket-sub">{t.memberSince}</div></div></div>
+      <div className="profile-head"><div className="avatar avatar-lg">{t.profileYou[0]}</div><div><div className="h1" style={{ fontSize: 19 }}>{t.profileYou}</div><div className="ticket-sub">{user.email}</div></div></div>
       <div className="stat-row">
         <div className="stat"><div className="stat-num">{requests.length}</div><div className="stat-label">{t.requestsSent}</div></div>
         <div className="stat"><div className="stat-num">{completed}</div><div className="stat-label">{t.jobsCompleted}</div></div>
@@ -907,76 +1088,185 @@ function CustomerProfile({ requests }) {
       {reviews.map((r) => (
         <div key={r.id} className="quote-card"><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Stars value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></div>
       ))}
+      <button className="btn-secondary" style={{ marginTop: 14 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
     </div>
   );
 }
 
-function MessagesStub() {
-  const { t } = useLang();
+function MessagesList({ conversations, onOpen }) {
+  const { t, serviceInfo } = useLang();
   return (
     <div className="pad">
       <div className="h1" style={{ marginBottom: 14 }}>{t.messagesTitle}</div>
-      <div className="empty-block"><MessageCircle size={26} color="var(--ink-soft)" /><p>{t.messagesEmpty}</p></div>
+      {conversations.length === 0 && (
+        <div className="empty-block"><MessageCircle size={26} color="var(--ink-soft)" /><p>{t.messagesEmpty}</p></div>
+      )}
+      {conversations.map((c) => (
+        <button key={c.id} className="ticket" onClick={() => onOpen(c)}>
+          <TicketTear />
+          <div className="ticket-body">
+            <div className="ticket-row">
+              <div className="ticket-title">{c.otherName}</div>
+              {c.unreadCount > 0 && <Badge tone="amber">{c.unreadCount}</Badge>}
+            </div>
+            <div className="ticket-sub">{c.serviceId ? serviceInfo(c.serviceId).name : ""}</div>
+            {c.lastMessage && <p className="quote-msg" style={{ margin: "8px 0 0" }}>"{c.lastMessage.body}"</p>}
+          </div>
+        </button>
+      ))}
     </div>
+  );
+}
+
+function ConversationSheet({ conversationId, userId, otherName, onClose }) {
+  const { t } = useLang();
+  const [messages, setMessages] = useState(null);
+  const [draft, setDraft] = useState("");
+
+  const refresh = () => fetchMessages(conversationId).then(setMessages);
+
+  useEffect(() => {
+    refresh();
+    markConversationRead(conversationId, userId);
+    const unsubscribe = subscribeToMessages(conversationId, () => {
+      refresh();
+      markConversationRead(conversationId, userId);
+    });
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
+
+  const send = async () => {
+    const body = draft.trim();
+    if (!body) return;
+    setDraft("");
+    await sendMessage({ conversationId, senderId: userId, body });
+    await refresh();
+  };
+
+  return (
+    <Sheet onClose={onClose}>
+      <div className="sheet-title">{otherName}</div>
+      <div className="chat-scroll">
+        {(messages || []).map((m) => (
+          <div key={m.id} className={"chat-bubble " + (m.senderId === userId ? "chat-bubble-me" : "chat-bubble-them")}>
+            {m.body}
+          </div>
+        ))}
+      </div>
+      <div className="chat-input-row">
+        <input
+          placeholder={t.messagePlaceholder}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+        />
+        <button onClick={send}><Send size={16} /></button>
+      </div>
+    </Sheet>
   );
 }
 
 /* ---------------------------------- PRO APP -------------------------------- */
 
-function ProApp({ requests, proSendQuote }) {
-  const { t } = useLang();
+function ProApp({ showToast }) {
+  const { t, BASE_SERVICES } = useLang();
+  const { user } = useAuth();
   const [tab, setTab] = useState("dashboard");
   const [quoteLead, setQuoteLead] = useState(null);
+  const [leads, setLeads] = useState(null);
+  const [jobs, setJobs] = useState(null);
+  const [offeredServiceIds, setOfferedServiceIds] = useState(null);
+  const [proInfo, setProInfo] = useState(null);
+  const [conversations, setConversations] = useState(null);
+  const [openConversation, setOpenConversation] = useState(null);
 
-  const currentPro = BASE_PROS.find((p) => p.id === CURRENT_PRO_ID);
-  const [proType, setProType] = useState(currentPro.proType);
-  const isCertifiedOnly = (serviceId) => !!BASE_SERVICES.find((s) => s.id === serviceId)?.certifiedOnly;
-  const hiddenCertifiedCount = requests.filter((r) => currentPro.cats.includes(r.cat) && isCertifiedOnly(r.serviceId) && !r.quotes.some((q) => q.proId === CURRENT_PRO_ID) && r.status !== "booked" && proType === "flexi").length;
+  const offeredCategoryIds = [...new Set((offeredServiceIds ?? []).map((id) => BASE_SERVICES.find((s) => s.id === id)?.cat).filter(Boolean))];
+  const categoryKey = offeredCategoryIds.join(",");
 
-  const leads = requests.filter((r) => {
-    if (!currentPro.cats.includes(r.cat)) return false;
-    if (r.quotes.some((q) => q.proId === CURRENT_PRO_ID)) return false;
-    if (r.status === "booked") return false;
-    if (proType === "flexi" && isCertifiedOnly(r.serviceId)) return false;
-    return true;
-  });
-  const sent = requests.filter((r) => r.quotes.some((q) => q.proId === CURRENT_PRO_ID) && r.bookedProId !== CURRENT_PRO_ID);
-  const booked = requests.filter((r) => r.bookedProId === CURRENT_PRO_ID && r.status === "booked");
-  const completed = requests.filter((r) => r.bookedProId === CURRENT_PRO_ID && (r.status === "completed" || r.status === "reviewed"));
-  const earnedGross = [...booked, ...completed].reduce((sum, r) => {
-    const q = r.quotes.find((qq) => qq.proId === CURRENT_PRO_ID);
+  const refreshLeads = () => fetchProLeads(user.id).then(setLeads);
+  const refreshJobs = () => fetchProJobs(user.id).then(setJobs);
+  const refreshConversations = () => fetchConversations(user.id).then(setConversations);
+
+  useEffect(() => {
+    fetchProServices(user.id).then(setOfferedServiceIds);
+    fetchPublicProInfo([user.id]).then((m) => setProInfo(m[user.id]));
+    refreshLeads();
+    refreshJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
+
+  useEffect(() => subscribeToProQuoteUpdates(user.id, refreshJobs), [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    refreshLeads();
+    return subscribeToProLeads(offeredCategoryIds, refreshLeads);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryKey]);
+
+  useEffect(() => {
+    refreshConversations();
+    return subscribeToConversationsForUser(user.id, refreshConversations);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
+
+  if (!leads || !jobs || !proInfo || !offeredServiceIds || !conversations) {
+    return <div className="pad"><div className="empty-block"><p>...</p></div></div>;
+  }
+
+  const earnedGross = [...jobs.booked, ...jobs.completed].reduce((sum, r) => {
+    const q = r.quotes.find((qq) => qq.proId === user.id);
     return sum + (q ? q.price * (1 - PLATFORM_COMMISSION_RATE) : 0);
   }, 0);
+
+  const sendQuote = async (lead, price, message) => {
+    await sendQuoteApi({ requestId: lead.id, proId: user.id, price, message });
+    setQuoteLead(null);
+    await refreshLeads();
+    await refreshJobs();
+    showToast(t.toastQuoteSent);
+  };
 
   return (
     <div className="view">
       <div className="content">
-        {tab === "dashboard" && <ProDashboard leads={leads} onQuote={(l) => setQuoteLead(l)} proType={proType} hiddenCertifiedCount={hiddenCertifiedCount} />}
-        {tab === "jobs" && <ProJobs sent={sent} booked={booked} completed={completed} />}
-        {tab === "profile" && <ProProfile completedCount={completed.length} earnedGross={earnedGross} proType={proType} setProType={setProType} />}
+        {tab === "dashboard" && <ProDashboard leads={leads} onQuote={(l) => setQuoteLead(l)} proInfo={proInfo} />}
+        {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} />}
+        {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
+        {tab === "profile" && (
+          <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} />
+        )}
       </div>
 
       <BottomNav tab={tab} setTab={setTab} items={[
         { id: "dashboard", label: t.navDashboard, icon: Briefcase, badge: leads.length },
         { id: "jobs", label: t.navMyJobs, icon: ClipboardList },
+        { id: "messages", label: t.navMessages, icon: MessageCircle, badge: conversations.reduce((sum, c) => sum + c.unreadCount, 0) },
         { id: "profile", label: t.navProfile, icon: User },
       ]} />
 
-      {quoteLead && <SendQuoteSheet lead={quoteLead} onClose={() => setQuoteLead(null)} onSubmit={(price, msg) => { proSendQuote(quoteLead.id, price, msg); setQuoteLead(null); }} />}
+      {quoteLead && <SendQuoteSheet lead={quoteLead} onClose={() => setQuoteLead(null)} onSubmit={(price, msg) => sendQuote(quoteLead, price, msg)} />}
+      {openConversation && (
+        <ConversationSheet
+          conversationId={openConversation.id}
+          userId={user.id}
+          otherName={openConversation.otherName}
+          onClose={() => { setOpenConversation(null); refreshConversations(); }}
+        />
+      )}
     </div>
   );
 }
 
-function ProDashboard({ leads, onQuote, proType, hiddenCertifiedCount }) {
-  const { t, fmt, serviceInfo } = useLang();
-  const currentPro = BASE_PROS.find((p) => p.id === CURRENT_PRO_ID);
+function ProDashboard({ leads, onQuote, proInfo }) {
+  const { t, fmt, serviceInfo, whenLabel } = useLang();
+  const { proProfile } = useAuth();
   return (
     <div className="pad">
-      <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{currentPro.name}</div></div><div className="avatar">{currentPro.initials}</div></div>
+      <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{proInfo.name}</div></div><div className="avatar">{proInfo.initials}</div></div>
 
       <div className="stat-row">
-        <div className="stat"><div className="stat-num"><Stars value={currentPro.rating} size={12} /></div><div className="stat-label">{currentPro.rating} {t.statScore}</div></div>
-        <div className="stat"><div className="stat-num">{fmt(currentPro.reviews)}</div><div className="stat-label">{t.statReviewsLabel}</div></div>
+        <div className="stat"><div className="stat-num"><Stars value={proInfo.rating} size={12} /></div><div className="stat-label">{proInfo.rating} {t.statScore}</div></div>
+        <div className="stat"><div className="stat-num">{fmt(proInfo.reviews)}</div><div className="stat-label">{t.statReviewsLabel}</div></div>
         <div className="stat"><div className="stat-num">92%</div><div className="stat-label">{t.statResponseRate}</div></div>
       </div>
 
@@ -987,14 +1277,14 @@ function ProDashboard({ leads, onQuote, proType, hiddenCertifiedCount }) {
           <TicketTear />
           <div className="ticket-body">
             <div className="ticket-row"><div className="ticket-title">{serviceInfo(r.serviceId).name}</div><Badge tone="amber">{t.newBadge}</Badge></div>
-            <div className="ticket-sub">{r.answers.when} \u00b7 {r.answers.budget ? `\u20ac${r.answers.budget}` : t.budgetFlexible}</div>
+            <div className="ticket-sub">{whenLabel(r.answers.when)} \u00b7 {r.answers.budget ? `\u20ac${r.answers.budget}` : t.budgetFlexible}</div>
             <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
             <div className="ticket-divider" />
             <button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>
           </div>
         </div>
       ))}
-      {proType === "flexi" && hiddenCertifiedCount > 0 && (
+      {proProfile.pro_type === "flexi" && (
         <div className="fineprint" style={{ marginTop: 4 }}><BadgeCheck size={12} /> {t.flexiHiddenNote}</div>
       )}
     </div>
@@ -1002,8 +1292,9 @@ function ProDashboard({ leads, onQuote, proType, hiddenCertifiedCount }) {
 }
 
 function SendQuoteSheet({ lead, onClose, onSubmit }) {
-  const { t, serviceInfo } = useLang();
-  const [price, setPrice] = useState(lead.base || 65);
+  const { t, serviceInfo, BASE_SERVICES } = useLang();
+  const service = BASE_SERVICES.find((s) => s.id === lead.serviceId);
+  const [price, setPrice] = useState(service?.base || 65);
   const [msg, setMsg] = useState(t.defaultProMessage);
   return (
     <Sheet onClose={onClose}>
@@ -1024,7 +1315,7 @@ function SendQuoteSheet({ lead, onClose, onSubmit }) {
   );
 }
 
-function ProJobs({ sent, booked, completed }) {
+function ProJobs({ sent, booked, completed, proId }) {
   const { t, fmt, serviceInfo } = useLang();
   const [seg, setSeg] = useState("sent");
   const list = seg === "sent" ? sent : seg === "booked" ? booked : completed;
@@ -1040,7 +1331,7 @@ function ProJobs({ sent, booked, completed }) {
       {list.length === 0 && <div className="empty-block"><p>{t.nothingHereYet}</p></div>}
 
       {list.map((r) => {
-        const myQuote = r.quotes.find((q) => q.proId === CURRENT_PRO_ID);
+        const myQuote = r.quotes.find((q) => q.proId === proId);
         return (
           <div key={r.id} className="ticket">
             <TicketTear />
@@ -1062,30 +1353,49 @@ function ProJobs({ sent, booked, completed }) {
   );
 }
 
-function ProProfile({ completedCount, earnedGross, proType, setProType }) {
-  const { t, fmt, catName, proBio, proBadgeLabel } = useLang();
-  const currentPro = BASE_PROS.find((p) => p.id === CURRENT_PRO_ID);
-  const [cats, setCats] = useState(currentPro.cats);
-  const [boosted, setBoosted] = useState(false);
-  const toggle = (id) => setCats((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, onServicesChange }) {
+  const { t, fmt, catName, serviceInfo, proBadgeLabel, CATS, BASE_SERVICES } = useLang();
+  const { user, proProfile, refreshProfile, signOut } = useAuth();
+  const [selected, setSelected] = useState(offeredServiceIds);
+  const [saving, setSaving] = useState(false);
   const flexiPct = Math.min(100, Math.round((earnedGross / FLEXI_TAX_FREE_THRESHOLD) * 100));
+  const isBoosted = proProfile.boosted_until && new Date(proProfile.boosted_until) > new Date();
+
+  const toggle = (id) => setSelected((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+
+  const saveServices = async () => {
+    setSaving(true);
+    await updateProServices(user.id, selected);
+    onServicesChange(selected);
+    setSaving(false);
+  };
+
+  const setProType = async (proType) => {
+    await updateProProfile(user.id, { pro_type: proType });
+    await refreshProfile();
+  };
+
+  const boost = async () => {
+    await boostProfile(user.id);
+    await refreshProfile();
+  };
 
   return (
     <div className="pad">
-      <div className="profile-head"><div className="avatar avatar-lg">{currentPro.initials}</div><div><div className="h1" style={{ fontSize: 19 }}>{currentPro.name}</div><div className="quote-rating"><Stars value={currentPro.rating} size={12} /> {currentPro.rating} ({fmt(currentPro.reviews)})</div></div></div>
-      <p className="sheet-blurb">{proBio(CURRENT_PRO_ID)}</p>
+      <div className="profile-head"><div className="avatar avatar-lg">{proInfo.initials}</div><div><div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div><div className="quote-rating"><Stars value={proInfo.rating} size={12} /> {proInfo.rating} ({fmt(proInfo.reviews)})</div></div></div>
+      {proProfile.bio && <p className="sheet-blurb">{proProfile.bio}</p>}
       <div className="stat-row">
         <div className="stat"><div className="stat-num">{completedCount}</div><div className="stat-label">{t.proJobsDone}</div></div>
-        <div className="stat"><div className="stat-num">{proBadgeLabel(currentPro.badgeTier) || "\u2014"}</div><div className="stat-label">{t.proStatus}</div></div>
+        <div className="stat"><div className="stat-num">{proBadgeLabel(proInfo.badgeTier) || "\u2014"}</div><div className="stat-label">{t.proStatus}</div></div>
       </div>
 
       <div className="section-title">{t.proTypeLabel}</div>
       <div className="segmented segmented-block">
-        <button className={proType === "flexi" ? "seg-on" : ""} onClick={() => setProType("flexi")}>{t.proTypeFlexi}</button>
-        <button className={proType === "business" ? "seg-on" : ""} onClick={() => setProType("business")}>{t.proTypeBusiness}</button>
+        <button className={proProfile.pro_type === "flexi" ? "seg-on" : ""} onClick={() => setProType("flexi")}>{t.proTypeFlexi}</button>
+        <button className={proProfile.pro_type === "business" ? "seg-on" : ""} onClick={() => setProType("business")}>{t.proTypeBusiness}</button>
       </div>
 
-      {proType === "flexi" && (
+      {proProfile.pro_type === "flexi" && (
         <div className="flexi-box">
           <div className="ticket-title" style={{ fontSize: 13.5, marginBottom: 8 }}>{t.flexiTrackerTitle}</div>
           <div className="flexi-bar"><div className="flexi-bar-fill" style={{ width: `${flexiPct}%` }} /></div>
@@ -1095,28 +1405,37 @@ function ProProfile({ completedCount, earnedGross, proType, setProType }) {
       )}
 
       <div className="section-title">{t.proServicesTitle}</div>
-      <div className="chiprow">
-        {CATS.map((c) => {
-          const locked = c.id === "specialist" && proType === "flexi";
-          return (
-            <button key={c.id} className={"chip" + (cats.includes(c.id) && !locked ? " chip-on" : "") + (locked ? " chip-locked" : "")} disabled={locked} onClick={() => !locked && toggle(c.id)}>
-              <c.icon size={13} /> {catName(c.id)}
-            </button>
-          );
-        })}
-      </div>
+      {CATS.map((c) => {
+        const services = BASE_SERVICES.filter((s) => s.cat === c.id);
+        if (services.length === 0) return null;
+        const locked = c.id === "specialist" && proProfile.pro_type === "flexi";
+        return (
+          <div key={c.id} style={{ marginBottom: 10 }}>
+            <div className="ticket-sub" style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}><c.icon size={12} /> {catName(c.id)}</div>
+            <div className="chiprow" style={{ paddingBottom: 4 }}>
+              {services.map((s) => (
+                <button key={s.id} className={"chip" + (selected.includes(s.id) && !locked ? " chip-on" : "") + (locked ? " chip-locked" : "")} disabled={locked} onClick={() => !locked && toggle(s.id)}>
+                  {serviceInfo(s.id).name}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      <button className="btn-secondary" style={{ marginBottom: 14 }} disabled={saving} onClick={saveServices}>{t.saveServicesBtn}</button>
 
       <div className="section-title">{t.boostTitle}</div>
       <div className="quote-card">
         <p className="sheet-blurb" style={{ margin: "0 0 10px" }}>{t.boostDesc}</p>
-        {boosted ? (
+        {isBoosted ? (
           <Badge tone="amber">{t.boostActive}</Badge>
         ) : (
-          <button className="btn-primary" onClick={() => setBoosted(true)}>{t.boostBtn} \u20ac{BOOST_WEEKLY_PRICE}</button>
+          <button className="btn-primary" onClick={boost}>{t.boostBtn} \u20ac{BOOST_WEEKLY_PRICE}</button>
         )}
       </div>
 
       <div className="fineprint" style={{ marginTop: 14 }}><ThumbsUp size={12} /> {t.proFineprint}</div>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
     </div>
   );
 }
@@ -1284,4 +1603,12 @@ const CSS = `
 .flexi-box{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:18px; }
 .flexi-bar{ width:100%; height:8px; background:var(--sage-bg); border-radius:99px; overflow:hidden; }
 .flexi-bar-fill{ height:100%; background:var(--forest); border-radius:99px; }
+
+.chat-scroll{ display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; padding:4px 2px 14px; }
+.chat-bubble{ max-width:78%; padding:9px 13px; border-radius:16px; font-size:13px; line-height:1.45; }
+.chat-bubble-them{ align-self:flex-start; background:var(--surface); border:1px solid var(--line); color:var(--ink); border-bottom-left-radius:4px; }
+.chat-bubble-me{ align-self:flex-end; background:var(--forest); color:#fff; border-bottom-right-radius:4px; }
+.chat-input-row{ display:flex; gap:8px; align-items:center; }
+.chat-input-row input{ flex:1; border:1px solid var(--line); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); outline:none; }
+.chat-input-row button{ width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
 `;
