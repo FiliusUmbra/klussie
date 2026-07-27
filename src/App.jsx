@@ -32,6 +32,7 @@ import { uploadAvatar } from "./lib/storage";
 import { submitReport } from "./lib/reports";
 import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems, updatePortfolioCaption, deletePortfolioItem } from "./lib/portfolio";
 import { addTestimonial, fetchTestimonials, deleteTestimonial } from "./lib/testimonials";
+import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -107,6 +108,13 @@ const STRINGS = {
     testimonialsTitle:"Getuigenissen", addTestimonialBtn:"Getuigenis toevoegen", clientNameLabel:"Naam klant (optioneel)", testimonialTextLabel:"Wat zeiden ze?",
     unverifiedTestimonialNote:"Gedeeld door de vakman — niet geverifieerd door klussie.", noTestimonialsYet:"Nog geen getuigenissen.", deleteBtn:"Verwijderen",
     proReviewsTitle:"Beoordelingen", certifiedBadge:"Gecertifieerd",
+    jobDetailsTitle:"Details van de klus", jobPhotosLabel:"Foto's van de klus (optioneel)", yesLabel:"Ja", noLabel:"Nee",
+    fieldRooms:"Aantal kamers", fieldSqm:"Oppervlakte (m²)", fieldCeilingIncluded:"Plafond mee schilderen?", fieldTrimIncluded:"Deuren/plinten mee schilderen?",
+    fieldFloorNumber:"Verdieping", fieldElevatorAccess:"Lift aanwezig?", fieldDistanceKm:"Afstand (km)", fieldBedrooms:"Aantal slaapkamers", fieldRecurring:"Terugkerende schoonmaak?",
+    fieldKitchenLength:"Lengte kastenwand (m)", fieldMaterialPref:"Materiaalvoorkeur", fieldRoomType:"Type ruimte", fieldRemovalNeeded:"Oude bekleding verwijderen?",
+    fieldItemsCount:"Aantal stukken", fieldSessionsPerWeek:"Lessen per week", fieldLevel:"Niveau", fieldOutletsCount:"Aantal aansluitpunten", fieldFullRewiring:"Volledige herbekabeling?", fieldJobType:"Type probleem",
+    optLaminate:"Laminaat", optWood:"Hout", optLacquer:"Lak", optBathroom:"Badkamer", optKitchen:"Keuken", optTerrace:"Terras", optOther:"Andere",
+    optBeginner:"Beginner", optIntermediate:"Gevorderd", optAdvanced:"Vergevorderd", optLeak:"Lekkage", optClog:"Verstopping", optInstallation:"Nieuwe installatie",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -168,6 +176,13 @@ const STRINGS = {
     testimonialsTitle:"Témoignages", addTestimonialBtn:"Ajouter un témoignage", clientNameLabel:"Nom du client (facultatif)", testimonialTextLabel:"Qu'ont-ils dit ?",
     unverifiedTestimonialNote:"Partagé par le professionnel — non vérifié par klussie.", noTestimonialsYet:"Pas encore de témoignages.", deleteBtn:"Supprimer",
     proReviewsTitle:"Avis", certifiedBadge:"Certifié",
+    jobDetailsTitle:"Détails du chantier", jobPhotosLabel:"Photos du chantier (optionnel)", yesLabel:"Oui", noLabel:"Non",
+    fieldRooms:"Nombre de pièces", fieldSqm:"Surface (m²)", fieldCeilingIncluded:"Plafond inclus ?", fieldTrimIncluded:"Portes/plinthes incluses ?",
+    fieldFloorNumber:"Étage", fieldElevatorAccess:"Ascenseur disponible ?", fieldDistanceKm:"Distance (km)", fieldBedrooms:"Nombre de chambres", fieldRecurring:"Nettoyage récurrent ?",
+    fieldKitchenLength:"Longueur des meubles (m)", fieldMaterialPref:"Matériau préféré", fieldRoomType:"Type de pièce", fieldRemovalNeeded:"Retrait de l'ancien revêtement ?",
+    fieldItemsCount:"Nombre de pièces/meubles", fieldSessionsPerWeek:"Cours par semaine", fieldLevel:"Niveau", fieldOutletsCount:"Nombre de points de raccordement", fieldFullRewiring:"Recâblage complet ?", fieldJobType:"Type de problème",
+    optLaminate:"Stratifié", optWood:"Bois", optLacquer:"Laqué", optBathroom:"Salle de bain", optKitchen:"Cuisine", optTerrace:"Terrasse", optOther:"Autre",
+    optBeginner:"Débutant", optIntermediate:"Intermédiaire", optAdvanced:"Avancé", optLeak:"Fuite", optClog:"Bouchon", optInstallation:"Nouvelle installation",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -229,6 +244,13 @@ const STRINGS = {
     testimonialsTitle:"Referenzen", addTestimonialBtn:"Referenz hinzufügen", clientNameLabel:"Kundenname (optional)", testimonialTextLabel:"Was haben sie gesagt?",
     unverifiedTestimonialNote:"Vom Profi geteilt — nicht von klussie verifiziert.", noTestimonialsYet:"Noch keine Referenzen.", deleteBtn:"Löschen",
     proReviewsTitle:"Bewertungen", certifiedBadge:"Zertifiziert",
+    jobDetailsTitle:"Details zum Auftrag", jobPhotosLabel:"Fotos vom Auftrag (optional)", yesLabel:"Ja", noLabel:"Nein",
+    fieldRooms:"Anzahl Zimmer", fieldSqm:"Fläche (m²)", fieldCeilingIncluded:"Decke mitstreichen?", fieldTrimIncluded:"Türen/Leisten mitstreichen?",
+    fieldFloorNumber:"Stockwerk", fieldElevatorAccess:"Aufzug vorhanden?", fieldDistanceKm:"Entfernung (km)", fieldBedrooms:"Anzahl Schlafzimmer", fieldRecurring:"Wiederkehrende Reinigung?",
+    fieldKitchenLength:"Länge der Schrankwand (m)", fieldMaterialPref:"Materialwunsch", fieldRoomType:"Raumtyp", fieldRemovalNeeded:"Alten Belag entfernen?",
+    fieldItemsCount:"Anzahl Stücke", fieldSessionsPerWeek:"Stunden pro Woche", fieldLevel:"Niveau", fieldOutletsCount:"Anzahl Anschlusspunkte", fieldFullRewiring:"Komplette Neuverkabelung?", fieldJobType:"Art des Problems",
+    optLaminate:"Laminat", optWood:"Holz", optLacquer:"Lackiert", optBathroom:"Badezimmer", optKitchen:"Küche", optTerrace:"Terrasse", optOther:"Sonstiges",
+    optBeginner:"Anfänger", optIntermediate:"Fortgeschritten", optAdvanced:"Sehr fortgeschritten", optLeak:"Leck", optClog:"Verstopfung", optInstallation:"Neuinstallation",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -290,6 +312,13 @@ const STRINGS = {
     testimonialsTitle:"Testimonials", addTestimonialBtn:"Add testimonial", clientNameLabel:"Client name (optional)", testimonialTextLabel:"What did they say?",
     unverifiedTestimonialNote:"Shared by the pro — not verified by klussie.", noTestimonialsYet:"No testimonials yet.", deleteBtn:"Delete",
     proReviewsTitle:"Reviews", certifiedBadge:"Certified",
+    jobDetailsTitle:"Job details", jobPhotosLabel:"Photos of the job (optional)", yesLabel:"Yes", noLabel:"No",
+    fieldRooms:"Number of rooms", fieldSqm:"Area (m²)", fieldCeilingIncluded:"Include ceiling?", fieldTrimIncluded:"Include doors/trim?",
+    fieldFloorNumber:"Floor number", fieldElevatorAccess:"Elevator available?", fieldDistanceKm:"Distance (km)", fieldBedrooms:"Number of bedrooms", fieldRecurring:"Recurring cleaning?",
+    fieldKitchenLength:"Cabinet run length (m)", fieldMaterialPref:"Material preference", fieldRoomType:"Room type", fieldRemovalNeeded:"Remove old covering?",
+    fieldItemsCount:"Number of items", fieldSessionsPerWeek:"Sessions per week", fieldLevel:"Level", fieldOutletsCount:"Number of connection points", fieldFullRewiring:"Full rewiring?", fieldJobType:"Issue type",
+    optLaminate:"Laminate", optWood:"Wood", optLacquer:"Lacquered", optBathroom:"Bathroom", optKitchen:"Kitchen", optTerrace:"Terrace", optOther:"Other",
+    optBeginner:"Beginner", optIntermediate:"Intermediate", optAdvanced:"Advanced", optLeak:"Leak", optClog:"Clog", optInstallation:"New installation",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -351,6 +380,13 @@ const STRINGS = {
     testimonialsTitle:"شهادات العملاء", addTestimonialBtn:"إضافة شهادة", clientNameLabel:"اسم العميل (اختياري)", testimonialTextLabel:"ماذا قالوا؟",
     unverifiedTestimonialNote:"شاركها المحترف — غير موثقة من قبل klussie.", noTestimonialsYet:"لا توجد شهادات بعد.", deleteBtn:"حذف",
     proReviewsTitle:"التقييمات", certifiedBadge:"معتمد",
+    jobDetailsTitle:"تفاصيل العمل", jobPhotosLabel:"صور العمل (اختياري)", yesLabel:"نعم", noLabel:"لا",
+    fieldRooms:"عدد الغرف", fieldSqm:"المساحة (م²)", fieldCeilingIncluded:"هل يشمل السقف؟", fieldTrimIncluded:"هل تشمل الأبواب/الإطارات؟",
+    fieldFloorNumber:"رقم الطابق", fieldElevatorAccess:"هل يوجد مصعد؟", fieldDistanceKm:"المسافة (كم)", fieldBedrooms:"عدد غرف النوم", fieldRecurring:"تنظيف متكرر؟",
+    fieldKitchenLength:"طول خط الخزائن (م)", fieldMaterialPref:"تفضيل المادة", fieldRoomType:"نوع الغرفة", fieldRemovalNeeded:"إزالة الكسوة القديمة؟",
+    fieldItemsCount:"عدد القطع", fieldSessionsPerWeek:"عدد الحصص أسبوعيًا", fieldLevel:"المستوى", fieldOutletsCount:"عدد نقاط التوصيل", fieldFullRewiring:"إعادة تمديد كاملة؟", fieldJobType:"نوع المشكلة",
+    optLaminate:"لامينيت", optWood:"خشب", optLacquer:"مطلي بالورنيش", optBathroom:"حمام", optKitchen:"مطبخ", optTerrace:"شرفة", optOther:"أخرى",
+    optBeginner:"مبتدئ", optIntermediate:"متوسط", optAdvanced:"متقدم", optLeak:"تسريب", optClog:"انسداد", optInstallation:"تركيب جديد",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -412,6 +448,13 @@ const STRINGS = {
     testimonialsTitle:"Referanslar", addTestimonialBtn:"Referans ekle", clientNameLabel:"Müşteri adı (isteğe bağlı)", testimonialTextLabel:"Ne söylediler?",
     unverifiedTestimonialNote:"Profesyonel tarafından paylaşıldı — klussie tarafından doğrulanmadı.", noTestimonialsYet:"Henüz referans yok.", deleteBtn:"Sil",
     proReviewsTitle:"Değerlendirmeler", certifiedBadge:"Sertifikalı",
+    jobDetailsTitle:"İş detayları", jobPhotosLabel:"İşin fotoğrafları (isteğe bağlı)", yesLabel:"Evet", noLabel:"Hayır",
+    fieldRooms:"Oda sayısı", fieldSqm:"Alan (m²)", fieldCeilingIncluded:"Tavan dahil mi?", fieldTrimIncluded:"Kapı/süpürgelik dahil mi?",
+    fieldFloorNumber:"Kat numarası", fieldElevatorAccess:"Asansör var mı?", fieldDistanceKm:"Mesafe (km)", fieldBedrooms:"Yatak odası sayısı", fieldRecurring:"Tekrarlayan temizlik mi?",
+    fieldKitchenLength:"Dolap hattı uzunluğu (m)", fieldMaterialPref:"Malzeme tercihi", fieldRoomType:"Oda türü", fieldRemovalNeeded:"Eski kaplama sökülsün mü?",
+    fieldItemsCount:"Parça sayısı", fieldSessionsPerWeek:"Haftalık ders sayısı", fieldLevel:"Seviye", fieldOutletsCount:"Bağlantı noktası sayısı", fieldFullRewiring:"Tam yeniden kablolama mı?", fieldJobType:"Sorun türü",
+    optLaminate:"Laminat", optWood:"Ahşap", optLacquer:"Lake", optBathroom:"Banyo", optKitchen:"Mutfak", optTerrace:"Teras", optOther:"Diğer",
+    optBeginner:"Başlangıç", optIntermediate:"Orta", optAdvanced:"İleri", optLeak:"Sızıntı", optClog:"Tıkanıklık", optInstallation:"Yeni kurulum",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -473,6 +516,13 @@ const STRINGS = {
     testimonialsTitle:"Отзывы клиентов", addTestimonialBtn:"Добавить отзыв", clientNameLabel:"Имя клиента (необязательно)", testimonialTextLabel:"Что они сказали?",
     unverifiedTestimonialNote:"Добавлено специалистом — не проверено klussie.", noTestimonialsYet:"Пока нет отзывов.", deleteBtn:"Удалить",
     proReviewsTitle:"Отзывы", certifiedBadge:"Сертифицирован",
+    jobDetailsTitle:"Детали работы", jobPhotosLabel:"Фото объекта (необязательно)", yesLabel:"Да", noLabel:"Нет",
+    fieldRooms:"Количество комнат", fieldSqm:"Площадь (м²)", fieldCeilingIncluded:"Включая потолок?", fieldTrimIncluded:"Включая двери/плинтусы?",
+    fieldFloorNumber:"Этаж", fieldElevatorAccess:"Есть лифт?", fieldDistanceKm:"Расстояние (км)", fieldBedrooms:"Количество спален", fieldRecurring:"Регулярная уборка?",
+    fieldKitchenLength:"Длина шкафов (м)", fieldMaterialPref:"Предпочтение материала", fieldRoomType:"Тип помещения", fieldRemovalNeeded:"Удалить старое покрытие?",
+    fieldItemsCount:"Количество предметов", fieldSessionsPerWeek:"Занятий в неделю", fieldLevel:"Уровень", fieldOutletsCount:"Количество точек подключения", fieldFullRewiring:"Полная замена проводки?", fieldJobType:"Тип проблемы",
+    optLaminate:"Ламинат", optWood:"Дерево", optLacquer:"Лакированный", optBathroom:"Ванная", optKitchen:"Кухня", optTerrace:"Терраса", optOther:"Другое",
+    optBeginner:"Начинающий", optIntermediate:"Средний", optAdvanced:"Продвинутый", optLeak:"Протечка", optClog:"Засор", optInstallation:"Новая установка",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -534,6 +584,13 @@ const STRINGS = {
     testimonialsTitle:"客户评价", addTestimonialBtn:"添加评价", clientNameLabel:"客户姓名（可选）", testimonialTextLabel:"他们说了什么？",
     unverifiedTestimonialNote:"由专业人士分享 — 未经 klussie 验证。", noTestimonialsYet:"暂无客户评价。", deleteBtn:"删除",
     proReviewsTitle:"评价", certifiedBadge:"已认证",
+    jobDetailsTitle:"工作详情", jobPhotosLabel:"工作照片（可选）", yesLabel:"是", noLabel:"否",
+    fieldRooms:"房间数量", fieldSqm:"面积（平方米）", fieldCeilingIncluded:"是否包含天花板？", fieldTrimIncluded:"是否包含门/踢脚线？",
+    fieldFloorNumber:"楼层", fieldElevatorAccess:"是否有电梯？", fieldDistanceKm:"距离（公里）", fieldBedrooms:"卧室数量", fieldRecurring:"是否定期清洁？",
+    fieldKitchenLength:"橱柜长度（米）", fieldMaterialPref:"材料偏好", fieldRoomType:"房间类型", fieldRemovalNeeded:"是否需要拆除旧铺面？",
+    fieldItemsCount:"件数", fieldSessionsPerWeek:"每周课时数", fieldLevel:"水平", fieldOutletsCount:"接线点数量", fieldFullRewiring:"是否需要全部重新布线？", fieldJobType:"问题类型",
+    optLaminate:"复合板", optWood:"实木", optLacquer:"烤漆", optBathroom:"浴室", optKitchen:"厨房", optTerrace:"露台", optOther:"其他",
+    optBeginner:"初级", optIntermediate:"中级", optAdvanced:"高级", optLeak:"漏水", optClog:"堵塞", optInstallation:"新安装",
   },
 };
 
@@ -590,6 +647,116 @@ export default function App() {
 }
 
 const WHEN_PREFS = ["this_week", "next_week", "flexible"];
+
+// Structured job-detail questions per service, keyed by the fixed seed UUIDs from
+// 0001_init.sql — lets customers describe a job (rooms, m², etc.) with quick taps
+// instead of writing it all out in the freeform details textarea. Services not listed
+// here (the 4 specialist/consultative ones) keep freeform-only, since there's no
+// universal quantifiable field for them.
+const SERVICE_QUESTIONS = {
+  "00000000-0000-0000-0000-000000000001": [ // Schilderwerken
+    { key: "rooms", type: "number", label: "fieldRooms", placeholder: "3" },
+    { key: "sqm", type: "number", label: "fieldSqm", placeholder: "20" },
+    { key: "ceilingIncluded", type: "boolean", label: "fieldCeilingIncluded" },
+    { key: "trimIncluded", type: "boolean", label: "fieldTrimIncluded" },
+  ],
+  "00000000-0000-0000-0000-000000000002": [ // Verhuisservice
+    { key: "rooms", type: "number", label: "fieldRooms", placeholder: "3" },
+    { key: "floorNumber", type: "number", label: "fieldFloorNumber", placeholder: "2" },
+    { key: "elevatorAccess", type: "boolean", label: "fieldElevatorAccess" },
+    { key: "distanceKm", type: "number", label: "fieldDistanceKm", placeholder: "15" },
+  ],
+  "00000000-0000-0000-0000-000000000003": [ // Woningreiniging
+    { key: "sqm", type: "number", label: "fieldSqm", placeholder: "80" },
+    { key: "bedrooms", type: "number", label: "fieldBedrooms", placeholder: "2" },
+    { key: "recurring", type: "boolean", label: "fieldRecurring" },
+  ],
+  "00000000-0000-0000-0000-000000000004": [ // Ontruimingsschoonmaak
+    { key: "sqm", type: "number", label: "fieldSqm", placeholder: "80" },
+    { key: "bedrooms", type: "number", label: "fieldBedrooms", placeholder: "2" },
+  ],
+  "00000000-0000-0000-0000-000000000005": [ // Keukenkasten op maat
+    { key: "kitchenLength", type: "number", label: "fieldKitchenLength", placeholder: "4" },
+    { key: "materialPref", type: "select", label: "fieldMaterialPref", options: [
+      { value: "laminate", label: "optLaminate" }, { value: "wood", label: "optWood" }, { value: "lacquer", label: "optLacquer" },
+    ] },
+  ],
+  "00000000-0000-0000-0000-000000000006": [ // Tegelwerken
+    { key: "sqm", type: "number", label: "fieldSqm", placeholder: "15" },
+    { key: "roomType", type: "select", label: "fieldRoomType", options: [
+      { value: "bathroom", label: "optBathroom" }, { value: "kitchen", label: "optKitchen" }, { value: "terrace", label: "optTerrace" }, { value: "other", label: "optOther" },
+    ] },
+    { key: "removalNeeded", type: "boolean", label: "fieldRemovalNeeded" },
+  ],
+  "00000000-0000-0000-0000-000000000007": [ // Meubeltransport
+    { key: "itemsCount", type: "number", label: "fieldItemsCount", placeholder: "1" },
+    { key: "elevatorAccess", type: "boolean", label: "fieldElevatorAccess" },
+  ],
+  "00000000-0000-0000-0000-000000000008": [ // Engelse bijles
+    { key: "sessionsPerWeek", type: "number", label: "fieldSessionsPerWeek", placeholder: "1" },
+    { key: "level", type: "select", label: "fieldLevel", options: [
+      { value: "beginner", label: "optBeginner" }, { value: "intermediate", label: "optIntermediate" }, { value: "advanced", label: "optAdvanced" },
+    ] },
+  ],
+  "00000000-0000-0000-0000-000000000009": [ // Elektriciteitswerken
+    { key: "outletsCount", type: "number", label: "fieldOutletsCount", placeholder: "4" },
+    { key: "fullRewiring", type: "boolean", label: "fieldFullRewiring" },
+  ],
+  "00000000-0000-0000-0000-000000000010": [ // Zetel- en tapijtreiniging
+    { key: "itemsCount", type: "number", label: "fieldItemsCount", placeholder: "1" },
+  ],
+  "00000000-0000-0000-0000-000000000011": [ // Loodgieterswerken
+    { key: "jobType", type: "select", label: "fieldJobType", options: [
+      { value: "leak", label: "optLeak" }, { value: "clog", label: "optClog" }, { value: "installation", label: "optInstallation" }, { value: "other", label: "optOther" },
+    ] },
+  ],
+};
+
+function fieldValueLabel(field, value, t) {
+  if (value === undefined || value === null || value === "") return null;
+  if (field.type === "boolean") return value ? t.yesLabel : t.noLabel;
+  if (field.type === "select") return t[field.options.find((o) => o.value === value)?.label] || value;
+  return String(value);
+}
+
+// Renders the structured answers (if any) as a compact label:value list, shown to both
+// the customer (their own request) and pros (leads/quote review) alongside the freeform
+// details text.
+function JobDetailsSummary({ serviceId, fields }) {
+  const { t } = useLang();
+  const questions = SERVICE_QUESTIONS[serviceId];
+  if (!questions || !fields) return null;
+  const rows = questions
+    .map((f) => ({ label: t[f.label], value: fieldValueLabel(f, fields[f.key], t) }))
+    .filter((r) => r.value !== null);
+  if (rows.length === 0) return null;
+  return (
+    <div className="job-details-summary">
+      {rows.map((r) => (
+        <div key={r.label} className="job-details-row"><span>{r.label}</span><b>{r.value}</b></div>
+      ))}
+    </div>
+  );
+}
+
+function RequestPhotosStrip({ requestId }) {
+  const [photos, setPhotos] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchRequestPhotos(requestId).then((p) => { if (!cancelled) setPhotos(p); });
+    return () => { cancelled = true; };
+  }, [requestId]);
+  if (!photos || photos.length === 0) return null;
+  return (
+    <div className="photo-strip">
+      {photos.map((p) => (
+        <a key={p.id} href={p.url} target="_blank" rel="noreferrer" className="photo-strip-thumb">
+          <img src={p.url} alt="" />
+        </a>
+      ))}
+    </div>
+  );
+}
 
 function AppShell() {
   const [langCode, setLangCode] = useState("nl");
@@ -1098,16 +1265,22 @@ function CustomerApp({ showToast }) {
   const openRequestObj = requests.find((r) => r.id === openRequest);
   const reviewReq = requests.find((r) => r.id === reviewFor);
 
-  const createRequest = async (service, { whenPref, details, budget, city }) => {
-    await createServiceRequest({
+  const createRequest = async (service, { whenPref, details, detailsJson, budget, city, photos }) => {
+    const created = await createServiceRequest({
       customerId: user.id,
       serviceId: service.id,
       categoryId: service.cat,
       details,
+      detailsJson,
       whenPref,
       budget: budget === "" || budget == null ? null : Number(budget),
       city: city || null,
     });
+    if (photos && photos.length) {
+      for (const file of photos) {
+        await uploadRequestPhoto(created.id, user.id, file);
+      }
+    }
     await refresh();
   };
 
@@ -1224,10 +1397,28 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
   const { t, serviceInfo, whenLabel } = useLang();
   const { profile } = useAuth();
   const info = serviceInfo(service.id);
+  const questions = SERVICE_QUESTIONS[service.id];
   const [details, setDetails] = useState("");
   const [whenPref, setWhenPref] = useState("this_week");
   const [budget, setBudget] = useState("");
   const [city, setCity] = useState(profile?.city || "");
+  const [fields, setFields] = useState({});
+  const [photos, setPhotos] = useState([]);
+  const photoInputRef = useRef(null);
+
+  const setField = (key, value) => setFields((f) => ({ ...f, [key]: value }));
+
+  const addPhotos = (e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (picked.length === 0) return;
+    setPhotos((p) => [...p, ...picked.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))]);
+  };
+
+  const removePhoto = (previewUrl) => {
+    setPhotos((p) => p.filter((ph) => ph.previewUrl !== previewUrl));
+    URL.revokeObjectURL(previewUrl);
+  };
 
   return (
     <Sheet onClose={onClose}>
@@ -1241,8 +1432,51 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
         ))}
       </div>
 
+      {questions && (
+        <>
+          <label className="field-label">{t.jobDetailsTitle}</label>
+          {questions.map((f) => (
+            <div key={f.key} className="job-field">
+              <div className="job-field-label">{t[f.label]}</div>
+              {f.type === "number" && (
+                <div className="search" style={{ marginBottom: 0 }}>
+                  <input type="number" min="0" placeholder={f.placeholder} value={fields[f.key] ?? ""} onChange={(e) => setField(f.key, e.target.value)} />
+                </div>
+              )}
+              {f.type === "boolean" && (
+                <div className="chiprow">
+                  <button type="button" className={"chip" + (fields[f.key] === true ? " chip-on" : "")} onClick={() => setField(f.key, true)}>{t.yesLabel}</button>
+                  <button type="button" className={"chip" + (fields[f.key] === false ? " chip-on" : "")} onClick={() => setField(f.key, false)}>{t.noLabel}</button>
+                </div>
+              )}
+              {f.type === "select" && (
+                <div className="chiprow">
+                  {f.options.map((o) => (
+                    <button type="button" key={o.value} className={"chip" + (fields[f.key] === o.value ? " chip-on" : "")} onClick={() => setField(f.key, o.value)}>{t[o.label]}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+
       <label className="field-label">{t.detailsLabel}</label>
       <textarea className="textarea" rows={3} placeholder={t.detailsPlaceholder} value={details} onChange={(e) => setDetails(e.target.value)} />
+
+      <label className="field-label">{t.jobPhotosLabel}</label>
+      <div className="portfolio-grid">
+        {photos.map((p) => (
+          <div key={p.previewUrl} className="portfolio-thumb">
+            <img src={p.previewUrl} alt="" />
+            <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)}><X size={12} /></button>
+          </div>
+        ))}
+        <button type="button" className="portfolio-thumb portfolio-add" onClick={() => photoInputRef.current.click()}>
+          <Camera size={20} />
+        </button>
+        <input ref={photoInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={addPhotos} />
+      </div>
 
       <label className="field-label">{t.cityLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
@@ -1255,7 +1489,7 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
         <input placeholder={t.budgetPlaceholder} value={budget} onChange={(e) => setBudget(e.target.value)} />
       </div>
 
-      <button className="btn-primary" onClick={() => onSubmit({ whenPref, details: details || "\u2014", budget, city })}><Send size={15} /> {t.sendRequestBtn}</button>
+      <button className="btn-primary" onClick={() => onSubmit({ whenPref, details: details || "\u2014", detailsJson: fields, budget, city, photos: photos.map((p) => p.file) })}><Send size={15} /> {t.sendRequestBtn}</button>
       <div className="fineprint"><ShieldCheck size={12} /> {t.privacyNote}</div>
     </Sheet>
   );
@@ -1308,6 +1542,8 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
     <Sheet onClose={onClose}>
       <div className="sheet-title">{info.name}</div>
       <div className="sheet-sub">{whenLabel(request.answers.when)} \u00b7 "{request.answers.details}"</div>
+      <JobDetailsSummary serviceId={request.serviceId} fields={request.answers.fields} />
+      <RequestPhotosStrip requestId={request.id} />
 
       {request.status === "collecting" && (
         <div className="empty-block"><Clock size={22} color="var(--ink-soft)" /><p>{t.waitingMsg}</p></div>
@@ -1701,6 +1937,8 @@ function ProDashboard({ leads, onQuote, proInfo }) {
             <div className="ticket-row"><div className="ticket-title">{serviceInfo(r.serviceId).name}</div><Badge tone="amber">{t.newBadge}</Badge></div>
             <div className="ticket-sub">{whenLabel(r.answers.when)} \u00b7 {r.answers.budget ? `\u20ac${r.answers.budget}` : t.budgetFlexible}{r.answers.city ? ` \u00b7 ${r.answers.city}` : ""}</div>
             <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
+            <JobDetailsSummary serviceId={r.serviceId} fields={r.answers.fields} />
+            <RequestPhotosStrip requestId={r.id} />
             <div className="ticket-divider" />
             <button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>
           </div>
@@ -1722,6 +1960,8 @@ function SendQuoteSheet({ lead, onClose, onSubmit }) {
     <Sheet onClose={onClose}>
       <div className="sheet-title">{t.sendQuoteTitle}</div>
       <div className="sheet-sub">{serviceInfo(lead.serviceId).name}</div>
+      <JobDetailsSummary serviceId={lead.serviceId} fields={lead.answers.fields} />
+      <RequestPhotosStrip requestId={lead.id} />
 
       <label className="field-label">{t.yourPriceLabel}</label>
       <div className="search" style={{ marginBottom: 18 }}>
@@ -2122,5 +2362,15 @@ const CSS = `
 .portfolio-thumb{ position:relative; width:100%; aspect-ratio:1; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:var(--surface); padding:0; cursor:pointer; }
 .portfolio-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
 .portfolio-add{ display:flex; align-items:center; justify-content:center; color:var(--ink-soft); background:var(--sage-bg); border-style:dashed; }
+.photo-remove-btn{ position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; border:none; background:rgba(0,0,0,0.55); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
 .quote-top-link{ display:flex; align-items:center; gap:10px; flex:1; border:none; background:none; padding:0; margin:0; cursor:pointer; text-align:start; font-family:var(--font-body); min-width:0; }
+
+.job-field{ margin-bottom:12px; }
+.job-field-label{ font-size:12.5px; color:var(--ink-soft); margin-bottom:6px; }
+.job-details-summary{ background:var(--sage-bg); border-radius:10px; padding:10px 12px; margin:8px 0; display:flex; flex-direction:column; gap:4px; }
+.job-details-row{ display:flex; justify-content:space-between; gap:10px; font-size:13px; }
+.job-details-row span{ color:var(--ink-soft); }
+.photo-strip{ display:flex; gap:8px; overflow-x:auto; margin:8px 0; }
+.photo-strip-thumb{ flex-shrink:0; width:64px; height:64px; border-radius:10px; overflow:hidden; border:1px solid var(--line); display:block; }
+.photo-strip-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
 `;
