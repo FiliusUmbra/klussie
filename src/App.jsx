@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useContext, createContext } from "react";
 import {
   Search, Star, MapPin, ChevronRight, X, Check, User, Home, ClipboardList,
-  MessageCircle, Send, Briefcase, TrendingUp, ThumbsUp, Clock, ShieldCheck, Globe, BadgeCheck, LogOut, Mail, Lock,
+  MessageCircle, Send, Briefcase, TrendingUp, ThumbsUp, Clock, ShieldCheck, Globe, BadgeCheck, LogOut, Mail, Lock, Camera,
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./lib/auth.jsx";
 import { fetchCatalog } from "./lib/catalog";
@@ -19,7 +19,7 @@ import {
   subscribeToProLeads,
   subscribeToProQuoteUpdates,
 } from "./lib/requests";
-import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo } from "./lib/pros";
+import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo, fetchReviewsForPro } from "./lib/pros";
 import {
   fetchConversations,
   fetchMessages,
@@ -30,6 +30,8 @@ import {
 } from "./lib/messages";
 import { uploadAvatar } from "./lib/storage";
 import { submitReport } from "./lib/reports";
+import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems, updatePortfolioCaption, deletePortfolioItem } from "./lib/portfolio";
+import { addTestimonial, fetchTestimonials, deleteTestimonial } from "./lib/testimonials";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -101,6 +103,10 @@ const STRINGS = {
     pauseProfileBtn:"Profiel pauzeren", resumeProfileBtn:"Profiel hervatten", pausedBannerTitle:"Je profiel is gepauzeerd", pausedBannerMsg:"Je ontvangt geen nieuwe aanvragen zolang je profiel gepauzeerd is.",
     reportIssueBtn:"Meld een probleem", reportReasonLabel:"Reden", reportReasonNoShow:"Kwam niet opdagen", reportReasonPoorQuality:"Slechte kwaliteit", reportReasonBillingIssue:"Facturatieprobleem", reportReasonOther:"Andere",
     reportDetailsLabel:"Details (optioneel)", reportSubmitBtn:"Melding versturen", reportSentMsg:"Melding verzonden.", trustScoreLabel:"Vertrouwensscore",
+    portfolioTitle:"Portfolio", captionLabel:"Bijschrift (optioneel)", noPortfolioYet:"Nog geen foto's.", deletePhotoBtn:"Foto verwijderen",
+    testimonialsTitle:"Getuigenissen", addTestimonialBtn:"Getuigenis toevoegen", clientNameLabel:"Naam klant (optioneel)", testimonialTextLabel:"Wat zeiden ze?",
+    unverifiedTestimonialNote:"Gedeeld door de vakman — niet geverifieerd door klussie.", noTestimonialsYet:"Nog geen getuigenissen.", deleteBtn:"Verwijderen",
+    proReviewsTitle:"Beoordelingen", certifiedBadge:"Gecertifieerd",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -158,6 +164,10 @@ const STRINGS = {
     pauseProfileBtn:"Mettre en pause", resumeProfileBtn:"Réactiver le profil", pausedBannerTitle:"Ton profil est en pause", pausedBannerMsg:"Tu ne reçois pas de nouvelles demandes tant que ton profil est en pause.",
     reportIssueBtn:"Signaler un problème", reportReasonLabel:"Motif", reportReasonNoShow:"Ne s'est pas présenté", reportReasonPoorQuality:"Mauvaise qualité", reportReasonBillingIssue:"Problème de facturation", reportReasonOther:"Autre",
     reportDetailsLabel:"Détails (facultatif)", reportSubmitBtn:"Envoyer le signalement", reportSentMsg:"Signalement envoyé.", trustScoreLabel:"Score de confiance",
+    portfolioTitle:"Portfolio", captionLabel:"Légende (facultatif)", noPortfolioYet:"Pas encore de photos.", deletePhotoBtn:"Supprimer la photo",
+    testimonialsTitle:"Témoignages", addTestimonialBtn:"Ajouter un témoignage", clientNameLabel:"Nom du client (facultatif)", testimonialTextLabel:"Qu'ont-ils dit ?",
+    unverifiedTestimonialNote:"Partagé par le professionnel — non vérifié par klussie.", noTestimonialsYet:"Pas encore de témoignages.", deleteBtn:"Supprimer",
+    proReviewsTitle:"Avis", certifiedBadge:"Certifié",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -215,6 +225,10 @@ const STRINGS = {
     pauseProfileBtn:"Profil pausieren", resumeProfileBtn:"Profil fortsetzen", pausedBannerTitle:"Dein Profil ist pausiert", pausedBannerMsg:"Du erhältst keine neuen Anfragen, solange dein Profil pausiert ist.",
     reportIssueBtn:"Problem melden", reportReasonLabel:"Grund", reportReasonNoShow:"Nicht erschienen", reportReasonPoorQuality:"Schlechte Qualität", reportReasonBillingIssue:"Abrechnungsproblem", reportReasonOther:"Sonstiges",
     reportDetailsLabel:"Details (optional)", reportSubmitBtn:"Meldung senden", reportSentMsg:"Meldung gesendet.", trustScoreLabel:"Vertrauensscore",
+    portfolioTitle:"Portfolio", captionLabel:"Bildunterschrift (optional)", noPortfolioYet:"Noch keine Fotos.", deletePhotoBtn:"Foto löschen",
+    testimonialsTitle:"Referenzen", addTestimonialBtn:"Referenz hinzufügen", clientNameLabel:"Kundenname (optional)", testimonialTextLabel:"Was haben sie gesagt?",
+    unverifiedTestimonialNote:"Vom Profi geteilt — nicht von klussie verifiziert.", noTestimonialsYet:"Noch keine Referenzen.", deleteBtn:"Löschen",
+    proReviewsTitle:"Bewertungen", certifiedBadge:"Zertifiziert",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -272,6 +286,10 @@ const STRINGS = {
     pauseProfileBtn:"Pause profile", resumeProfileBtn:"Resume profile", pausedBannerTitle:"Your profile is paused", pausedBannerMsg:"You won't receive new leads while your profile is paused.",
     reportIssueBtn:"Report an issue", reportReasonLabel:"Reason", reportReasonNoShow:"Didn't show up", reportReasonPoorQuality:"Poor quality work", reportReasonBillingIssue:"Billing issue", reportReasonOther:"Other",
     reportDetailsLabel:"Details (optional)", reportSubmitBtn:"Submit report", reportSentMsg:"Report submitted.", trustScoreLabel:"Trust score",
+    portfolioTitle:"Portfolio", captionLabel:"Caption (optional)", noPortfolioYet:"No photos yet.", deletePhotoBtn:"Delete photo",
+    testimonialsTitle:"Testimonials", addTestimonialBtn:"Add testimonial", clientNameLabel:"Client name (optional)", testimonialTextLabel:"What did they say?",
+    unverifiedTestimonialNote:"Shared by the pro — not verified by klussie.", noTestimonialsYet:"No testimonials yet.", deleteBtn:"Delete",
+    proReviewsTitle:"Reviews", certifiedBadge:"Certified",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -329,6 +347,10 @@ const STRINGS = {
     pauseProfileBtn:"إيقاف الملف مؤقتًا", resumeProfileBtn:"استئناف الملف", pausedBannerTitle:"ملفك متوقف مؤقتًا", pausedBannerMsg:"لن تتلقى طلبات جديدة طالما ملفك متوقف مؤقتًا.",
     reportIssueBtn:"الإبلاغ عن مشكلة", reportReasonLabel:"السبب", reportReasonNoShow:"لم يحضر", reportReasonPoorQuality:"جودة عمل سيئة", reportReasonBillingIssue:"مشكلة في الفوترة", reportReasonOther:"أخرى",
     reportDetailsLabel:"تفاصيل (اختياري)", reportSubmitBtn:"إرسال البلاغ", reportSentMsg:"تم إرسال البلاغ.", trustScoreLabel:"درجة الثقة",
+    portfolioTitle:"معرض الأعمال", captionLabel:"تعليق (اختياري)", noPortfolioYet:"لا توجد صور بعد.", deletePhotoBtn:"حذف الصورة",
+    testimonialsTitle:"شهادات العملاء", addTestimonialBtn:"إضافة شهادة", clientNameLabel:"اسم العميل (اختياري)", testimonialTextLabel:"ماذا قالوا؟",
+    unverifiedTestimonialNote:"شاركها المحترف — غير موثقة من قبل klussie.", noTestimonialsYet:"لا توجد شهادات بعد.", deleteBtn:"حذف",
+    proReviewsTitle:"التقييمات", certifiedBadge:"معتمد",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -386,6 +408,10 @@ const STRINGS = {
     pauseProfileBtn:"Profili duraklat", resumeProfileBtn:"Profili devam ettir", pausedBannerTitle:"Profilin duraklatıldı", pausedBannerMsg:"Profilin duraklatıldığı sürece yeni talep almazsın.",
     reportIssueBtn:"Sorun bildir", reportReasonLabel:"Neden", reportReasonNoShow:"Gelmedi", reportReasonPoorQuality:"Kötü iş kalitesi", reportReasonBillingIssue:"Faturalama sorunu", reportReasonOther:"Diğer",
     reportDetailsLabel:"Detaylar (isteğe bağlı)", reportSubmitBtn:"Bildirimi gönder", reportSentMsg:"Bildirim gönderildi.", trustScoreLabel:"Güven puanı",
+    portfolioTitle:"Portfolyo", captionLabel:"Açıklama (isteğe bağlı)", noPortfolioYet:"Henüz fotoğraf yok.", deletePhotoBtn:"Fotoğrafı sil",
+    testimonialsTitle:"Referanslar", addTestimonialBtn:"Referans ekle", clientNameLabel:"Müşteri adı (isteğe bağlı)", testimonialTextLabel:"Ne söylediler?",
+    unverifiedTestimonialNote:"Profesyonel tarafından paylaşıldı — klussie tarafından doğrulanmadı.", noTestimonialsYet:"Henüz referans yok.", deleteBtn:"Sil",
+    proReviewsTitle:"Değerlendirmeler", certifiedBadge:"Sertifikalı",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -443,6 +469,10 @@ const STRINGS = {
     pauseProfileBtn:"Приостановить профиль", resumeProfileBtn:"Возобновить профиль", pausedBannerTitle:"Ваш профиль приостановлен", pausedBannerMsg:"Пока профиль приостановлен, вы не будете получать новые заявки.",
     reportIssueBtn:"Пожаловаться", reportReasonLabel:"Причина", reportReasonNoShow:"Не пришёл", reportReasonPoorQuality:"Плохое качество работы", reportReasonBillingIssue:"Проблема с оплатой", reportReasonOther:"Другое",
     reportDetailsLabel:"Детали (необязательно)", reportSubmitBtn:"Отправить жалобу", reportSentMsg:"Жалоба отправлена.", trustScoreLabel:"Рейтинг доверия",
+    portfolioTitle:"Портфолио", captionLabel:"Подпись (необязательно)", noPortfolioYet:"Пока нет фотографий.", deletePhotoBtn:"Удалить фото",
+    testimonialsTitle:"Отзывы клиентов", addTestimonialBtn:"Добавить отзыв", clientNameLabel:"Имя клиента (необязательно)", testimonialTextLabel:"Что они сказали?",
+    unverifiedTestimonialNote:"Добавлено специалистом — не проверено klussie.", noTestimonialsYet:"Пока нет отзывов.", deleteBtn:"Удалить",
+    proReviewsTitle:"Отзывы", certifiedBadge:"Сертифицирован",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -500,6 +530,10 @@ const STRINGS = {
     pauseProfileBtn:"暂停资料", resumeProfileBtn:"恢复资料", pausedBannerTitle:"你的资料已暂停", pausedBannerMsg:"资料暂停期间你不会收到新的需求。",
     reportIssueBtn:"举报问题", reportReasonLabel:"原因", reportReasonNoShow:"未到场", reportReasonPoorQuality:"工作质量差", reportReasonBillingIssue:"账单问题", reportReasonOther:"其他",
     reportDetailsLabel:"详情（可选）", reportSubmitBtn:"提交举报", reportSentMsg:"举报已提交。", trustScoreLabel:"信任分数",
+    portfolioTitle:"作品集", captionLabel:"说明（可选）", noPortfolioYet:"暂无照片。", deletePhotoBtn:"删除照片",
+    testimonialsTitle:"客户评价", addTestimonialBtn:"添加评价", clientNameLabel:"客户姓名（可选）", testimonialTextLabel:"他们说了什么？",
+    unverifiedTestimonialNote:"由专业人士分享 — 未经 klussie 验证。", noTestimonialsYet:"暂无客户评价。", deleteBtn:"删除",
+    proReviewsTitle:"评价", certifiedBadge:"已认证",
   },
 };
 
@@ -882,6 +916,148 @@ function EditProfileSheet({ onClose, onSaved }) {
   );
 }
 
+function PortfolioItemSheet({ item, onClose, onChanged }) {
+  const { t } = useLang();
+  const [caption, setCaption] = useState(item.caption || "");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    await updatePortfolioCaption(item.id, caption);
+    await onChanged();
+    setBusy(false);
+    onClose();
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    await deletePortfolioItem(item.id, item.storage_path);
+    await onChanged();
+    setBusy(false);
+    onClose();
+  };
+
+  return (
+    <Sheet onClose={onClose}>
+      <img src={item.image_url} alt="" style={{ width: "100%", borderRadius: 12, marginBottom: 14 }} />
+      <label className="field-label">{t.captionLabel}</label>
+      <div className="search" style={{ marginBottom: 16 }}>
+        <input value={caption} onChange={(e) => setCaption(e.target.value)} />
+      </div>
+      <button className="btn-primary" disabled={busy} onClick={save}>{t.saveChangesBtn}</button>
+      <button className="btn-secondary" style={{ marginTop: 8 }} disabled={busy} onClick={remove}>{t.deletePhotoBtn}</button>
+    </Sheet>
+  );
+}
+
+function AddTestimonialSheet({ proId, onClose, onAdded }) {
+  const { t } = useLang();
+  const [clientName, setClientName] = useState("");
+  const [quoteText, setQuoteText] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!quoteText.trim()) return;
+    setError("");
+    setBusy(true);
+    try {
+      await addTestimonial({ proId, clientName, quoteText });
+      await onAdded();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet onClose={onClose}>
+      <div className="sheet-title">{t.addTestimonialBtn}</div>
+
+      <label className="field-label">{t.clientNameLabel}</label>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input value={clientName} onChange={(e) => setClientName(e.target.value)} />
+      </div>
+
+      <label className="field-label">{t.testimonialTextLabel}</label>
+      <textarea className="textarea" rows={3} value={quoteText} onChange={(e) => setQuoteText(e.target.value)} />
+
+      {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
+      <button className="btn-primary" disabled={busy} onClick={submit}>{t.addTestimonialBtn}</button>
+    </Sheet>
+  );
+}
+
+function ProPublicProfileSheet({ proId, onClose }) {
+  const { t, fmt, proBadgeLabel } = useLang();
+  const [proInfo, setProInfo] = useState(null);
+  const [portfolioItems, setPortfolioItems] = useState(null);
+  const [reviews, setReviews] = useState(null);
+  const [testimonials, setTestimonials] = useState(null);
+
+  useEffect(() => {
+    fetchPublicProInfo([proId]).then((m) => setProInfo(m[proId] || null));
+    fetchPortfolioItems(proId).then(setPortfolioItems);
+    fetchReviewsForPro(proId).then(setReviews);
+    fetchTestimonials(proId).then(setTestimonials);
+  }, [proId]);
+
+  if (!proInfo) {
+    return <Sheet onClose={onClose}><div className="empty-block"><p>...</p></div></Sheet>;
+  }
+
+  return (
+    <Sheet onClose={onClose}>
+      <div className="profile-head">
+        <Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" />
+        <div>
+          <div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div>
+          <div className="quote-rating"><Stars value={proInfo.rating} size={12} /> {proInfo.rating} ({fmt(proInfo.reviews)}) · {trustScore(proInfo)} {t.trustScoreLabel}</div>
+        </div>
+      </div>
+      <div className="chiprow" style={{ marginTop: 4 }}>
+        {proBadgeLabel(proInfo.badgeTier) && <Badge tone="forest">{proBadgeLabel(proInfo.badgeTier)}</Badge>}
+        {proInfo.isCertified && <Badge tone="sage">{t.certifiedBadge}</Badge>}
+      </div>
+      {proInfo.bio && <p className="sheet-blurb">{proInfo.bio}</p>}
+
+      {portfolioItems && portfolioItems.length > 0 && (
+        <>
+          <div className="section-title">{t.portfolioTitle}</div>
+          <div className="portfolio-grid">
+            {portfolioItems.map((item) => (
+              <div key={item.id} className="portfolio-thumb">
+                <img src={item.image_url} alt={item.caption || ""} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="section-title">{t.proReviewsTitle}</div>
+      {(!reviews || reviews.length === 0) && <div className="fineprint" style={{ justifyContent: "flex-start" }}>{t.noReviewsYet}</div>}
+      {(reviews || []).map((r) => (
+        <div key={r.id} className="quote-card"><Stars value={r.stars} size={12} /><p className="quote-msg">"{r.text}"</p></div>
+      ))}
+
+      {testimonials && testimonials.length > 0 && (
+        <>
+          <div className="section-title">{t.testimonialsTitle}</div>
+          <div className="fineprint" style={{ marginBottom: 10, justifyContent: "flex-start" }}>{t.unverifiedTestimonialNote}</div>
+          {testimonials.map((tst) => (
+            <div key={tst.id} className="quote-card">
+              {tst.client_name && <div className="quote-name">{tst.client_name}</div>}
+              <p className="quote-msg">"{tst.quote_text}"</p>
+            </div>
+          ))}
+        </>
+      )}
+    </Sheet>
+  );
+}
+
 /* ------------------------------- CUSTOMER APP ------------------------------ */
 
 function CustomerApp({ showToast }) {
@@ -1124,6 +1300,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
   const { user } = useAuth();
   const [showInvoice, setShowInvoice] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [openProId, setOpenProId] = useState(null);
   const info = serviceInfo(request.serviceId);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
 
@@ -1144,11 +1321,13 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
             return (
               <div key={q.id} className="quote-card">
                 <div className="quote-top">
-                  <Avatar url={pro.avatarUrl} initials={pro.initials} />
-                  <div style={{ flex: 1 }}>
-                    <div className="quote-name">{pro.name} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
+                  <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
+                    <Avatar url={pro.avatarUrl} initials={pro.initials} />
+                    <div style={{ flex: 1 }}>
+                      <div className="quote-name">{pro.name} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
                     <div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating} ({fmt(pro.reviews)}) · {trustScore(pro)} {t.trustScoreLabel}</div>
                   </div>
+                  </button>
                   <div className="quote-price">\u20ac{fmt(q.price)}</div>
                 </div>
                 <button className="btn-secondary" onClick={() => onAccept(q.id)}>{t.acceptQuoteBtn}</button>
@@ -1165,8 +1344,10 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
         return (
           <div className="quote-card quote-card-booked">
             <div className="quote-top">
+              <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
               <Avatar url={pro.avatarUrl} initials={pro.initials} />
               <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating} \u00b7 {trustScore(pro)} {t.trustScoreLabel}</div></div>
+              </button>
               <div className="quote-price">\u20ac{fmt(bookedQuote.price)}</div>
             </div>
             <div className="ticket-divider" />
@@ -1200,6 +1381,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
           onClose={() => setShowReport(false)}
         />
       )}
+      {openProId && <ProPublicProfileSheet proId={openProId} onClose={() => setOpenProId(null)} />}
     </Sheet>
   );
 }
@@ -1599,10 +1781,44 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
   const [selected, setSelected] = useState(offeredServiceIds);
   const [saving, setSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [portfolioItems, setPortfolioItems] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [editingPortfolioItem, setEditingPortfolioItem] = useState(null);
+  const [testimonials, setTestimonials] = useState(null);
+  const [addTestimonialOpen, setAddTestimonialOpen] = useState(false);
+  const portfolioFileRef = useRef(null);
   const flexiPct = Math.min(100, Math.round((earnedGross / FLEXI_TAX_FREE_THRESHOLD) * 100));
   const isBoosted = proProfile.boosted_until && new Date(proProfile.boosted_until) > new Date();
 
+  const refreshPortfolio = () => fetchPortfolioItems(user.id).then(setPortfolioItems);
+  const refreshTestimonials = () => fetchTestimonials(user.id).then(setTestimonials);
+
+  useEffect(() => {
+    refreshPortfolio();
+    refreshTestimonials();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
+
   const toggle = (id) => setSelected((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+
+  const handlePortfolioUpload = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const { url, path } = await uploadPortfolioImage(user.id, file);
+      await addPortfolioItem({ proId: user.id, imageUrl: url, storagePath: path });
+      await refreshPortfolio();
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const removeTestimonial = async (id) => {
+    await deleteTestimonial(id);
+    await refreshTestimonials();
+  };
 
   const saveServices = async () => {
     setSaving(true);
@@ -1676,6 +1892,32 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
       })}
       <button className="btn-secondary" style={{ marginBottom: 14 }} disabled={saving} onClick={saveServices}>{t.saveServicesBtn}</button>
 
+      <div className="section-title">{t.portfolioTitle}</div>
+      <div className="portfolio-grid">
+        {(portfolioItems || []).map((item) => (
+          <button key={item.id} type="button" className="portfolio-thumb" onClick={() => setEditingPortfolioItem(item)}>
+            <img src={item.image_url} alt={item.caption || ""} />
+          </button>
+        ))}
+        <button type="button" className="portfolio-thumb portfolio-add" disabled={uploadingPhoto} onClick={() => portfolioFileRef.current.click()}>
+          <Camera size={20} />
+        </button>
+        <input ref={portfolioFileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePortfolioUpload} />
+      </div>
+      {portfolioItems && portfolioItems.length === 0 && <div className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 14 }}>{t.noPortfolioYet}</div>}
+
+      <div className="section-title">{t.testimonialsTitle}</div>
+      <div className="fineprint" style={{ marginBottom: 10, justifyContent: "flex-start" }}>{t.unverifiedTestimonialNote}</div>
+      {testimonials && testimonials.length === 0 && <div className="empty-block" style={{ marginBottom: 14 }}><p>{t.noTestimonialsYet}</p></div>}
+      {(testimonials || []).map((tst) => (
+        <div key={tst.id} className="quote-card">
+          {tst.client_name && <div className="quote-name">{tst.client_name}</div>}
+          <p className="quote-msg">"{tst.quote_text}"</p>
+          <button className="btn-secondary" onClick={() => removeTestimonial(tst.id)}>{t.deleteBtn}</button>
+        </div>
+      ))}
+      <button className="btn-secondary" style={{ marginBottom: 14 }} onClick={() => setAddTestimonialOpen(true)}>{t.addTestimonialBtn}</button>
+
       <div className="section-title">{t.boostTitle}</div>
       <div className="quote-card">
         <p className="sheet-blurb" style={{ margin: "0 0 10px" }}>{t.boostDesc}</p>
@@ -1690,6 +1932,12 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
       <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => setEditOpen(true)}>{t.editProfileBtn}</button>
       <button className="btn-secondary" style={{ marginTop: 8 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
       {editOpen && <EditProfileSheet onClose={() => setEditOpen(false)} onSaved={onProfileSaved} />}
+      {editingPortfolioItem && (
+        <PortfolioItemSheet item={editingPortfolioItem} onClose={() => setEditingPortfolioItem(null)} onChanged={refreshPortfolio} />
+      )}
+      {addTestimonialOpen && (
+        <AddTestimonialSheet proId={user.id} onClose={() => setAddTestimonialOpen(false)} onAdded={refreshTestimonials} />
+      )}
     </div>
   );
 }
@@ -1869,4 +2117,10 @@ const CSS = `
 .avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
 .avatar-upload-row{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
 .avatar-upload{ padding:0; border:none; background:none; border-radius:50%; cursor:pointer; flex-shrink:0; }
+
+.portfolio-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:12px; }
+.portfolio-thumb{ position:relative; width:100%; aspect-ratio:1; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:var(--surface); padding:0; cursor:pointer; }
+.portfolio-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.portfolio-add{ display:flex; align-items:center; justify-content:center; color:var(--ink-soft); background:var(--sage-bg); border-style:dashed; }
+.quote-top-link{ display:flex; align-items:center; gap:10px; flex:1; border:none; background:none; padding:0; margin:0; cursor:pointer; text-align:start; font-family:var(--font-body); min-width:0; }
 `;

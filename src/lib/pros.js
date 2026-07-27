@@ -52,7 +52,7 @@ export async function fetchPublicProInfo(proIds) {
 
   const { data, error } = await supabase
     .from("pro_profiles")
-    .select("profile_id, pro_type, profiles(full_name, avatar_url), pro_stats(rating_avg, rating_count, badge_tier, is_certified)")
+    .select("profile_id, pro_type, bio, profiles(full_name, avatar_url), pro_stats(rating_avg, rating_count, badge_tier, is_certified)")
     .in("profile_id", ids);
   if (error) throw error;
 
@@ -65,6 +65,7 @@ export async function fetchPublicProInfo(proIds) {
         initials: initialsFrom(row.profiles?.full_name),
         avatarUrl: row.profiles?.avatar_url || null,
         proType: row.pro_type,
+        bio: row.bio || null,
         rating: Number(row.pro_stats?.rating_avg) || 0,
         reviews: row.pro_stats?.rating_count || 0,
         badgeTier: row.pro_stats?.badge_tier || null,
@@ -72,4 +73,16 @@ export async function fetchPublicProInfo(proIds) {
       },
     ])
   );
+}
+
+// Public, anonymous — no reviewer identity, consistent with keeping customer contact
+// info private elsewhere in this schema.
+export async function fetchReviewsForPro(proId) {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("id, stars, body, created_at")
+    .eq("pro_id", proId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data.map((r) => ({ id: r.id, stars: r.stars, text: r.body, createdAt: new Date(r.created_at).getTime() }));
 }
