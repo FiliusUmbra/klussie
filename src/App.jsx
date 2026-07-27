@@ -29,6 +29,7 @@ import {
   subscribeToMessages,
 } from "./lib/messages";
 import { uploadAvatar } from "./lib/storage";
+import { submitReport } from "./lib/reports";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -97,6 +98,9 @@ const STRINGS = {
     becomeProPrompt:"Wil je diensten aanbieden op klussie? Stel je vakman-profiel in.", becomeProBtn:"Word vakman", becomeProTitle:"Stel je vakman-profiel in",
     businessNameLabel:"Bedrijfsnaam", vatNumberLabel:"Btw-nummer", bioLabel:"Korte omschrijving", becomeProSubmit:"Start met diensten aanbieden", saveServicesBtn:"Diensten opslaan", messagePlaceholder:"Typ een bericht...",
     editProfileBtn:"Profiel bewerken", editProfileTitle:"Bewerk je profiel", cityLabel:"Stad", saveChangesBtn:"Wijzigingen opslaan", uploadPhotoBtn:"Foto uploaden",
+    pauseProfileBtn:"Profiel pauzeren", resumeProfileBtn:"Profiel hervatten", pausedBannerTitle:"Je profiel is gepauzeerd", pausedBannerMsg:"Je ontvangt geen nieuwe aanvragen zolang je profiel gepauzeerd is.",
+    reportIssueBtn:"Meld een probleem", reportReasonLabel:"Reden", reportReasonNoShow:"Kwam niet opdagen", reportReasonPoorQuality:"Slechte kwaliteit", reportReasonBillingIssue:"Facturatieprobleem", reportReasonOther:"Andere",
+    reportDetailsLabel:"Details (optioneel)", reportSubmitBtn:"Melding versturen", reportSentMsg:"Melding verzonden.", trustScoreLabel:"Vertrouwensscore",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -151,6 +155,9 @@ const STRINGS = {
     becomeProPrompt:"Tu veux proposer des services sur klussie ? Configure ton profil pro.", becomeProBtn:"Devenir pro", becomeProTitle:"Configure ton profil pro",
     businessNameLabel:"Nom de l'entreprise", vatNumberLabel:"Numéro de TVA", bioLabel:"Courte description", becomeProSubmit:"Commencer à proposer des services", saveServicesBtn:"Enregistrer les services", messagePlaceholder:"Écris un message...",
     editProfileBtn:"Modifier le profil", editProfileTitle:"Modifie ton profil", cityLabel:"Ville", saveChangesBtn:"Enregistrer les modifications", uploadPhotoBtn:"Téléverser une photo",
+    pauseProfileBtn:"Mettre en pause", resumeProfileBtn:"Réactiver le profil", pausedBannerTitle:"Ton profil est en pause", pausedBannerMsg:"Tu ne reçois pas de nouvelles demandes tant que ton profil est en pause.",
+    reportIssueBtn:"Signaler un problème", reportReasonLabel:"Motif", reportReasonNoShow:"Ne s'est pas présenté", reportReasonPoorQuality:"Mauvaise qualité", reportReasonBillingIssue:"Problème de facturation", reportReasonOther:"Autre",
+    reportDetailsLabel:"Détails (facultatif)", reportSubmitBtn:"Envoyer le signalement", reportSentMsg:"Signalement envoyé.", trustScoreLabel:"Score de confiance",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -205,6 +212,9 @@ const STRINGS = {
     becomeProPrompt:"Möchtest du Dienstleistungen auf klussie anbieten? Richte dein Profi-Profil ein.", becomeProBtn:"Profi werden", becomeProTitle:"Richte dein Profi-Profil ein",
     businessNameLabel:"Firmenname", vatNumberLabel:"USt-IdNr.", bioLabel:"Kurzbeschreibung", becomeProSubmit:"Jetzt Dienstleistungen anbieten", saveServicesBtn:"Dienste speichern", messagePlaceholder:"Nachricht schreiben...",
     editProfileBtn:"Profil bearbeiten", editProfileTitle:"Profil bearbeiten", cityLabel:"Stadt", saveChangesBtn:"Änderungen speichern", uploadPhotoBtn:"Foto hochladen",
+    pauseProfileBtn:"Profil pausieren", resumeProfileBtn:"Profil fortsetzen", pausedBannerTitle:"Dein Profil ist pausiert", pausedBannerMsg:"Du erhältst keine neuen Anfragen, solange dein Profil pausiert ist.",
+    reportIssueBtn:"Problem melden", reportReasonLabel:"Grund", reportReasonNoShow:"Nicht erschienen", reportReasonPoorQuality:"Schlechte Qualität", reportReasonBillingIssue:"Abrechnungsproblem", reportReasonOther:"Sonstiges",
+    reportDetailsLabel:"Details (optional)", reportSubmitBtn:"Meldung senden", reportSentMsg:"Meldung gesendet.", trustScoreLabel:"Vertrauensscore",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -259,6 +269,9 @@ const STRINGS = {
     becomeProPrompt:"Want to offer services on klussie? Set up your pro profile.", becomeProBtn:"Become a pro", becomeProTitle:"Set up your pro profile",
     businessNameLabel:"Business name", vatNumberLabel:"VAT number", bioLabel:"Short bio", becomeProSubmit:"Start offering services", saveServicesBtn:"Save services", messagePlaceholder:"Type a message...",
     editProfileBtn:"Edit profile", editProfileTitle:"Edit your profile", cityLabel:"City", saveChangesBtn:"Save changes", uploadPhotoBtn:"Upload photo",
+    pauseProfileBtn:"Pause profile", resumeProfileBtn:"Resume profile", pausedBannerTitle:"Your profile is paused", pausedBannerMsg:"You won't receive new leads while your profile is paused.",
+    reportIssueBtn:"Report an issue", reportReasonLabel:"Reason", reportReasonNoShow:"Didn't show up", reportReasonPoorQuality:"Poor quality work", reportReasonBillingIssue:"Billing issue", reportReasonOther:"Other",
+    reportDetailsLabel:"Details (optional)", reportSubmitBtn:"Submit report", reportSentMsg:"Report submitted.", trustScoreLabel:"Trust score",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -313,6 +326,9 @@ const STRINGS = {
     becomeProPrompt:"تريد تقديم خدمات على klussie؟ أنشئ ملفك كمحترف.", becomeProBtn:"كن محترفًا", becomeProTitle:"أنشئ ملفك كمحترف",
     businessNameLabel:"اسم الشركة", vatNumberLabel:"الرقم الضريبي", bioLabel:"نبذة قصيرة", becomeProSubmit:"ابدأ بتقديم الخدمات", saveServicesBtn:"حفظ الخدمات", messagePlaceholder:"اكتب رسالة...",
     editProfileBtn:"تعديل الملف الشخصي", editProfileTitle:"عدّل ملفك الشخصي", cityLabel:"المدينة", saveChangesBtn:"حفظ التغييرات", uploadPhotoBtn:"تحميل صورة",
+    pauseProfileBtn:"إيقاف الملف مؤقتًا", resumeProfileBtn:"استئناف الملف", pausedBannerTitle:"ملفك متوقف مؤقتًا", pausedBannerMsg:"لن تتلقى طلبات جديدة طالما ملفك متوقف مؤقتًا.",
+    reportIssueBtn:"الإبلاغ عن مشكلة", reportReasonLabel:"السبب", reportReasonNoShow:"لم يحضر", reportReasonPoorQuality:"جودة عمل سيئة", reportReasonBillingIssue:"مشكلة في الفوترة", reportReasonOther:"أخرى",
+    reportDetailsLabel:"تفاصيل (اختياري)", reportSubmitBtn:"إرسال البلاغ", reportSentMsg:"تم إرسال البلاغ.", trustScoreLabel:"درجة الثقة",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -367,6 +383,9 @@ const STRINGS = {
     becomeProPrompt:"klussie'de hizmet sunmak mı istiyorsun? Profesyonel profilini oluştur.", becomeProBtn:"Profesyonel ol", becomeProTitle:"Profesyonel profilini oluştur",
     businessNameLabel:"Şirket adı", vatNumberLabel:"KDV numarası", bioLabel:"Kısa biyografi", becomeProSubmit:"Hizmet sunmaya başla", saveServicesBtn:"Hizmetleri kaydet", messagePlaceholder:"Bir mesaj yaz...",
     editProfileBtn:"Profili düzenle", editProfileTitle:"Profilini düzenle", cityLabel:"Şehir", saveChangesBtn:"Değişiklikleri kaydet", uploadPhotoBtn:"Fotoğraf yükle",
+    pauseProfileBtn:"Profili duraklat", resumeProfileBtn:"Profili devam ettir", pausedBannerTitle:"Profilin duraklatıldı", pausedBannerMsg:"Profilin duraklatıldığı sürece yeni talep almazsın.",
+    reportIssueBtn:"Sorun bildir", reportReasonLabel:"Neden", reportReasonNoShow:"Gelmedi", reportReasonPoorQuality:"Kötü iş kalitesi", reportReasonBillingIssue:"Faturalama sorunu", reportReasonOther:"Diğer",
+    reportDetailsLabel:"Detaylar (isteğe bağlı)", reportSubmitBtn:"Bildirimi gönder", reportSentMsg:"Bildirim gönderildi.", trustScoreLabel:"Güven puanı",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -421,6 +440,9 @@ const STRINGS = {
     becomeProPrompt:"Хотите предлагать услуги на klussie? Настройте профиль специалиста.", becomeProBtn:"Стать специалистом", becomeProTitle:"Настройте профиль специалиста",
     businessNameLabel:"Название компании", vatNumberLabel:"Номер плательщика НДС", bioLabel:"Краткое описание", becomeProSubmit:"Начать предлагать услуги", saveServicesBtn:"Сохранить услуги", messagePlaceholder:"Введите сообщение...",
     editProfileBtn:"Редактировать профиль", editProfileTitle:"Редактируйте свой профиль", cityLabel:"Город", saveChangesBtn:"Сохранить изменения", uploadPhotoBtn:"Загрузить фото",
+    pauseProfileBtn:"Приостановить профиль", resumeProfileBtn:"Возобновить профиль", pausedBannerTitle:"Ваш профиль приостановлен", pausedBannerMsg:"Пока профиль приостановлен, вы не будете получать новые заявки.",
+    reportIssueBtn:"Пожаловаться", reportReasonLabel:"Причина", reportReasonNoShow:"Не пришёл", reportReasonPoorQuality:"Плохое качество работы", reportReasonBillingIssue:"Проблема с оплатой", reportReasonOther:"Другое",
+    reportDetailsLabel:"Детали (необязательно)", reportSubmitBtn:"Отправить жалобу", reportSentMsg:"Жалоба отправлена.", trustScoreLabel:"Рейтинг доверия",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -475,6 +497,9 @@ const STRINGS = {
     becomeProPrompt:"想在 klussie 上提供服务吗？设置你的专业人士资料。", becomeProBtn:"成为专业人士", becomeProTitle:"设置你的专业人士资料",
     businessNameLabel:"公司名称", vatNumberLabel:"增值税号", bioLabel:"简介", becomeProSubmit:"开始提供服务", saveServicesBtn:"保存服务", messagePlaceholder:"输入消息...",
     editProfileBtn:"编辑资料", editProfileTitle:"编辑你的资料", cityLabel:"城市", saveChangesBtn:"保存更改", uploadPhotoBtn:"上传照片",
+    pauseProfileBtn:"暂停资料", resumeProfileBtn:"恢复资料", pausedBannerTitle:"你的资料已暂停", pausedBannerMsg:"资料暂停期间你不会收到新的需求。",
+    reportIssueBtn:"举报问题", reportReasonLabel:"原因", reportReasonNoShow:"未到场", reportReasonPoorQuality:"工作质量差", reportReasonBillingIssue:"账单问题", reportReasonOther:"其他",
+    reportDetailsLabel:"详情（可选）", reportSubmitBtn:"提交举报", reportSentMsg:"举报已提交。", trustScoreLabel:"信任分数",
   },
 };
 
@@ -511,6 +536,14 @@ function Avatar({ url, initials, size }) {
     </div>
   );
 }
+
+function trustScore({ rating = 0, isCertified, badgeTier }) {
+  const badgeBonus = badgeTier === "elite" ? 12 : badgeTier === "top" ? 6 : 0;
+  const score = rating * 20 + (isCertified ? 8 : 0) + badgeBonus;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+const REPORT_REASONS = ["no_show", "poor_quality", "billing_issue", "other"];
 
 /* ---------------------------------- APP ---------------------------------- */
 
@@ -889,7 +922,7 @@ function CustomerApp({ showToast }) {
   const openRequestObj = requests.find((r) => r.id === openRequest);
   const reviewReq = requests.find((r) => r.id === reviewFor);
 
-  const createRequest = async (service, { whenPref, details, budget }) => {
+  const createRequest = async (service, { whenPref, details, budget, city }) => {
     await createServiceRequest({
       customerId: user.id,
       serviceId: service.id,
@@ -897,6 +930,7 @@ function CustomerApp({ showToast }) {
       details,
       whenPref,
       budget: budget === "" || budget == null ? null : Number(budget),
+      city: city || null,
     });
     await refresh();
   };
@@ -1012,10 +1046,12 @@ function ServiceSheet({ service, onClose, onRequest }) {
 
 function QuoteFormSheet({ service, onClose, onSubmit }) {
   const { t, serviceInfo, whenLabel } = useLang();
+  const { profile } = useAuth();
   const info = serviceInfo(service.id);
   const [details, setDetails] = useState("");
   const [whenPref, setWhenPref] = useState("this_week");
   const [budget, setBudget] = useState("");
+  const [city, setCity] = useState(profile?.city || "");
 
   return (
     <Sheet onClose={onClose}>
@@ -1032,13 +1068,18 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
       <label className="field-label">{t.detailsLabel}</label>
       <textarea className="textarea" rows={3} placeholder={t.detailsPlaceholder} value={details} onChange={(e) => setDetails(e.target.value)} />
 
+      <label className="field-label">{t.cityLabel}</label>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input value={city} onChange={(e) => setCity(e.target.value)} />
+      </div>
+
       <label className="field-label">{t.budgetLabel}</label>
       <div className="search" style={{ marginBottom: 18 }}>
         <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>\u20ac</span>
         <input placeholder={t.budgetPlaceholder} value={budget} onChange={(e) => setBudget(e.target.value)} />
       </div>
 
-      <button className="btn-primary" onClick={() => onSubmit({ whenPref, details: details || "\u2014", budget })}><Send size={15} /> {t.sendRequestBtn}</button>
+      <button className="btn-primary" onClick={() => onSubmit({ whenPref, details: details || "\u2014", budget, city })}><Send size={15} /> {t.sendRequestBtn}</button>
       <div className="fineprint"><ShieldCheck size={12} /> {t.privacyNote}</div>
     </Sheet>
   );
@@ -1080,7 +1121,9 @@ function StatusPill({ status }) {
 
 function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
+  const { user } = useAuth();
   const [showInvoice, setShowInvoice] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const info = serviceInfo(request.serviceId);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
 
@@ -1104,7 +1147,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
                   <Avatar url={pro.avatarUrl} initials={pro.initials} />
                   <div style={{ flex: 1 }}>
                     <div className="quote-name">{pro.name} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
-                    <div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating} ({fmt(pro.reviews)})</div>
+                    <div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating} ({fmt(pro.reviews)}) · {trustScore(pro)} {t.trustScoreLabel}</div>
                   </div>
                   <div className="quote-price">\u20ac{fmt(q.price)}</div>
                 </div>
@@ -1123,7 +1166,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
           <div className="quote-card quote-card-booked">
             <div className="quote-top">
               <Avatar url={pro.avatarUrl} initials={pro.initials} />
-              <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating}</div></div>
+              <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating} \u00b7 {trustScore(pro)} {t.trustScoreLabel}</div></div>
               <div className="quote-price">\u20ac{fmt(bookedQuote.price)}</div>
             </div>
             <div className="ticket-divider" />
@@ -1144,7 +1187,72 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
         <div className="quote-card"><div className="quote-top"><Stars value={request.review.stars} size={16} /></div><p className="quote-msg">"{request.review.text}"</p><button className="btn-secondary" onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button></div>
       )}
 
+      {bookedQuote && (
+        <button className="btn-secondary" style={{ marginTop: 8 }} onClick={() => setShowReport(true)}>{t.reportIssueBtn}</button>
+      )}
+
       {showInvoice && bookedQuote && <InvoiceSheet request={request} quote={bookedQuote} onClose={() => setShowInvoice(false)} />}
+      {showReport && bookedQuote && (
+        <ReportSheet
+          reporterId={user.id}
+          proId={bookedQuote.proId}
+          requestId={request.id}
+          onClose={() => setShowReport(false)}
+        />
+      )}
+    </Sheet>
+  );
+}
+
+function ReportSheet({ reporterId, proId, requestId, onClose }) {
+  const { t } = useLang();
+  const [reason, setReason] = useState(REPORT_REASONS[0]);
+  const [details, setDetails] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const reasonLabel = (r) => ({
+    no_show: t.reportReasonNoShow,
+    poor_quality: t.reportReasonPoorQuality,
+    billing_issue: t.reportReasonBillingIssue,
+    other: t.reportReasonOther,
+  }[r]);
+
+  const submit = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await submitReport({ reporterId, proId, requestId, reason, details });
+      setSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet onClose={onClose}>
+      <div className="sheet-title">{t.reportIssueBtn}</div>
+      {sent ? (
+        <div className="empty-block"><Check size={22} color="var(--forest)" /><p>{t.reportSentMsg}</p></div>
+      ) : (
+        <>
+          <label className="field-label">{t.reportReasonLabel}</label>
+          <div className="chiprow">
+            {REPORT_REASONS.map((r) => (
+              <button key={r} className={"chip" + (reason === r ? " chip-on" : "")} onClick={() => setReason(r)}>{reasonLabel(r)}</button>
+            ))}
+          </div>
+
+          <label className="field-label">{t.reportDetailsLabel}</label>
+          <textarea className="textarea" rows={3} value={details} onChange={(e) => setDetails(e.target.value)} />
+
+          {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
+          <button className="btn-primary" disabled={busy} onClick={submit}>{t.reportSubmitBtn}</button>
+        </>
+      )}
     </Sheet>
   );
 }
@@ -1358,7 +1466,7 @@ function ProApp({ showToast }) {
         {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && (
-          <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} />
+          <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} onPauseToggled={refreshLeads} />
         )}
       </div>
 
@@ -1392,8 +1500,15 @@ function ProDashboard({ leads, onQuote, proInfo }) {
       <div className="stat-row">
         <div className="stat"><div className="stat-num"><Stars value={proInfo.rating} size={12} /></div><div className="stat-label">{proInfo.rating} {t.statScore}</div></div>
         <div className="stat"><div className="stat-num">{fmt(proInfo.reviews)}</div><div className="stat-label">{t.statReviewsLabel}</div></div>
-        <div className="stat"><div className="stat-num">92%</div><div className="stat-label">{t.statResponseRate}</div></div>
+        <div className="stat"><div className="stat-num">{trustScore(proInfo)}</div><div className="stat-label">{t.trustScoreLabel}</div></div>
       </div>
+
+      {proProfile.paused && (
+        <div className="empty-block" style={{ marginBottom: 16 }}>
+          <ClipboardList size={22} color="var(--ink-soft)" />
+          <p><b>{t.pausedBannerTitle}</b><br />{t.pausedBannerMsg}</p>
+        </div>
+      )}
 
       <div className="section-title">{t.newLeadsTitle}</div>
       {leads.length === 0 && <div className="empty-block"><TrendingUp size={22} color="var(--ink-soft)" /><p>{t.noLeadsMsg}</p></div>}
@@ -1402,7 +1517,7 @@ function ProDashboard({ leads, onQuote, proInfo }) {
           <TicketTear />
           <div className="ticket-body">
             <div className="ticket-row"><div className="ticket-title">{serviceInfo(r.serviceId).name}</div><Badge tone="amber">{t.newBadge}</Badge></div>
-            <div className="ticket-sub">{whenLabel(r.answers.when)} \u00b7 {r.answers.budget ? `\u20ac${r.answers.budget}` : t.budgetFlexible}</div>
+            <div className="ticket-sub">{whenLabel(r.answers.when)} \u00b7 {r.answers.budget ? `\u20ac${r.answers.budget}` : t.budgetFlexible}{r.answers.city ? ` \u00b7 ${r.answers.city}` : ""}</div>
             <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
             <div className="ticket-divider" />
             <button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>
@@ -1478,7 +1593,7 @@ function ProJobs({ sent, booked, completed, proId }) {
   );
 }
 
-function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, onServicesChange, onProfileSaved }) {
+function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, onServicesChange, onProfileSaved, onPauseToggled }) {
   const { t, fmt, catName, serviceInfo, proBadgeLabel, CATS, BASE_SERVICES } = useLang();
   const { user, proProfile, refreshProfile, signOut } = useAuth();
   const [selected, setSelected] = useState(offeredServiceIds);
@@ -1506,6 +1621,12 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
     await refreshProfile();
   };
 
+  const togglePaused = async () => {
+    await updateProProfile(user.id, { paused: !proProfile.paused });
+    await refreshProfile();
+    if (onPauseToggled) await onPauseToggled();
+  };
+
   return (
     <div className="pad">
       <div className="profile-head"><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" /><div><div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div><div className="quote-rating"><Stars value={proInfo.rating} size={12} /> {proInfo.rating} ({fmt(proInfo.reviews)})</div></div></div>
@@ -1513,7 +1634,12 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
       <div className="stat-row">
         <div className="stat"><div className="stat-num">{completedCount}</div><div className="stat-label">{t.proJobsDone}</div></div>
         <div className="stat"><div className="stat-num">{proBadgeLabel(proInfo.badgeTier) || "\u2014"}</div><div className="stat-label">{t.proStatus}</div></div>
+        <div className="stat"><div className="stat-num">{trustScore(proInfo)}</div><div className="stat-label">{t.trustScoreLabel}</div></div>
       </div>
+
+      <button className="btn-secondary" style={{ marginBottom: 14 }} onClick={togglePaused}>
+        {proProfile.paused ? t.resumeProfileBtn : t.pauseProfileBtn}
+      </button>
 
       <div className="section-title">{t.proTypeLabel}</div>
       <div className="segmented segmented-block">

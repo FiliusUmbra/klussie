@@ -2,9 +2,9 @@ import { supabase } from "./supabaseClient";
 import { initialsFrom } from "./pros";
 
 const REQUEST_SELECT = `
-  id, customer_id, service_id, category_id, details, when_pref, budget, status, booked_pro_id, created_at, updated_at,
+  id, customer_id, service_id, category_id, details, when_pref, budget, city, status, booked_pro_id, created_at, updated_at,
   quotes ( id, request_id, pro_id, price, message, status, sent_at,
-    pro:pro_profiles ( profile_id, pro_type, profiles ( full_name, avatar_url ), pro_stats ( rating_avg, rating_count, badge_tier ) )
+    pro:pro_profiles ( profile_id, pro_type, profiles ( full_name, avatar_url ), pro_stats ( rating_avg, rating_count, badge_tier, is_certified ) )
   ),
   reviews ( id, stars, body )
 `;
@@ -26,6 +26,7 @@ function shapePro(pro) {
     rating: Number(stats?.rating_avg) || 0,
     reviews: stats?.rating_count || 0,
     badgeTier: stats?.badge_tier || null,
+    isCertified: stats?.is_certified || false,
   };
 }
 
@@ -47,14 +48,14 @@ function reshapeRequest(row) {
     serviceId: row.service_id,
     createdAt: new Date(row.created_at).getTime(),
     status: row.status,
-    answers: { when: row.when_pref, details: row.details, budget: row.budget },
+    answers: { when: row.when_pref, details: row.details, budget: row.budget, city: row.city },
     quotes,
     bookedProId: row.booked_pro_id,
     review: review ? { stars: review.stars, text: review.body } : null,
   };
 }
 
-export async function createServiceRequest({ customerId, serviceId, categoryId, details, whenPref, budget }) {
+export async function createServiceRequest({ customerId, serviceId, categoryId, details, whenPref, budget, city }) {
   const { data, error } = await supabase
     .from("service_requests")
     .insert({
@@ -64,6 +65,7 @@ export async function createServiceRequest({ customerId, serviceId, categoryId, 
       details,
       when_pref: whenPref,
       budget: budget || null,
+      city: city || null,
     })
     .select(REQUEST_SELECT)
     .single();
@@ -88,6 +90,7 @@ export async function fetchProLeads(proId) {
     .from("service_requests")
     .select(REQUEST_SELECT)
     .in("status", ["collecting", "quotes_ready"])
+    .neq("customer_id", proId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data.map(reshapeRequest).filter((r) => !r.quotes.some((q) => q.proId === proId));

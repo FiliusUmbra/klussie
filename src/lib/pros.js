@@ -52,7 +52,7 @@ export async function fetchPublicProInfo(proIds) {
 
   const { data, error } = await supabase
     .from("pro_profiles")
-    .select("profile_id, pro_type, profiles(full_name, avatar_url), pro_stats(rating_avg, rating_count, badge_tier)")
+    .select("profile_id, pro_type, profiles(full_name, avatar_url), pro_stats(rating_avg, rating_count, badge_tier, is_certified)")
     .in("profile_id", ids);
   if (error) throw error;
 
@@ -68,6 +68,7 @@ export async function fetchPublicProInfo(proIds) {
         rating: Number(row.pro_stats?.rating_avg) || 0,
         reviews: row.pro_stats?.rating_count || 0,
         badgeTier: row.pro_stats?.badge_tier || null,
+        isCertified: row.pro_stats?.is_certified || false,
       },
     ])
   );
