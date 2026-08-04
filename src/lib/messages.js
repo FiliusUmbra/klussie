@@ -50,7 +50,7 @@ export async function fetchConversations(userId) {
 export async function fetchMessages(conversationId) {
   const { data, error } = await supabase
     .from("messages")
-    .select("id, sender_id, body, created_at, read_at")
+    .select("id, sender_id, body, created_at, read_at, translations")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -60,7 +60,23 @@ export async function fetchMessages(conversationId) {
     body: m.body,
     createdAt: new Date(m.created_at).getTime(),
     readAt: m.read_at,
+    translations: m.translations || {},
   }));
+}
+
+// Lazily populated the first time someone views a message in a given UI language
+// (see ConversationSheet) — read-modify-write is fine here since in practice only the
+// recipient triggers this, for the one language they're currently viewing in.
+export async function saveMessageTranslation(messageId, locale, translatedText) {
+  const { data: existing, error: fetchErr } = await supabase
+    .from("messages")
+    .select("translations")
+    .eq("id", messageId)
+    .single();
+  if (fetchErr) throw fetchErr;
+  const merged = { ...(existing.translations || {}), [locale]: translatedText };
+  const { error } = await supabase.from("messages").update({ translations: merged }).eq("id", messageId);
+  if (error) throw error;
 }
 
 export async function sendMessage({ conversationId, senderId, body }) {

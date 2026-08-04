@@ -26,6 +26,7 @@ import {
   fetchMessages,
   sendMessage,
   markConversationRead,
+  saveMessageTranslation,
   subscribeToConversationsForUser,
   subscribeToMessages,
 } from "./lib/messages";
@@ -36,6 +37,7 @@ import { addTestimonial, fetchTestimonials, deleteTestimonial } from "./lib/test
 import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "./lib/aiIntake";
+import { translateMessage } from "./lib/translate";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -124,6 +126,7 @@ const STRINGS = {
     aiFollowUpTitle:"Nog even preciseren", aiFollowUpSub:"Dit helpt ons de juiste vakman te vinden.", aiSkipFollowUp:"Sla over en ga verder",
     aiReviewTitle:"Controleer je aanvraag", aiConfidenceLabel:"zekerheid", aiDetectedServiceLabel:"Gedetecteerde dienst",
     aiPossibleCausesLabel:"Mogelijke oorzaken", aiRecommendedMaterialsLabel:"Aanbevolen materialen", aiAnalysisLabel:"AI-analyse",
+    viewOriginalBtn:"Bekijk origineel", viewTranslationBtn:"Bekijk vertaling",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -198,6 +201,7 @@ const STRINGS = {
     aiFollowUpTitle:"Encore quelques précisions", aiFollowUpSub:"Cela nous aide à trouver le bon professionnel.", aiSkipFollowUp:"Passer et continuer",
     aiReviewTitle:"Vérifie ta demande", aiConfidenceLabel:"certitude", aiDetectedServiceLabel:"Service détecté",
     aiPossibleCausesLabel:"Causes possibles", aiRecommendedMaterialsLabel:"Matériaux recommandés", aiAnalysisLabel:"Analyse IA",
+    viewOriginalBtn:"Voir l'original", viewTranslationBtn:"Voir la traduction",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -272,6 +276,7 @@ const STRINGS = {
     aiFollowUpTitle:"Noch ein paar Details", aiFollowUpSub:"Das hilft uns, den richtigen Handwerker zu finden.", aiSkipFollowUp:"Überspringen und weiter",
     aiReviewTitle:"Überprüfe deine Anfrage", aiConfidenceLabel:"Sicherheit", aiDetectedServiceLabel:"Erkannter Dienst",
     aiPossibleCausesLabel:"Mögliche Ursachen", aiRecommendedMaterialsLabel:"Empfohlene Materialien", aiAnalysisLabel:"KI-Analyse",
+    viewOriginalBtn:"Original anzeigen", viewTranslationBtn:"Übersetzung anzeigen",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -346,6 +351,7 @@ const STRINGS = {
     aiFollowUpTitle:"A couple more details", aiFollowUpSub:"This helps us find the right pro.", aiSkipFollowUp:"Skip and continue",
     aiReviewTitle:"Review your request", aiConfidenceLabel:"confidence", aiDetectedServiceLabel:"Detected service",
     aiPossibleCausesLabel:"Possible causes", aiRecommendedMaterialsLabel:"Recommended materials", aiAnalysisLabel:"AI analysis",
+    viewOriginalBtn:"View original", viewTranslationBtn:"View translation",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -420,6 +426,7 @@ const STRINGS = {
     aiFollowUpTitle:"بضعة تفاصيل إضافية", aiFollowUpSub:"هذا يساعدنا في إيجاد المحترف المناسب.", aiSkipFollowUp:"تخطَّ وتابع",
     aiReviewTitle:"راجع طلبك", aiConfidenceLabel:"الثقة", aiDetectedServiceLabel:"الخدمة المكتشفة",
     aiPossibleCausesLabel:"الأسباب المحتملة", aiRecommendedMaterialsLabel:"المواد الموصى بها", aiAnalysisLabel:"تحليل الذكاء الاصطناعي",
+    viewOriginalBtn:"عرض النص الأصلي", viewTranslationBtn:"عرض الترجمة",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -494,6 +501,7 @@ const STRINGS = {
     aiFollowUpTitle:"Birkaç detay daha", aiFollowUpSub:"Bu, doğru ustayı bulmamıza yardımcı olur.", aiSkipFollowUp:"Atla ve devam et",
     aiReviewTitle:"Talebini gözden geçir", aiConfidenceLabel:"güven", aiDetectedServiceLabel:"Tespit edilen hizmet",
     aiPossibleCausesLabel:"Olası nedenler", aiRecommendedMaterialsLabel:"Önerilen malzemeler", aiAnalysisLabel:"Yapay zeka analizi",
+    viewOriginalBtn:"Orijinali göster", viewTranslationBtn:"Çeviriyi göster",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -568,6 +576,7 @@ const STRINGS = {
     aiFollowUpTitle:"Ещё пара деталей", aiFollowUpSub:"Это поможет нам найти подходящего специалиста.", aiSkipFollowUp:"Пропустить и продолжить",
     aiReviewTitle:"Проверьте заявку", aiConfidenceLabel:"уверенность", aiDetectedServiceLabel:"Определённая услуга",
     aiPossibleCausesLabel:"Возможные причины", aiRecommendedMaterialsLabel:"Рекомендуемые материалы", aiAnalysisLabel:"ИИ-анализ",
+    viewOriginalBtn:"Показать оригинал", viewTranslationBtn:"Показать перевод",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -642,6 +651,7 @@ const STRINGS = {
     aiFollowUpTitle:"再补充几个细节", aiFollowUpSub:"这有助于我们找到合适的专业人士。", aiSkipFollowUp:"跳过并继续",
     aiReviewTitle:"核对你的请求", aiConfidenceLabel:"置信度", aiDetectedServiceLabel:"检测到的服务",
     aiPossibleCausesLabel:"可能原因", aiRecommendedMaterialsLabel:"推荐材料", aiAnalysisLabel:"AI 分析",
+    viewOriginalBtn:"查看原文", viewTranslationBtn:"查看译文",
   },
 };
 
@@ -2101,9 +2111,11 @@ function MessagesList({ conversations, onOpen }) {
 }
 
 function ConversationSheet({ conversationId, userId, otherName, onClose }) {
-  const { t } = useLang();
+  const { t, langCode } = useLang();
   const [messages, setMessages] = useState(null);
   const [draft, setDraft] = useState("");
+  const [showOriginalFor, setShowOriginalFor] = useState(() => new Set());
+  const translatingRef = useRef(new Set());
 
   const refresh = () => fetchMessages(conversationId).then(setMessages);
 
@@ -2118,6 +2130,31 @@ function ConversationSheet({ conversationId, userId, otherName, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
+  // Lazily translate any message from the other party that's missing a cached
+  // translation for the viewer's current UI language — shows the original instantly,
+  // then swaps in the translation once it lands (falls back silently on error rather
+  // than blocking the conversation).
+  useEffect(() => {
+    if (!messages) return;
+    const toTranslate = messages.filter(
+      (m) => m.senderId !== userId && !m.translations?.[langCode] && !translatingRef.current.has(m.id)
+    );
+    toTranslate.forEach(async (m) => {
+      translatingRef.current.add(m.id);
+      try {
+        const translated = await translateMessage({ text: m.body, targetLocale: langCode });
+        await saveMessageTranslation(m.id, langCode, translated);
+        setMessages((cur) =>
+          cur?.map((x) => (x.id === m.id ? { ...x, translations: { ...x.translations, [langCode]: translated } } : x)) ?? cur
+        );
+      } catch {
+        // ignore — original text stays displayed
+      } finally {
+        translatingRef.current.delete(m.id);
+      }
+    });
+  }, [messages, langCode, userId]);
+
   const send = async () => {
     const body = draft.trim();
     if (!body) return;
@@ -2126,15 +2163,35 @@ function ConversationSheet({ conversationId, userId, otherName, onClose }) {
     await refresh();
   };
 
+  const toggleOriginal = (id) => {
+    setShowOriginalFor((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <Sheet onClose={onClose}>
       <div className="sheet-title">{otherName}</div>
       <div className="chat-scroll">
-        {(messages || []).map((m) => (
-          <div key={m.id} className={"chat-bubble " + (m.senderId === userId ? "chat-bubble-me" : "chat-bubble-them")}>
-            {m.body}
-          </div>
-        ))}
+        {(messages || []).map((m) => {
+          const isMine = m.senderId === userId;
+          const translated = !isMine ? m.translations?.[langCode] : null;
+          const showingOriginal = showOriginalFor.has(m.id);
+          const displayText = translated && !showingOriginal ? translated : m.body;
+          return (
+            <div key={m.id} className={"chat-bubble " + (isMine ? "chat-bubble-me" : "chat-bubble-them")}>
+              <div>{displayText}</div>
+              {translated && (
+                <button type="button" className="chat-translate-toggle" onClick={() => toggleOriginal(m.id)}>
+                  {showingOriginal ? t.viewTranslationBtn : t.viewOriginalBtn}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
       <div className="chat-input-row">
         <input
@@ -2684,6 +2741,8 @@ const CSS = `
 .chat-bubble{ max-width:78%; padding:9px 13px; border-radius:16px; font-size:13px; line-height:1.45; }
 .chat-bubble-them{ align-self:flex-start; background:var(--surface); border:1px solid var(--line); color:var(--ink); border-bottom-left-radius:4px; }
 .chat-bubble-me{ align-self:flex-end; background:var(--forest); color:#fff; border-bottom-right-radius:4px; }
+.chat-translate-toggle{ display:block; margin-top:4px; padding:0; border:none; background:none; cursor:pointer; font-family:var(--font-body); font-size:11px; color:var(--ink-soft); text-decoration:underline; }
+.chat-bubble-them .chat-translate-toggle{ color:var(--ink-soft); }
 .chat-input-row{ display:flex; gap:8px; align-items:center; }
 .chat-input-row input{ flex:1; border:1px solid var(--line); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); outline:none; }
 .chat-input-row button{ width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
