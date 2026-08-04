@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://marketing-beta-jade.vercel.app/sitemap-index.xml

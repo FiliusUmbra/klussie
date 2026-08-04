@@ -1,0 +1,82 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { APP_URL } from "../data/services.js";
+
+const faqs = [
+  {
+    q: "Kost het iets om een offerte aan te vragen?",
+    a: "Nee. Een aanvraag plaatsen en offertes ontvangen is volledig gratis voor klanten. Je betaalt enkel de vakman die je uiteindelijk boekt, rechtstreeks.",
+  },
+  {
+    q: "Hoe snel krijg ik offertes?",
+    a: "De meeste aanvragen krijgen binnen enkele uren een eerste offerte, afhankelijk van de dienst en regio.",
+  },
+  {
+    q: "Zijn de vakmensen gecontroleerd?",
+    a: "Voor diensten die een erkenning vereisen (zoals asbestverwijdering, EPC-certificatie of beëdigde vertaling) tonen we een certificeringslabel op het profiel. Beoordelingen van eerdere klanten zijn altijd zichtbaar.",
+  },
+  {
+    q: "Wat kost het om vakman te worden op klussie?",
+    a: "Aanmelden is gratis. Je betaalt 12% commissie, uitsluitend op klussen die je effectief boekt via klussie — geen abonnement, geen kosten per lead.",
+  },
+];
+---
+<BaseLayout
+  path="/hoe-het-werkt"
+  title="Hoe het werkt"
+  description="Zo werkt klussie: beschrijf je klus, ontvang offertes van erkende vakmensen, en kies wie je vertrouwt. Ontdek ook hoe het werkt voor vakmensen."
+>
+  <section class="section">
+    <div class="wrap">
+      <div class="eyebrow">Hoe het werkt</div>
+      <h1>Van klus tot vakman, in enkele stappen</h1>
+
+      <h2 class="sub-title">Voor klanten</h2>
+      <ol class="steps">
+        <li><b>Beschrijf je klus.</b> Kies een dienst en vul gerichte vragen in (aantal kamers, oppervlakte, en meer — afhankelijk van de klus), en voeg optioneel foto's toe.</li>
+        <li><b>Ontvang offertes.</b> Vakmensen die aan je klus voldoen en in jouw regio actief zijn, sturen een vrijblijvende offerte. Je contactgegevens blijven privé tot je een offerte aanvaardt.</li>
+        <li><b>Vergelijk en kies.</b> Bekijk prijs, beoordelingen, portfolio en trustscore van elke vakman.</li>
+        <li><b>Boek en werk samen.</b> Communiceer via de ingebouwde berichten, en laat na afloop een beoordeling achter.</li>
+      </ol>
+
+      <h2 class="sub-title">Voor vakmensen</h2>
+      <ol class="steps">
+        <li><b>Maak een profiel.</b> Kies je diensten, voeg een korte omschrijving toe en bouw een portfolio op met foto's van eerder werk.</li>
+        <li><b>Ontvang passende aanvragen.</b> Je ziet enkel aanvragen voor de diensten die je aanbiedt, in jouw regio.</li>
+        <li><b>Stuur een offerte.</b> Vrijblijvend, op jouw voorwaarden.</li>
+        <li><b>Betaal enkel bij een boeking.</b> 12% commissie, uitsluitend op geboekte klussen — geen vast abonnement.</li>
+      </ol>
+
+      <div class="cta-row">
+        <a href={APP_URL} class="btn-primary">Vraag een offerte aan</a>
+        <a href="/vakman-worden" class="btn-secondary">Word vakman</a>
+      </div>
+
+      <h2 class="sub-title">Veelgestelde vragen</h2>
+      <div class="faq-list">
+        {faqs.map((f) => (
+          <details class="faq-item">
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  h1 { font-size: 34px; margin-bottom: 8px; }
+  .sub-title { font-size: 22px; margin-top: 44px; margin-bottom: 16px; }
+  .steps { padding-left: 20px; display: flex; flex-direction: column; gap: 14px; margin: 0; }
+  .steps li { font-size: 15px; color: var(--ink-soft); line-height: 1.55; }
+  .steps li b { color: var(--ink); }
+  .cta-row { display: flex; gap: 12px; margin-top: 36px; flex-wrap: wrap; }
+  .faq-list { display: flex; flex-direction: column; gap: 10px; }
+  .faq-item {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .faq-item summary { font-weight: 600; cursor: pointer; font-size: 15px; }
+  .faq-item p { font-size: 14px; color: var(--ink-soft); line-height: 1.5; margin: 10px 0 0; }
+</style>

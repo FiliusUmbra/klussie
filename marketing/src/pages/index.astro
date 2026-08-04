@@ -1,0 +1,112 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { services, APP_URL } from "../data/services.js";
+
+const categories = [...new Set(services.map((s) => s.category))];
+---
+<BaseLayout
+  path="/"
+  title="Offertes van erkende vakmensen in België"
+  description="Vraag gratis offertes aan bij erkende vakmensen voor schilderwerken, verhuizingen, schoonmaak, renovatie en meer. Vergelijk en boek binnen enkele minuten."
+>
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <div class="eyebrow">Klussen in België, Nederland en Luxemburg</div>
+      <h1 class="hero-title">Vind de juiste vakman.<br/>Zonder rondbellen.</h1>
+      <p class="hero-sub">Beschrijf je klus, ontvang gratis offertes van erkende vakmensen bij jou in de buurt, en kies wie je vertrouwt. Geen verplichtingen, geen verborgen kosten.</p>
+      <div class="hero-ctas">
+        <a href={APP_URL} class="btn-primary">Vraag een offerte aan</a>
+        <a href="/vakman-worden" class="btn-secondary">Word vakman</a>
+      </div>
+      <div class="hero-trust">
+        <span class="badge">12% commissie, geen abonnement</span>
+        <span class="badge">Reactie binnen enkele minuten</span>
+        <span class="badge">Geverifieerde profielen</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="eyebrow">Hoe het werkt</div>
+      <h2 class="section-title">In drie stappen naar je vakman</h2>
+      <div class="grid grid-3" style="margin-top:28px;">
+        <div class="card">
+          <div class="step-num">1</div>
+          <h3>Beschrijf je klus</h3>
+          <p>Kies een dienst en vul gerichte vragen in — aantal kamers, oppervlakte, en meer, plus foto's van de ruimte.</p>
+        </div>
+        <div class="card">
+          <div class="step-num">2</div>
+          <h3>Ontvang offertes</h3>
+          <p>Vakmensen bij jou in de buurt die aan je klus voldoen, sturen binnen enkele uren een vrijblijvende offerte.</p>
+        </div>
+        <div class="card">
+          <div class="step-num">3</div>
+          <h3>Kies en boek</h3>
+          <p>Vergelijk prijs, beoordelingen en portfolio, en boek wie je vertrouwt. Je gegevens blijven privé tot dan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="wrap">
+      <div class="eyebrow">Diensten</div>
+      <h2 class="section-title">Voor elke klus een vakman</h2>
+      {categories.map((cat) => (
+        <div class="cat-group">
+          <div class="cat-heading">{cat}</div>
+          <div class="service-links">
+            {services.filter((s) => s.category === cat).map((s) => (
+              <a href={`/diensten/${s.slug}`} class="service-chip">{s.name}</a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="section pro-banner">
+    <div class="wrap pro-banner-inner">
+      <div>
+        <div class="eyebrow" style="color:#C7D9CC;">Voor vakmensen</div>
+        <h2 class="section-title" style="color:#fff;">Bouw je klantenkring uit met klussie</h2>
+        <p style="color:#C7D9CC; max-width:480px;">Ontvang aanvragen die passen bij jouw diensten en regio, bouw een portfolio op met foto's en referenties, en betaal enkel 12% commissie — pas als je een klus boekt.</p>
+        <a href="/vakman-worden" class="btn-primary" style="margin-top:16px; background:#fff; color:var(--forest);">Ontdek hoe het werkt</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero { padding: 72px 0 56px; }
+  .hero-title { font-size: 44px; max-width: 640px; margin-bottom: 18px; }
+  .hero-sub { font-size: 17px; color: var(--ink-soft); max-width: 560px; line-height: 1.5; margin-bottom: 28px; }
+  .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+  .hero-trust { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .section-title { font-size: 28px; margin-top: 8px; }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--forest); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .card h3 { font-size: 17px; margin-bottom: 8px; }
+  .card p { font-size: 14px; color: var(--ink-soft); line-height: 1.5; margin: 0; }
+
+  .section-alt { background: var(--sage-bg); }
+  .cat-group { margin-top: 24px; }
+  .cat-heading { font-weight: 600; font-size: 15px; margin-bottom: 10px; color: var(--forest); }
+  .service-links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .service-chip {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 14px; font-size: 13.5px; text-decoration: none; color: var(--ink);
+  }
+  .service-chip:hover { border-color: var(--forest); color: var(--forest); }
+
+  .pro-banner { background: var(--forest); }
+  .pro-banner-inner { padding: 24px 0; }
+</style>

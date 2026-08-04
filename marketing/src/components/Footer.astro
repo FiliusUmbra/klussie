@@ -1,0 +1,53 @@
+---
+import { APP_URL } from "../data/services.js";
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col">
+      <div class="logo">klussie</div>
+      <p class="footer-blurb">Het platform waar je in enkele minuten offertes ontvangt van erkende vakmensen bij jou in de buurt. België, met de blik op Nederland en Luxemburg.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-heading">Klant</div>
+      <a href="/hoe-het-werkt">Hoe het werkt</a>
+      <a href="/diensten/schilderwerken">Diensten</a>
+      <a href={APP_URL}>Vraag een offerte aan</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-heading">Vakman</div>
+      <a href="/vakman-worden">Word vakman</a>
+      <a href={APP_URL}>Inloggen</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">© {year} klussie. Alle rechten voorbehouden.</div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--forest);
+    color: #E7F0E5;
+    margin-top: 64px;
+  }
+  .footer-inner {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 32px;
+    padding: 48px 24px 32px;
+  }
+  .footer-col { display: flex; flex-direction: column; gap: 10px; }
+  .logo { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: #fff; }
+  .footer-blurb { font-size: 13.5px; color: #C7D9CC; line-height: 1.5; margin: 0; }
+  .footer-heading { font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9FC0A8; margin-bottom: 4px; }
+  .footer-col a { font-size: 14px; color: #E7F0E5; text-decoration: none; }
+  .footer-col a:hover { text-decoration: underline; }
+  .footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding: 16px 24px;
+    font-size: 12.5px;
+    color: #9FC0A8;
+  }
+  @media (max-width: 700px) {
+    .footer-inner { grid-template-columns: 1fr; }
+  }
+</style>

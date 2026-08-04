@@ -1,0 +1,70 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { APP_URL } from "../data/services.js";
+
+const benefits = [
+  {
+    title: "Passende aanvragen, geen koude leads",
+    text: "Je ziet enkel aanvragen voor de diensten die je aanbiedt en in jouw regio — geen tijd verliezen aan klussen die niet passen.",
+  },
+  {
+    title: "Bouw een portfolio op",
+    text: "Voeg foto's van eerder werk en referenties toe aan je profiel, zodat klanten je vertrouwen nog voor het eerste gesprek.",
+  },
+  {
+    title: "Betaal enkel als je boekt",
+    text: "12% commissie, uitsluitend op klussen die je effectief boekt via klussie. Geen vast abonnement, geen kosten per offerte.",
+  },
+  {
+    title: "Flexi-job of onderneming",
+    text: "Werk als flexi-jobber of als geregistreerde onderneming — klussie ondersteunt beide statuten, inclusief een belastingvrije-grenstracker voor flexi-jobbers.",
+  },
+];
+---
+<BaseLayout
+  path="/vakman-worden"
+  title="Word vakman op klussie"
+  description="Bouw je klantenkring uit met klussie: ontvang passende aanvragen, bouw een portfolio op en betaal enkel 12% commissie op geboekte klussen. Geen abonnement."
+>
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Voor vakmensen</div>
+      <h1>Meer klanten, zonder zelf te moeten adverteren</h1>
+      <p class="hero-sub">Meld je gratis aan, kies de diensten die je aanbiedt, en ontvang aanvragen van klanten bij jou in de buurt. Je betaalt alleen commissie op klussen die je effectief boekt.</p>
+      <a href={APP_URL} class="btn-primary">Start met diensten aanbieden</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="grid grid-2">
+        {benefits.map((b) => (
+          <div class="card">
+            <h3>{b.title}</h3>
+            <p>{b.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="wrap">
+      <div class="eyebrow">Transparant</div>
+      <h2 class="section-title">Wat kost het?</h2>
+      <p class="pricing-text">Aanmelden en een profiel aanmaken is gratis. Je betaalt <b>12% commissie</b>, en enkel op klussen die je daadwerkelijk boekt via klussie. Geen abonnement, geen kosten voor het versturen van offertes.</p>
+      <a href={APP_URL} class="btn-primary">Word vakman</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero { padding: 64px 0 48px; }
+  .hero h1 { font-size: 36px; max-width: 620px; margin-bottom: 16px; }
+  .hero-sub { font-size: 16.5px; color: var(--ink-soft); max-width: 560px; line-height: 1.55; margin-bottom: 26px; }
+  .card h3 { font-size: 16.5px; margin-bottom: 8px; }
+  .card p { font-size: 14px; color: var(--ink-soft); line-height: 1.5; margin: 0; }
+  .section-alt { background: var(--sage-bg); }
+  .section-title { margin-top: 8px; margin-bottom: 16px; font-size: 26px; }
+  .pricing-text { font-size: 16px; line-height: 1.6; max-width: 560px; margin-bottom: 22px; }
+</style>
