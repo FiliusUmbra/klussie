@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useContext, createContext } from "r
 import {
   Search, Star, MapPin, ChevronRight, X, Check, User, Home, ClipboardList,
   MessageCircle, Send, Briefcase, TrendingUp, ThumbsUp, Clock, ShieldCheck, Globe, BadgeCheck, LogOut, Mail, Lock, Camera,
+  Mic, Sparkles, Loader2, AlertTriangle,
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./lib/auth.jsx";
 import { fetchCatalog } from "./lib/catalog";
@@ -33,6 +34,8 @@ import { submitReport } from "./lib/reports";
 import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems, updatePortfolioCaption, deletePortfolioItem } from "./lib/portfolio";
 import { addTestimonial, fetchTestimonials, deleteTestimonial } from "./lib/testimonials";
 import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
+import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
+import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "./lib/aiIntake";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -115,6 +118,12 @@ const STRINGS = {
     fieldItemsCount:"Aantal stukken", fieldSessionsPerWeek:"Lessen per week", fieldLevel:"Niveau", fieldOutletsCount:"Aantal aansluitpunten", fieldFullRewiring:"Volledige herbekabeling?", fieldJobType:"Type probleem",
     optLaminate:"Laminaat", optWood:"Hout", optLacquer:"Lak", optBathroom:"Badkamer", optKitchen:"Keuken", optTerrace:"Terras", optOther:"Andere",
     optBeginner:"Beginner", optIntermediate:"Gevorderd", optAdvanced:"Vergevorderd", optLeak:"Lekkage", optClog:"Verstopping", optInstallation:"Nieuwe installatie",
+    aiIntakeCta:"Vertel ons wat je nodig hebt", aiIntakeTitle:"Vertel ons wat je nodig hebt", aiIntakeSub:"Spreek, typ of voeg een foto toe — wij zoeken de juiste vakman.",
+    aiComposerPlaceholder:"Bv. mijn keukenkraan lekt al twee dagen en het kastje eronder wordt nat...", aiSpeakBtn:"Spreek", aiListening:"Aan het luisteren...", aiAddPhotoBtn:"Foto toevoegen",
+    aiSpeechUnsupported:"Spraakherkenning wordt niet ondersteund in deze browser.", aiAnalyzeBtn:"Analyseer mijn klus", aiAnalyzing:"Bezig met analyseren...", aiGenericError:"Er ging iets mis. Probeer het opnieuw.",
+    aiFollowUpTitle:"Nog even preciseren", aiFollowUpSub:"Dit helpt ons de juiste vakman te vinden.", aiSkipFollowUp:"Sla over en ga verder",
+    aiReviewTitle:"Controleer je aanvraag", aiConfidenceLabel:"zekerheid", aiDetectedServiceLabel:"Gedetecteerde dienst",
+    aiPossibleCausesLabel:"Mogelijke oorzaken", aiRecommendedMaterialsLabel:"Aanbevolen materialen", aiAnalysisLabel:"AI-analyse",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -183,6 +192,12 @@ const STRINGS = {
     fieldItemsCount:"Nombre de pièces/meubles", fieldSessionsPerWeek:"Cours par semaine", fieldLevel:"Niveau", fieldOutletsCount:"Nombre de points de raccordement", fieldFullRewiring:"Recâblage complet ?", fieldJobType:"Type de problème",
     optLaminate:"Stratifié", optWood:"Bois", optLacquer:"Laqué", optBathroom:"Salle de bain", optKitchen:"Cuisine", optTerrace:"Terrasse", optOther:"Autre",
     optBeginner:"Débutant", optIntermediate:"Intermédiaire", optAdvanced:"Avancé", optLeak:"Fuite", optClog:"Bouchon", optInstallation:"Nouvelle installation",
+    aiIntakeCta:"Dis-nous ce dont tu as besoin", aiIntakeTitle:"Dis-nous ce dont tu as besoin", aiIntakeSub:"Parle, écris ou ajoute une photo — on trouve le bon professionnel.",
+    aiComposerPlaceholder:"Ex. mon robinet de cuisine fuit depuis deux jours et le meuble en dessous est mouillé...", aiSpeakBtn:"Parler", aiListening:"Écoute en cours...", aiAddPhotoBtn:"Ajouter une photo",
+    aiSpeechUnsupported:"La reconnaissance vocale n'est pas prise en charge par ce navigateur.", aiAnalyzeBtn:"Analyser ma tâche", aiAnalyzing:"Analyse en cours...", aiGenericError:"Une erreur s'est produite. Réessaie.",
+    aiFollowUpTitle:"Encore quelques précisions", aiFollowUpSub:"Cela nous aide à trouver le bon professionnel.", aiSkipFollowUp:"Passer et continuer",
+    aiReviewTitle:"Vérifie ta demande", aiConfidenceLabel:"certitude", aiDetectedServiceLabel:"Service détecté",
+    aiPossibleCausesLabel:"Causes possibles", aiRecommendedMaterialsLabel:"Matériaux recommandés", aiAnalysisLabel:"Analyse IA",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -251,6 +266,12 @@ const STRINGS = {
     fieldItemsCount:"Anzahl Stücke", fieldSessionsPerWeek:"Stunden pro Woche", fieldLevel:"Niveau", fieldOutletsCount:"Anzahl Anschlusspunkte", fieldFullRewiring:"Komplette Neuverkabelung?", fieldJobType:"Art des Problems",
     optLaminate:"Laminat", optWood:"Holz", optLacquer:"Lackiert", optBathroom:"Badezimmer", optKitchen:"Küche", optTerrace:"Terrasse", optOther:"Sonstiges",
     optBeginner:"Anfänger", optIntermediate:"Fortgeschritten", optAdvanced:"Sehr fortgeschritten", optLeak:"Leck", optClog:"Verstopfung", optInstallation:"Neuinstallation",
+    aiIntakeCta:"Sag uns, was du brauchst", aiIntakeTitle:"Sag uns, was du brauchst", aiIntakeSub:"Sprich, tippe oder füge ein Foto hinzu — wir finden den richtigen Handwerker.",
+    aiComposerPlaceholder:"Z.B. mein Küchenhahn tropft seit zwei Tagen und der Schrank darunter wird nass...", aiSpeakBtn:"Sprechen", aiListening:"Höre zu...", aiAddPhotoBtn:"Foto hinzufügen",
+    aiSpeechUnsupported:"Spracherkennung wird in diesem Browser nicht unterstützt.", aiAnalyzeBtn:"Meinen Auftrag analysieren", aiAnalyzing:"Analyse läuft...", aiGenericError:"Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+    aiFollowUpTitle:"Noch ein paar Details", aiFollowUpSub:"Das hilft uns, den richtigen Handwerker zu finden.", aiSkipFollowUp:"Überspringen und weiter",
+    aiReviewTitle:"Überprüfe deine Anfrage", aiConfidenceLabel:"Sicherheit", aiDetectedServiceLabel:"Erkannter Dienst",
+    aiPossibleCausesLabel:"Mögliche Ursachen", aiRecommendedMaterialsLabel:"Empfohlene Materialien", aiAnalysisLabel:"KI-Analyse",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -319,6 +340,12 @@ const STRINGS = {
     fieldItemsCount:"Number of items", fieldSessionsPerWeek:"Sessions per week", fieldLevel:"Level", fieldOutletsCount:"Number of connection points", fieldFullRewiring:"Full rewiring?", fieldJobType:"Issue type",
     optLaminate:"Laminate", optWood:"Wood", optLacquer:"Lacquered", optBathroom:"Bathroom", optKitchen:"Kitchen", optTerrace:"Terrace", optOther:"Other",
     optBeginner:"Beginner", optIntermediate:"Intermediate", optAdvanced:"Advanced", optLeak:"Leak", optClog:"Clog", optInstallation:"New installation",
+    aiIntakeCta:"Tell us what you need", aiIntakeTitle:"Tell us what you need", aiIntakeSub:"Speak, type, or add a photo — we'll find the right pro.",
+    aiComposerPlaceholder:"E.g. my kitchen sink has been leaking for two days and the cabinet underneath is getting wet...", aiSpeakBtn:"Speak", aiListening:"Listening...", aiAddPhotoBtn:"Add photo",
+    aiSpeechUnsupported:"Speech recognition isn't supported in this browser.", aiAnalyzeBtn:"Analyze my job", aiAnalyzing:"Analyzing...", aiGenericError:"Something went wrong. Please try again.",
+    aiFollowUpTitle:"A couple more details", aiFollowUpSub:"This helps us find the right pro.", aiSkipFollowUp:"Skip and continue",
+    aiReviewTitle:"Review your request", aiConfidenceLabel:"confidence", aiDetectedServiceLabel:"Detected service",
+    aiPossibleCausesLabel:"Possible causes", aiRecommendedMaterialsLabel:"Recommended materials", aiAnalysisLabel:"AI analysis",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -387,6 +414,12 @@ const STRINGS = {
     fieldItemsCount:"عدد القطع", fieldSessionsPerWeek:"عدد الحصص أسبوعيًا", fieldLevel:"المستوى", fieldOutletsCount:"عدد نقاط التوصيل", fieldFullRewiring:"إعادة تمديد كاملة؟", fieldJobType:"نوع المشكلة",
     optLaminate:"لامينيت", optWood:"خشب", optLacquer:"مطلي بالورنيش", optBathroom:"حمام", optKitchen:"مطبخ", optTerrace:"شرفة", optOther:"أخرى",
     optBeginner:"مبتدئ", optIntermediate:"متوسط", optAdvanced:"متقدم", optLeak:"تسريب", optClog:"انسداد", optInstallation:"تركيب جديد",
+    aiIntakeCta:"أخبرنا بما تحتاجه", aiIntakeTitle:"أخبرنا بما تحتاجه", aiIntakeSub:"تحدث أو اكتب أو أضف صورة — سنجد لك المحترف المناسب.",
+    aiComposerPlaceholder:"مثال: حنفية مطبخي تسرّب منذ يومين والخزانة أسفلها أصبحت مبللة...", aiSpeakBtn:"تحدث", aiListening:"جارٍ الاستماع...", aiAddPhotoBtn:"إضافة صورة",
+    aiSpeechUnsupported:"التعرف على الصوت غير مدعوم في هذا المتصفح.", aiAnalyzeBtn:"حلّل مهمتي", aiAnalyzing:"جارٍ التحليل...", aiGenericError:"حدث خطأ ما. حاول مرة أخرى.",
+    aiFollowUpTitle:"بضعة تفاصيل إضافية", aiFollowUpSub:"هذا يساعدنا في إيجاد المحترف المناسب.", aiSkipFollowUp:"تخطَّ وتابع",
+    aiReviewTitle:"راجع طلبك", aiConfidenceLabel:"الثقة", aiDetectedServiceLabel:"الخدمة المكتشفة",
+    aiPossibleCausesLabel:"الأسباب المحتملة", aiRecommendedMaterialsLabel:"المواد الموصى بها", aiAnalysisLabel:"تحليل الذكاء الاصطناعي",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -455,6 +488,12 @@ const STRINGS = {
     fieldItemsCount:"Parça sayısı", fieldSessionsPerWeek:"Haftalık ders sayısı", fieldLevel:"Seviye", fieldOutletsCount:"Bağlantı noktası sayısı", fieldFullRewiring:"Tam yeniden kablolama mı?", fieldJobType:"Sorun türü",
     optLaminate:"Laminat", optWood:"Ahşap", optLacquer:"Lake", optBathroom:"Banyo", optKitchen:"Mutfak", optTerrace:"Teras", optOther:"Diğer",
     optBeginner:"Başlangıç", optIntermediate:"Orta", optAdvanced:"İleri", optLeak:"Sızıntı", optClog:"Tıkanıklık", optInstallation:"Yeni kurulum",
+    aiIntakeCta:"Neye ihtiyacın olduğunu söyle", aiIntakeTitle:"Neye ihtiyacın olduğunu söyle", aiIntakeSub:"Konuş, yaz ya da fotoğraf ekle — doğru ustayı biz bulalım.",
+    aiComposerPlaceholder:"Örn. mutfak musluğum iki gündür damlıyor ve altındaki dolap ıslanıyor...", aiSpeakBtn:"Konuş", aiListening:"Dinleniyor...", aiAddPhotoBtn:"Fotoğraf ekle",
+    aiSpeechUnsupported:"Bu tarayıcıda ses tanıma desteklenmiyor.", aiAnalyzeBtn:"İşimi analiz et", aiAnalyzing:"Analiz ediliyor...", aiGenericError:"Bir şeyler ters gitti. Lütfen tekrar dene.",
+    aiFollowUpTitle:"Birkaç detay daha", aiFollowUpSub:"Bu, doğru ustayı bulmamıza yardımcı olur.", aiSkipFollowUp:"Atla ve devam et",
+    aiReviewTitle:"Talebini gözden geçir", aiConfidenceLabel:"güven", aiDetectedServiceLabel:"Tespit edilen hizmet",
+    aiPossibleCausesLabel:"Olası nedenler", aiRecommendedMaterialsLabel:"Önerilen malzemeler", aiAnalysisLabel:"Yapay zeka analizi",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -523,6 +562,12 @@ const STRINGS = {
     fieldItemsCount:"Количество предметов", fieldSessionsPerWeek:"Занятий в неделю", fieldLevel:"Уровень", fieldOutletsCount:"Количество точек подключения", fieldFullRewiring:"Полная замена проводки?", fieldJobType:"Тип проблемы",
     optLaminate:"Ламинат", optWood:"Дерево", optLacquer:"Лакированный", optBathroom:"Ванная", optKitchen:"Кухня", optTerrace:"Терраса", optOther:"Другое",
     optBeginner:"Начинающий", optIntermediate:"Средний", optAdvanced:"Продвинутый", optLeak:"Протечка", optClog:"Засор", optInstallation:"Новая установка",
+    aiIntakeCta:"Расскажите, что вам нужно", aiIntakeTitle:"Расскажите, что вам нужно", aiIntakeSub:"Говорите, печатайте или добавьте фото — мы найдём нужного специалиста.",
+    aiComposerPlaceholder:"Напр. кран на кухне подтекает уже два дня, и шкафчик под ним намокает...", aiSpeakBtn:"Говорить", aiListening:"Слушаю...", aiAddPhotoBtn:"Добавить фото",
+    aiSpeechUnsupported:"Распознавание речи не поддерживается в этом браузере.", aiAnalyzeBtn:"Проанализировать задачу", aiAnalyzing:"Анализ...", aiGenericError:"Что-то пошло не так. Попробуйте снова.",
+    aiFollowUpTitle:"Ещё пара деталей", aiFollowUpSub:"Это поможет нам найти подходящего специалиста.", aiSkipFollowUp:"Пропустить и продолжить",
+    aiReviewTitle:"Проверьте заявку", aiConfidenceLabel:"уверенность", aiDetectedServiceLabel:"Определённая услуга",
+    aiPossibleCausesLabel:"Возможные причины", aiRecommendedMaterialsLabel:"Рекомендуемые материалы", aiAnalysisLabel:"ИИ-анализ",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -591,6 +636,12 @@ const STRINGS = {
     fieldItemsCount:"件数", fieldSessionsPerWeek:"每周课时数", fieldLevel:"水平", fieldOutletsCount:"接线点数量", fieldFullRewiring:"是否需要全部重新布线？", fieldJobType:"问题类型",
     optLaminate:"复合板", optWood:"实木", optLacquer:"烤漆", optBathroom:"浴室", optKitchen:"厨房", optTerrace:"露台", optOther:"其他",
     optBeginner:"初级", optIntermediate:"中级", optAdvanced:"高级", optLeak:"漏水", optClog:"堵塞", optInstallation:"新安装",
+    aiIntakeCta:"告诉我们你需要什么", aiIntakeTitle:"告诉我们你需要什么", aiIntakeSub:"说话、打字或添加照片——我们会找到合适的专业人士。",
+    aiComposerPlaceholder:"例如：我家厨房水龙头漏水已经两天了，下面的柜子都湿了...", aiSpeakBtn:"说话", aiListening:"正在聆听...", aiAddPhotoBtn:"添加照片",
+    aiSpeechUnsupported:"此浏览器不支持语音识别。", aiAnalyzeBtn:"分析我的需求", aiAnalyzing:"分析中...", aiGenericError:"出了点问题，请重试。",
+    aiFollowUpTitle:"再补充几个细节", aiFollowUpSub:"这有助于我们找到合适的专业人士。", aiSkipFollowUp:"跳过并继续",
+    aiReviewTitle:"核对你的请求", aiConfidenceLabel:"置信度", aiDetectedServiceLabel:"检测到的服务",
+    aiPossibleCausesLabel:"可能原因", aiRecommendedMaterialsLabel:"推荐材料", aiAnalysisLabel:"AI 分析",
   },
 };
 
@@ -653,65 +704,6 @@ const WHEN_PREFS = ["this_week", "next_week", "flexible"];
 // instead of writing it all out in the freeform details textarea. Services not listed
 // here (the 4 specialist/consultative ones) keep freeform-only, since there's no
 // universal quantifiable field for them.
-const SERVICE_QUESTIONS = {
-  "00000000-0000-0000-0000-000000000001": [ // Schilderwerken
-    { key: "rooms", type: "number", label: "fieldRooms", placeholder: "3" },
-    { key: "sqm", type: "number", label: "fieldSqm", placeholder: "20" },
-    { key: "ceilingIncluded", type: "boolean", label: "fieldCeilingIncluded" },
-    { key: "trimIncluded", type: "boolean", label: "fieldTrimIncluded" },
-  ],
-  "00000000-0000-0000-0000-000000000002": [ // Verhuisservice
-    { key: "rooms", type: "number", label: "fieldRooms", placeholder: "3" },
-    { key: "floorNumber", type: "number", label: "fieldFloorNumber", placeholder: "2" },
-    { key: "elevatorAccess", type: "boolean", label: "fieldElevatorAccess" },
-    { key: "distanceKm", type: "number", label: "fieldDistanceKm", placeholder: "15" },
-  ],
-  "00000000-0000-0000-0000-000000000003": [ // Woningreiniging
-    { key: "sqm", type: "number", label: "fieldSqm", placeholder: "80" },
-    { key: "bedrooms", type: "number", label: "fieldBedrooms", placeholder: "2" },
-    { key: "recurring", type: "boolean", label: "fieldRecurring" },
-  ],
-  "00000000-0000-0000-0000-000000000004": [ // Ontruimingsschoonmaak
-    { key: "sqm", type: "number", label: "fieldSqm", placeholder: "80" },
-    { key: "bedrooms", type: "number", label: "fieldBedrooms", placeholder: "2" },
-  ],
-  "00000000-0000-0000-0000-000000000005": [ // Keukenkasten op maat
-    { key: "kitchenLength", type: "number", label: "fieldKitchenLength", placeholder: "4" },
-    { key: "materialPref", type: "select", label: "fieldMaterialPref", options: [
-      { value: "laminate", label: "optLaminate" }, { value: "wood", label: "optWood" }, { value: "lacquer", label: "optLacquer" },
-    ] },
-  ],
-  "00000000-0000-0000-0000-000000000006": [ // Tegelwerken
-    { key: "sqm", type: "number", label: "fieldSqm", placeholder: "15" },
-    { key: "roomType", type: "select", label: "fieldRoomType", options: [
-      { value: "bathroom", label: "optBathroom" }, { value: "kitchen", label: "optKitchen" }, { value: "terrace", label: "optTerrace" }, { value: "other", label: "optOther" },
-    ] },
-    { key: "removalNeeded", type: "boolean", label: "fieldRemovalNeeded" },
-  ],
-  "00000000-0000-0000-0000-000000000007": [ // Meubeltransport
-    { key: "itemsCount", type: "number", label: "fieldItemsCount", placeholder: "1" },
-    { key: "elevatorAccess", type: "boolean", label: "fieldElevatorAccess" },
-  ],
-  "00000000-0000-0000-0000-000000000008": [ // Engelse bijles
-    { key: "sessionsPerWeek", type: "number", label: "fieldSessionsPerWeek", placeholder: "1" },
-    { key: "level", type: "select", label: "fieldLevel", options: [
-      { value: "beginner", label: "optBeginner" }, { value: "intermediate", label: "optIntermediate" }, { value: "advanced", label: "optAdvanced" },
-    ] },
-  ],
-  "00000000-0000-0000-0000-000000000009": [ // Elektriciteitswerken
-    { key: "outletsCount", type: "number", label: "fieldOutletsCount", placeholder: "4" },
-    { key: "fullRewiring", type: "boolean", label: "fieldFullRewiring" },
-  ],
-  "00000000-0000-0000-0000-000000000010": [ // Zetel- en tapijtreiniging
-    { key: "itemsCount", type: "number", label: "fieldItemsCount", placeholder: "1" },
-  ],
-  "00000000-0000-0000-0000-000000000011": [ // Loodgieterswerken
-    { key: "jobType", type: "select", label: "fieldJobType", options: [
-      { value: "leak", label: "optLeak" }, { value: "clog", label: "optClog" }, { value: "installation", label: "optInstallation" }, { value: "other", label: "optOther" },
-    ] },
-  ],
-};
-
 function fieldValueLabel(field, value, t) {
   if (value === undefined || value === null || value === "") return null;
   if (field.type === "boolean") return value ? t.yesLabel : t.noLabel;
@@ -754,6 +746,33 @@ function RequestPhotosStrip({ requestId }) {
           <img src={p.url} alt="" />
         </a>
       ))}
+    </div>
+  );
+}
+
+// Shown alongside JobDetailsSummary wherever a request is rendered — the AI-derived
+// possible causes / recommended materials give the pro extra context before quoting,
+// beyond the structured fields already covered by JobDetailsSummary.
+function AiAnalysisSummary({ aiAnalysis }) {
+  const { t } = useLang();
+  if (!aiAnalysis) return null;
+  const { possibleCauses, recommendedMaterials, confidence } = aiAnalysis;
+  if (!possibleCauses?.length && !recommendedMaterials?.length) return null;
+  return (
+    <div className="ai-analysis-summary">
+      <div className="ai-analysis-header"><Sparkles size={12} /> {t.aiAnalysisLabel} {typeof confidence === "number" && `· ${confidence}%`}</div>
+      {possibleCauses?.length > 0 && (
+        <>
+          <div className="job-field-label" style={{ marginBottom: 0 }}>{t.aiPossibleCausesLabel}</div>
+          <ul>{possibleCauses.map((c) => <li key={c}>{c}</li>)}</ul>
+        </>
+      )}
+      {recommendedMaterials?.length > 0 && (
+        <>
+          <div className="job-field-label" style={{ marginBottom: 0, marginTop: 6 }}>{t.aiRecommendedMaterialsLabel}</div>
+          <ul>{recommendedMaterials.map((m) => <li key={m}>{m}</li>)}</ul>
+        </>
+      )}
     </div>
   );
 }
@@ -1233,6 +1252,7 @@ function CustomerApp({ showToast }) {
   const [tab, setTab] = useState("discover");
   const [activeService, setActiveService] = useState(null);
   const [quoteForm, setQuoteForm] = useState(null);
+  const [aiIntakeOpen, setAiIntakeOpen] = useState(false);
   const [openRequest, setOpenRequest] = useState(null);
   const [reviewFor, setReviewFor] = useState(null);
   const [requests, setRequests] = useState(null);
@@ -1284,6 +1304,29 @@ function CustomerApp({ showToast }) {
     await refresh();
   };
 
+  // AI intake already resolves its own serviceId/categoryId (with the user able to
+  // override the AI's guess before submitting), so this bypasses createRequest's
+  // `service` object indirection rather than reshaping the payload to fit it.
+  const createRequestFromAi = async ({ serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, photos }) => {
+    const created = await createServiceRequest({
+      customerId: user.id,
+      serviceId,
+      categoryId,
+      details,
+      detailsJson,
+      aiAnalysis,
+      whenPref,
+      budget: budget === "" || budget == null ? null : Number(budget),
+      city: city || null,
+    });
+    if (photos && photos.length) {
+      for (const file of photos) {
+        await uploadRequestPhoto(created.id, user.id, file);
+      }
+    }
+    await refresh();
+  };
+
   const acceptQuote = async (quoteId) => {
     await acceptQuoteApi(quoteId);
     await refresh();
@@ -1304,7 +1347,7 @@ function CustomerApp({ showToast }) {
   return (
     <div className="view">
       <div className="content">
-        {tab === "discover" && <Discover onOpenService={(s) => setActiveService(s)} />}
+        {tab === "discover" && <Discover onOpenService={(s) => setActiveService(s)} onOpenAiIntake={() => setAiIntakeOpen(true)} />}
         {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && <CustomerProfile requests={requests} />}
@@ -1319,6 +1362,12 @@ function CustomerApp({ showToast }) {
 
       {activeService && <ServiceSheet service={activeService} onClose={() => setActiveService(null)} onRequest={() => { setQuoteForm(activeService); setActiveService(null); }} />}
       {quoteForm && <QuoteFormSheet service={quoteForm} onClose={() => setQuoteForm(null)} onSubmit={(answers) => { createRequest(quoteForm, answers); setQuoteForm(null); setTab("requests"); }} />}
+      {aiIntakeOpen && (
+        <AiIntakeSheet
+          onClose={() => setAiIntakeOpen(false)}
+          onSubmitted={async (payload) => { await createRequestFromAi(payload); setTab("requests"); }}
+        />
+      )}
       {openRequestObj && <RequestDetailSheet request={openRequestObj} onClose={() => setOpenRequest(null)} onAccept={acceptQuote} onComplete={() => markComplete(openRequestObj.id)} onReview={() => { setOpenRequest(null); setReviewFor(openRequestObj.id); }} />}
       {reviewReq && <ReviewSheet onClose={() => setReviewFor(null)} onSubmit={(review) => { submitReview(reviewReq, review); setReviewFor(null); }} />}
       {openConversation && (
@@ -1333,7 +1382,7 @@ function CustomerApp({ showToast }) {
   );
 }
 
-function Discover({ onOpenService }) {
+function Discover({ onOpenService, onOpenAiIntake }) {
   const { t, fmt, catName, serviceInfo, CATS, BASE_SERVICES } = useLang();
   const [cat, setCat] = useState("all");
   const [q, setQ] = useState("");
@@ -1345,6 +1394,12 @@ function Discover({ onOpenService }) {
         <div><div className="eyebrow">{t.greeting}</div><div className="h1">{t.heroTitle}</div></div>
         <div className="pin"><MapPin size={13} /> {t.location}</div>
       </div>
+
+      <button type="button" className="ai-intake-cta" onClick={onOpenAiIntake}>
+        <Sparkles size={17} />
+        <span>{t.aiIntakeCta}</span>
+        <ChevronRight size={16} />
+      </button>
 
       <div className="search"><Search size={16} color="var(--ink-soft)" /><input placeholder={t.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} /></div>
 
@@ -1495,6 +1550,282 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
   );
 }
 
+const AI_FOLLOWUP_ROUND_LIMIT = 2;
+
+// AI-guided alternative to QuoteFormSheet: describe a job by speaking, typing, and/or
+// attaching photos; one Claude call classifies it against klussie's real service
+// catalog and returns the same shape as the manual form (details/detailsJson/city/
+// budget/whenPref), plus an ai_analysis record for the review screen and, later, the
+// pro's lead view. Never auto-submits \u2014 the customer always reviews and can edit
+// everything (including overriding the matched service) before it becomes a real request.
+function AiIntakeSheet({ onClose, onSubmitted }) {
+  const { t, langCode, BASE_SERVICES, serviceInfo } = useLang();
+  const { profile } = useAuth();
+  const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
+
+  const [text, setText] = useState("");
+  const [listening, setListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const recognizerRef = useRef(null);
+  const [photos, setPhotos] = useState([]);
+  const photoInputRef = useRef(null);
+
+  const [stage, setStage] = useState("compose"); // compose | followup | review
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const [priorQA, setPriorQA] = useState([]);
+  const [round, setRound] = useState(0);
+
+  const [editServiceId, setEditServiceId] = useState(null);
+  const [editDescription, setEditDescription] = useState("");
+  const [editBudget, setEditBudget] = useState("");
+  const [editCity, setEditCity] = useState(profile?.city || "");
+  const [editWhen, setEditWhen] = useState("this_week");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      recognizerRef.current?.stop();
+      photos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggleListening = () => {
+    if (listening) {
+      recognizerRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    try {
+      recognizerRef.current = startSpeechRecognition(langMeta.locale, {
+        onResult: ({ finalText, interimText }) => {
+          if (finalText) setText((cur) => (cur ? cur + " " : "") + finalText);
+          setInterimTranscript(interimText);
+        },
+        onEnd: () => { setListening(false); setInterimTranscript(""); },
+        onError: () => { setListening(false); setInterimTranscript(""); },
+      });
+      setListening(true);
+    } catch {
+      setError(t.aiSpeechUnsupported);
+    }
+  };
+
+  const addPhotos = (e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (picked.length === 0) return;
+    setPhotos((p) => [...p, ...picked.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))].slice(0, 4));
+  };
+  const removePhoto = (previewUrl) => {
+    setPhotos((p) => p.filter((ph) => ph.previewUrl !== previewUrl));
+    URL.revokeObjectURL(previewUrl);
+  };
+
+  const applyResultToEditable = (res) => {
+    setEditServiceId(res.matchedServiceId || null);
+    setEditDescription(res.description || "");
+    setEditBudget(res.estimatedBudget ? String(res.estimatedBudget.max ?? res.estimatedBudget.min ?? "") : "");
+    setEditWhen(res.urgency === "low" ? "flexible" : "this_week");
+  };
+
+  const runAnalysis = async (qaForThisCall) => {
+    if (listening) toggleListening();
+    setLoading(true);
+    setError("");
+    try {
+      const servicesForApi = BASE_SERVICES.map((s) => ({ id: s.id, name: serviceInfo(s.id).name, category: s.cat, blurb: serviceInfo(s.id).blurb }));
+      const res = await analyzeJobRequest({
+        text,
+        voiceTranscript: null,
+        photos: photos.map((p) => p.file),
+        priorQA: qaForThisCall,
+        services: servicesForApi,
+        locale: langCode,
+      });
+      setResult(res);
+      setPriorQA(qaForThisCall);
+      if (res.followUpQuestions?.length > 0 && round < AI_FOLLOWUP_ROUND_LIMIT) {
+        setStage("followup");
+      } else {
+        applyResultToEditable(res);
+        setStage("review");
+      }
+    } catch (err) {
+      setError(err.message || t.aiGenericError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const answerFollowUp = (question, answer) => {
+    setRound((r) => r + 1);
+    runAnalysis([...priorQA, { question, answer }]);
+  };
+
+  const skipFollowUp = () => {
+    applyResultToEditable(result);
+    setStage("review");
+  };
+
+  const canSubmit = !!editServiceId && editDescription.trim().length > 0 && !submitting;
+
+  const handleFinalSubmit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    try {
+      await onSubmitted({
+        serviceId: editServiceId,
+        categoryId: BASE_SERVICES.find((s) => s.id === editServiceId)?.cat,
+        details: editDescription,
+        detailsJson: result?.structuredFields || {},
+        aiAnalysis: { ...result, matchedServiceId: editServiceId },
+        whenPref: editWhen,
+        budget: editBudget,
+        city: editCity,
+        photos: photos.map((p) => p.file),
+      });
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const confidenceTone = result && result.confidence >= 85 ? "forest" : result && result.confidence >= 60 ? "amber" : "sage";
+
+  return (
+    <Sheet onClose={onClose}>
+      {stage === "compose" && (
+        <>
+          <div className="sheet-title"><Sparkles size={18} /> {t.aiIntakeTitle}</div>
+          <div className="sheet-sub">{t.aiIntakeSub}</div>
+
+          <textarea
+            className="textarea"
+            rows={4}
+            placeholder={t.aiComposerPlaceholder}
+            value={text + (interimTranscript ? (text ? " " : "") + interimTranscript : "")}
+            onChange={(e) => setText(e.target.value)}
+          />
+
+          <div className="ai-input-row">
+            <button type="button" className={"chip" + (listening ? " chip-on" : "")} onClick={toggleListening} disabled={!isSpeechRecognitionSupported()}>
+              <Mic size={14} /> {listening ? t.aiListening : t.aiSpeakBtn}
+            </button>
+            <button type="button" className="chip" onClick={() => photoInputRef.current.click()}>
+              <Camera size={14} /> {t.aiAddPhotoBtn}
+            </button>
+            <input ref={photoInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={addPhotos} />
+          </div>
+          {!isSpeechRecognitionSupported() && <div className="fineprint" style={{ justifyContent: "flex-start" }}>{t.aiSpeechUnsupported}</div>}
+
+          {photos.length > 0 && (
+            <div className="portfolio-grid" style={{ marginTop: 10 }}>
+              {photos.map((p) => (
+                <div key={p.previewUrl} className="portfolio-thumb">
+                  <img src={p.previewUrl} alt="" />
+                  <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)}><X size={12} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {error && <div className="fineprint" style={{ color: "var(--amber)", justifyContent: "flex-start" }}><AlertTriangle size={12} /> {error}</div>}
+
+          <button
+            className="btn-primary"
+            style={{ marginTop: 16 }}
+            disabled={loading || (!text.trim() && photos.length === 0)}
+            onClick={() => runAnalysis([])}
+          >
+            {loading ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />} {loading ? t.aiAnalyzing : t.aiAnalyzeBtn}
+          </button>
+        </>
+      )}
+
+      {stage === "followup" && result && (
+        <>
+          <div className="sheet-title"><Sparkles size={18} /> {t.aiFollowUpTitle}</div>
+          <div className="sheet-sub">{t.aiFollowUpSub}</div>
+          {result.followUpQuestions.map((q) => (
+            <div key={q.key} className="job-field">
+              <div className="job-field-label">{q.question}</div>
+              <div className="chiprow">
+                {q.options.map((opt) => (
+                  <button key={opt} type="button" className="chip" disabled={loading} onClick={() => answerFollowUp(q.question, opt)}>{opt}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {loading && <div className="fineprint" style={{ justifyContent: "flex-start" }}><Loader2 size={12} className="spin" /> {t.aiAnalyzing}</div>}
+          <button className="btn-secondary" style={{ marginTop: 10 }} disabled={loading} onClick={skipFollowUp}>{t.aiSkipFollowUp}</button>
+        </>
+      )}
+
+      {stage === "review" && result && (
+        <>
+          <div className="sheet-title"><Sparkles size={18} /> {t.aiReviewTitle}</div>
+          <div className="sheet-sub">
+            <Badge tone={confidenceTone}>{result.confidence}% {t.aiConfidenceLabel}</Badge>
+          </div>
+
+          <label className="field-label">{t.aiDetectedServiceLabel}</label>
+          <div className="chiprow" style={{ marginBottom: 14 }}>
+            {BASE_SERVICES.map((s) => (
+              <button key={s.id} type="button" className={"chip" + (editServiceId === s.id ? " chip-on" : "")} onClick={() => setEditServiceId(s.id)}>
+                {serviceInfo(s.id).name}
+              </button>
+            ))}
+          </div>
+
+          <label className="field-label">{t.detailsLabel}</label>
+          <textarea className="textarea" rows={3} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+
+          {result.possibleCauses?.length > 0 && (
+            <div className="job-details-summary" style={{ marginBottom: 14 }}>
+              <div className="job-field-label" style={{ marginBottom: 4 }}>{t.aiPossibleCausesLabel}</div>
+              {result.possibleCauses.map((c) => <div key={c} className="job-details-row"><span>{c}</span></div>)}
+            </div>
+          )}
+
+          <label className="field-label">{t.whenLabel}</label>
+          <div className="chiprow">
+            {WHEN_PREFS.map((w) => (
+              <button key={w} type="button" className={"chip" + (editWhen === w ? " chip-on" : "")} onClick={() => setEditWhen(w)}>{STRINGS[langCode][{ this_week: "whenThisWeek", next_week: "whenNextWeek", flexible: "whenFlexible" }[w]]}</button>
+            ))}
+          </div>
+
+          <label className="field-label">{t.cityLabel}</label>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <input value={editCity} onChange={(e) => setEditCity(e.target.value)} />
+          </div>
+
+          <label className="field-label">{t.budgetLabel}</label>
+          <div className="search" style={{ marginBottom: 18 }}>
+            <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>\u20ac</span>
+            <input placeholder={t.budgetPlaceholder} value={editBudget} onChange={(e) => setEditBudget(e.target.value)} />
+          </div>
+
+          {photos.length > 0 && (
+            <div className="portfolio-grid" style={{ marginBottom: 14 }}>
+              {photos.map((p) => (
+                <div key={p.previewUrl} className="portfolio-thumb"><img src={p.previewUrl} alt="" /></div>
+              ))}
+            </div>
+          )}
+
+          <button className="btn-primary" disabled={!canSubmit} onClick={handleFinalSubmit}>
+            {submitting ? <Loader2 size={15} className="spin" /> : <Send size={15} />} {t.sendRequestBtn}
+          </button>
+          <div className="fineprint"><ShieldCheck size={12} /> {t.privacyNote}</div>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
 function RequestsList({ requests, onOpen }) {
   const { t, fmtDate, serviceInfo, whenLabel } = useLang();
   return (
@@ -1543,6 +1874,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
       <div className="sheet-title">{info.name}</div>
       <div className="sheet-sub">{whenLabel(request.answers.when)} \u00b7 "{request.answers.details}"</div>
       <JobDetailsSummary serviceId={request.serviceId} fields={request.answers.fields} />
+      <AiAnalysisSummary aiAnalysis={request.answers.aiAnalysis} />
       <RequestPhotosStrip requestId={request.id} />
 
       {request.status === "collecting" && (
@@ -1938,6 +2270,7 @@ function ProDashboard({ leads, onQuote, proInfo }) {
             <div className="ticket-sub">{whenLabel(r.answers.when)} \u00b7 {r.answers.budget ? `\u20ac${r.answers.budget}` : t.budgetFlexible}{r.answers.city ? ` \u00b7 ${r.answers.city}` : ""}</div>
             <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
             <JobDetailsSummary serviceId={r.serviceId} fields={r.answers.fields} />
+            <AiAnalysisSummary aiAnalysis={r.answers.aiAnalysis} />
             <RequestPhotosStrip requestId={r.id} />
             <div className="ticket-divider" />
             <button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>
@@ -1961,6 +2294,7 @@ function SendQuoteSheet({ lead, onClose, onSubmit }) {
       <div className="sheet-title">{t.sendQuoteTitle}</div>
       <div className="sheet-sub">{serviceInfo(lead.serviceId).name}</div>
       <JobDetailsSummary serviceId={lead.serviceId} fields={lead.answers.fields} />
+      <AiAnalysisSummary aiAnalysis={lead.answers.aiAnalysis} />
       <RequestPhotosStrip requestId={lead.id} />
 
       <label className="field-label">{t.yourPriceLabel}</label>
@@ -2373,4 +2707,19 @@ const CSS = `
 .photo-strip{ display:flex; gap:8px; overflow-x:auto; margin:8px 0; }
 .photo-strip-thumb{ flex-shrink:0; width:64px; height:64px; border-radius:10px; overflow:hidden; border:1px solid var(--line); display:block; }
 .photo-strip-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+.ai-intake-cta{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:start;
+  background:linear-gradient(135deg, var(--forest) 0%, var(--forest-dark) 100%); color:#fff;
+  border:none; border-radius:16px; padding:16px 16px; margin-bottom:14px; cursor:pointer;
+  font-family:var(--font-body); font-size:14.5px; font-weight:600;
+}
+.ai-intake-cta span{ flex:1; }
+.ai-input-row{ display:flex; gap:8px; margin:10px 0; }
+.spin{ animation:ai-spin 0.9s linear infinite; }
+@keyframes ai-spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+.ai-analysis-summary{ background:var(--amber-bg); border-radius:10px; padding:10px 12px; margin:8px 0; }
+.ai-analysis-header{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--forest); margin-bottom:6px; }
+.ai-analysis-summary ul{ margin:4px 0 0; padding-left:18px; }
+.ai-analysis-summary li{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
 `;

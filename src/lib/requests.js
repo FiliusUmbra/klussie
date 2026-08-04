@@ -2,7 +2,7 @@ import { supabase } from "./supabaseClient";
 import { initialsFrom } from "./pros";
 
 const REQUEST_SELECT = `
-  id, customer_id, service_id, category_id, details, details_json, when_pref, budget, city, status, booked_pro_id, created_at, updated_at,
+  id, customer_id, service_id, category_id, details, details_json, ai_analysis, when_pref, budget, city, status, booked_pro_id, created_at, updated_at,
   quotes ( id, request_id, pro_id, price, message, status, sent_at,
     pro:pro_profiles ( profile_id, pro_type, profiles ( full_name, avatar_url ), pro_stats ( rating_avg, rating_count, badge_tier, is_certified ) )
   ),
@@ -48,14 +48,14 @@ function reshapeRequest(row) {
     serviceId: row.service_id,
     createdAt: new Date(row.created_at).getTime(),
     status: row.status,
-    answers: { when: row.when_pref, details: row.details, fields: row.details_json || null, budget: row.budget, city: row.city },
+    answers: { when: row.when_pref, details: row.details, fields: row.details_json || null, aiAnalysis: row.ai_analysis || null, budget: row.budget, city: row.city },
     quotes,
     bookedProId: row.booked_pro_id,
     review: review ? { stars: review.stars, text: review.body } : null,
   };
 }
 
-export async function createServiceRequest({ customerId, serviceId, categoryId, details, detailsJson, whenPref, budget, city }) {
+export async function createServiceRequest({ customerId, serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city }) {
   const { data, error } = await supabase
     .from("service_requests")
     .insert({
@@ -64,6 +64,7 @@ export async function createServiceRequest({ customerId, serviceId, categoryId, 
       category_id: categoryId,
       details,
       details_json: detailsJson && Object.keys(detailsJson).length ? detailsJson : null,
+      ai_analysis: aiAnalysis || null,
       when_pref: whenPref,
       budget: budget || null,
       city: city || null,

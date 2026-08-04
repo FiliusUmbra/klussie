@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "marketing", "run", "dev"],
       "port": 4321
+    },
+    {
+      "name": "klussie-fullstack-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vercel", "dev", "--listen", "3000", "--yes"],
+      "port": 3000
     }
   ]
 }
