@@ -2,6 +2,7 @@
 // of the UI components (AiIntakeSheet in App.jsx just calls these) — the vision/speech
 // implementation can change (e.g. swap browser Web Speech API for a hosted STT service
 // later) without touching UI code.
+import { supabase } from "./supabaseClient";
 
 const MAX_IMAGE_DIMENSION = 1024;
 const IMAGE_QUALITY = 0.72;
@@ -44,9 +45,12 @@ function fileToCompressedBase64(file) {
 export async function analyzeJobRequest({ text, voiceTranscript, photos, priorQA, services, locale }) {
   const encodedPhotos = await Promise.all((photos || []).map(fileToCompressedBase64));
 
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Please sign in to use AI intake.");
+
   const res = await fetch("/api/ai-intake", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
     body: JSON.stringify({ text, voiceTranscript, photos: encodedPhotos, priorQA, services, locale }),
   });
 

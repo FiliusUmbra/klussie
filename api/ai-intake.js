@@ -1,12 +1,17 @@
-// Vercel serverless function — the only place ANTHROPIC_API_KEY is ever read. Never
-// import this file's logic into client code; the key must never reach the browser
-// bundle. See src/lib/aiIntake.js for the client-side caller.
-import Anthropic from "@anthropic-ai/sdk";
+// Vercel serverless function. Requires an authenticated Supabase session — see
+// api/_lib/auth.js — and is rate-limited per user via api/_lib/rateLimit.js. All
+// actual AI calls go through api/_lib/aiGateway.js; this file owns only the
+// intake-specific prompt construction and output validation. See ai/intake/prompt.md
+// for the documented contract.
 import { SERVICE_QUESTIONS } from "../src/lib/serviceQuestions.js";
+import { verifyAuth, AuthError } from "./_lib/auth.js";
+import { checkAndLogUsage, RateLimitError } from "./_lib/rateLimit.js";
+import { reason } from "./_lib/aiGateway.js";
+import { emitEvent } from "./_lib/events.js";
 
-const MODEL = "claude-sonnet-5";
 const MAX_PHOTOS = 4;
 const CONFIDENCE_THRESHOLD = 85;
+const ENDPOINT = "ai-intake";
 
 const ANALYSIS_TOOL = {
   name: "submit_job_analysis",
@@ -98,8 +103,7 @@ Rules:
 - estimatedBudget should be a realistic EUR range for the Belgian market, or null if you truly can't estimate.`;
 }
 
-function buildUserContent({ text, voiceTranscript, photos, priorQA }) {
-  const content = [];
+function buildUserText({ text, voiceTranscript, priorQA }) {
   const parts = [];
   if (text) parts.push(`Typed description: ${text}`);
   if (voiceTranscript) parts.push(`Voice transcript: ${voiceTranscript}`);
@@ -109,15 +113,7 @@ function buildUserContent({ text, voiceTranscript, photos, priorQA }) {
     );
   }
   if (parts.length === 0) parts.push("(No text or voice description given — rely on the attached photos only.)");
-  content.push({ type: "text", text: parts.join("\n\n") });
-
-  for (const photo of (photos || []).slice(0, MAX_PHOTOS)) {
-    content.push({
-      type: "image",
-      source: { type: "base64", media_type: photo.mediaType, data: photo.data },
-    });
-  }
-  return content;
+  return parts.join("\n\n");
 }
 
 export default async function handler(req, res) {
@@ -126,9 +122,13 @@ export default async function handler(req, res) {
     return;
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    res.status(500).json({ error: "AI intake is not configured on the server." });
+  let auth;
+  try {
+    auth = await verifyAuth(req);
+    await checkAndLogUsage(auth.supabase, auth.user.id, ENDPOINT);
+  } catch (err) {
+    const status = err instanceof AuthError || err instanceof RateLimitError ? err.status : 500;
+    res.status(status).json({ error: err.message });
     return;
   }
 
@@ -144,23 +144,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const anthropic = new Anthropic({ apiKey });
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1536,
-      system: buildSystemPrompt(locale || "nl", services),
-      tools: [ANALYSIS_TOOL],
-      tool_choice: { type: "tool", name: "submit_job_analysis" },
-      messages: [{ role: "user", content: buildUserContent({ text, voiceTranscript, photos, priorQA }) }],
+    const result = await reason({
+      systemPrompt: buildSystemPrompt(locale || "nl", services),
+      text: buildUserText({ text, voiceTranscript, priorQA }),
+      images: (photos || []).slice(0, MAX_PHOTOS),
+      toolSchema: ANALYSIS_TOOL,
     });
-
-    const toolUse = response.content.find((block) => block.type === "tool_use");
-    if (!toolUse) {
-      res.status(502).json({ error: "AI did not return a structured analysis." });
-      return;
-    }
-
-    const result = toolUse.input;
 
     // Never trust a service id the model invented — fall back to unmatched rather than
     // letting the client create a request against a nonexistent service.
@@ -170,6 +159,12 @@ export default async function handler(req, res) {
       result.categoryId = null;
       result.structuredFields = {};
     }
+
+    await emitEvent(auth.supabase, "ai_intake.analyzed", {
+      matchedServiceId: result.matchedServiceId,
+      confidence: result.confidence,
+      urgency: result.urgency,
+    });
 
     res.status(200).json(result);
   } catch (err) {
