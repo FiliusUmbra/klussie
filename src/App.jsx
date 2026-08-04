@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext, createContext } from "react";
+import { useState, useRef, useEffect, useContext, createContext } from "react";
 import {
   Search, Star, MapPin, ChevronRight, X, Check, User, Home, ClipboardList,
   MessageCircle, Send, Briefcase, TrendingUp, ThumbsUp, Clock, ShieldCheck, Globe, BadgeCheck, LogOut, Mail, Lock, Camera,
@@ -38,6 +38,7 @@ import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "./lib/aiIntake";
 import { translateMessage } from "./lib/translate";
+import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, TicketTear, ServiceCard, JobCard, QuoteCard, TrustBadge, AIMessage, Timeline } from "./design-system";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -127,6 +128,7 @@ const STRINGS = {
     aiReviewTitle:"Controleer je aanvraag", aiConfidenceLabel:"zekerheid", aiDetectedServiceLabel:"Gedetecteerde dienst",
     aiPossibleCausesLabel:"Mogelijke oorzaken", aiRecommendedMaterialsLabel:"Aanbevolen materialen", aiAnalysisLabel:"AI-analyse",
     viewOriginalBtn:"Bekijk origineel", viewTranslationBtn:"Bekijk vertaling",
+    cancelBtn:"Annuleren", confirmDeleteMsg:"Weet je het zeker? Dit kan niet ongedaan gemaakt worden.",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -202,6 +204,7 @@ const STRINGS = {
     aiReviewTitle:"Vérifie ta demande", aiConfidenceLabel:"certitude", aiDetectedServiceLabel:"Service détecté",
     aiPossibleCausesLabel:"Causes possibles", aiRecommendedMaterialsLabel:"Matériaux recommandés", aiAnalysisLabel:"Analyse IA",
     viewOriginalBtn:"Voir l'original", viewTranslationBtn:"Voir la traduction",
+    cancelBtn:"Annuler", confirmDeleteMsg:"Es-tu sûr ? Cette action est irréversible.",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -277,6 +280,7 @@ const STRINGS = {
     aiReviewTitle:"Überprüfe deine Anfrage", aiConfidenceLabel:"Sicherheit", aiDetectedServiceLabel:"Erkannter Dienst",
     aiPossibleCausesLabel:"Mögliche Ursachen", aiRecommendedMaterialsLabel:"Empfohlene Materialien", aiAnalysisLabel:"KI-Analyse",
     viewOriginalBtn:"Original anzeigen", viewTranslationBtn:"Übersetzung anzeigen",
+    cancelBtn:"Abbrechen", confirmDeleteMsg:"Bist du sicher? Das kann nicht rückgängig gemacht werden.",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -352,6 +356,7 @@ const STRINGS = {
     aiReviewTitle:"Review your request", aiConfidenceLabel:"confidence", aiDetectedServiceLabel:"Detected service",
     aiPossibleCausesLabel:"Possible causes", aiRecommendedMaterialsLabel:"Recommended materials", aiAnalysisLabel:"AI analysis",
     viewOriginalBtn:"View original", viewTranslationBtn:"View translation",
+    cancelBtn:"Cancel", confirmDeleteMsg:"Are you sure? This can't be undone.",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -427,6 +432,7 @@ const STRINGS = {
     aiReviewTitle:"راجع طلبك", aiConfidenceLabel:"الثقة", aiDetectedServiceLabel:"الخدمة المكتشفة",
     aiPossibleCausesLabel:"الأسباب المحتملة", aiRecommendedMaterialsLabel:"المواد الموصى بها", aiAnalysisLabel:"تحليل الذكاء الاصطناعي",
     viewOriginalBtn:"عرض النص الأصلي", viewTranslationBtn:"عرض الترجمة",
+    cancelBtn:"إلغاء", confirmDeleteMsg:"هل أنت متأكد؟ لا يمكن التراجع عن هذا الإجراء.",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -502,6 +508,7 @@ const STRINGS = {
     aiReviewTitle:"Talebini gözden geçir", aiConfidenceLabel:"güven", aiDetectedServiceLabel:"Tespit edilen hizmet",
     aiPossibleCausesLabel:"Olası nedenler", aiRecommendedMaterialsLabel:"Önerilen malzemeler", aiAnalysisLabel:"Yapay zeka analizi",
     viewOriginalBtn:"Orijinali göster", viewTranslationBtn:"Çeviriyi göster",
+    cancelBtn:"İptal", confirmDeleteMsg:"Emin misin? Bu işlem geri alınamaz.",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -577,6 +584,7 @@ const STRINGS = {
     aiReviewTitle:"Проверьте заявку", aiConfidenceLabel:"уверенность", aiDetectedServiceLabel:"Определённая услуга",
     aiPossibleCausesLabel:"Возможные причины", aiRecommendedMaterialsLabel:"Рекомендуемые материалы", aiAnalysisLabel:"ИИ-анализ",
     viewOriginalBtn:"Показать оригинал", viewTranslationBtn:"Показать перевод",
+    cancelBtn:"Отмена", confirmDeleteMsg:"Вы уверены? Это действие нельзя отменить.",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -652,6 +660,7 @@ const STRINGS = {
     aiReviewTitle:"核对你的请求", aiConfidenceLabel:"置信度", aiDetectedServiceLabel:"检测到的服务",
     aiPossibleCausesLabel:"可能原因", aiRecommendedMaterialsLabel:"推荐材料", aiAnalysisLabel:"AI 分析",
     viewOriginalBtn:"查看原文", viewTranslationBtn:"查看译文",
+    cancelBtn:"取消", confirmDeleteMsg:"确定吗？此操作无法撤销。",
   },
 };
 
@@ -667,27 +676,6 @@ const LangContext = createContext(null);
 function useLang() { return useContext(LangContext); }
 
 /* --------------------------------- HELPERS --------------------------------- */
-
-function Stars({ value, size = 13 }) {
-  return (
-    <span className="stars">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} size={size} fill={i <= Math.round(value) ? "var(--amber)" : "none"} color={i <= Math.round(value) ? "var(--amber)" : "var(--line-strong)"} strokeWidth={1.5} />
-      ))}
-    </span>
-  );
-}
-
-function TicketTear() { return <div className="tear" />; }
-function Badge({ children, tone = "sage" }) { return <span className={`badge badge-${tone}`}>{children}</span>; }
-
-function Avatar({ url, initials, size }) {
-  return (
-    <div className={"avatar" + (size ? ` avatar-${size}` : "")}>
-      {url ? <img src={url} alt="" /> : initials}
-    </div>
-  );
-}
 
 function trustScore({ rating = 0, isCertified, badgeTier }) {
   const badgeBonus = badgeTier === "elite" ? 12 : badgeTier === "top" ? 6 : 0;
@@ -769,8 +757,7 @@ function AiAnalysisSummary({ aiAnalysis }) {
   const { possibleCauses, recommendedMaterials, confidence } = aiAnalysis;
   if (!possibleCauses?.length && !recommendedMaterials?.length) return null;
   return (
-    <div className="ai-analysis-summary">
-      <div className="ai-analysis-header"><Sparkles size={12} /> {t.aiAnalysisLabel} {typeof confidence === "number" && `· ${confidence}%`}</div>
+    <AIMessage label={t.aiAnalysisLabel} confidence={confidence}>
       {possibleCauses?.length > 0 && (
         <>
           <div className="job-field-label" style={{ marginBottom: 0 }}>{t.aiPossibleCausesLabel}</div>
@@ -783,7 +770,7 @@ function AiAnalysisSummary({ aiAnalysis }) {
           <ul>{recommendedMaterials.map((m) => <li key={m}>{m}</li>)}</ul>
         </>
       )}
-    </div>
+    </AIMessage>
   );
 }
 
@@ -1116,6 +1103,7 @@ function PortfolioItemSheet({ item, onClose, onChanged }) {
   const { t } = useLang();
   const [caption, setCaption] = useState(item.caption || "");
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const save = async () => {
     setBusy(true);
@@ -1141,7 +1129,16 @@ function PortfolioItemSheet({ item, onClose, onChanged }) {
         <input value={caption} onChange={(e) => setCaption(e.target.value)} />
       </div>
       <button className="btn-primary" disabled={busy} onClick={save}>{t.saveChangesBtn}</button>
-      <button className="btn-secondary" style={{ marginTop: 8 }} disabled={busy} onClick={remove}>{t.deletePhotoBtn}</button>
+      <button className="btn-secondary" style={{ marginTop: 8 }} disabled={busy} onClick={() => setConfirmDelete(true)}>{t.deletePhotoBtn}</button>
+      {confirmDelete && (
+        <Modal onClose={() => setConfirmDelete(false)}>
+          <p style={{ marginTop: 8 }}>{t.confirmDeleteMsg}</p>
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <Button variant="secondary" onClick={() => setConfirmDelete(false)}>{t.cancelBtn}</Button>
+            <Button variant="primary" disabled={busy} onClick={remove}>{t.deletePhotoBtn}</Button>
+          </div>
+        </Modal>
+      )}
     </Sheet>
   );
 }
@@ -1210,7 +1207,7 @@ function ProPublicProfileSheet({ proId, onClose }) {
         <Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" />
         <div>
           <div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div>
-          <div className="quote-rating"><Stars value={proInfo.rating} size={12} /> {proInfo.rating} ({fmt(proInfo.reviews)}) · {trustScore(proInfo)} {t.trustScoreLabel}</div>
+          <TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} score={trustScore(proInfo)} scoreLabel={t.trustScoreLabel} fmt={fmt} />
         </div>
       </div>
       <div className="chiprow" style={{ marginTop: 4 }}>
@@ -1235,7 +1232,7 @@ function ProPublicProfileSheet({ proId, onClose }) {
       <div className="section-title">{t.proReviewsTitle}</div>
       {(!reviews || reviews.length === 0) && <div className="fineprint" style={{ justifyContent: "flex-start" }}>{t.noReviewsYet}</div>}
       {(reviews || []).map((r) => (
-        <div key={r.id} className="quote-card"><Stars value={r.stars} size={12} /><p className="quote-msg">"{r.text}"</p></div>
+        <QuoteCard key={r.id}><Rating value={r.stars} size={12} /><p className="quote-msg">"{r.text}"</p></QuoteCard>
       ))}
 
       {testimonials && testimonials.length > 0 && (
@@ -1425,14 +1422,18 @@ function Discover({ onOpenService, onOpenAiIntake }) {
         {list.map((s) => {
           const info = serviceInfo(s.id);
           return (
-            <button key={s.id} className="svc-card" onClick={() => onOpenService(s)}>
-              <div className="svc-icon">{React.createElement(CATS.find((c) => c.id === s.cat).icon, { size: 18, color: "var(--forest)" })}</div>
-              <div className="svc-name">{info.name}</div>
-              {s.certifiedOnly && <div className="svc-certified"><BadgeCheck size={11} /> {t.certifiedOnlyBadge}</div>}
-              <div className="svc-meta">{fmt(s.pros)} {t.prosSuffix}</div>
-              <div className="svc-rating"><Stars value={s.rating} size={11} /> <span>{s.rating}</span></div>
-              <div className={"svc-cta " + (s.mode === "book" ? "cta-book" : "cta-quote")}>{s.mode === "book" ? t.serviceBookNow : t.roleCustomer === t.roleCustomer ? t.serviceGetQuotes : ""}</div>
-            </button>
+            <ServiceCard
+              key={s.id}
+              icon={CATS.find((c) => c.id === s.cat).icon}
+              name={info.name}
+              certifiedOnly={s.certifiedOnly}
+              certifiedLabel={t.certifiedOnlyBadge}
+              proCountLabel={`${fmt(s.pros)} ${t.prosSuffix}`}
+              rating={s.rating}
+              ctaVariant={s.mode === "book" ? "book" : "quote"}
+              ctaLabel={s.mode === "book" ? t.serviceBookNow : t.serviceGetQuotes}
+              onClick={() => onOpenService(s)}
+            />
           );
         })}
         {list.length === 0 && <div className="empty">{t.noServicesFound}</div>}
@@ -1450,9 +1451,9 @@ function ServiceSheet({ service, onClose, onRequest }) {
       <div className="sheet-icon-lg"><Icon size={22} color="var(--forest)" /></div>
       <div className="sheet-title">{info.name}</div>
       {service.certifiedOnly && <Badge tone="forest">{t.certifiedOnlyBadge}</Badge>}
-      <div className="sheet-sub">{fmt(service.pros)} {t.prosSuffix} \u00b7 <Stars value={service.rating} size={12} /> {service.rating} ({fmt(service.reviews)})</div>
+      <div className="sheet-sub">{fmt(service.pros)} {t.prosSuffix} \u00b7 <Rating value={service.rating} size={12} /> {service.rating} ({fmt(service.reviews)})</div>
       <p className="sheet-blurb">{info.blurb}</p>
-      <div className="price-hint">{t.typicalPrice} <b>\u20ac{fmt(Math.round(service.base * 0.8))} \u2013 \u20ac{fmt(Math.round(service.base * 1.3))}</b></div>
+      <div className="price-hint">{t.typicalPrice} <b><PriceTag amount={Math.round(service.base * 0.8)} fmt={fmt} /> \u2013 <PriceTag amount={Math.round(service.base * 1.3)} fmt={fmt} /></b></div>
       <button className="btn-primary" onClick={onRequest}>{service.mode === "book" ? t.serviceBookNow : t.serviceGetQuotes} <ChevronRight size={16} /></button>
     </Sheet>
   );
@@ -1845,19 +1846,20 @@ function RequestsList({ requests, onOpen }) {
         <div className="empty-block"><ClipboardList size={26} color="var(--ink-soft)" /><p>{t.noRequestsYet}</p></div>
       )}
       {requests.map((r) => (
-        <button key={r.id} className="ticket" onClick={() => onOpen(r.id)}>
-          <TicketTear />
-          <div className="ticket-body">
-            <div className="ticket-row"><div className="ticket-title">{serviceInfo(r.serviceId).name}</div><StatusPill status={r.status} /></div>
-            <div className="ticket-sub">{whenLabel(r.answers.when)} \u00b7 {fmtDate(r.createdAt)}</div>
-            <div className="ticket-divider" />
-            <div className="ticket-foot">
+        <JobCard
+          key={r.id}
+          onClick={() => onOpen(r.id)}
+          title={serviceInfo(r.serviceId).name}
+          badge={<StatusPill status={r.status} />}
+          subtitle={`${whenLabel(r.answers.when)} \u00b7 ${fmtDate(r.createdAt)}`}
+          footer={
+            <>
               {r.status === "collecting" && <span className="waiting"><Clock size={12} /> {t.waitingForQuotes}</span>}
               {r.status !== "collecting" && <span>{r.quotes.length} {t.quotesReceived}</span>}
               <ChevronRight size={16} color="var(--ink-soft)" />
-            </div>
-          </div>
-        </button>
+            </>
+          }
+        />
       ))}
     </div>
   );
@@ -1870,6 +1872,8 @@ function StatusPill({ status }) {
   return <Badge tone={tone}>{label}</Badge>;
 }
 
+const REQUEST_STATUS_ORDER = ["collecting", "quotes_ready", "booked", "completed", "reviewed"];
+
 function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
   const { user } = useAuth();
@@ -1878,11 +1882,18 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
   const [openProId, setOpenProId] = useState(null);
   const info = serviceInfo(request.serviceId);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
+  const statusIndex = REQUEST_STATUS_ORDER.indexOf(request.status);
+  const statusLabels = { collecting: t.statusCollecting, quotes_ready: t.statusQuotesReady, booked: t.statusBooked, completed: t.statusCompleted, reviewed: t.statusReviewed };
 
   return (
     <Sheet onClose={onClose}>
       <div className="sheet-title">{info.name}</div>
-      <div className="sheet-sub">{whenLabel(request.answers.when)} \u00b7 "{request.answers.details}"</div>
+      <div className="sheet-sub">{whenLabel(request.answers.when)} {"\u00b7"} "{request.answers.details}"</div>
+      {statusIndex >= 0 && (
+        <Timeline
+          steps={REQUEST_STATUS_ORDER.map((s, i) => ({ key: s, label: statusLabels[s], done: i < statusIndex, active: i === statusIndex }))}
+        />
+      )}
       <JobDetailsSummary serviceId={request.serviceId} fields={request.answers.fields} />
       <AiAnalysisSummary aiAnalysis={request.answers.aiAnalysis} />
       <RequestPhotosStrip requestId={request.id} />
@@ -1897,19 +1908,19 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
           {request.quotes.map((q) => {
             const pro = q.pro;
             return (
-              <div key={q.id} className="quote-card">
+              <QuoteCard key={q.id}>
                 <div className="quote-top">
                   <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
                     <Avatar url={pro.avatarUrl} initials={pro.initials} />
                     <div style={{ flex: 1 }}>
                       <div className="quote-name">{pro.name} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
-                    <div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating} ({fmt(pro.reviews)}) · {trustScore(pro)} {t.trustScoreLabel}</div>
+                    <TrustBadge rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} />
                   </div>
                   </button>
-                  <div className="quote-price">\u20ac{fmt(q.price)}</div>
+                  <PriceTag amount={q.price} fmt={fmt} />
                 </div>
                 <button className="btn-secondary" onClick={() => onAccept(q.id)}>{t.acceptQuoteBtn}</button>
-              </div>
+              </QuoteCard>
             );
           })}
         </>
@@ -1920,21 +1931,21 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
         const fee = Math.round(bookedQuote.price * PLATFORM_COMMISSION_RATE * 100) / 100;
         const net = Math.round((bookedQuote.price - fee) * 100) / 100;
         return (
-          <div className="quote-card quote-card-booked">
+          <QuoteCard booked>
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
               <Avatar url={pro.avatarUrl} initials={pro.initials} />
-              <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><div className="quote-rating"><Stars value={pro.rating} size={11} /> {pro.rating} \u00b7 {trustScore(pro)} {t.trustScoreLabel}</div></div>
+              <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
               </button>
-              <div className="quote-price">\u20ac{fmt(bookedQuote.price)}</div>
+              <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
             <div className="ticket-divider" />
-            <div className="fee-row"><span>{t.platformFeeLabel}</span><span>\u20ac{fmt(fee)}</span></div>
-            <div className="fee-row fee-row-net"><span>{t.netPayoutLabel}</span><span>\u20ac{fmt(net)}</span></div>
+            <div className="fee-row"><span>{t.platformFeeLabel}</span><PriceTag amount={fee} fmt={fmt} size="sm" /></div>
+            <div className="fee-row fee-row-net"><span>{t.netPayoutLabel}</span><PriceTag amount={net} fmt={fmt} size="sm" /></div>
             <div className="fineprint" style={{ marginTop: 10 }}><ShieldCheck size={12} /> {t.guaranteeNote}</div>
             <button className="btn-primary" style={{ marginTop: 12 }} onClick={onComplete}>{t.markCompleteBtn}</button>
             <button className="btn-secondary" style={{ marginTop: 8 }} onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button>
-          </div>
+          </QuoteCard>
         );
       })()}
 
@@ -1943,7 +1954,7 @@ function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }
       )}
 
       {request.status === "reviewed" && (
-        <div className="quote-card"><div className="quote-top"><Stars value={request.review.stars} size={16} /></div><p className="quote-msg">"{request.review.text}"</p><button className="btn-secondary" onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button></div>
+        <QuoteCard><div className="quote-top"><Rating value={request.review.stars} size={16} /></div><p className="quote-msg">"{request.review.text}"</p><button className="btn-secondary" onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button></QuoteCard>
       )}
 
       {bookedQuote && (
@@ -2076,7 +2087,7 @@ function CustomerProfile({ requests }) {
       <div className="section-title">{t.yourReviews}</div>
       {reviews.length === 0 && <div className="empty-block"><p>{t.noReviewsYet}</p></div>}
       {reviews.map((r) => (
-        <div key={r.id} className="quote-card"><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Stars value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></div>
+        <QuoteCard key={r.id}><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Rating value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></QuoteCard>
       ))}
       <button className="btn-secondary" style={{ marginTop: 14 }} onClick={() => setEditOpen(true)}>{t.editProfileBtn}</button>
       <button className="btn-secondary" style={{ marginTop: 8 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
@@ -2305,7 +2316,7 @@ function ProDashboard({ leads, onQuote, proInfo }) {
       <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{proInfo.name}</div></div><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} /></div>
 
       <div className="stat-row">
-        <div className="stat"><div className="stat-num"><Stars value={proInfo.rating} size={12} /></div><div className="stat-label">{proInfo.rating} {t.statScore}</div></div>
+        <div className="stat"><div className="stat-num"><Rating value={proInfo.rating} size={12} /></div><div className="stat-label">{proInfo.rating} {t.statScore}</div></div>
         <div className="stat"><div className="stat-num">{fmt(proInfo.reviews)}</div><div className="stat-label">{t.statReviewsLabel}</div></div>
         <div className="stat"><div className="stat-num">{trustScore(proInfo)}</div><div className="stat-label">{t.trustScoreLabel}</div></div>
       </div>
@@ -2320,19 +2331,18 @@ function ProDashboard({ leads, onQuote, proInfo }) {
       <div className="section-title">{t.newLeadsTitle}</div>
       {leads.length === 0 && <div className="empty-block"><TrendingUp size={22} color="var(--ink-soft)" /><p>{t.noLeadsMsg}</p></div>}
       {leads.map((r) => (
-        <div key={r.id} className="ticket">
-          <TicketTear />
-          <div className="ticket-body">
-            <div className="ticket-row"><div className="ticket-title">{serviceInfo(r.serviceId).name}</div><Badge tone="amber">{t.newBadge}</Badge></div>
-            <div className="ticket-sub">{whenLabel(r.answers.when)} \u00b7 {r.answers.budget ? `\u20ac${r.answers.budget}` : t.budgetFlexible}{r.answers.city ? ` \u00b7 ${r.answers.city}` : ""}</div>
-            <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
-            <JobDetailsSummary serviceId={r.serviceId} fields={r.answers.fields} />
-            <AiAnalysisSummary aiAnalysis={r.answers.aiAnalysis} />
-            <RequestPhotosStrip requestId={r.id} />
-            <div className="ticket-divider" />
-            <button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>
-          </div>
-        </div>
+        <JobCard
+          key={r.id}
+          title={serviceInfo(r.serviceId).name}
+          badge={<Badge tone="amber">{t.newBadge}</Badge>}
+          subtitle={`${whenLabel(r.answers.when)} \u00b7 ${r.answers.budget ? `\u20ac${r.answers.budget}` : t.budgetFlexible}${r.answers.city ? ` \u00b7 ${r.answers.city}` : ""}`}
+          footer={<button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>}
+        >
+          <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
+          <JobDetailsSummary serviceId={r.serviceId} fields={r.answers.fields} />
+          <AiAnalysisSummary aiAnalysis={r.answers.aiAnalysis} />
+          <RequestPhotosStrip requestId={r.id} />
+        </JobCard>
       ))}
       {proProfile.pro_type === "flexi" && (
         <div className="fineprint" style={{ marginTop: 4 }}><BadgeCheck size={12} /> {t.flexiHiddenNote}</div>
@@ -2396,7 +2406,7 @@ function ProJobs({ sent, booked, completed, proId }) {
                 {seg === "completed" && <Badge tone="sage">{t.badgeDone}</Badge>}
               </div>
               <div className="ticket-sub">{t.yourQuoteLabel} \u20ac{fmt(myQuote?.price ?? 0)}</div>
-              {seg === "completed" && r.review && (<><div className="ticket-divider" /><Stars value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></>)}
+              {seg === "completed" && r.review && (<><div className="ticket-divider" /><Rating value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></>)}
               {seg === "completed" && !r.review && <div className="ticket-sub" style={{ marginTop: 6 }}>{t.noReviewYet}</div>}
             </div>
           </div>
@@ -2446,9 +2456,12 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
     }
   };
 
+  const [confirmDeleteTestimonialId, setConfirmDeleteTestimonialId] = useState(null);
+
   const removeTestimonial = async (id) => {
     await deleteTestimonial(id);
     await refreshTestimonials();
+    setConfirmDeleteTestimonialId(null);
   };
 
   const saveServices = async () => {
@@ -2476,7 +2489,7 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
 
   return (
     <div className="pad">
-      <div className="profile-head"><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" /><div><div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div><div className="quote-rating"><Stars value={proInfo.rating} size={12} /> {proInfo.rating} ({fmt(proInfo.reviews)})</div></div></div>
+      <div className="profile-head"><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" /><div><div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div><TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} /></div></div>
       {proProfile.bio && <p className="sheet-blurb">{proProfile.bio}</p>}
       <div className="stat-row">
         <div className="stat"><div className="stat-num">{completedCount}</div><div className="stat-label">{t.proJobsDone}</div></div>
@@ -2541,12 +2554,21 @@ function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, o
       <div className="fineprint" style={{ marginBottom: 10, justifyContent: "flex-start" }}>{t.unverifiedTestimonialNote}</div>
       {testimonials && testimonials.length === 0 && <div className="empty-block" style={{ marginBottom: 14 }}><p>{t.noTestimonialsYet}</p></div>}
       {(testimonials || []).map((tst) => (
-        <div key={tst.id} className="quote-card">
+        <QuoteCard key={tst.id}>
           {tst.client_name && <div className="quote-name">{tst.client_name}</div>}
           <p className="quote-msg">"{tst.quote_text}"</p>
-          <button className="btn-secondary" onClick={() => removeTestimonial(tst.id)}>{t.deleteBtn}</button>
-        </div>
+          <button className="btn-secondary" onClick={() => setConfirmDeleteTestimonialId(tst.id)}>{t.deleteBtn}</button>
+        </QuoteCard>
       ))}
+      {confirmDeleteTestimonialId && (
+        <Modal onClose={() => setConfirmDeleteTestimonialId(null)}>
+          <p style={{ marginTop: 8 }}>{t.confirmDeleteMsg}</p>
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <Button variant="secondary" onClick={() => setConfirmDeleteTestimonialId(null)}>{t.cancelBtn}</Button>
+            <Button variant="primary" onClick={() => removeTestimonial(confirmDeleteTestimonialId)}>{t.deleteBtn}</Button>
+          </div>
+        </Modal>
+      )}
       <button className="btn-secondary" style={{ marginBottom: 14 }} onClick={() => setAddTestimonialOpen(true)}>{t.addTestimonialBtn}</button>
 
       <div className="section-title">{t.boostTitle}</div>
@@ -2588,17 +2610,10 @@ function BottomNav({ tab, setTab, items }) {
   );
 }
 
-function Sheet({ children, onClose }) {
-  return (
-    <div className="sheet-overlay" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-grabber" />
-        <button className="sheet-close" onClick={onClose}><X size={16} /></button>
-        <div className="sheet-scroll">{children}</div>
-      </div>
-    </div>
-  );
-}
+// Sheet is klussie's app-local name for the design system's Drawer (the bottom-sheet
+// pattern used throughout) — one implementation, imported above, bound to the name
+// every existing call site already uses.
+const Sheet = Drawer;
 
 /* ---------------------------------- STYLES --------------------------------- */
 
@@ -2781,4 +2796,28 @@ const CSS = `
 .ai-analysis-header{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--forest); margin-bottom:6px; }
 .ai-analysis-summary ul{ margin:4px 0 0; padding-left:18px; }
 .ai-analysis-summary li{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
+
+/* ---- design system: primitives/overlays with no existing analog above ---- */
+.ds-card{ text-align:start; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px; font-family:var(--font-body); color:var(--ink); cursor:default; }
+button.ds-card{ cursor:pointer; }
+
+.price-tag{ font-family:var(--font-mono); color:var(--ink); font-weight:600; }
+.price-tag-sm{ font-size:12.5px; }
+.price-tag-md{ font-size:14px; }
+.price-tag-lg{ font-size:18px; }
+
+.modal-overlay{ position:fixed; inset:0; background:rgba(22,35,28,0.45); display:flex; align-items:center; justify-content:center; padding:20px; z-index:60; }
+.modal-panel{ position:relative; background:var(--surface); border-radius:16px; padding:24px 22px; max-width:360px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+.modal-close{ position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:50%; border:none; background:var(--surface-2, var(--sage-bg)); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+.timeline{ display:flex; align-items:flex-start; gap:0; margin:14px 0; }
+.timeline-step{ flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; }
+.timeline-step:not(:last-child)::after{ content:""; position:absolute; top:5px; left:50%; width:100%; height:2px; background:var(--line); z-index:0; }
+.timeline-step.timeline-done:not(:last-child)::after{ background:var(--forest); }
+.timeline-dot{ width:11px; height:11px; border-radius:50%; background:var(--surface); border:2px solid var(--line-strong); z-index:1; }
+.timeline-step.timeline-done .timeline-dot{ background:var(--forest); border-color:var(--forest); }
+.timeline-step.timeline-active .timeline-dot{ background:var(--amber); border-color:var(--amber); }
+.timeline-label{ font-size:10.5px; color:var(--ink-faint); margin-top:6px; max-width:70px; line-height:1.3; }
+.timeline-step.timeline-done .timeline-label{ color:var(--ink-soft); }
+.timeline-step.timeline-active .timeline-label{ color:var(--ink); font-weight:600; }
 `;
