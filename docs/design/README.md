@@ -24,7 +24,7 @@ vocabulary as the rest of the doc set: **Implemented**, **In Progress**,
 | [`ILLUSTRATION_GUIDELINES.md`](./ILLUSTRATION_GUIDELINES.md) | Photography direction today; illustration once it exists | 5 | Implemented |
 | [`ACCESSIBILITY.md`](./ACCESSIBILITY.md) | WCAG target, keyboard/screen-reader rules, contrast audit | 6 | Implemented |
 | [`RESPONSIVE_SYSTEM.md`](./RESPONSIVE_SYSTEM.md) | Breakpoints, touch targets — honestly, mostly a gap today | 6 | Implemented |
-| `WHITE_LABEL.md` | Theming/token-override strategy for the roadmap's white-label phase | 7 | Planned |
+| [`WHITE_LABEL.md`](./WHITE_LABEL.md) | Theming/token-override strategy for the roadmap's white-label phase | 7 | Implemented |
 | `DESIGN_GOVERNANCE.md` | Roles, change process, versioning, review cadence | 8 | Planned |
 
 ## Reading order by role
