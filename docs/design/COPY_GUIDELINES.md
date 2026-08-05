@@ -128,4 +128,4 @@ once the phone-mockup demo shell is eventually replaced.
 
 ---
 
-Version 1.0 — 2026-08-05
+Version 1.1 — 2026-08-05 (updated: RTL finding corrected in the Phase 6 pass)

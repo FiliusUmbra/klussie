@@ -251,4 +251,4 @@ correctly."
 
 ---
 
-Version 1.0 — 2026-08-05
+Version 1.1 — 2026-08-05 (updated: `--ink-faint` audit finding corrected in the Phase 6 pass)

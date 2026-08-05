@@ -476,13 +476,17 @@ them (add an ADR to §15 if one ever does):
 1. Read `MASTER_CONTEXT.md`.
 2. Read `PRODUCT_CONSTITUTION.md`.
 3. Read `ENGINEERING_STANDARDS.md`.
-4. Read the current roadmap (§2, and the architecture roadmap for phase
+4. For anything touching UI: read `design/DESIGN_SYSTEM.md`, then
+   `design/README.md` for which companion document applies —
+   `design/DESIGN_GOVERNANCE.md` owns how that folder's own process
+   works.
+5. Read the current roadmap (§2, and the architecture roadmap for phase
    detail).
-5. Review the existing code before proposing changes.
-6. Explain proposed changes before implementing.
-7. Implement only the approved milestone — not adjacent scope.
-8. Update documentation, including this file, if reality changed.
-9. Stop.
+6. Review the existing code before proposing changes.
+7. Explain proposed changes before implementing.
+8. Implement only the approved milestone — not adjacent scope.
+9. Update documentation, including this file, if reality changed.
+10. Stop.
 
 Never redesign an existing system without justification. Never trust a
 "current state" claim in any document without checking §3 first — it
@@ -502,4 +506,4 @@ instinct should be: **"I'll open Klussie."**
 
 ---
 
-*Version 1.4 — 2026-08-05*
+*Version 1.5 — 2026-08-05 (AI Session Instructions: added the design-docs read step)*
