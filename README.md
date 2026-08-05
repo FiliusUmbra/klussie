@@ -74,6 +74,7 @@ Read in this order:
 1. [`docs/MASTER_CONTEXT.md`](./docs/MASTER_CONTEXT.md) — single source of truth: current milestone, architecture status, priorities, risks, protected decisions
 2. [`docs/PRODUCT_CONSTITUTION.md`](./docs/PRODUCT_CONSTITUTION.md) — non-negotiable product rules
 3. [`docs/ENGINEERING_STANDARDS.md`](./docs/ENGINEERING_STANDARDS.md) — enforceable code rules + an honest scorecard
+4. [`docs/design/DESIGN_SYSTEM.md`](./docs/design/DESIGN_SYSTEM.md) — visual and interaction design direction, plus the rest of `docs/design/` for tokens, components, and patterns as they land
 
 `ARCHITECTURE.md`, `AI_ARCHITECTURE.md`, `API_SPEC.md`, `SECURITY.md`, and
 `MONETIZATION.md` are planned but not written yet — don't assume they exist.

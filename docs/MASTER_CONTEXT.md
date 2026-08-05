@@ -33,6 +33,7 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `MASTER_CONTEXT.md` | This file — executive overview | Implemented |
 | `PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
 | `ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
+| `design/DESIGN_SYSTEM.md` | Visual and interaction design direction (constitution tier — see `design/README.md` for the full companion-doc set) | Implemented |
 | `ARCHITECTURE.md` | Detailed system architecture | Planned |
 | `AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Planned |
 | `API_SPEC.md` | API contracts (internal + future public API) | Planned |
@@ -93,7 +94,7 @@ Current Branch        phase-1-ui-redesign (2 commits, not pushed)
 Next Deliverable      Event-bus wiring into existing request/quote/message
                        flows, then Phase 2 (Testing, CI, TypeScript, Release
                        Strategy)
-Last Updated          2026-08-04
+Last Updated          2026-08-05
 ```
 
 Implemented in Phase 1 so far: authenticated + rate-limited AI Gateway
@@ -161,11 +162,14 @@ Healthcare · Pet Care · Business Services · Enterprise Facility Management
 configuration over hardcoding · backend before frontend · scalability
 before complexity · documentation is part of the product.
 
-**Design philosophy:** warm, premium, trustworthy, modern, minimal, human —
-never cold or corporate. Reference points: Airbnb, Apple, Stripe, Notion,
-Arc. The shipped product today is a warm "paper ticket" aesthetic
-(Fraunces serif, forest/sage/amber, torn-ticket motifs) — the move toward a
-cooler register is an open decision, not a completed redesign (§16).
+**Design direction:** locked, 2026-08-05 — see
+[`design/DESIGN_SYSTEM.md`](./design/DESIGN_SYSTEM.md) for the full brief (brand
+personality, color/typography/motion rules, component litmus test). Short
+version: evolve the existing warm identity (forest/sage/amber, Fraunces
+display type, generous whitespace), reduce heavy borders and paper effects,
+increase breathing room and subtle motion. Never move toward a colder
+SaaS-dashboard register — that direction was considered and explicitly
+rejected (ADR-006).
 
 The **Product Principles** that justify *why* any of this gets built —
 Trust, Simplicity, Conversion, Retention, Scalability, Marketplace
@@ -379,11 +383,10 @@ independently swappable per provider without touching call sites. · Date:
 `api/_lib/aiGateway.js`, §6.
 
 **ADR-002 — Keep the warm "paper ticket" design language for now**
-Decision: default to the existing warm identity rather than the cooler
-Apple/Stripe register named in §5. · Reason: keeps shipping; aligns with
-the manifesto's trust framing. · Date: 2026-08-04 · Status: In Progress —
-provisional, revisit at §16 · Owner: Unassigned · Related: §16,
-`PRODUCT_CONSTITUTION.md`.
+Decision: default to the existing warm identity rather than a colder
+register. · Reason: keeps shipping; aligns with the manifesto's trust
+framing. · Date: 2026-08-04 · Status: Superseded by ADR-006 · Owner:
+Unassigned · Related: `design/DESIGN_SYSTEM.md`.
 
 **ADR-003 — Postgres-backed rate limiting instead of Redis**
 Decision: count rows in `ai_usage_log` within a time window. · Reason: no
@@ -405,12 +408,23 @@ Implemented (sequencing decision, reflected in phase ordering throughout
 this document) · Owner: Unassigned · Related: architecture roadmap
 (Document Map — Planned as `ROADMAP.md`).
 
+**ADR-006 — Design Direction Lock: evolve the warm identity, reject the
+cooler SaaS-dashboard register**
+Decision: the product had started drifting toward a generic SaaS/dashboard
+aesthetic; direction is locked to evolve the existing warm "paper ticket"
+identity (reduce heavy borders and paper effects, increase whitespace and
+subtle motion) rather than move toward Linear/Vercel-Dashboard/GitHub-style
+cooler registers. · Reason: brand personality must stay warm, human,
+trustworthy, premium, calm — never corporate, cold, or "AI-first" visually.
+· Date: 2026-08-05 · Status: Implemented (governance; component-level
+implementation not yet started, see `design/README.md`'s Document Map) ·
+Owner: Unassigned · Related: `design/DESIGN_SYSTEM.md`, `PRODUCT_CONSTITUTION.md`'s
+Design Constitution. Supersedes ADR-002.
+
 ---
 
 ## 16. Open Decisions
 
-- Design language: keep the warm "paper ticket" identity, or move toward
-  the cooler Apple/Airbnb/Linear/Stripe register (§5)?
 - Core Systems (§7) vs. Core Platform layers (§6): formalize a 1:1 mapping,
   or define Core Systems as explicit compositions of multiple layers?
 - Stripe Connect: Standard, Express, or Custom?
@@ -449,6 +463,11 @@ them (add an ADR to §15 if one ever does):
 - Never use the Supabase service-role key in a user-facing request path.
 - Every capability-gated feature ships behind a Feature Flag.
 - Every new UI element uses the Design System.
+- Never redesign the product simply because something looks more modern —
+  see `design/DESIGN_SYSTEM.md`'s Final Rule (ADR-006).
+- Never give AI a visual theme (no purple, neon, glowing borders, robot
+  aesthetics, sci-fi language) — AI stays invisible in the UI.
+- Never mix icon families — Lucide only.
 
 ---
 
@@ -483,4 +502,4 @@ instinct should be: **"I'll open Klussie."**
 
 ---
 
-*Version 1.3 — 2026-08-04*
+*Version 1.4 — 2026-08-05*

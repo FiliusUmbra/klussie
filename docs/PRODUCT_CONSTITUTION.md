@@ -79,3 +79,27 @@ Time to first booking, AI understanding accuracy, First-time fix rate,
 Professional response time, Average booking completion, NPS, Customer
 retention, or Professional retention — it doesn't ship yet, no matter how
 interesting it is to build.
+
+## Design Constitution
+
+Klussie wins through trust, not novelty.
+
+Every interface should reduce stress.
+
+Every interaction should increase confidence.
+
+Beauty is not decoration.
+
+Beauty is clarity.
+
+AI should disappear into the experience.
+
+Technology should never become the personality of the product.
+
+People trust people.
+
+The interface should always feel human.
+
+The actionable version of this — brand personality, color/typography/motion
+rules, component litmus test — is `design/DESIGN_SYSTEM.md`. This section is why;
+that document is how.
