@@ -10,7 +10,7 @@ export function Drawer({ children, onClose }) {
     <div className="sheet-overlay" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grabber" />
-        <button className="sheet-close" onClick={onClose}><X size={16} /></button>
+        <button className="sheet-close" onClick={onClose} aria-label="Close"><X size={16} /></button>
         <div className="sheet-scroll">{children}</div>
       </div>
     </div>

@@ -15,8 +15,8 @@ vocabulary as the rest of the doc set: **Implemented**, **In Progress**,
 |---|---|---|---|
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Constitution — brand personality, principles, inspiration, the litmus test | 1 | Implemented |
 | [`DESIGN_TOKENS.md`](./DESIGN_TOKENS.md) | Every real token: color, spacing, radius, shadow, motion, type | 2 | Implemented |
-| `COMPONENT_LIBRARY.md` | The real components — API, states, variants, accessibility, tokens used | 3 | Planned |
-| `ICONOGRAPHY.md` | Icon library, sizing, color, custom-icon process | 3 | Planned |
+| [`COMPONENT_LIBRARY.md`](./COMPONENT_LIBRARY.md) | The real components — API, states, variants, accessibility, tokens used | 3 | Implemented |
+| [`ICONOGRAPHY.md`](./ICONOGRAPHY.md) | Icon library, sizing, color, custom-icon process | 3 | Implemented |
 | `UX_PATTERNS.md` | Flows composed from components — onboarding, states, AI, authentication | 4 | Planned |
 | `COPY_GUIDELINES.md` | Voice, tone, microcopy, terminology glossary | 4 | Planned |
 | `LAYOUT_SYSTEM.md` | Grid, spacing composition, page templates, z-index | 4 | Planned |
