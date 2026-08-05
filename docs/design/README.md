@@ -17,9 +17,9 @@ vocabulary as the rest of the doc set: **Implemented**, **In Progress**,
 | [`DESIGN_TOKENS.md`](./DESIGN_TOKENS.md) | Every real token: color, spacing, radius, shadow, motion, type | 2 | Implemented |
 | [`COMPONENT_LIBRARY.md`](./COMPONENT_LIBRARY.md) | The real components — API, states, variants, accessibility, tokens used | 3 | Implemented |
 | [`ICONOGRAPHY.md`](./ICONOGRAPHY.md) | Icon library, sizing, color, custom-icon process | 3 | Implemented |
-| `UX_PATTERNS.md` | Flows composed from components — onboarding, states, AI, authentication | 4 | Planned |
-| `COPY_GUIDELINES.md` | Voice, tone, microcopy, terminology glossary | 4 | Planned |
-| `LAYOUT_SYSTEM.md` | Grid, spacing composition, page templates, z-index | 4 | Planned |
+| [`UX_PATTERNS.md`](./UX_PATTERNS.md) | Flows composed from components — onboarding, states, AI, authentication | 4 | Implemented |
+| [`COPY_GUIDELINES.md`](./COPY_GUIDELINES.md) | Voice, tone, microcopy, terminology glossary | 4 | Implemented |
+| [`LAYOUT_SYSTEM.md`](./LAYOUT_SYSTEM.md) | Grid, spacing composition, page templates, z-index | 4 | Implemented |
 | `ANIMATION_GUIDELINES.md` | Easing, duration, choreography, reduced-motion | 5 | Planned |
 | `ILLUSTRATION_GUIDELINES.md` | Photography direction today; illustration once it exists | 5 | Planned |
 | `ACCESSIBILITY.md` | WCAG target, keyboard/screen-reader rules, contrast audit | 6 | Planned |

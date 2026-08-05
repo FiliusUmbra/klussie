@@ -100,7 +100,7 @@ const STRINGS = {
     viewInvoiceBtn:"Bekijk factuur", invoiceSupplier:"Leverancier", invoiceCustomer:"Klant", invoiceService:"Dienst",
     invoiceAmount:"Bedrag excl. btw", invoiceVat:"Btw (21%)", invoiceTotal:"Totaal", invoiceRef:"Referentie",
     certifiedOnlyBadge:"Enkel erkende specialisten",
-    flexiHiddenNote:"Opdrachten enkel voor erkende specialisten zijn verborgen zolang je als flexi-jobber staat ingesteld.",
+    flexiHiddenNote:"Klussen enkel voor erkende specialisten zijn verborgen zolang je als flexi-jobber staat ingesteld.",
     authSignInTitle:"Inloggen", authSignUpTitle:"Account aanmaken", authFullNameLabel:"Volledige naam", authEmailLabel:"E-mailadres", authPasswordLabel:"Wachtwoord",
     authSignInBtn:"Inloggen", authSignUpBtn:"Account aanmaken", authSwitchToSignUp:"Nog geen account? Registreer je", authSwitchToSignIn:"Al een account? Log in",
     authCheckEmail:"Controleer je e-mail om je account te bevestigen.", authSignOut:"Uitloggen",
