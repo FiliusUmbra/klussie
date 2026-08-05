@@ -2620,7 +2620,7 @@ const CSS = `
 :root{
   --forest:#1F4D3A; --forest-dark:#163828; --sage:#8FB996; --sage-bg:#E7F0E5;
   --paper:#EFEEE6; --surface:#FFFFFF; --amber:#E8A33D; --amber-bg:#FBEBD2;
-  --ink:#16231C; --ink-soft:#5B6B60; --line:rgba(22,35,28,0.10); --line-strong:rgba(22,35,28,0.28);
+  --ink:#16231C; --ink-soft:#5B6B60; --ink-faint:#8B978D; --line:rgba(22,35,28,0.10); --line-strong:rgba(22,35,28,0.28);
   --line-soft:rgba(22,35,28,0.06);
   --shadow-card:0 1px 2px rgba(31,77,58,0.05), 0 2px 10px rgba(31,77,58,0.06);
   --motion-fast:120ms ease-out; --motion-base:200ms ease-out;
