@@ -120,11 +120,11 @@ pattern and flag where reality departs from it, not to silently patch
 redefined per locale, see `DESIGN_TOKENS.md`'s locale-override pattern),
 since Fraunces and Inter don't cover Arabic or Chinese script.
 
-**Not verified in this pass:** whether `ar` (a right-to-left language)
-gets real `dir="rtl"` document/layout handling anywhere, or whether the
-UI just renders left-to-right with Arabic text inside it. That's an
-`ACCESSIBILITY.md` / `RESPONSIVE_SYSTEM.md` question (Phase 6), flagged
-here because it surfaced while reading the locale list, not resolved.
+**Update, Phase 6:** confirmed real — `ar` does get genuine `dir="rtl"`
+handling (`dir={dir}` computed from the active locale, applied to the
+outermost demo container). See `ACCESSIBILITY.md`'s Right-to-left section
+for the full finding and one real caveat about where that has to move
+once the phone-mockup demo shell is eventually replaced.
 
 ---
 

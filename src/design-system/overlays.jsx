@@ -7,7 +7,11 @@ import { X } from "lucide-react";
 
 export function Drawer({ children, onClose }) {
   return (
-    <div className="sheet-overlay" onClick={onClose}>
+    <div
+      className="sheet-overlay"
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+    >
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grabber" />
         <button className="sheet-close" onClick={onClose} aria-label="Close"><X size={16} /></button>

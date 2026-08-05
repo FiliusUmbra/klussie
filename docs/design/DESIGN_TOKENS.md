@@ -49,7 +49,7 @@ convention (e.g. don't add `--colorForestDark` or `--forest_dark`).
 | `--surface` | `#FFFFFF` | Card/input ground, sits on `--paper` |
 | `--ink` | `#16231C` | Primary text |
 | `--ink-soft` | `#5B6B60` | Secondary text |
-| `--ink-faint` | `#8B978D` | Tertiary/de-emphasized text (timeline labels, etc.) | **Fixed — see Audit below, was referenced but undefined until this pass** |
+| `--ink-faint` | `#8B978D` | Defined, **zero real usages** — see `ACCESSIBILITY.md`, it failed WCAG AA contrast (3.04:1) at its one real usage size and was replaced there with `--ink-soft` |
 | `--line` | `rgba(22,35,28,0.10)` | Standard hairline border |
 | `--line-soft` | `rgba(22,35,28,0.06)` | Softer border, paired with `--shadow-card` on content cards |
 | `--line-strong` | `rgba(22,35,28,0.28)` | Emphasized border/divider (dashed dividers, timeline dots) |
@@ -211,13 +211,17 @@ have to guess where `45` or `70` would land.
 A defined-vs-referenced sweep across `src/App.jsx` surfaced two real
 issues, both addressed in this pass:
 
-- **`--ink-faint` was referenced but never defined.** `.timeline-label`
-  used `color:var(--ink-faint)` with no fallback and no definition in
-  `:root` — an invalid custom-property reference, which resolves to the
-  property's inherited value rather than crashing, so it was silently
-  rendering timeline labels darker than intended rather than visibly
-  broken. **Fixed**: added `--ink-faint:#8B978D` to `:root`, continuing
-  the existing `--ink` → `--ink-soft` → `--ink-faint` emphasis ladder.
+- **`--ink-faint` was referenced but never defined** (as of the Phase 2
+  pass). `.timeline-label` used `color:var(--ink-faint)` with no fallback
+  and no definition in `:root` — an invalid custom-property reference,
+  silently rendering timeline labels darker than intended rather than
+  visibly broken. Fixed at the time by adding `--ink-faint:#8B978D` to
+  `:root`. **Update, Phase 6:** a real WCAG contrast audit
+  (`ACCESSIBILITY.md`) found that value fails AA (3.04:1) at the size it
+  was actually used. `.timeline-label` now uses `--ink-soft` instead —
+  `--ink-faint` stays defined but has zero real usages again. Two token
+  bugs found on the same token in two different passes; worth remembering
+  when the next one gets added.
 - **`--surface-2` is referenced but never defined.** `.modal-close` uses
   `background:var(--surface-2, var(--sage-bg))` — the explicit fallback
   means it's harmless today (always resolves to `--sage-bg`), but the

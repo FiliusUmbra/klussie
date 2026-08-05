@@ -21,7 +21,7 @@ export function Badge({ children, tone = "sage" }) {
 
 export function Rating({ value, size = 13 }) {
   return (
-    <span className="stars">
+    <span className="stars" role="img" aria-label={`${value} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
         <Star
           key={i}
@@ -29,6 +29,7 @@ export function Rating({ value, size = 13 }) {
           fill={i <= Math.round(value) ? "var(--amber)" : "none"}
           color={i <= Math.round(value) ? "var(--amber)" : "var(--line-strong)"}
           strokeWidth={1.5}
+          aria-hidden="true"
         />
       ))}
     </span>

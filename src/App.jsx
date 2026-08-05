@@ -791,6 +791,15 @@ function AppShell() {
   const langMeta = LANGS.find((l) => l.code === langCode);
   const t = STRINGS[langCode];
   const dir = langCode === "ar" ? "rtl" : "ltr";
+
+  // Keep the document's lang attribute in sync with the selected locale —
+  // index.html hardcodes lang="en", which screen readers use for
+  // pronunciation rules regardless of what's actually on screen. See
+  // docs/design/ACCESSIBILITY.md.
+  useEffect(() => {
+    document.documentElement.lang = langCode;
+  }, [langCode]);
+
   const fmt = (n) => Number(n).toLocaleString(langMeta.locale);
   const fmtDate = (ts) => new Date(ts).toLocaleDateString(langMeta.locale);
   const CATS = catalog?.CATS ?? [];
@@ -1055,7 +1064,7 @@ function EditProfileSheet({ onClose, onSaved }) {
       <div className="sheet-title">{t.editProfileTitle}</div>
 
       <div className="avatar-upload-row">
-        <button type="button" className="avatar-upload" onClick={() => fileInputRef.current.click()} disabled={uploadingAvatar}>
+        <button type="button" className="avatar-upload" onClick={() => fileInputRef.current.click()} disabled={uploadingAvatar} aria-hidden="true" tabIndex={-1}>
           <Avatar url={avatarUrl} initials={fullName[0] || "?"} size="lg" />
         </button>
         <button type="button" className="btn-secondary" onClick={() => fileInputRef.current.click()} disabled={uploadingAvatar}>
@@ -1535,7 +1544,7 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
         {photos.map((p) => (
           <div key={p.previewUrl} className="portfolio-thumb">
             <img src={p.previewUrl} alt="" />
-            <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)}><X size={12} /></button>
+            <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)} aria-label="Remove photo"><X size={12} /></button>
           </div>
         ))}
         <button type="button" className="portfolio-thumb portfolio-add" onClick={() => photoInputRef.current.click()}>
@@ -1737,7 +1746,7 @@ function AiIntakeSheet({ onClose, onSubmitted }) {
               {photos.map((p) => (
                 <div key={p.previewUrl} className="portfolio-thumb">
                   <img src={p.previewUrl} alt="" />
-                  <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)}><X size={12} /></button>
+                  <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)} aria-label="Remove photo"><X size={12} /></button>
                 </div>
               ))}
             </div>
@@ -2061,7 +2070,7 @@ function ReviewSheet({ onClose, onSubmit }) {
       <div className="sheet-title">{t.reviewTitle}</div>
       <div className="star-picker">
         {[1, 2, 3, 4, 5].map((i) => (
-          <button key={i} onClick={() => setStars(i)}><Star size={30} fill={i <= stars ? "var(--amber)" : "none"} color={i <= stars ? "var(--amber)" : "var(--line-strong)"} strokeWidth={1.5} /></button>
+          <button key={i} onClick={() => setStars(i)} aria-label={`Rate ${i} star${i > 1 ? "s" : ""}`} aria-pressed={i <= stars}><Star size={30} fill={i <= stars ? "var(--amber)" : "none"} color={i <= stars ? "var(--amber)" : "var(--line-strong)"} strokeWidth={1.5} /></button>
         ))}
       </div>
       <textarea className="textarea" rows={3} placeholder={t.howDidItGo} value={text} onChange={(e) => setText(e.target.value)} />
@@ -2627,6 +2636,9 @@ const CSS = `
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
   --font-display:'Fraunces',serif; --font-body:'Inter',sans-serif; --font-mono:'IBM Plex Mono',monospace;
 }
+@media (prefers-reduced-motion: reduce){
+  :root{ --motion-fast:0ms; --motion-base:0ms; }
+}
 *{box-sizing:border-box;}
 .stage{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:radial-gradient(circle at 30% 20%, #24382e 0%, #121b16 70%); padding:32px 16px; font-family:var(--font-body); }
 .topbar{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; }
@@ -2823,7 +2835,7 @@ button.ds-card{ cursor:pointer; }
 .timeline-dot{ width:11px; height:11px; border-radius:50%; background:var(--surface); border:2px solid var(--line-strong); z-index:1; }
 .timeline-step.timeline-done .timeline-dot{ background:var(--forest); border-color:var(--forest); }
 .timeline-step.timeline-active .timeline-dot{ background:var(--amber); border-color:var(--amber); }
-.timeline-label{ font-size:10.5px; color:var(--ink-faint); margin-top:6px; max-width:70px; line-height:1.3; }
+.timeline-label{ font-size:10.5px; color:var(--ink-soft); margin-top:6px; max-width:70px; line-height:1.3; }
 .timeline-step.timeline-done .timeline-label{ color:var(--ink-soft); }
 .timeline-step.timeline-active .timeline-label{ color:var(--ink); font-weight:600; }
 `;
