@@ -1,7 +1,32 @@
 # The Klussie Product Constitution
 
+**This document owns:** permanent product philosophy — the Principles that
+justify *why* something gets built, and the Rules that enforce *how*. It
+does not own current implementation status (`MASTER_CONTEXT.md`) or
+code-level enforcement mechanics (`ENGINEERING_STANDARDS.md`).
+
 This is the law. Every pull request should satisfy it. When a rule and a deadline
 conflict, the rule wins — cite the rule number in review if a change doesn't.
+
+## Product Principles
+
+The permanent *why* behind every product decision. Principles don't
+change; how progress against them is measured does — see the Product KPIs
+table in `MASTER_CONTEXT.md` §14, which is expected to evolve.
+
+- **Trust** — the platform is worth nothing if people don't believe in it.
+- **Simplicity** — every removed click, form field, or decision is a win.
+- **Conversion** — a request that doesn't become a booking helped no one.
+- **Retention** — a one-time user is a failed marketplace, not a success.
+- **Scalability** — a solution that only works at today's size isn't one.
+- **Marketplace Liquidity** — supply and demand have to find each other,
+  reliably, or nothing else here matters.
+
+Principles and KPIs are complementary, not alternatives: a Principle is the
+reason a feature is worth building; a KPI is the proof it worked. Rule 10
+requires both.
+
+## Rules
 
 **Rule 1 — AI before forms.**
 If AI can remove a click, remove the click. If AI can remove a form, remove the form.
@@ -14,13 +39,12 @@ data, not source code. A new service should be a config change (see Phase 5, the
 Marketplace Engine), not a deploy.
 
 **Rule 3 — Everything configurable.**
-Follows from Rule 2. Feature flags, per-tenant settings, per-country rules — build the
+Follows from Rule 2. Feature Flags, per-tenant settings, per-country rules — build the
 knob before you need to turn it, not after.
 
 **Rule 4 — Everything measurable.**
-No feature ships without knowing which of the Product KPIs (see
-`docs/ENGINEERING_STANDARDS.md`'s sibling KPI table in the architecture review) it's
-supposed to move. "It seemed useful" is not a metric.
+No feature ships without knowing which Product KPI (`MASTER_CONTEXT.md`
+§14) it's supposed to move. "It seemed useful" is not a metric.
 
 **Rule 5 — Everything secure.**
 Least privilege by default. No client code holds a secret it doesn't need. No
@@ -47,8 +71,11 @@ When a growth tactic and a trust commitment conflict, trust wins. A fake "boost"
 button that doesn't charge anyone, a certification badge with no evidence behind it —
 these are the kind of shortcuts this rule exists to rule out.
 
-**Rule 10 — Every feature must improve at least one KPI.**
-See the Product KPIs table in the architecture roadmap. If a proposed feature doesn't
-move time-to-first-booking, AI accuracy, first-time fix rate, pro response time,
-booking completion, NPS, or either retention number — it doesn't ship yet, no matter
-how interesting it is to build.
+**Rule 10 — Every feature must serve a Principle and move a KPI.**
+Principles (above) are why a feature is worth building; KPIs
+(`MASTER_CONTEXT.md` §14) are proof it worked. If a proposed feature
+doesn't serve at least one Product Principle, or isn't expected to move
+Time to first booking, AI understanding accuracy, First-time fix rate,
+Professional response time, Average booking completion, NPS, Customer
+retention, or Professional retention — it doesn't ship yet, no matter how
+interesting it is to build.
