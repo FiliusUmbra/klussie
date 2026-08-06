@@ -33,6 +33,8 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `AI_CONTEXT.md` | Fast-onboarding briefing every AI session reads first | Implemented |
 | `MASTER_CONTEXT.md` | This file — executive overview | Implemented |
 | `READING_GUIDES.md` | Role-based reading order (CEO/Product/Design/Frontend/Backend/AI/DevOps/QA) | Implemented |
+| `IMPLEMENTATION_READINESS_REVIEW.md` | Point-in-time audit of doc-set integrity before Phase 9's execution roadmap | Implemented |
+| `EXECUTION_ROADMAP.md` | 10-epic execution sequence bridging documentation to implementation | Implemented |
 | `product/PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
 | `engineering/ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
 | `design/DESIGN_SYSTEM.md` | Visual and interaction design direction (constitution tier — see `design/README.md` for the full companion-doc set) | Implemented |
@@ -113,11 +115,15 @@ professional who can solve it. Full vision: §5.
 Current Milestone     Phase 1 — Foundation
 Status                In Progress
 Current Objective     Core Platform extraction + Design System migration
-Current Branch        phase-1-ui-redesign (2 commits, not pushed)
+Current Branch        phase-1-ui-redesign (20 commits ahead of main, pushed)
 Next Deliverable      Event-bus wiring into existing request/quote/message
                        flows, then Phase 2 (Testing, CI, TypeScript, Release
-                       Strategy)
-Last Updated          2026-08-05
+                       Strategy) — application work, separate from the
+                       Foundation Freeze documentation initiative, which is
+                       now at Phase 8 of 9 (see docs/architecture/ROADMAP.md
+                       vs. this repo's own Foundation Freeze phases — two
+                       different phase-numbering sequences, don't conflate)
+Last Updated          2026-08-06
 ```
 
 Implemented in Phase 1 so far: authenticated + rate-limited AI Gateway
@@ -157,7 +163,7 @@ disagrees with this table, this table wins.
 | Area | Current | Target | Trend | Owner |
 |---|---|---|---|---|
 | Architecture | In Progress — 3/11 Core Platform layers implemented | All 11 layers implemented, nothing bypasses Core Platform | New baseline | Unassigned |
-| Documentation | Implemented — 20 of 20 Document Map rows implemented | Keep current as reality changes; extend as Foundation Freeze Phases 8+ add new categories (company/) | New baseline | Unassigned |
+| Documentation | Implemented — 22 of 22 Document Map rows implemented, integrity-audited (`IMPLEMENTATION_READINESS_REVIEW.md`); Foundation Freeze complete (9 of 9 phases) | Keep current as reality changes going forward; next structural addition is `company/`, whenever a real need for it exists | New baseline | Unassigned |
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | Planned — not yet audited | Constitution Rule 6 formally verified | New baseline | Unassigned |
