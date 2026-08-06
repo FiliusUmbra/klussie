@@ -43,5 +43,5 @@ Status uses the same vocabulary as the rest of the doc set:
 ## Outside this folder
 
 - [`../MASTER_CONTEXT.md`](../MASTER_CONTEXT.md) — current project state, architecture, roadmap.
-- [`../PRODUCT_CONSTITUTION.md`](../PRODUCT_CONSTITUTION.md) — permanent product philosophy (this folder's product-level counterpart).
-- [`../ENGINEERING_STANDARDS.md`](../ENGINEERING_STANDARDS.md) — enforceable code rules.
+- [`../product/PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md) — permanent product philosophy (this folder's product-level counterpart).
+- [`../engineering/ENGINEERING_STANDARDS.md`](../engineering/ENGINEERING_STANDARDS.md) — enforceable code rules.

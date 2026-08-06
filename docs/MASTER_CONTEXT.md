@@ -31,25 +31,32 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | Document | Purpose | Status |
 |---|---|---|
 | `MASTER_CONTEXT.md` | This file — executive overview | Implemented |
-| `PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
-| `ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
+| `product/PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
+| `engineering/ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
 | `design/DESIGN_SYSTEM.md` | Visual and interaction design direction (constitution tier — see `design/README.md` for the full companion-doc set) | Implemented |
-| `AUTH_PROVIDER_SETUP.md` | External OAuth provider registration steps (Authentication UX Redesign, Phase 2) | Implemented |
-| `ROADMAP.md` | Full phase-by-phase implementation roadmap (13 phases) | Implemented |
-| `HOMEPAGE_CONCEPTS.md` | Three original conversational-homepage concepts (A/B/C) | Implemented |
-| `HOMEPAGE_DIRECTION.md` | The chosen homepage direction — C's foundation, B's restraint | Implemented |
-| `EXPERIENCE_VISION.md` | 10-part experience spec for the conversational homepage | Implemented |
-| `HOME_OPERATING_SYSTEM.md` | Long-term vision for "My Home" / post-booking relationship | Implemented |
-| `PROPERTY_MEMORY.md` | Underlying philosophy of Digital Property Memory | Implemented |
-| `ARCHITECTURE.md` | Detailed system architecture | Planned |
-| `AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Planned |
-| `API_SPEC.md` | API contracts (internal + future public API) | Planned |
-| `SECURITY.md` | Threat model, security posture | Planned |
-| `MONETIZATION.md` | Revenue model, commission structure | Planned |
+| `operations/AUTH_PROVIDER_SETUP.md` | External OAuth provider registration steps (Authentication UX Redesign, Phase 2) | Implemented |
+| `architecture/ROADMAP.md` | Full phase-by-phase implementation roadmap (13 phases) | Implemented |
+| `product/HOMEPAGE_CONCEPTS.md` | Three original conversational-homepage concepts (A/B/C) | Implemented |
+| `product/HOMEPAGE_DIRECTION.md` | The chosen homepage direction — C's foundation, B's restraint | Implemented |
+| `product/EXPERIENCE_VISION.md` | 10-part experience spec for the conversational homepage | Implemented |
+| `product/HOME_OPERATING_SYSTEM.md` | Long-term vision for "My Home" / post-booking relationship | Implemented |
+| `product/PROPERTY_MEMORY.md` | Underlying philosophy of Digital Property Memory | Implemented |
+| `architecture/ARCHITECTURE.md` | Detailed system architecture | Planned |
+| `architecture/AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Planned |
+| `architecture/API_SPEC.md` | API contracts (internal + future public API) | Planned |
+| `engineering/SECURITY.md` | Threat model, security posture | Planned |
+| `product/MONETIZATION.md` | Revenue model, commission structure | Planned |
 
 Don't link to a `Planned` row as if it exists. When a section below needs
 detail that belongs in one of them, treat it as a reason to write that
 document next, not a reason to inline the detail here.
+
+**Folder structure (Foundation Freeze, Phase 2):** `docs/` is organized by
+category — `design/`, `product/`, `architecture/`, `engineering/`,
+`operations/` are active today. `features/` (per-feature briefs),
+`adr/` (extracted decision records), and `company/` are reserved for
+later Foundation Freeze phases and don't exist yet — don't create them
+speculatively.
 
 **Known gap:** the original product manifesto (pasted early in this
 project, before the current session's context window) is not recoverable
@@ -147,7 +154,7 @@ disagrees with this table, this table wins.
 | Area | Current | Target | Trend | Owner |
 |---|---|---|---|---|
 | Architecture | In Progress — 3/11 Core Platform layers implemented | All 11 layers implemented, nothing bypasses Core Platform | New baseline | Unassigned |
-| Documentation | In Progress — 3 of 9 Document Map rows implemented | Remaining Document Map rows implemented | New baseline | Unassigned |
+| Documentation | In Progress — 11 of 16 Document Map rows implemented | Remaining Document Map rows implemented | New baseline | Unassigned |
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented | Pen-tested, `SECURITY.md` implemented | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | Planned — not yet audited | Constitution Rule 6 formally verified | New baseline | Unassigned |
@@ -296,7 +303,7 @@ What's actually stopping Phase 2 from starting, not just "not done yet":
 
 ## 10. Engineering Rules
 
-Enforceable version + live scorecard: [`ENGINEERING_STANDARDS.md`](./ENGINEERING_STANDARDS.md).
+Enforceable version + live scorecard: [`ENGINEERING_STANDARDS.md`](./engineering/ENGINEERING_STANDARDS.md).
 
 Summary: no component over 300 lines · no function over 40 lines ·
 everything typed (Planned, starts Phase 2) · everything documented ·
@@ -308,7 +315,7 @@ prompts · no magic numbers. (Business logic in UI is a Protected Decision,
 
 ## 11. Product Rules
 
-Enforceable version: [`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md),
+Enforceable version: [`PRODUCT_CONSTITUTION.md`](./product/PRODUCT_CONSTITUTION.md),
 which owns two complementary things:
 
 - **Product Principles** — the permanent *why* behind every decision
@@ -487,13 +494,13 @@ them (add an ADR to §15 if one ever does):
 ## 18. AI Session Instructions
 
 1. Read `MASTER_CONTEXT.md`.
-2. Read `PRODUCT_CONSTITUTION.md`.
-3. Read `ENGINEERING_STANDARDS.md`.
+2. Read `product/PRODUCT_CONSTITUTION.md`.
+3. Read `engineering/ENGINEERING_STANDARDS.md`.
 4. For anything touching UI: read `design/DESIGN_SYSTEM.md`, then
    `design/README.md` for which companion document applies —
    `design/DESIGN_GOVERNANCE.md` owns how that folder's own process
    works.
-5. Read the current roadmap (§2, and the architecture roadmap for phase
+5. Read the current roadmap (§2, and `architecture/ROADMAP.md` for phase
    detail).
 6. Review the existing code before proposing changes.
 7. Explain proposed changes before implementing.

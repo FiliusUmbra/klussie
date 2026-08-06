@@ -5,7 +5,7 @@
 > motion curves, layout rules, copy rules) — that lives in the companion
 > documents indexed at [`docs/design/README.md`](./README.md).
 >
-> It does not define product philosophy (see `../PRODUCT_CONSTITUTION.md`)
+> It does not define product philosophy (see `../product/PRODUCT_CONSTITUTION.md`)
 > or implementation status (see `../MASTER_CONTEXT.md`).
 
 **This document owns:** why Klussie looks and feels the way it does —

@@ -55,6 +55,11 @@ api/                Vercel serverless functions
   _lib/             Core Platform modules (auth, rate limiting, AI Gateway, events)
 ai/                 AI prompt library (prompt.md + evaluation.md per capability)
 docs/               Governance & architecture documentation
+  design/           Visual/interaction design system (13 docs + README)
+  product/          Product philosophy, vision, UX exploration docs
+  architecture/     Platform architecture review & roadmap
+  engineering/      Enforceable engineering standards
+  operations/       External setup & operational runbooks
 src/
   App.jsx           Main application (customer + professional experiences)
   lib/              Data access and business logic
@@ -72,8 +77,8 @@ links here rather than repeating it.
 Read in this order:
 
 1. [`docs/MASTER_CONTEXT.md`](./docs/MASTER_CONTEXT.md) — single source of truth: current milestone, architecture status, priorities, risks, protected decisions
-2. [`docs/PRODUCT_CONSTITUTION.md`](./docs/PRODUCT_CONSTITUTION.md) — non-negotiable product rules
-3. [`docs/ENGINEERING_STANDARDS.md`](./docs/ENGINEERING_STANDARDS.md) — enforceable code rules + an honest scorecard
+2. [`docs/product/PRODUCT_CONSTITUTION.md`](./docs/product/PRODUCT_CONSTITUTION.md) — non-negotiable product rules
+3. [`docs/engineering/ENGINEERING_STANDARDS.md`](./docs/engineering/ENGINEERING_STANDARDS.md) — enforceable code rules + an honest scorecard
 4. [`docs/design/DESIGN_SYSTEM.md`](./docs/design/DESIGN_SYSTEM.md) — visual and interaction design direction, plus the rest of `docs/design/` for tokens, components, and patterns as they land
 
 `ARCHITECTURE.md`, `AI_ARCHITECTURE.md`, `API_SPEC.md`, `SECURITY.md`, and
@@ -97,8 +102,9 @@ npm run lint    # eslint
 
 ## Contributing
 
-Every change should satisfy `docs/PRODUCT_CONSTITUTION.md` and
-`docs/ENGINEERING_STANDARDS.md`. There's no separate `CONTRIBUTING.md` yet.
+Every change should satisfy `docs/product/PRODUCT_CONSTITUTION.md` and
+`docs/engineering/ENGINEERING_STANDARDS.md`. There's no separate
+`CONTRIBUTING.md` yet.
 
 ---
 

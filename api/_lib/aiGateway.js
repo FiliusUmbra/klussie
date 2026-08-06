@@ -2,7 +2,7 @@
 // (reason, translate) with capability-shaped parameters, never for "Claude" by name.
 // This is the only file that knows Anthropic's tool-forcing/content-block shapes —
 // swapping a capability to a different provider later means changing the function
-// body here, not every endpoint that uses it. See docs/PRODUCT_CONSTITUTION.md.
+// body here, not every endpoint that uses it. See docs/product/PRODUCT_CONSTITUTION.md.
 //
 // Vision today is handled as part of reason() (Claude analyzes text + photos in one
 // multimodal call, which is how the product actually wants job-intake to work — a

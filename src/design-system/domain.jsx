@@ -2,7 +2,7 @@
 // klussie-specific meaning (a job, a quote, a pro's trust signals) but no business
 // logic and no data-fetching of their own — callers pass in already-resolved values
 // (translated labels, formatted numbers), keeping these components pure presentation.
-// See docs/ENGINEERING_STANDARDS.md, "no business logic in UI."
+// See docs/engineering/ENGINEERING_STANDARDS.md, "no business logic in UI."
 import { Sparkles, BadgeCheck } from "lucide-react";
 import { Rating } from "./primitives.jsx";
 

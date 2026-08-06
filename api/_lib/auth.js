@@ -5,7 +5,7 @@
 // Deliberately does NOT use the Supabase service role key. The returned client is
 // authenticated as the calling user (via their own access token), so every query it
 // makes is still subject to that user's RLS policies — least-privilege by construction,
-// not by convention. See docs/PRODUCT_CONSTITUTION.md, rule 5.
+// not by convention. See docs/product/PRODUCT_CONSTITUTION.md, rule 5.
 import { createClient } from "@supabase/supabase-js";
 
 class AuthError extends Error {
