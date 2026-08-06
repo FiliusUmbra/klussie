@@ -41,11 +41,11 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `product/EXPERIENCE_VISION.md` | 10-part experience spec for the conversational homepage | Implemented |
 | `product/HOME_OPERATING_SYSTEM.md` | Long-term vision for "My Home" / post-booking relationship | Implemented |
 | `product/PROPERTY_MEMORY.md` | Underlying philosophy of Digital Property Memory | Implemented |
-| `architecture/ARCHITECTURE.md` | Detailed system architecture | Planned |
-| `architecture/AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Planned |
-| `architecture/API_SPEC.md` | API contracts (internal + future public API) | Planned |
-| `engineering/SECURITY.md` | Threat model, security posture | Planned |
-| `product/MONETIZATION.md` | Revenue model, commission structure | Planned |
+| `architecture/ARCHITECTURE.md` | Detailed system architecture | Implemented |
+| `architecture/AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Implemented |
+| `architecture/API_SPEC.md` | API contracts (internal + future public API) | Implemented |
+| `engineering/SECURITY.md` | Threat model, security posture | Implemented |
+| `product/MONETIZATION.md` | Revenue model, commission structure | Implemented |
 
 Don't link to a `Planned` row as if it exists. When a section below needs
 detail that belongs in one of them, treat it as a reason to write that
@@ -154,8 +154,8 @@ disagrees with this table, this table wins.
 | Area | Current | Target | Trend | Owner |
 |---|---|---|---|---|
 | Architecture | In Progress — 3/11 Core Platform layers implemented | All 11 layers implemented, nothing bypasses Core Platform | New baseline | Unassigned |
-| Documentation | In Progress — 11 of 16 Document Map rows implemented | Remaining Document Map rows implemented | New baseline | Unassigned |
-| Security | In Progress — auth, RLS, rate limiting, least-privilege implemented | Pen-tested, `SECURITY.md` implemented | New baseline | Unassigned |
+| Documentation | Implemented — 16 of 16 Document Map rows implemented | Keep current as reality changes; extend as Foundation Freeze Phases 4+ add new categories (features/, adr/, company/) | New baseline | Unassigned |
+| Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | Planned — not yet audited | Constitution Rule 6 formally verified | New baseline | Unassigned |
 | Testing | Planned — 0% coverage, no test suite implemented | Defined in Phase 2 | New baseline | Unassigned |
@@ -245,8 +245,8 @@ flowchart LR
 
 No frontend component or endpoint talks to an AI provider directly — every
 call routes through the AI Gateway (`api/_lib/aiGateway.js`), so a provider
-swap for one capability never touches another. Deeper detail belongs in
-`AI_ARCHITECTURE.md` (Planned — Document Map).
+swap for one capability never touches another. Deeper detail:
+[`architecture/AI_ARCHITECTURE.md`](./architecture/AI_ARCHITECTURE.md).
 
 ---
 
@@ -265,8 +265,8 @@ tracked as an open decision (§16).
 | Communication Engine | In Progress — chat and live translation implemented; push/email/SMS Planned |
 | Analytics Engine | Planned |
 
-Full specs belong in `ARCHITECTURE.md` / `AI_ARCHITECTURE.md` once written
-(Document Map).
+Full specs: [`architecture/ARCHITECTURE.md`](./architecture/ARCHITECTURE.md) /
+[`architecture/AI_ARCHITECTURE.md`](./architecture/AI_ARCHITECTURE.md).
 
 ---
 
