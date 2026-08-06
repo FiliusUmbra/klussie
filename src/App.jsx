@@ -104,6 +104,11 @@ const STRINGS = {
     authSignInTitle:"Inloggen", authSignUpTitle:"Account aanmaken", authFullNameLabel:"Volledige naam", authEmailLabel:"E-mailadres", authPasswordLabel:"Wachtwoord",
     authSignInBtn:"Inloggen", authSignUpBtn:"Account aanmaken", authSwitchToSignUp:"Nog geen account? Registreer je", authSwitchToSignIn:"Al een account? Log in",
     authCheckEmail:"Controleer je e-mail om je account te bevestigen.", authSignOut:"Uitloggen",
+    welcomeTitle:"Welkom bij klussie", welcomeSubtitle:"Beschrijf je probleem in enkele seconden. Wij verbinden je met de juiste vakman.",
+    continueWithApple:"Doorgaan met Apple", continueWithGoogle:"Doorgaan met Google", continueWithMicrosoft:"Doorgaan met Microsoft", continueWithFacebook:"Doorgaan met Facebook", continueWithEmail:"Doorgaan met e-mail",
+    sendMagicLinkBtn:"Verstuur inloglink", magicLinkSentMsg:"Check je e-mail voor de inloglink.",
+    usePasswordInstead:"Gebruik in plaats daarvan een wachtwoord", useMagicLinkInstead:"Gebruik in plaats daarvan een inloglink",
+    roleQuestionTitle:"Hoe ga je klussie gebruiken?", roleOptionCustomer:"Ik heb hulp nodig", roleOptionPro:"Ik bied diensten aan",
     becomeProPrompt:"Wil je diensten aanbieden op klussie? Stel je vakman-profiel in.", becomeProBtn:"Word vakman", becomeProTitle:"Stel je vakman-profiel in",
     businessNameLabel:"Bedrijfsnaam", vatNumberLabel:"Btw-nummer", bioLabel:"Korte omschrijving", becomeProSubmit:"Start met diensten aanbieden", saveServicesBtn:"Diensten opslaan", messagePlaceholder:"Typ een bericht...",
     editProfileBtn:"Profiel bewerken", editProfileTitle:"Bewerk je profiel", cityLabel:"Stad", saveChangesBtn:"Wijzigingen opslaan", uploadPhotoBtn:"Foto uploaden",
@@ -180,6 +185,11 @@ const STRINGS = {
     authSignInTitle:"Se connecter", authSignUpTitle:"Créer un compte", authFullNameLabel:"Nom complet", authEmailLabel:"Adresse e-mail", authPasswordLabel:"Mot de passe",
     authSignInBtn:"Se connecter", authSignUpBtn:"Créer un compte", authSwitchToSignUp:"Pas encore de compte ? Inscris-toi", authSwitchToSignIn:"Déjà un compte ? Connecte-toi",
     authCheckEmail:"Vérifie tes e-mails pour confirmer ton compte.", authSignOut:"Se déconnecter",
+    welcomeTitle:"Bienvenue sur klussie", welcomeSubtitle:"Décris ton problème en quelques secondes. Nous te mettons en contact avec le bon professionnel.",
+    continueWithApple:"Continuer avec Apple", continueWithGoogle:"Continuer avec Google", continueWithMicrosoft:"Continuer avec Microsoft", continueWithFacebook:"Continuer avec Facebook", continueWithEmail:"Continuer avec l'e-mail",
+    sendMagicLinkBtn:"Envoyer le lien de connexion", magicLinkSentMsg:"Vérifie tes e-mails pour le lien de connexion.",
+    usePasswordInstead:"Utiliser un mot de passe à la place", useMagicLinkInstead:"Utiliser un lien de connexion à la place",
+    roleQuestionTitle:"Comment vas-tu utiliser klussie ?", roleOptionCustomer:"J'ai besoin d'aide", roleOptionPro:"Je propose des services",
     becomeProPrompt:"Tu veux proposer des services sur klussie ? Configure ton profil pro.", becomeProBtn:"Devenir pro", becomeProTitle:"Configure ton profil pro",
     businessNameLabel:"Nom de l'entreprise", vatNumberLabel:"Numéro de TVA", bioLabel:"Courte description", becomeProSubmit:"Commencer à proposer des services", saveServicesBtn:"Enregistrer les services", messagePlaceholder:"Écris un message...",
     editProfileBtn:"Modifier le profil", editProfileTitle:"Modifie ton profil", cityLabel:"Ville", saveChangesBtn:"Enregistrer les modifications", uploadPhotoBtn:"Téléverser une photo",
@@ -256,6 +266,11 @@ const STRINGS = {
     authSignInTitle:"Anmelden", authSignUpTitle:"Konto erstellen", authFullNameLabel:"Vollständiger Name", authEmailLabel:"E-Mail-Adresse", authPasswordLabel:"Passwort",
     authSignInBtn:"Anmelden", authSignUpBtn:"Konto erstellen", authSwitchToSignUp:"Noch kein Konto? Registrieren", authSwitchToSignIn:"Schon ein Konto? Anmelden",
     authCheckEmail:"Bestätige dein Konto über den Link in deiner E-Mail.", authSignOut:"Abmelden",
+    welcomeTitle:"Willkommen bei klussie", welcomeSubtitle:"Beschreibe dein Problem in wenigen Sekunden. Wir verbinden dich mit dem passenden Profi.",
+    continueWithApple:"Weiter mit Apple", continueWithGoogle:"Weiter mit Google", continueWithMicrosoft:"Weiter mit Microsoft", continueWithFacebook:"Weiter mit Facebook", continueWithEmail:"Weiter mit E-Mail",
+    sendMagicLinkBtn:"Anmeldelink senden", magicLinkSentMsg:"Überprüfe deine E-Mails auf den Anmeldelink.",
+    usePasswordInstead:"Stattdessen ein Passwort verwenden", useMagicLinkInstead:"Stattdessen einen Anmeldelink verwenden",
+    roleQuestionTitle:"Wie möchtest du klussie nutzen?", roleOptionCustomer:"Ich brauche Hilfe", roleOptionPro:"Ich biete Dienstleistungen an",
     becomeProPrompt:"Möchtest du Dienstleistungen auf klussie anbieten? Richte dein Profi-Profil ein.", becomeProBtn:"Profi werden", becomeProTitle:"Richte dein Profi-Profil ein",
     businessNameLabel:"Firmenname", vatNumberLabel:"USt-IdNr.", bioLabel:"Kurzbeschreibung", becomeProSubmit:"Jetzt Dienstleistungen anbieten", saveServicesBtn:"Dienste speichern", messagePlaceholder:"Nachricht schreiben...",
     editProfileBtn:"Profil bearbeiten", editProfileTitle:"Profil bearbeiten", cityLabel:"Stadt", saveChangesBtn:"Änderungen speichern", uploadPhotoBtn:"Foto hochladen",
@@ -332,6 +347,11 @@ const STRINGS = {
     authSignInTitle:"Sign in", authSignUpTitle:"Create account", authFullNameLabel:"Full name", authEmailLabel:"Email address", authPasswordLabel:"Password",
     authSignInBtn:"Sign in", authSignUpBtn:"Create account", authSwitchToSignUp:"No account yet? Sign up", authSwitchToSignIn:"Already have an account? Sign in",
     authCheckEmail:"Check your email to confirm your account.", authSignOut:"Sign out",
+    welcomeTitle:"Welcome to klussie", welcomeSubtitle:"Describe your problem in seconds. We'll connect you with the right professional.",
+    continueWithApple:"Continue with Apple", continueWithGoogle:"Continue with Google", continueWithMicrosoft:"Continue with Microsoft", continueWithFacebook:"Continue with Facebook", continueWithEmail:"Continue with email",
+    sendMagicLinkBtn:"Send sign-in link", magicLinkSentMsg:"Check your email for the sign-in link.",
+    usePasswordInstead:"Use a password instead", useMagicLinkInstead:"Use a sign-in link instead",
+    roleQuestionTitle:"How will you use klussie?", roleOptionCustomer:"I need help", roleOptionPro:"I offer services",
     becomeProPrompt:"Want to offer services on klussie? Set up your pro profile.", becomeProBtn:"Become a pro", becomeProTitle:"Set up your pro profile",
     businessNameLabel:"Business name", vatNumberLabel:"VAT number", bioLabel:"Short bio", becomeProSubmit:"Start offering services", saveServicesBtn:"Save services", messagePlaceholder:"Type a message...",
     editProfileBtn:"Edit profile", editProfileTitle:"Edit your profile", cityLabel:"City", saveChangesBtn:"Save changes", uploadPhotoBtn:"Upload photo",
@@ -408,6 +428,11 @@ const STRINGS = {
     authSignInTitle:"تسجيل الدخول", authSignUpTitle:"إنشاء حساب", authFullNameLabel:"الاسم الكامل", authEmailLabel:"البريد الإلكتروني", authPasswordLabel:"كلمة المرور",
     authSignInBtn:"تسجيل الدخول", authSignUpBtn:"إنشاء حساب", authSwitchToSignUp:"ليس لديك حساب؟ سجّل الآن", authSwitchToSignIn:"لديك حساب بالفعل؟ سجّل الدخول",
     authCheckEmail:"تحقق من بريدك الإلكتروني لتأكيد حسابك.", authSignOut:"تسجيل الخروج",
+    welcomeTitle:"مرحبًا بك في klussie", welcomeSubtitle:"صف مشكلتك في ثوانٍ. سنوصلك بالمحترف المناسب.",
+    continueWithApple:"المتابعة باستخدام Apple", continueWithGoogle:"المتابعة باستخدام Google", continueWithMicrosoft:"المتابعة باستخدام Microsoft", continueWithFacebook:"المتابعة باستخدام Facebook", continueWithEmail:"المتابعة بالبريد الإلكتروني",
+    sendMagicLinkBtn:"إرسال رابط الدخول", magicLinkSentMsg:"تحقق من بريدك الإلكتروني للحصول على رابط الدخول.",
+    usePasswordInstead:"استخدم كلمة مرور بدلاً من ذلك", useMagicLinkInstead:"استخدم رابط دخول بدلاً من ذلك",
+    roleQuestionTitle:"كيف ستستخدم klussie؟", roleOptionCustomer:"أحتاج إلى مساعدة", roleOptionPro:"أقدّم خدمات",
     becomeProPrompt:"تريد تقديم خدمات على klussie؟ أنشئ ملفك كمحترف.", becomeProBtn:"كن محترفًا", becomeProTitle:"أنشئ ملفك كمحترف",
     businessNameLabel:"اسم الشركة", vatNumberLabel:"الرقم الضريبي", bioLabel:"نبذة قصيرة", becomeProSubmit:"ابدأ بتقديم الخدمات", saveServicesBtn:"حفظ الخدمات", messagePlaceholder:"اكتب رسالة...",
     editProfileBtn:"تعديل الملف الشخصي", editProfileTitle:"عدّل ملفك الشخصي", cityLabel:"المدينة", saveChangesBtn:"حفظ التغييرات", uploadPhotoBtn:"تحميل صورة",
@@ -484,6 +509,11 @@ const STRINGS = {
     authSignInTitle:"Giriş yap", authSignUpTitle:"Hesap oluştur", authFullNameLabel:"Ad soyad", authEmailLabel:"E-posta adresi", authPasswordLabel:"Şifre",
     authSignInBtn:"Giriş yap", authSignUpBtn:"Hesap oluştur", authSwitchToSignUp:"Hesabın yok mu? Kaydol", authSwitchToSignIn:"Zaten hesabın var mı? Giriş yap",
     authCheckEmail:"Hesabını onaylamak için e-postanı kontrol et.", authSignOut:"Çıkış yap",
+    welcomeTitle:"klussie'ye hoş geldin", welcomeSubtitle:"Sorununu birkaç saniyede anlat. Seni doğru uzmanla eşleştirelim.",
+    continueWithApple:"Apple ile devam et", continueWithGoogle:"Google ile devam et", continueWithMicrosoft:"Microsoft ile devam et", continueWithFacebook:"Facebook ile devam et", continueWithEmail:"E-posta ile devam et",
+    sendMagicLinkBtn:"Giriş bağlantısı gönder", magicLinkSentMsg:"Giriş bağlantısı için e-postanı kontrol et.",
+    usePasswordInstead:"Bunun yerine şifre kullan", useMagicLinkInstead:"Bunun yerine giriş bağlantısı kullan",
+    roleQuestionTitle:"klussie'yi nasıl kullanacaksın?", roleOptionCustomer:"Yardıma ihtiyacım var", roleOptionPro:"Hizmet sunuyorum",
     becomeProPrompt:"klussie'de hizmet sunmak mı istiyorsun? Profesyonel profilini oluştur.", becomeProBtn:"Profesyonel ol", becomeProTitle:"Profesyonel profilini oluştur",
     businessNameLabel:"Şirket adı", vatNumberLabel:"KDV numarası", bioLabel:"Kısa biyografi", becomeProSubmit:"Hizmet sunmaya başla", saveServicesBtn:"Hizmetleri kaydet", messagePlaceholder:"Bir mesaj yaz...",
     editProfileBtn:"Profili düzenle", editProfileTitle:"Profilini düzenle", cityLabel:"Şehir", saveChangesBtn:"Değişiklikleri kaydet", uploadPhotoBtn:"Fotoğraf yükle",
@@ -560,6 +590,11 @@ const STRINGS = {
     authSignInTitle:"Войти", authSignUpTitle:"Создать аккаунт", authFullNameLabel:"Полное имя", authEmailLabel:"Электронная почта", authPasswordLabel:"Пароль",
     authSignInBtn:"Войти", authSignUpBtn:"Создать аккаунт", authSwitchToSignUp:"Нет аккаунта? Зарегистрируйтесь", authSwitchToSignIn:"Уже есть аккаунт? Войдите",
     authCheckEmail:"Проверьте почту, чтобы подтвердить аккаунт.", authSignOut:"Выйти",
+    welcomeTitle:"Добро пожаловать в klussie", welcomeSubtitle:"Опишите свою проблему за несколько секунд. Мы подберём подходящего специалиста.",
+    continueWithApple:"Продолжить через Apple", continueWithGoogle:"Продолжить через Google", continueWithMicrosoft:"Продолжить через Microsoft", continueWithFacebook:"Продолжить через Facebook", continueWithEmail:"Продолжить через email",
+    sendMagicLinkBtn:"Отправить ссылку для входа", magicLinkSentMsg:"Проверьте почту — там ссылка для входа.",
+    usePasswordInstead:"Использовать пароль вместо этого", useMagicLinkInstead:"Использовать ссылку для входа вместо этого",
+    roleQuestionTitle:"Как вы будете использовать klussie?", roleOptionCustomer:"Мне нужна помощь", roleOptionPro:"Я предлагаю услуги",
     becomeProPrompt:"Хотите предлагать услуги на klussie? Настройте профиль специалиста.", becomeProBtn:"Стать специалистом", becomeProTitle:"Настройте профиль специалиста",
     businessNameLabel:"Название компании", vatNumberLabel:"Номер плательщика НДС", bioLabel:"Краткое описание", becomeProSubmit:"Начать предлагать услуги", saveServicesBtn:"Сохранить услуги", messagePlaceholder:"Введите сообщение...",
     editProfileBtn:"Редактировать профиль", editProfileTitle:"Редактируйте свой профиль", cityLabel:"Город", saveChangesBtn:"Сохранить изменения", uploadPhotoBtn:"Загрузить фото",
@@ -636,6 +671,11 @@ const STRINGS = {
     authSignInTitle:"登录", authSignUpTitle:"创建账户", authFullNameLabel:"姓名", authEmailLabel:"电子邮箱", authPasswordLabel:"密码",
     authSignInBtn:"登录", authSignUpBtn:"创建账户", authSwitchToSignUp:"还没有账户？注册", authSwitchToSignIn:"已有账户？登录",
     authCheckEmail:"请查收邮件以确认你的账户。", authSignOut:"退出登录",
+    welcomeTitle:"欢迎使用 klussie", welcomeSubtitle:"用几秒钟描述你的问题，我们会为你匹配合适的专业人士。",
+    continueWithApple:"通过 Apple 继续", continueWithGoogle:"通过 Google 继续", continueWithMicrosoft:"通过 Microsoft 继续", continueWithFacebook:"通过 Facebook 继续", continueWithEmail:"通过邮箱继续",
+    sendMagicLinkBtn:"发送登录链接", magicLinkSentMsg:"请查收邮箱中的登录链接。",
+    usePasswordInstead:"改用密码", useMagicLinkInstead:"改用登录链接",
+    roleQuestionTitle:"你打算如何使用 klussie？", roleOptionCustomer:"我需要帮助", roleOptionPro:"我提供服务",
     becomeProPrompt:"想在 klussie 上提供服务吗？设置你的专业人士资料。", becomeProBtn:"成为专业人士", becomeProTitle:"设置你的专业人士资料",
     businessNameLabel:"公司名称", vatNumberLabel:"增值税号", bioLabel:"简介", becomeProSubmit:"开始提供服务", saveServicesBtn:"保存服务", messagePlaceholder:"输入消息...",
     editProfileBtn:"编辑资料", editProfileTitle:"编辑你的资料", cityLabel:"城市", saveChangesBtn:"保存更改", uploadPhotoBtn:"上传照片",
@@ -782,7 +822,7 @@ function AppShell() {
   const [catalogError, setCatalogError] = useState(null);
   const [becomeProOpen, setBecomeProOpen] = useState(false);
   const toastTimer = useRef(null);
-  const { session, loading: authLoading, proProfile } = useAuth();
+  const { session, loading: authLoading, profile, proProfile } = useAuth();
 
   useEffect(() => {
     fetchCatalog().then(setCatalog).catch((err) => setCatalogError(err.message));
@@ -823,7 +863,9 @@ function AppShell() {
   } else if (catalogError) {
     body = <div className="pad"><div className="empty-block"><p>{catalogError}</p></div></div>;
   } else if (!session) {
-    body = <AuthScreen />;
+    body = <WelcomeScreen />;
+  } else if (profile && !profile.onboarding_role_selected) {
+    body = <RoleSelectionScreen onProSelected={() => setRole("pro")} />;
   } else if (role === "pro") {
     body = proProfile ? (
       <ProApp showToast={showToast} />
@@ -871,9 +913,58 @@ function AppShell() {
   );
 }
 
-function AuthScreen() {
+// Authentication UX Redesign, Phase 1 — replaces the old login-form-first
+// AuthScreen. Never a bare form: OAuth options first, Email as a real but
+// secondary path into EmailAuthSheet. OAuth buttons are fully wired
+// (src/lib/auth.jsx's signInWithOAuth) but only functional once each
+// provider is configured in the Supabase dashboard — see the
+// Authentication UX Redesign plan (Phase 2) and
+// docs/design/UX_PATTERNS.md's Authentication section. No brand logos:
+// Lucide has no real Apple/Google/Microsoft/Facebook marks, and inventing
+// them risks both a mixed-icon-library violation (docs/design/DESIGN_SYSTEM.md)
+// and each provider's own brand guidelines — text-only buttons for now,
+// upgradeable later without an architecture change.
+function WelcomeScreen() {
   const { t } = useLang();
-  const { signIn, signUp } = useAuth();
+  const { signInWithOAuth } = useAuth();
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [oauthError, setOauthError] = useState("");
+
+  const startOAuth = async (provider) => {
+    setOauthError("");
+    try {
+      await signInWithOAuth(provider);
+    } catch (err) {
+      setOauthError(err.message);
+    }
+  };
+
+  return (
+    <div className="pad">
+      <div className="hello" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6, marginBottom: 22 }}>
+        <div className="h1">{t.welcomeTitle}</div>
+        <p className="sheet-blurb" style={{ margin: 0 }}>{t.welcomeSubtitle}</p>
+      </div>
+      {oauthError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 10 }}>{oauthError}</div>}
+      <button className="btn-secondary" onClick={() => startOAuth("apple")}>{t.continueWithApple}</button>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("google")}>{t.continueWithGoogle}</button>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("azure")}>{t.continueWithMicrosoft}</button>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("facebook")}>{t.continueWithFacebook}</button>
+      <button className="btn-primary" style={{ marginTop: 14 }} onClick={() => setEmailOpen(true)}><Mail size={15} /> {t.continueWithEmail}</button>
+      {emailOpen && <EmailAuthSheet onClose={() => setEmailOpen(false)} />}
+    </div>
+  );
+}
+
+// Magic link is the primary email path (minimize password usage, per the
+// redesign brief); the existing password sign-in/sign-up flow — unchanged
+// logic, just relocated here from the old AuthScreen — stays one tap away,
+// both for users who prefer it and for the two existing password-only test
+// accounts.
+function EmailAuthSheet({ onClose }) {
+  const { t } = useLang();
+  const { signIn, signUp, signInWithOtp } = useAuth();
+  const [usePassword, setUsePassword] = useState(false);
   const [mode, setMode] = useState("signin");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -882,11 +973,22 @@ function AuthScreen() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e) => {
+  const submitMagicLink = async (e) => {
     e.preventDefault();
-    setError("");
-    setNotice("");
-    setBusy(true);
+    setError(""); setNotice(""); setBusy(true);
+    try {
+      await signInWithOtp(email);
+      setNotice(t.magicLinkSentMsg);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitPassword = async (e) => {
+    e.preventDefault();
+    setError(""); setNotice(""); setBusy(true);
     try {
       if (mode === "signin") {
         await signIn(email, password);
@@ -902,37 +1004,119 @@ function AuthScreen() {
   };
 
   return (
-    <div className="pad">
-      <div className="hello"><div className="h1">{mode === "signin" ? t.authSignInTitle : t.authSignUpTitle}</div></div>
-      <form onSubmit={submit}>
-        {mode === "signup" && (
-          <>
-            <label className="field-label">{t.authFullNameLabel}</label>
-            <div className="search" style={{ marginBottom: 14 }}>
-              <User size={15} color="var(--ink-soft)" />
-              <input required value={fullName} onChange={(e) => setFullName(e.target.value)} />
-            </div>
-          </>
-        )}
-        <label className="field-label">{t.authEmailLabel}</label>
-        <div className="search" style={{ marginBottom: 14 }}>
-          <Mail size={15} color="var(--ink-soft)" />
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <label className="field-label">{t.authPasswordLabel}</label>
-        <div className="search" style={{ marginBottom: 18 }}>
-          <Lock size={15} color="var(--ink-soft)" />
-          <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
-        {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
-        {notice && <div className="fineprint">{notice}</div>}
-        <button className="btn-primary" type="submit" disabled={busy}>
-          {mode === "signin" ? t.authSignInBtn : t.authSignUpBtn}
-        </button>
-      </form>
-      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); setNotice(""); }}>
-        {mode === "signin" ? t.authSwitchToSignUp : t.authSwitchToSignIn}
+    <Sheet onClose={onClose}>
+      <div className="sheet-title">{t.continueWithEmail}</div>
+      {!usePassword ? (
+        <form onSubmit={submitMagicLink}>
+          <label className="field-label">{t.authEmailLabel}</label>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <Mail size={15} color="var(--ink-soft)" />
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{error}</div>}
+          {notice && <div className="fineprint" style={{ justifyContent: "flex-start" }}>{notice}</div>}
+          <button className="btn-primary" type="submit" disabled={busy}>{t.sendMagicLinkBtn}</button>
+        </form>
+      ) : (
+        <form onSubmit={submitPassword}>
+          {mode === "signup" && (
+            <>
+              <label className="field-label">{t.authFullNameLabel}</label>
+              <div className="search" style={{ marginBottom: 14 }}>
+                <User size={15} color="var(--ink-soft)" />
+                <input required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              </div>
+            </>
+          )}
+          <label className="field-label">{t.authEmailLabel}</label>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <Mail size={15} color="var(--ink-soft)" />
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <label className="field-label">{t.authPasswordLabel}</label>
+          <div className="search" style={{ marginBottom: 18 }}>
+            <Lock size={15} color="var(--ink-soft)" />
+            <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+          {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{error}</div>}
+          {notice && <div className="fineprint" style={{ justifyContent: "flex-start" }}>{notice}</div>}
+          <button className="btn-primary" type="submit" disabled={busy}>
+            {mode === "signin" ? t.authSignInBtn : t.authSignUpBtn}
+          </button>
+          <button type="button" className="btn-secondary" style={{ marginTop: 8 }} onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); setNotice(""); }}>
+            {mode === "signin" ? t.authSwitchToSignUp : t.authSwitchToSignIn}
+          </button>
+        </form>
+      )}
+      <button type="button" className="btn-secondary" style={{ marginTop: 10 }} onClick={() => { setUsePassword(!usePassword); setError(""); setNotice(""); }}>
+        {usePassword ? t.useMagicLinkInstead : t.usePasswordInstead}
       </button>
+    </Sheet>
+  );
+}
+
+// Shown exactly once per user, right after auth succeeds — not before (see
+// AppShell's body-selection logic gating on profile.onboarding_role_selected).
+// "I need help" proceeds as a customer, matching every account's existing
+// default. "I offer services" opens the existing BecomeProSheet unchanged —
+// this screen only front-loads that choice for new users, it doesn't
+// replace the existing role-switch toggle an existing customer can still
+// use later to become a pro.
+function RoleSelectionScreen({ onProSelected }) {
+  const { t } = useLang();
+  const { proProfile, markRoleSelected } = useAuth();
+  const [becomeProOpen, setBecomeProOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const chooseCustomer = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await markRoleSelected();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // An account that already has a pro profile (e.g. it existed before this
+  // onboarding flow shipped, and every existing row defaulted to
+  // onboarding_role_selected = false in the migration) shouldn't be sent
+  // through BecomeProSheet again — it would try to insert a second
+  // pro_profiles row and fail on the primary key. Just confirm the choice.
+  const choosePro = async () => {
+    if (proProfile) {
+      setError("");
+      setBusy(true);
+      try {
+        await markRoleSelected();
+        onProSelected();
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setBusy(false);
+      }
+    } else {
+      setBecomeProOpen(true);
+    }
+  };
+
+  return (
+    <div className="pad">
+      <div className="hello" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6, marginBottom: 22 }}>
+        <div className="h1">{t.roleQuestionTitle}</div>
+      </div>
+      {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 10 }}>{error}</div>}
+      <button className="btn-primary" disabled={busy} onClick={chooseCustomer}>{t.roleOptionCustomer}</button>
+      <button className="btn-secondary" style={{ marginTop: 10 }} disabled={busy} onClick={choosePro}>{t.roleOptionPro}</button>
+      {becomeProOpen && (
+        <BecomeProSheet
+          onClose={() => setBecomeProOpen(false)}
+          onDone={async () => { setBecomeProOpen(false); await markRoleSelected(); onProSelected(); }}
+        />
+      )}
     </div>
   );
 }

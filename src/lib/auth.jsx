@@ -75,6 +75,31 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   };
 
+  // Magic link — the primary email path per the Authentication UX Redesign
+  // (minimize password usage). Password sign-in above stays available as a
+  // fallback, both for users who prefer it and for the existing
+  // password-only test accounts.
+  const signInWithOtp = async (email) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) throw error;
+  };
+
+  // provider: 'google' | 'apple' | 'azure' (Microsoft's Supabase provider
+  // id) | 'facebook'. Requires that provider to be configured in the
+  // Supabase dashboard — see docs/design/UX_PATTERNS.md's Authentication
+  // section and the Authentication UX Redesign plan for the real, external
+  // per-provider setup this depends on.
+  const signInWithOAuth = async (provider) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -100,6 +125,15 @@ export function AuthProvider({ children }) {
     await refreshProfile(session.user.id);
   };
 
+  // Marks the post-auth "how will you use Klussie" question as answered,
+  // whichever branch the user picked — see RoleSelectionScreen in App.jsx.
+  const markRoleSelected = async () => {
+    if (!session?.user) throw new Error("Not signed in.");
+    const { error } = await supabase.from("profiles").update({ onboarding_role_selected: true }).eq("id", session.user.id);
+    if (error) throw error;
+    await refreshProfile(session.user.id);
+  };
+
   const value = {
     session,
     user: session?.user ?? null,
@@ -108,9 +142,12 @@ export function AuthProvider({ children }) {
     loading,
     signUp,
     signIn,
+    signInWithOtp,
+    signInWithOAuth,
     signOut,
     becomePro,
     updateProfile,
+    markRoleSelected,
     refreshProfile: () => refreshProfile(session?.user?.id ?? null),
   };
 
