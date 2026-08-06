@@ -2,8 +2,8 @@
 
 > Single Source of Truth for the Klussie Platform — an executive overview.
 > Detailed specs belong in the linked documents below, not in this file.
-> Every AI assistant, developer, or architect working on Klussie reads this
-> first.
+> Every AI assistant reads [`AI_CONTEXT.md`](./AI_CONTEXT.md) first, then
+> this document, in every session, before anything else.
 
 **This document owns:** the current state of the project — status,
 priorities, risks, debt, decisions. It does not own product philosophy
@@ -30,6 +30,7 @@ priorities, risks, debt, decisions. It does not own product philosophy
 
 | Document | Purpose | Status |
 |---|---|---|
+| `AI_CONTEXT.md` | Fast-onboarding briefing every AI session reads first | Implemented |
 | `MASTER_CONTEXT.md` | This file — executive overview | Implemented |
 | `product/PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
 | `engineering/ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
@@ -42,6 +43,7 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `product/HOME_OPERATING_SYSTEM.md` | Long-term vision for "My Home" / post-booking relationship | Implemented |
 | `product/PROPERTY_MEMORY.md` | Underlying philosophy of Digital Property Memory | Implemented |
 | `adr/README.md` | Architecture Decision Records — index of all ADRs | Implemented |
+| `features/README.md` | Feature-brief process, template, and index | Implemented |
 | `architecture/ARCHITECTURE.md` | Detailed system architecture | Implemented |
 | `architecture/AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Implemented |
 | `architecture/API_SPEC.md` | API contracts (internal + future public API) | Implemented |
@@ -52,11 +54,11 @@ Don't link to a `Planned` row as if it exists. When a section below needs
 detail that belongs in one of them, treat it as a reason to write that
 document next, not a reason to inline the detail here.
 
-**Folder structure (Foundation Freeze, Phases 2 & 4):** `docs/` is
+**Folder structure (Foundation Freeze, Phases 2, 4 & 5):** `docs/` is
 organized by category — `design/`, `product/`, `architecture/`,
-`engineering/`, `operations/`, and `adr/` are active today. `features/`
-(per-feature briefs) and `company/` are reserved for later Foundation
-Freeze phases and don't exist yet — don't create them speculatively.
+`engineering/`, `operations/`, `adr/`, and `features/` are active today.
+`company/` is reserved for a later Foundation Freeze phase and doesn't
+exist yet — don't create it speculatively.
 
 **Known gap:** the original product manifesto (pasted early in this
 project, before the current session's context window) is not recoverable
@@ -154,7 +156,7 @@ disagrees with this table, this table wins.
 | Area | Current | Target | Trend | Owner |
 |---|---|---|---|---|
 | Architecture | In Progress — 3/11 Core Platform layers implemented | All 11 layers implemented, nothing bypasses Core Platform | New baseline | Unassigned |
-| Documentation | Implemented — 17 of 17 Document Map rows implemented | Keep current as reality changes; extend as Foundation Freeze Phases 5+ add new categories (features/, company/) | New baseline | Unassigned |
+| Documentation | Implemented — 19 of 19 Document Map rows implemented | Keep current as reality changes; extend as Foundation Freeze Phases 7+ add new categories (company/) | New baseline | Unassigned |
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | Planned — not yet audited | Constitution Rule 6 formally verified | New baseline | Unassigned |
@@ -461,24 +463,16 @@ them (add an ADR to §15 if one ever does):
 
 ## 18. AI Session Instructions
 
-1. Read `MASTER_CONTEXT.md`.
-2. Read `product/PRODUCT_CONSTITUTION.md`.
-3. Read `engineering/ENGINEERING_STANDARDS.md`.
-4. For anything touching UI: read `design/DESIGN_SYSTEM.md`, then
-   `design/README.md` for which companion document applies —
-   `design/DESIGN_GOVERNANCE.md` owns how that folder's own process
-   works.
-5. Read the current roadmap (§2, and `architecture/ROADMAP.md` for phase
-   detail).
-6. Review the existing code before proposing changes.
-7. Explain proposed changes before implementing.
-8. Implement only the approved milestone — not adjacent scope.
-9. Update documentation, including this file, if reality changed.
-10. Stop.
+Enforceable version — the actual checklist every session follows — now
+lives in [`AI_CONTEXT.md`](./AI_CONTEXT.md), the first document any AI
+session reads (Foundation Freeze Phase 6). Not duplicated here per
+Constitution Rule 8, one source of truth.
 
-Never redesign an existing system without justification. Never trust a
-"current state" claim in any document without checking §3 first — it
-drifts, and the code is always the tiebreaker.
+Short version: read `AI_CONTEXT.md`, then this document, then
+`product/PRODUCT_CONSTITUTION.md` and `engineering/ENGINEERING_STANDARDS.md`;
+review existing code before proposing changes; explain before
+implementing; implement only the approved scope; update docs if reality
+changed; stop.
 
 ---
 

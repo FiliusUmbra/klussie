@@ -76,13 +76,14 @@ links here rather than repeating it.
 
 Read in this order:
 
-1. [`docs/MASTER_CONTEXT.md`](./docs/MASTER_CONTEXT.md) — single source of truth: current milestone, architecture status, priorities, risks, protected decisions
-2. [`docs/product/PRODUCT_CONSTITUTION.md`](./docs/product/PRODUCT_CONSTITUTION.md) — non-negotiable product rules
-3. [`docs/engineering/ENGINEERING_STANDARDS.md`](./docs/engineering/ENGINEERING_STANDARDS.md) — enforceable code rules + an honest scorecard
-4. [`docs/design/DESIGN_SYSTEM.md`](./docs/design/DESIGN_SYSTEM.md) — visual and interaction design direction, plus the rest of `docs/design/` for tokens, components, and patterns as they land
+1. [`docs/AI_CONTEXT.md`](./docs/AI_CONTEXT.md) — the fast-onboarding briefing every AI session reads first
+2. [`docs/MASTER_CONTEXT.md`](./docs/MASTER_CONTEXT.md) — single source of truth: current milestone, architecture status, priorities, risks, protected decisions
+3. [`docs/product/PRODUCT_CONSTITUTION.md`](./docs/product/PRODUCT_CONSTITUTION.md) — non-negotiable product rules
+4. [`docs/engineering/ENGINEERING_STANDARDS.md`](./docs/engineering/ENGINEERING_STANDARDS.md) — enforceable code rules + an honest scorecard
+5. [`docs/design/DESIGN_SYSTEM.md`](./docs/design/DESIGN_SYSTEM.md) — visual and interaction design direction, plus the rest of `docs/design/` for tokens, components, and patterns as they land
 
-`ARCHITECTURE.md`, `AI_ARCHITECTURE.md`, `API_SPEC.md`, `SECURITY.md`, and
-`MONETIZATION.md` are planned but not written yet — don't assume they exist.
+Full document index with status: `docs/MASTER_CONTEXT.md`'s Document
+Map — don't assume a file exists just because it's mentioned in prose.
 
 ## Getting started
 
