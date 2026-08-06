@@ -41,6 +41,7 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `product/EXPERIENCE_VISION.md` | 10-part experience spec for the conversational homepage | Implemented |
 | `product/HOME_OPERATING_SYSTEM.md` | Long-term vision for "My Home" / post-booking relationship | Implemented |
 | `product/PROPERTY_MEMORY.md` | Underlying philosophy of Digital Property Memory | Implemented |
+| `adr/README.md` | Architecture Decision Records — index of all ADRs | Implemented |
 | `architecture/ARCHITECTURE.md` | Detailed system architecture | Implemented |
 | `architecture/AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Implemented |
 | `architecture/API_SPEC.md` | API contracts (internal + future public API) | Implemented |
@@ -51,12 +52,11 @@ Don't link to a `Planned` row as if it exists. When a section below needs
 detail that belongs in one of them, treat it as a reason to write that
 document next, not a reason to inline the detail here.
 
-**Folder structure (Foundation Freeze, Phase 2):** `docs/` is organized by
-category — `design/`, `product/`, `architecture/`, `engineering/`,
-`operations/` are active today. `features/` (per-feature briefs),
-`adr/` (extracted decision records), and `company/` are reserved for
-later Foundation Freeze phases and don't exist yet — don't create them
-speculatively.
+**Folder structure (Foundation Freeze, Phases 2 & 4):** `docs/` is
+organized by category — `design/`, `product/`, `architecture/`,
+`engineering/`, `operations/`, and `adr/` are active today. `features/`
+(per-feature briefs) and `company/` are reserved for later Foundation
+Freeze phases and don't exist yet — don't create them speculatively.
 
 **Known gap:** the original product manifesto (pasted early in this
 project, before the current session's context window) is not recoverable
@@ -154,7 +154,7 @@ disagrees with this table, this table wins.
 | Area | Current | Target | Trend | Owner |
 |---|---|---|---|---|
 | Architecture | In Progress — 3/11 Core Platform layers implemented | All 11 layers implemented, nothing bypasses Core Platform | New baseline | Unassigned |
-| Documentation | Implemented — 16 of 16 Document Map rows implemented | Keep current as reality changes; extend as Foundation Freeze Phases 4+ add new categories (features/, adr/, company/) | New baseline | Unassigned |
+| Documentation | Implemented — 17 of 17 Document Map rows implemented | Keep current as reality changes; extend as Foundation Freeze Phases 5+ add new categories (features/, company/) | New baseline | Unassigned |
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | Planned — not yet audited | Constitution Rule 6 formally verified | New baseline | Unassigned |
@@ -392,54 +392,22 @@ invented number.
 
 ## 15. Decision Log
 
-ADR-style. All entries below are dated 2026-08-04 because that's genuinely
-when each decision was made this session — not backfilled for variety.
+Full ADR bodies (Context/Decision/Consequences) now live in
+[`adr/`](./adr/README.md) — extracted there in Foundation Freeze Phase 4
+so this section doesn't duplicate a source of truth (Constitution Rule
+8). This is the index; `adr/README.md` is the canonical one.
 
-**ADR-001 — Adopt a capability-based AI Gateway**
-Decision: `reason()`/`translate()` capability functions, not one monolithic
-AI client. · Reason: speech/vision/reasoning/translation must be
-independently swappable per provider without touching call sites. · Date:
-2026-08-04 · Status: Implemented · Owner: Unassigned · Related:
-`api/_lib/aiGateway.js`, §6.
-
-**ADR-002 — Keep the warm "paper ticket" design language for now**
-Decision: default to the existing warm identity rather than a colder
-register. · Reason: keeps shipping; aligns with the manifesto's trust
-framing. · Date: 2026-08-04 · Status: Superseded by ADR-006 · Owner:
-Unassigned · Related: `design/DESIGN_SYSTEM.md`.
-
-**ADR-003 — Postgres-backed rate limiting instead of Redis**
-Decision: count rows in `ai_usage_log` within a time window. · Reason: no
-extra infrastructure needed at current scale. · Date: 2026-08-04 · Status:
-Implemented · Owner: Unassigned · Related: `api/_lib/rateLimit.js`.
-
-**ADR-004 — Route domain events through `emit_domain_event()` RPC**
-Decision: a security-definer SQL function, not direct table writes. ·
-Reason: keeps `audit_log`/`domain_events` locked down under RLS while still
-allowing controlled writes. · Date: 2026-08-04 · Status: Implemented ·
-Owner: Unassigned · Related: `supabase/migrations/0010_phase1_foundation.sql`.
-
-**ADR-005 — Move Testing/CI/Disaster Recovery ahead of Payments in the
-roadmap**
-Decision: Phase 2 = Testing/CI, Phase 3 = Disaster Recovery, Phase 4 =
-Payments. · Reason: once real money moves, every later change becomes
-higher-risk — the safety net comes first. · Date: 2026-08-04 · Status:
-Implemented (sequencing decision, reflected in phase ordering throughout
-this document) · Owner: Unassigned · Related: architecture roadmap
-(Document Map — Planned as `ROADMAP.md`).
-
-**ADR-006 — Design Direction Lock: evolve the warm identity, reject the
-cooler SaaS-dashboard register**
-Decision: the product had started drifting toward a generic SaaS/dashboard
-aesthetic; direction is locked to evolve the existing warm "paper ticket"
-identity (reduce heavy borders and paper effects, increase whitespace and
-subtle motion) rather than move toward Linear/Vercel-Dashboard/GitHub-style
-cooler registers. · Reason: brand personality must stay warm, human,
-trustworthy, premium, calm — never corporate, cold, or "AI-first" visually.
-· Date: 2026-08-05 · Status: Implemented (governance; component-level
-implementation not yet started, see `design/README.md`'s Document Map) ·
-Owner: Unassigned · Related: `design/DESIGN_SYSTEM.md`, `PRODUCT_CONSTITUTION.md`'s
-Design Constitution. Supersedes ADR-002.
+| ADR | Title | Status |
+|---|---|---|
+| [0001](./adr/0001-capability-based-ai-gateway.md) | Adopt a capability-based AI Gateway | Implemented |
+| [0002](./adr/0002-warm-paper-ticket-design-language.md) | Keep the warm "paper ticket" design language for now | Superseded by 0006 |
+| [0003](./adr/0003-postgres-backed-rate-limiting.md) | Postgres-backed rate limiting instead of Redis | Implemented |
+| [0004](./adr/0004-domain-events-via-security-definer-rpc.md) | Route domain events through `emit_domain_event()` RPC | Implemented |
+| [0005](./adr/0005-testing-ci-disaster-recovery-before-payments.md) | Move Testing/CI/Disaster Recovery ahead of Payments in the roadmap | Implemented |
+| [0006](./adr/0006-design-direction-lock.md) | Design Direction Lock: evolve the warm identity, reject the cooler SaaS-dashboard register | Implemented |
+| [0007](./adr/0007-conversational-homepage-ia.md) | Conversational-first homepage over marketplace/category-grid IA | Implemented (design direction) |
+| [0008](./adr/0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Implemented (design direction) |
+| [0009](./adr/0009-docs-folder-reorganization.md) | Reorganize `docs/` into category subfolders | Implemented |
 
 ---
 
