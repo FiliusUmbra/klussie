@@ -35,16 +35,28 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
 | `design/DESIGN_SYSTEM.md` | Visual and interaction design direction (constitution tier — see `design/README.md` for the full companion-doc set) | Implemented |
 | `AUTH_PROVIDER_SETUP.md` | External OAuth provider registration steps (Authentication UX Redesign, Phase 2) | Implemented |
+| `ROADMAP.md` | Full phase-by-phase implementation roadmap (13 phases) | Implemented |
+| `HOMEPAGE_CONCEPTS.md` | Three original conversational-homepage concepts (A/B/C) | Implemented |
+| `HOMEPAGE_DIRECTION.md` | The chosen homepage direction — C's foundation, B's restraint | Implemented |
+| `EXPERIENCE_VISION.md` | 10-part experience spec for the conversational homepage | Implemented |
+| `HOME_OPERATING_SYSTEM.md` | Long-term vision for "My Home" / post-booking relationship | Implemented |
+| `PROPERTY_MEMORY.md` | Underlying philosophy of Digital Property Memory | Implemented |
 | `ARCHITECTURE.md` | Detailed system architecture | Planned |
 | `AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Planned |
 | `API_SPEC.md` | API contracts (internal + future public API) | Planned |
 | `SECURITY.md` | Threat model, security posture | Planned |
 | `MONETIZATION.md` | Revenue model, commission structure | Planned |
-| `ROADMAP.md` | Full phase-by-phase roadmap | Planned — exists only as an unpublished architecture-review artifact, not yet committed to this repo |
 
 Don't link to a `Planned` row as if it exists. When a section below needs
 detail that belongs in one of them, treat it as a reason to write that
 document next, not a reason to inline the detail here.
+
+**Known gap:** the original product manifesto (pasted early in this
+project, before the current session's context window) is not recoverable
+verbatim from any tool available to this AI session — it predates this
+conversation and no artifact or file copy of it exists. If it needs to be
+archived in the repository, it must be re-supplied by the founder rather
+than reconstructed from memory or paraphrase.
 
 ---
 
