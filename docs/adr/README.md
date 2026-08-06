@@ -70,6 +70,7 @@ pointing at whatever replaced it.
 | [0007](0007-conversational-homepage-ia.md) | Conversational-first homepage over marketplace/category-grid IA | Implemented (design direction) |
 | [0008](0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Implemented (design direction) |
 | [0009](0009-docs-folder-reorganization.md) | Reorganize `docs/` into category subfolders | Implemented |
+| [0010](0010-defer-permissions-layer-formalization.md) | Defer Permissions layer formalization until Trust & Safety needs it | Implemented (deferral) |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see

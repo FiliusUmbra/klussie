@@ -126,8 +126,9 @@ directly)*: `reports`, `portfolio_items`, `testimonials`,
 4. Customer and pro message inside that conversation;
    `api/translate-message.js` translates on request, caching the result
    per-locale on the message row.
-5. The pro marks the job complete (application-level status change —
-   no trigger owns this transition today).
+5. The pro marks the job complete. `handle_job_completed()` (migration
+   `0012`) fires on the transition into `completed`, emitting
+   `JobCompleted`.
 6. The customer reviews. `handle_new_review()` updates `pro_stats` and
    moves the request to `reviewed`.
 
@@ -142,7 +143,7 @@ The 11-layer target from `MASTER_CONTEXT.md` §6, at file-level detail:
 | Layer | Status | Where it actually lives |
 |---|---|---|
 | Authentication | Implemented | `api/_lib/auth.js` (server), `src/lib/auth.jsx` (client) |
-| Permissions | In Progress | RLS policies per-table (real, consistent) + `api/_lib/rateLimit.js`; no single formalized checkpoint module yet |
+| Permissions | In Progress — deferred by choice | RLS policies per-table (real, consistent) + `api/_lib/rateLimit.js`; a formal checkpoint module is deliberately not built yet — see `../adr/0010-defer-permissions-layer-formalization.md` |
 | AI Gateway | Implemented (2 of eventual N capabilities) | `api/_lib/aiGateway.js` — `reason()`, `translate()`. Speech is client-side Web Speech API, not yet gatewayed |
 | Payments | Planned | No code exists; commission is a display-only constant |
 | Matching | Planned | `pro_matches_request()` is a bare SQL function, not a Core module |
@@ -156,19 +157,31 @@ The 11-layer target from `MASTER_CONTEXT.md` §6, at file-level detail:
 ## Domain events
 
 The bus mechanism (`emit_domain_event()` RPC + `domain_events` table)
-exists; most of the eventual event chain does not yet fire. Emitted
-today:
+exists. As of migration `0012` (Foundation Freeze Epic 01), five of the
+nine planned events fire for real, all from Postgres triggers rather
+than client JS — reliable regardless of which code path triggers the
+underlying mutation:
 
 - `ai_intake.analyzed` — from `api/ai-intake.js`, after a successful
   analysis.
 - `message.translated` — from `api/translate-message.js`, after a
   successful translation.
+- `RequestCreated` — `handle_new_request()`, on `service_requests`
+  insert.
+- `QuoteSubmitted` — `handle_quote_sent()`, on `quotes` insert.
+- `QuoteAccepted` — `handle_quote_accepted()`, on a quote's genuine
+  `sent → accepted` transition.
+- `JobCompleted` — `handle_job_completed()`, on a request's genuine
+  transition into `completed`.
+- `ReviewSubmitted` — `handle_new_review()`, on `reviews` insert.
 
-The full planned chain (`RequestCreated → QuoteSubmitted →
-QuoteAccepted → PaymentAuthorized → ProfessionalDispatched →
-ProfessionalArrived → JobStarted → JobCompleted → ReviewSubmitted`) gets
-wired incrementally as the phase that owns each action ships — see
-`ROADMAP.md`.
+**Not yet wired, honestly:** `PaymentAuthorized` (no real payment
+system exists — Execution Roadmap Epic 04), `ProfessionalDispatched`
+and `ProfessionalArrived` (no corresponding status exists anywhere in
+the schema — inventing one just to fire an event would misrepresent
+capability that doesn't exist). These stay unwired until the epic that
+owns the real underlying capability ships it — see
+`../EXECUTION_ROADMAP.md`.
 
 ## Client architecture
 

@@ -57,18 +57,27 @@ all of them are real prerequisites for 10.
 ## Epic 01 — Foundation Completion
 
 **Maps to:** `architecture/ROADMAP.md` Phase 1 (remaining scope) + Phase 2
-**Status:** In progress — Phase 1's security/Core/design-system slice
-has substantially shipped (see `MASTER_CONTEXT.md` §2); event-bus
-wiring into existing request/quote/message flows and a formal
-Permissions layer remain, plus all of Phase 2 (testing, CI, TypeScript,
-release pipeline).
+**Status:** In progress. Done as of migration `0012`: 5 of the 9 planned
+domain events now fire for real (`RequestCreated`, `QuoteSubmitted`,
+`QuoteAccepted`, `JobCompleted`, `ReviewSubmitted` — the other 4 don't
+have a real underlying transition yet, see `architecture/ARCHITECTURE.md`'s
+Domain Events section); the Permissions layer item is closed by an
+explicit deferral, not new code (`adr/0010`); a real, running test
+harness exists (Vitest, wired against `src/lib/requests.js` as its
+first real suite). **Not done:** TypeScript conversion, a CI pipeline,
+a staging Supabase project, Playwright e2e, and the full
+Development → Internal → Beta → Production release pipeline — all of
+Phase 2's remaining infrastructure-dependent scope, left for this
+epic's next continuation rather than attempted without the real
+infrastructure decisions (CI provider, staging project) that require
+the founder's input.
 
 **Entry criteria:** none — already underway.
-**Exit criteria:** every domain event in the planned chain
-(`RequestCreated → ... → ReviewSubmitted`) actually fires; CI blocks a
-merge on lint/typecheck/test failure; a real Development → Internal →
-Beta → Production pipeline exists, replacing today's direct-to-production
-deploy.
+**Exit criteria:** every domain event with a real underlying transition
+fires (done — see Status); CI blocks a merge on lint/typecheck/test
+failure (not done); a real Development → Internal → Beta → Production
+pipeline exists, replacing today's direct-to-production deploy (not
+done).
 **Key docs:** `architecture/ARCHITECTURE.md` (Core Platform layer
 status), `engineering/ENGINEERING_STANDARDS.md` (the scorecard this
 epic is closing line items on), `adr/0001`, `adr/0003`, `adr/0004`.
