@@ -24,6 +24,15 @@ because it hasn't actually been made yet.
 
 ## Format
 
+Individual ADRs deliberately don't use this repository's usual
+"This document owns" + `Version X.Y` footer convention — that
+convention is for documents that own an evolving domain of content;
+an ADR owns one point-in-time decision and is never revised after the
+fact (a changed decision gets a new, superseded-by ADR, not an edit).
+Use the lighter Status/Date/Related header below instead. This is
+intentional, not a gap — see the Implementation Readiness Review's
+audit note if this ever looks like an oversight.
+
 Each ADR is its own file, `NNNN-short-kebab-title.md`, numbered
 sequentially and never renumbered or reused even if superseded:
 

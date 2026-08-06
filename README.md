@@ -60,6 +60,8 @@ docs/               Governance & architecture documentation
   architecture/     Platform architecture review & roadmap
   engineering/      Enforceable engineering standards
   operations/       External setup & operational runbooks
+  adr/              Architecture Decision Records
+  features/         Feature-brief template, process, and briefs
 src/
   App.jsx           Main application (customer + professional experiences)
   lib/              Data access and business logic
@@ -81,6 +83,13 @@ Read in this order:
 3. [`docs/product/PRODUCT_CONSTITUTION.md`](./docs/product/PRODUCT_CONSTITUTION.md) — non-negotiable product rules
 4. [`docs/engineering/ENGINEERING_STANDARDS.md`](./docs/engineering/ENGINEERING_STANDARDS.md) — enforceable code rules + an honest scorecard
 5. [`docs/design/DESIGN_SYSTEM.md`](./docs/design/DESIGN_SYSTEM.md) — visual and interaction design direction, plus the rest of `docs/design/` for tokens, components, and patterns as they land
+
+Working on something specific? [`docs/READING_GUIDES.md`](./docs/READING_GUIDES.md)
+has a role-based order (CEO/Product/Design/Frontend/Backend/AI/DevOps/QA)
+that's more targeted than reading everything above top to bottom. Proposing
+new work or wondering why a past decision was made a certain way:
+[`docs/features/`](./docs/features/README.md) and
+[`docs/adr/`](./docs/adr/README.md), respectively.
 
 Full document index with status: `docs/MASTER_CONTEXT.md`'s Document
 Map — don't assume a file exists just because it's mentioned in prose.

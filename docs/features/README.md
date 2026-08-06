@@ -36,6 +36,12 @@ brief that can't fill in those two fields honestly isn't ready to build
 
 ## Process
 
+Individual feature briefs (and `TEMPLATE.md` itself) deliberately don't
+use this repository's usual "This document owns" + `Version X.Y` footer
+convention, the same reasoning as `../adr/README.md`'s Format section:
+that convention is for documents owning an evolving domain of content,
+not point-in-time records with their own Status/Author/Date header.
+
 1. Copy `TEMPLATE.md` to `NNN-short-kebab-title.md` in this folder
    (numbered sequentially, like `adr/`).
 2. Fill it out — including the fields that are uncomfortable to fill
