@@ -61,3 +61,7 @@ Status uses only: **Implemented**, **In Progress**, **Planned**.
   instead of the real character (JSX text content doesn't interpret backslash escapes
   the way a JS string does) — one instance fixed in `RequestDetailSheet`, the rest
   flagged as a separate follow-up task.
+
+---
+
+Version 1.1 — 2026-08-06 (backfilled the version footer this document was missing since it predates that convention)

@@ -103,3 +103,7 @@ The interface should always feel human.
 The actionable version of this — brand personality, color/typography/motion
 rules, component litmus test — is `design/DESIGN_SYSTEM.md`. This section is why;
 that document is how.
+
+---
+
+Version 1.1 — 2026-08-06 (added: Product Principles section, Design Constitution; backfilled the version footer this document was missing since it predates that convention)

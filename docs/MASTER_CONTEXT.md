@@ -34,6 +34,7 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
 | `ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
 | `design/DESIGN_SYSTEM.md` | Visual and interaction design direction (constitution tier — see `design/README.md` for the full companion-doc set) | Implemented |
+| `AUTH_PROVIDER_SETUP.md` | External OAuth provider registration steps (Authentication UX Redesign, Phase 2) | Implemented |
 | `ARCHITECTURE.md` | Detailed system architecture | Planned |
 | `AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Planned |
 | `API_SPEC.md` | API contracts (internal + future public API) | Planned |
