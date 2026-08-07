@@ -35,6 +35,7 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `READING_GUIDES.md` | Role-based reading order (CEO/Product/Design/Frontend/Backend/AI/DevOps/QA) | Implemented |
 | `IMPLEMENTATION_READINESS_REVIEW.md` | Point-in-time audit of doc-set integrity before Phase 9's execution roadmap | Implemented |
 | `EXECUTION_ROADMAP.md` | 10-epic execution sequence bridging documentation to implementation | Implemented |
+| `architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md` | Epic 03's 12 work packages — scope, dependencies, files, acceptance, complexity, risks | Implemented |
 | `product/PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
 | `engineering/ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
 | `design/DESIGN_SYSTEM.md` | Visual and interaction design direction (constitution tier — see `design/README.md` for the full companion-doc set) | Implemented |
@@ -112,9 +113,17 @@ professional who can solve it. Full vision: §5.
 ## 2. Current Milestone
 
 ```
-Current Milestone     Phase 1 — Foundation
-Status                In Progress
-Current Objective     Core Platform extraction + Design System migration
+Current Milestone     Execution Roadmap Epic 03 — Conversation Experience
+Status                Planning complete, implementation not started
+Current Objective     Implement the approved conversational homepage per
+                       architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md
+                       (12 work packages; 3 open questions block WP1/7/9)
+Previous Milestone    Epic 01 — Foundation Completion: FROZEN 2026-08-06 at
+                       commit 91a2ee4. Domain event bus (5 of 9 events) live
+                       in production; Permissions layer deferred (ADR-0010);
+                       Vitest harness real and passing. TypeScript, CI,
+                       staging project, Playwright, and the release pipeline
+                       remain undone — frozen, not finished
 Current Branch        phase-1-ui-redesign (20 commits ahead of main, pushed)
 Next Deliverable      Event-bus wiring into existing request/quote/message
                        flows, then Phase 2 (Testing, CI, TypeScript, Release
@@ -163,7 +172,7 @@ disagrees with this table, this table wins.
 | Area | Current | Target | Trend | Owner |
 |---|---|---|---|---|
 | Architecture | In Progress — 3/11 Core Platform layers implemented | All 11 layers implemented, nothing bypasses Core Platform | New baseline | Unassigned |
-| Documentation | Implemented — 22 of 22 Document Map rows implemented, integrity-audited (`IMPLEMENTATION_READINESS_REVIEW.md`); Foundation Freeze complete (9 of 9 phases) | Keep current as reality changes going forward; next structural addition is `company/`, whenever a real need for it exists | New baseline | Unassigned |
+| Documentation | Implemented — 23 of 23 Document Map rows implemented, integrity-audited (`IMPLEMENTATION_READINESS_REVIEW.md`); Foundation Freeze complete (9 of 9 phases) | Keep current as reality changes going forward; next structural addition is `company/`, whenever a real need for it exists | New baseline | Unassigned |
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | Planned — not yet audited | Constitution Rule 6 formally verified | New baseline | Unassigned |

@@ -27,6 +27,15 @@ written.
 started` except where explicitly noted otherwise. This document does
 not claim progress that hasn't happened.
 
+**Sequencing note (2026-08-06):** Epic 03 is being executed next,
+ahead of Epic 02 — a deliberate resequencing, not an oversight. The
+dependency diagram below already shows Epic 03 as independent of Epic
+02 (pure client-side UI work vs. infrastructure/ops work), so pulling
+it forward doesn't violate anything either epic depends on. If you see
+"Epic 02" used loosely in conversation to mean "the next epic after
+01," that's this resequencing — Epic 02's own identity (Operational
+Resilience) is unchanged below.
+
 ## Dependency sequence
 
 ```
@@ -57,20 +66,24 @@ all of them are real prerequisites for 10.
 ## Epic 01 — Foundation Completion
 
 **Maps to:** `architecture/ROADMAP.md` Phase 1 (remaining scope) + Phase 2
-**Status:** In progress. Done as of migration `0012`: 5 of the 9 planned
-domain events now fire for real (`RequestCreated`, `QuoteSubmitted`,
-`QuoteAccepted`, `JobCompleted`, `ReviewSubmitted` — the other 4 don't
-have a real underlying transition yet, see `architecture/ARCHITECTURE.md`'s
-Domain Events section); the Permissions layer item is closed by an
-explicit deferral, not new code (`adr/0010`); a real, running test
-harness exists (Vitest, wired against `src/lib/requests.js` as its
-first real suite). **Not done:** TypeScript conversion, a CI pipeline,
-a staging Supabase project, Playwright e2e, and the full
-Development → Internal → Beta → Production release pipeline — all of
-Phase 2's remaining infrastructure-dependent scope, left for this
-epic's next continuation rather than attempted without the real
-infrastructure decisions (CI provider, staging project) that require
-the founder's input.
+**Status:** **Frozen (2026-08-06)** — paused by deliberate decision,
+not because every exit criterion below is met (it isn't; see Exit
+criteria). Done before freezing: 5 of the 9 planned domain events now
+fire for real (`RequestCreated`, `QuoteSubmitted`, `QuoteAccepted`,
+`JobCompleted`, `ReviewSubmitted` — applied to production, confirmed —
+the other 4 don't have a real underlying transition yet, see
+`architecture/ARCHITECTURE.md`'s Domain Events section); the
+Permissions layer item is closed by an explicit deferral, not new code
+(`adr/0010`); a real, running test harness exists (Vitest, wired
+against `src/lib/requests.js` as its first real suite, migration
+`0012`). **Not done, and intentionally left frozen rather than
+half-finished:** TypeScript conversion, a CI pipeline, a staging
+Supabase project, Playwright e2e, and the full Development → Internal →
+Beta → Production release pipeline — all of Phase 2's remaining
+infrastructure-dependent scope, needing real decisions (CI provider,
+staging project) from the founder before resuming. Frozen at commit
+`91a2ee4` — see the recommended tag in this repo's tag list once
+created.
 
 **Entry criteria:** none — already underway.
 **Exit criteria:** every domain event with a real underlying transition
@@ -102,10 +115,13 @@ a written incident-response runbook exists for "production is down" and
 completed and approved (`adr/0007`, `adr/0008`) after `ROADMAP.md` was
 written, and is genuinely ready to build now rather than waiting for a
 later phase slot.
-**Status:** Not started — design approved, zero application code
-written. `VoiceCapture`, `PhotoCapture`, `TrustStrip`, and `UnfoldPanel`
-(`product/EXPERIENCE_VISION.md` §10) don't exist in `src/design-system/`
-yet.
+**Status:** Planning complete, implementation not started (2026-08-06).
+The engineering execution plan — 12 work packages with scope,
+dependencies, files, acceptance criteria, complexity, and risks — is
+[`architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md`](./architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md).
+Zero application code written yet: `VoiceCapture`, `PhotoCapture`,
+`TrustStrip`, and `UnfoldPanel` (`product/EXPERIENCE_VISION.md` §10)
+still don't exist in `src/design-system/`.
 
 **Entry criteria:** none beyond Epic 01's Core Platform groundwork
 being stable — this is client-side UI work, not dependent on payments,
@@ -115,10 +131,10 @@ first thing a customer sees; the six-state canvas
 (`product/EXPERIENCE_VISION.md` §4) is real and navigable end to end;
 the one open question in `product/HOMEPAGE_DIRECTION.md` (returning-user
 behavior) is resolved, not deferred silently.
-**Key docs:** `product/HOMEPAGE_DIRECTION.md`, `product/EXPERIENCE_VISION.md`,
-`adr/0007`, `adr/0008`. First feature brief this epic should probably
-produce: implementing `TrustStrip` as a standalone Design System
-component, since every other piece depends on it existing.
+**Key docs:** `architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md`
+(the work-package breakdown — read this first when implementing),
+`product/HOMEPAGE_DIRECTION.md`, `product/EXPERIENCE_VISION.md`,
+`adr/0007`, `adr/0008`.
 
 ## Epic 04 — Monetization Launch
 
