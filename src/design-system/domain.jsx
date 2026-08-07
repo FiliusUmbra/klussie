@@ -30,6 +30,26 @@ export function TrustStrip({ items, label }) {
   );
 }
 
+// The recent-work slot EXPERIENCE_VISION.md §10 calls for on the professional-match
+// card — the one piece QuoteCard/TrustBadge/Avatar genuinely didn't already cover.
+// Renders nothing at all when a professional has no portfolio yet, which is the common
+// case today: an empty strip with placeholder tiles would imply work that isn't there.
+export function RecentWorkStrip({ items, label }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="recent-work">
+      <div className="recent-work-label">{label}</div>
+      <ul className="recent-work-strip">
+        {items.map((item) => (
+          <li key={item.id}>
+            <img src={item.imageUrl} alt={item.caption || ""} className="recent-work-thumb" loading="lazy" />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // The progressive-reveal primitive (EXPERIENCE_VISION.md §10) that the canvas unfolds
 // through: recap → understanding → professional → booking.
 //

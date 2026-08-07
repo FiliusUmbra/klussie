@@ -20,7 +20,7 @@ import {
   subscribeToProLeads,
   subscribeToProQuoteUpdates,
 } from "./lib/requests";
-import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo, fetchReviewsForPro, fetchPlatformTrustStats } from "./lib/pros";
+import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo, fetchReviewsForPro, fetchPlatformTrustStats, findBestProForService, trustScore } from "./lib/pros";
 import {
   fetchConversations,
   fetchMessages,
@@ -38,7 +38,7 @@ import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition, startAudioLevelMeter } from "./lib/aiIntake";
 import { translateMessage } from "./lib/translate";
-import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, UnfoldPanel, UnfoldItem, VoiceCapture, PhotoCapture, AIMessage, Timeline } from "./design-system";
+import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, UnfoldPanel, UnfoldItem, VoiceCapture, PhotoCapture, RecentWorkStrip, AIMessage, Timeline } from "./design-system";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -145,6 +145,7 @@ const STRINGS = {
     convContinue:"Ga verder", convPhotoAlt:"Foto van je klus", convPhotoAnalyzing:"Even kijken...",
     convPhotoConfirm:"Dat is genoeg", convPhotoRetake:"Andere foto",
     convPhotoRecap:"Foto van de klus toegevoegd", convUrgency_low:"Kan wachten", convUrgency_medium:"Vrij dringend", convUrgency_high:"Dringend",
+    convRecentWork:"Recent werk", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -237,6 +238,7 @@ const STRINGS = {
     convContinue:"Continuer", convPhotoAlt:"Photo de ton chantier", convPhotoAnalyzing:"Je regarde...",
     convPhotoConfirm:"C'est suffisant", convPhotoRetake:"Autre photo",
     convPhotoRecap:"Photo du chantier ajoutée", convUrgency_low:"Peut attendre", convUrgency_medium:"Assez urgent", convUrgency_high:"Urgent",
+    convRecentWork:"Travaux récents", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -329,6 +331,7 @@ const STRINGS = {
     convContinue:"Weiter", convPhotoAlt:"Foto deines Auftrags", convPhotoAnalyzing:"Einen Moment...",
     convPhotoConfirm:"Das genügt", convPhotoRetake:"Anderes Foto",
     convPhotoRecap:"Foto des Auftrags hinzugefügt", convUrgency_low:"Kann warten", convUrgency_medium:"Ziemlich dringend", convUrgency_high:"Dringend",
+    convRecentWork:"Aktuelle Arbeiten", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -421,6 +424,7 @@ const STRINGS = {
     convContinue:"Continue", convPhotoAlt:"Photo of your job", convPhotoAnalyzing:"Taking a look...",
     convPhotoConfirm:"That's enough", convPhotoRetake:"Different photo",
     convPhotoRecap:"Photo of the job added", convUrgency_low:"Can wait", convUrgency_medium:"Fairly urgent", convUrgency_high:"Urgent",
+    convRecentWork:"Recent work", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -513,6 +517,7 @@ const STRINGS = {
     convContinue:"متابعة", convPhotoAlt:"صورة العمل المطلوب", convPhotoAnalyzing:"ألقي نظرة...",
     convPhotoConfirm:"هذا يكفي", convPhotoRetake:"صورة أخرى",
     convPhotoRecap:"تمت إضافة صورة العمل", convUrgency_low:"يمكن الانتظار", convUrgency_medium:"عاجل نسبيًا", convUrgency_high:"عاجل",
+    convRecentWork:"أعمال حديثة", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -605,6 +610,7 @@ const STRINGS = {
     convContinue:"Devam et", convPhotoAlt:"İşinin fotoğrafı", convPhotoAnalyzing:"Bir bakayım...",
     convPhotoConfirm:"Bu kadarı yeter", convPhotoRetake:"Başka fotoğraf",
     convPhotoRecap:"İşin fotoğrafı eklendi", convUrgency_low:"Bekleyebilir", convUrgency_medium:"Oldukça acil", convUrgency_high:"Acil",
+    convRecentWork:"Son işler", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -697,6 +703,7 @@ const STRINGS = {
     convContinue:"Продолжить", convPhotoAlt:"Фото вашей задачи", convPhotoAnalyzing:"Смотрю...",
     convPhotoConfirm:"Этого достаточно", convPhotoRetake:"Другое фото",
     convPhotoRecap:"Фото задачи добавлено", convUrgency_low:"Может подождать", convUrgency_medium:"Довольно срочно", convUrgency_high:"Срочно",
+    convRecentWork:"Недавние работы", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -789,6 +796,7 @@ const STRINGS = {
     convContinue:"继续", convPhotoAlt:"你的活儿的照片", convPhotoAnalyzing:"我看看...",
     convPhotoConfirm:"这样就够了", convPhotoRetake:"换一张",
     convPhotoRecap:"已添加活儿的照片", convUrgency_low:"可以等等", convUrgency_medium:"比较急", convUrgency_high:"紧急",
+    convRecentWork:"近期作品", convEstimateLabel:"参考价", convNoProYet:"你附近暂时没有可接这类活儿的师傅。",
   },
 };
 
@@ -804,12 +812,6 @@ const LangContext = createContext(null);
 function useLang() { return useContext(LangContext); }
 
 /* --------------------------------- HELPERS --------------------------------- */
-
-function trustScore({ rating = 0, isCertified, badgeTier }) {
-  const badgeBonus = badgeTier === "elite" ? 12 : badgeTier === "top" ? 6 : 0;
-  const score = rating * 20 + (isCertified ? 8 : 0) + badgeBonus;
-  return Math.max(0, Math.min(100, Math.round(score)));
-}
 
 const REPORT_REASONS = ["no_show", "poor_quality", "billing_issue", "other"];
 
@@ -1829,7 +1831,7 @@ function PhotoCapturePanel({ file, previewUrl, onDone, onCancel }) {
 // That handoff is scaffolding those later packages remove; it exists so every commit
 // leaves a working request path rather than a flow that dead-ends after "Got it."
 function ConversationHome({ onStart }) {
-  const { t, langCode, BASE_SERVICES, serviceInfo } = useLang();
+  const { t, fmt, langCode, proBadgeLabel, BASE_SERVICES, serviceInfo } = useLang();
   const { profile } = useAuth();
   const [trust, setTrust] = useState(null);
   const [capture, setCapture] = useState(null); // null | "voice" | { file, previewUrl }
@@ -1915,6 +1917,28 @@ function ConversationHome({ onStart }) {
     onStart({ text: c.text, photos: c.photos, result: c.analysis });
   };
 
+  // WP8. Runs once an analysis names a service; a null result is a real outcome (no pro
+  // offers that service in this city yet), not an error to hide.
+  useEffect(() => {
+    const serviceId = conversation?.analysis?.matchedServiceId;
+    if (!serviceId || conversation.pro !== undefined) return;
+    let cancelled = false;
+    const service = BASE_SERVICES.find((s) => s.id === serviceId);
+    findBestProForService({ serviceId, city: profile?.city || null, certifiedOnly: !!service?.certifiedOnly })
+      .then(async (pro) => {
+        if (cancelled) return;
+        // Portfolio is fetched only for the one professional actually being shown.
+        const work = pro ? await fetchPortfolioItems(pro.id).catch(() => []) : [];
+        // fetchPortfolioItems returns raw rows; the design system takes camelCase, and
+        // shouldn't have to know database column names.
+        const shaped = work.slice(0, 3).map((w) => ({ id: w.id, imageUrl: w.image_url, caption: w.caption }));
+        if (!cancelled) setConversation((c) => (c ? { ...c, pro, work: shaped } : c));
+      })
+      .catch(() => { if (!cancelled) setConversation((c) => (c ? { ...c, pro: null, work: [] } : c)); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation?.analysis?.matchedServiceId]);
+
   // "Supply-line leak · Plumbing · Urgent" — the customer's own problem reflected back,
   // structured. Only parts the model actually returned are shown.
   const understandingLine = (analysis) => {
@@ -1953,6 +1977,49 @@ function ConversationHome({ onStart }) {
           {conversation.failed && (
             <UnfoldItem>
               <div className="conv-thinking">{t.aiGenericError}</div>
+            </UnfoldItem>
+          )}
+
+          {conversation.pro && (
+            <UnfoldItem>
+              <QuoteCard className="conv-pro">
+                <div className="conv-pro-top">
+                  <Avatar url={conversation.pro.avatarUrl} initials={conversation.pro.initials} />
+                  <div className="conv-pro-meta">
+                    <div className="conv-pro-name">
+                      {conversation.pro.name}
+                      {proBadgeLabel(conversation.pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(conversation.pro.badgeTier)}</Badge>}
+                    </div>
+                    <TrustBadge
+                      rating={conversation.pro.rating}
+                      reviewCount={conversation.pro.reviews}
+                      score={trustScore(conversation.pro)}
+                      scoreLabel={t.trustScoreLabel}
+                      fmt={fmt}
+                    />
+                  </div>
+                </div>
+                <RecentWorkStrip items={conversation.work} label={t.convRecentWork} />
+                {/* An estimate from the analysis, never a price. No quote exists at this
+                    point in the flow, and presenting a range as if it were a firm price
+                    is exactly the shortcut Constitution Rule 9 rules out. */}
+                {conversation.analysis?.estimatedBudget && (
+                  <div className="conv-pro-estimate">
+                    {t.convEstimateLabel}{" "}
+                    <b>
+                      <PriceTag amount={conversation.analysis.estimatedBudget.min} fmt={fmt} />
+                      {" – "}
+                      <PriceTag amount={conversation.analysis.estimatedBudget.max} fmt={fmt} />
+                    </b>
+                  </div>
+                )}
+              </QuoteCard>
+            </UnfoldItem>
+          )}
+
+          {conversation.pro === null && (
+            <UnfoldItem>
+              <div className="conv-thinking">{t.convNoProYet}</div>
             </UnfoldItem>
           )}
 
@@ -3520,8 +3587,21 @@ const CSS = `
    this codebase's :root, so referencing it silently fell back to an inherited grey at
    roughly 2.2:1 on the amber tint. Same undefined-token trap DESIGN_TOKENS.md's audit
    has now caught three times. --ink on --amber-bg is ~14:1. */
-.conv-understanding-line{ font-size:13px; font-weight:600; color:var(--ink); }
+.conv-understanding-line{ font-size:13px; font-weight:600; color:var(--ink); text-align:left; }
+.conv-recap{ text-align:left; }
 .conv-continue{ margin-top:var(--space-1); }
+
+/* ---- professional recommendation (Epic 03, WP8) ---- */
+/* text-align is inherited as centre from .view app-wide; the greeting and trust strip
+   want that, this card's content does not. */
+.conv-pro{ display:flex; flex-direction:column; gap:var(--space-3); text-align:left; }
+.conv-pro-top{ display:flex; align-items:center; gap:var(--space-3); }
+.conv-pro-meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.conv-pro-name{ display:flex; align-items:center; gap:var(--space-2); font-size:14px; font-weight:700; color:var(--ink); }
+.conv-pro-estimate{ font-size:12.5px; color:var(--ink-soft); }
+.recent-work-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:var(--space-2); }
+.recent-work-strip{ display:flex; gap:var(--space-2); list-style:none; margin:0; padding:0; }
+.recent-work-thumb{ width:56px; height:56px; object-fit:cover; border-radius:10px; display:block; }
 
 /* ---- voice + photo capture (Epic 03, WP3 + WP4) ---- */
 .conv-capture{ display:flex; flex-direction:column; gap:var(--space-3); }

@@ -1,5 +1,64 @@
 import { supabase } from "./supabaseClient";
 
+// Moved out of src/App.jsx: selecting which professional to recommend depends on this,
+// and selection is business logic, which PRODUCT_CONSTITUTION.md keeps out of UI. Also
+// closes one line of the "trust score inline in App.jsx" debt in MASTER_CONTEXT.md §12.
+export function trustScore({ rating = 0, isCertified, badgeTier }) {
+  const badgeBonus = badgeTier === "elite" ? 12 : badgeTier === "top" ? 6 : 0;
+  const score = rating * 20 + (isCertified ? 8 : 0) + badgeBonus;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+// The customer-side mirror of pro_matches_request() (migration 0005). That function is
+// an RLS predicate answering "may this pro see this request?" and needs a request row
+// that doesn't exist yet when the canvas recommends someone — so the same criteria are
+// expressed here instead: offers the service, not paused, certified when the service
+// demands it, same city when both are known.
+//
+// Two places now encode one matching rule, which is a real drift risk worth naming: if
+// either changes, change both. Consolidating them belongs with the genuine ranking work
+// in Execution Roadmap Epic 09, not here.
+//
+// Returns the single highest-trust match, or null. One professional, not a list — §3 of
+// EXPERIENCE_VISION.md: no comparing required.
+export async function findBestProForService({ serviceId, city, certifiedOnly = false }) {
+  const { data, error } = await supabase
+    .from("pro_services")
+    .select("pro_id, pro_profiles!inner ( profile_id, pro_type, paused, profiles ( full_name, avatar_url, city ), pro_stats ( rating_avg, rating_count, badge_tier, is_certified ) )")
+    .eq("service_id", serviceId);
+  if (error) throw error;
+
+  const candidates = (data || [])
+    .map((row) => {
+      const pp = row.pro_profiles;
+      if (!pp) return null;
+      const stats = pp.pro_stats || {};
+      return {
+        id: pp.profile_id,
+        name: pp.profiles?.full_name || "Pro",
+        initials: initialsFrom(pp.profiles?.full_name),
+        avatarUrl: pp.profiles?.avatar_url || null,
+        city: pp.profiles?.city || null,
+        proType: pp.pro_type,
+        paused: !!pp.paused,
+        rating: Number(stats.rating_avg) || 0,
+        reviews: stats.rating_count || 0,
+        badgeTier: stats.badge_tier || null,
+        isCertified: !!stats.is_certified,
+      };
+    })
+    .filter(Boolean)
+    .filter((p) => !p.paused)
+    .filter((p) => (certifiedOnly ? p.isCertified : true))
+    .filter((p) => !city || !p.city || p.city.toLowerCase() === city.toLowerCase());
+
+  if (candidates.length === 0) return null;
+
+  // Highest trust score wins, deliberately simple and legible. Real weighted ranking
+  // (past performance, availability, distance) is Epic 09's job, not this card's.
+  return candidates.sort((a, b) => trustScore(b) - trustScore(a))[0];
+}
+
 export function initialsFrom(name) {
   if (!name) return "?";
   return name

@@ -3,7 +3,33 @@
 // level, transcript building) can only be verified against controlled props here.
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { VoiceCapture, PhotoCapture, UnfoldPanel, UnfoldItem } from "../domain.jsx";
+import { VoiceCapture, PhotoCapture, UnfoldPanel, UnfoldItem, RecentWorkStrip } from "../domain.jsx";
+
+describe("RecentWorkStrip", () => {
+  it("renders a thumbnail per portfolio item, captioned for screen readers", () => {
+    const { container } = render(
+      <RecentWorkStrip
+        label="Recent work"
+        items={[
+          { id: "a", imageUrl: "https://example.test/a.jpg", caption: "Painted hallway" },
+          { id: "b", imageUrl: "https://example.test/b.jpg", caption: null },
+        ]}
+      />
+    );
+    const imgs = [...container.querySelectorAll(".recent-work-thumb")];
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0].getAttribute("alt")).toBe("Painted hallway");
+    // A missing caption becomes empty alt, not a filename read aloud.
+    expect(imgs[1].getAttribute("alt")).toBe("");
+  });
+
+  it("renders nothing when a professional has no portfolio yet", () => {
+    const { container } = render(<RecentWorkStrip label="Recent work" items={[]} />);
+    // No heading, no placeholder tiles — an empty strip would imply work that isn't there.
+    expect(container.querySelector(".recent-work")).toBeNull();
+    expect(container.textContent).toBe("");
+  });
+});
 
 describe("UnfoldPanel / UnfoldItem", () => {
   it("renders items in the order given, so the sequence follows arrival order", () => {
