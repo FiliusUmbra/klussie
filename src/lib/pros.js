@@ -75,6 +75,35 @@ export async function fetchPublicProInfo(proIds) {
   );
 }
 
+// Minimum platform-wide review count before an average rating may be shown at all.
+// Below this, the average is withheld rather than displayed: a 5.0 computed from three
+// reviews is technically true and still misleading, which is exactly the shortcut
+// PRODUCT_CONSTITUTION.md Rule 9 exists to rule out. Same minimum-data-threshold
+// reasoning ROADMAP.md Phase 10 applies to marketplace signals. See ADR-0011.
+export const MIN_REVIEWS_FOR_PLATFORM_RATING = 20;
+
+// Platform-wide trust signals for the conversation home's trust strip. Every value
+// here is really computed — per ADR-0011 the strip may never claim a signal that has
+// no data behind it (notably: no "insured work" until insurance verification exists).
+//
+// Reads pro_stats rather than aggregating the reviews table: rating_avg/rating_count
+// there are already maintained by handle_new_review() (0001_init.sql), so this is one
+// small row per pro instead of an unbounded scan over every review ever written.
+export async function fetchPlatformTrustStats() {
+  const { data, error } = await supabase.from("pro_stats").select("rating_avg, rating_count, is_certified");
+  if (error) throw error;
+
+  const verifiedProCount = data.filter((r) => r.is_certified).length;
+  const reviewCount = data.reduce((sum, r) => sum + (r.rating_count || 0), 0);
+  const weightedTotal = data.reduce((sum, r) => sum + Number(r.rating_avg || 0) * (r.rating_count || 0), 0);
+
+  return {
+    verifiedProCount,
+    reviewCount,
+    ratingAvg: reviewCount >= MIN_REVIEWS_FOR_PLATFORM_RATING ? weightedTotal / reviewCount : null,
+  };
+}
+
 // Public, anonymous — no reviewer identity, consistent with keeping customer contact
 // info private elsewhere in this schema.
 export async function fetchReviewsForPro(proId) {

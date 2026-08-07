@@ -10,6 +10,26 @@ export function TicketTear() {
   return <div className="tear" />;
 }
 
+// The persistent ambient trust bar on the conversation home — visible before the
+// customer says anything and still there afterward, never changing position
+// (docs/product/HOMEPAGE_DIRECTION.md: "trust isn't a stage in the flow here, it's
+// the ground the whole flow stands on").
+//
+// Renders only the items it's handed. Deciding *which* signals qualify is a business
+// rule — a signal with no real data behind it may never be shown (ADR-0011) — so that
+// lives in src/lib/pros.js and its caller, not here. A real <ul> so screen readers
+// announce it as the list of signals it is; separators are CSS, not text nodes.
+export function TrustStrip({ items, label }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <ul className="trust-strip" aria-label={label}>
+      {items.map((item) => (
+        <li key={item} className="trust-strip-item">{item}</li>
+      ))}
+    </ul>
+  );
+}
+
 // The service tile grid on the Discover screen.
 export function ServiceCard({ icon: Icon, name, certifiedOnly, certifiedLabel, proCountLabel, rating, ctaLabel, ctaVariant = "quote", onClick }) {
   return (

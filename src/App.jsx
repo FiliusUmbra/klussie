@@ -20,7 +20,7 @@ import {
   subscribeToProLeads,
   subscribeToProQuoteUpdates,
 } from "./lib/requests";
-import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo, fetchReviewsForPro } from "./lib/pros";
+import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo, fetchReviewsForPro, fetchPlatformTrustStats } from "./lib/pros";
 import {
   fetchConversations,
   fetchMessages,
@@ -38,7 +38,7 @@ import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "./lib/aiIntake";
 import { translateMessage } from "./lib/translate";
-import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, AIMessage, Timeline } from "./design-system";
+import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, AIMessage, Timeline } from "./design-system";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -134,6 +134,13 @@ const STRINGS = {
     aiPossibleCausesLabel:"Mogelijke oorzaken", aiRecommendedMaterialsLabel:"Aanbevolen materialen", aiAnalysisLabel:"AI-analyse",
     viewOriginalBtn:"Bekijk origineel", viewTranslationBtn:"Bekijk vertaling",
     cancelBtn:"Annuleren", confirmDeleteMsg:"Weet je het zeker? Dit kan niet ongedaan gemaakt worden.",
+    greetMorning:"Goedemorgen", greetAfternoon:"Goedemiddag", greetEvening:"Goedenavond",
+    convWelcome:"Welkom bij Klussie.", convWelcomeBack:"Welkom terug",
+    convSpeakTitle:"Vertel het me gewoon", convSpeakSub:"Spreek vrijuit, ik luister",
+    convPhotoTitle:"Laat het me zien", convPhotoSub:"Eén foto zegt vaak genoeg",
+    convTypeLabel:"Of typ het even…",
+    trustVerifiedPros:"Geverifieerde vakmensen", trustAvgRating:"gemiddeld", trustTransparentPricing:"Transparante prijzen",
+    trustStripLabel:"Waarom je Klussie kunt vertrouwen",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -215,6 +222,13 @@ const STRINGS = {
     aiPossibleCausesLabel:"Causes possibles", aiRecommendedMaterialsLabel:"Matériaux recommandés", aiAnalysisLabel:"Analyse IA",
     viewOriginalBtn:"Voir l'original", viewTranslationBtn:"Voir la traduction",
     cancelBtn:"Annuler", confirmDeleteMsg:"Es-tu sûr ? Cette action est irréversible.",
+    greetMorning:"Bonjour", greetAfternoon:"Bon après-midi", greetEvening:"Bonsoir",
+    convWelcome:"Bienvenue chez Klussie.", convWelcomeBack:"Bon retour",
+    convSpeakTitle:"Parle-moi simplement", convSpeakSub:"Parle naturellement, je t'écoute",
+    convPhotoTitle:"Montre-moi", convPhotoSub:"Une photo en dit souvent long",
+    convTypeLabel:"Ou écris-le…",
+    trustVerifiedPros:"Pros vérifiés", trustAvgRating:"en moyenne", trustTransparentPricing:"Prix transparents",
+    trustStripLabel:"Pourquoi faire confiance à Klussie",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -296,6 +310,13 @@ const STRINGS = {
     aiPossibleCausesLabel:"Mögliche Ursachen", aiRecommendedMaterialsLabel:"Empfohlene Materialien", aiAnalysisLabel:"KI-Analyse",
     viewOriginalBtn:"Original anzeigen", viewTranslationBtn:"Übersetzung anzeigen",
     cancelBtn:"Abbrechen", confirmDeleteMsg:"Bist du sicher? Das kann nicht rückgängig gemacht werden.",
+    greetMorning:"Guten Morgen", greetAfternoon:"Guten Tag", greetEvening:"Guten Abend",
+    convWelcome:"Willkommen bei Klussie.", convWelcomeBack:"Willkommen zurück",
+    convSpeakTitle:"Sag es mir einfach", convSpeakSub:"Sprich ganz normal, ich höre zu",
+    convPhotoTitle:"Zeig es mir", convPhotoSub:"Ein Foto sagt oft schon genug",
+    convTypeLabel:"Oder tipp es ein…",
+    trustVerifiedPros:"Geprüfte Profis", trustAvgRating:"Durchschnitt", trustTransparentPricing:"Transparente Preise",
+    trustStripLabel:"Warum du Klussie vertrauen kannst",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -377,6 +398,13 @@ const STRINGS = {
     aiPossibleCausesLabel:"Possible causes", aiRecommendedMaterialsLabel:"Recommended materials", aiAnalysisLabel:"AI analysis",
     viewOriginalBtn:"View original", viewTranslationBtn:"View translation",
     cancelBtn:"Cancel", confirmDeleteMsg:"Are you sure? This can't be undone.",
+    greetMorning:"Good morning", greetAfternoon:"Good afternoon", greetEvening:"Good evening",
+    convWelcome:"Welcome to Klussie.", convWelcomeBack:"Welcome back",
+    convSpeakTitle:"Just talk to me", convSpeakSub:"Speak naturally, I'm listening",
+    convPhotoTitle:"Show me", convPhotoSub:"A quick photo tells me a lot",
+    convTypeLabel:"Or type it out…",
+    trustVerifiedPros:"Verified pros", trustAvgRating:"average", trustTransparentPricing:"Transparent pricing",
+    trustStripLabel:"Why you can trust Klussie",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -458,6 +486,13 @@ const STRINGS = {
     aiPossibleCausesLabel:"الأسباب المحتملة", aiRecommendedMaterialsLabel:"المواد الموصى بها", aiAnalysisLabel:"تحليل الذكاء الاصطناعي",
     viewOriginalBtn:"عرض النص الأصلي", viewTranslationBtn:"عرض الترجمة",
     cancelBtn:"إلغاء", confirmDeleteMsg:"هل أنت متأكد؟ لا يمكن التراجع عن هذا الإجراء.",
+    greetMorning:"صباح الخير", greetAfternoon:"مساء الخير", greetEvening:"مساء الخير",
+    convWelcome:"مرحبًا بك في Klussie.", convWelcomeBack:"أهلاً بعودتك",
+    convSpeakTitle:"تحدث إليّ ببساطة", convSpeakSub:"تحدث بشكل طبيعي، أنا أستمع",
+    convPhotoTitle:"أرني", convPhotoSub:"صورة واحدة تكفي غالبًا",
+    convTypeLabel:"أو اكتبها…",
+    trustVerifiedPros:"حرفيون موثّقون", trustAvgRating:"المتوسط", trustTransparentPricing:"أسعار شفافة",
+    trustStripLabel:"لماذا يمكنك الوثوق بـ Klussie",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -539,6 +574,13 @@ const STRINGS = {
     aiPossibleCausesLabel:"Olası nedenler", aiRecommendedMaterialsLabel:"Önerilen malzemeler", aiAnalysisLabel:"Yapay zeka analizi",
     viewOriginalBtn:"Orijinali göster", viewTranslationBtn:"Çeviriyi göster",
     cancelBtn:"İptal", confirmDeleteMsg:"Emin misin? Bu işlem geri alınamaz.",
+    greetMorning:"Günaydın", greetAfternoon:"İyi günler", greetEvening:"İyi akşamlar",
+    convWelcome:"Klussie'ye hoş geldin.", convWelcomeBack:"Tekrar hoş geldin",
+    convSpeakTitle:"Bana anlatman yeter", convSpeakSub:"Rahatça konuş, dinliyorum",
+    convPhotoTitle:"Göster bana", convPhotoSub:"Bir fotoğraf çoğu zaman yeter",
+    convTypeLabel:"Ya da yazıver…",
+    trustVerifiedPros:"Doğrulanmış ustalar", trustAvgRating:"ortalama", trustTransparentPricing:"Şeffaf fiyatlar",
+    trustStripLabel:"Klussie'ye neden güvenebilirsin",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -620,6 +662,13 @@ const STRINGS = {
     aiPossibleCausesLabel:"Возможные причины", aiRecommendedMaterialsLabel:"Рекомендуемые материалы", aiAnalysisLabel:"ИИ-анализ",
     viewOriginalBtn:"Показать оригинал", viewTranslationBtn:"Показать перевод",
     cancelBtn:"Отмена", confirmDeleteMsg:"Вы уверены? Это действие нельзя отменить.",
+    greetMorning:"Доброе утро", greetAfternoon:"Добрый день", greetEvening:"Добрый вечер",
+    convWelcome:"Добро пожаловать в Klussie.", convWelcomeBack:"С возвращением",
+    convSpeakTitle:"Просто расскажите", convSpeakSub:"Говорите свободно, я слушаю",
+    convPhotoTitle:"Покажите", convPhotoSub:"Одно фото часто говорит всё",
+    convTypeLabel:"Или напишите…",
+    trustVerifiedPros:"Проверенные мастера", trustAvgRating:"в среднем", trustTransparentPricing:"Прозрачные цены",
+    trustStripLabel:"Почему Klussie можно доверять",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -701,6 +750,13 @@ const STRINGS = {
     aiPossibleCausesLabel:"可能原因", aiRecommendedMaterialsLabel:"推荐材料", aiAnalysisLabel:"AI 分析",
     viewOriginalBtn:"查看原文", viewTranslationBtn:"查看译文",
     cancelBtn:"取消", confirmDeleteMsg:"确定吗？此操作无法撤销。",
+    greetMorning:"早上好", greetAfternoon:"下午好", greetEvening:"晚上好",
+    convWelcome:"欢迎来到 Klussie。", convWelcomeBack:"欢迎回来",
+    convSpeakTitle:"直接告诉我", convSpeakSub:"自然地说，我在听",
+    convPhotoTitle:"给我看看", convPhotoSub:"一张照片往往就够了",
+    convTypeLabel:"或者打字描述…",
+    trustVerifiedPros:"已验证师傅", trustAvgRating:"平均分", trustTransparentPricing:"价格透明",
+    trustStripLabel:"为什么可以信任 Klussie",
   },
 };
 
@@ -1547,7 +1603,7 @@ function CustomerApp({ showToast }) {
   return (
     <div className="view">
       <div className="content">
-        {tab === "discover" && <Discover onOpenService={(s) => setActiveService(s)} onOpenAiIntake={() => setAiIntakeOpen(true)} />}
+        {tab === "discover" && <ConversationHome onStart={() => setAiIntakeOpen(true)} />}
         {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && <CustomerProfile requests={requests} />}
@@ -1582,6 +1638,83 @@ function CustomerApp({ showToast }) {
   );
 }
 
+// Time-aware greeting for the conversation home. Local device time, three bands —
+// deliberately not a data-driven "personalization," just the time of day.
+function timeGreeting(t) {
+  const hour = new Date().getHours();
+  if (hour < 12) return t.greetMorning;
+  if (hour < 18) return t.greetAfternoon;
+  return t.greetEvening;
+}
+
+// The conversation canvas — the customer's front door, replacing Discover's category
+// grid as the first thing anyone sees (ADR-0007; docs/product/EXPERIENCE_VISION.md §2).
+//
+// This is WP1 + WP7 of docs/architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md: the
+// Rest state only. The unfold states (recap → AI understanding → professional →
+// booking) are WP5/6/8/9. Until those land, all three entry points open the existing
+// AiIntakeSheet, which already handles voice, photo, and text — so the app keeps a
+// working request path at every commit instead of shipping buttons that do nothing.
+function ConversationHome({ onStart }) {
+  const { t } = useLang();
+  const { profile } = useAuth();
+  const [trust, setTrust] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    // A failed trust fetch leaves `trust` null, which simply drops the data-backed
+    // items from the strip — never a broken or fabricated signal.
+    fetchPlatformTrustStats()
+      .then((stats) => { if (!cancelled) setTrust(stats); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const firstName = (profile?.full_name || "").trim().split(/\s+/)[0];
+
+  // Only signals with real data behind them (ADR-0011). Transparent pricing is a
+  // property of how quoting works, not a claim about a dataset, so it always holds;
+  // verified pros and the rating average appear only when the numbers exist.
+  const trustItems = [];
+  if (trust && trust.verifiedProCount > 0) trustItems.push(t.trustVerifiedPros);
+  if (trust && trust.ratingAvg != null) trustItems.push(`${trust.ratingAvg.toFixed(1)}★ ${t.trustAvgRating}`);
+  trustItems.push(t.trustTransparentPricing);
+
+  return (
+    <div className="conv-home">
+      <div className="conv-greet">
+        <div className="conv-time">{timeGreeting(t)}</div>
+        <div className="conv-hello">{firstName ? `${t.convWelcomeBack}, ${firstName}.` : t.convWelcome}</div>
+      </div>
+
+      <div className="conv-actions">
+        <button type="button" className="conv-action" onClick={() => onStart("voice")}>
+          <span className="conv-action-glyph"><Mic size={17} /></span>
+          <span className="conv-action-title">{t.convSpeakTitle}</span>
+          <span className="conv-action-sub">{t.convSpeakSub}</span>
+        </button>
+        <button type="button" className="conv-action conv-action-photo" onClick={() => onStart("photo")}>
+          <span className="conv-action-glyph"><Camera size={17} /></span>
+          <span className="conv-action-title">{t.convPhotoTitle}</span>
+          <span className="conv-action-sub">{t.convPhotoSub}</span>
+        </button>
+      </div>
+
+      <button type="button" className="conv-textrow" onClick={() => onStart("text")}>
+        <span className="conv-textrow-label">{t.convTypeLabel}</span>
+        <span className="conv-textrow-send"><ChevronRight size={14} /></span>
+      </button>
+
+      <TrustStrip items={trustItems} label={t.trustStripLabel} />
+    </div>
+  );
+}
+
+// Retained intentionally, not dead code: EXPERIENCE_VISION.md §10 retires the category
+// grid as the *entry point* but keeps the matching logic beneath it, and where this
+// browse UI lives afterward is still an open question in the Epic 03 plan. Deleting it
+// before that's answered would throw away work with no agreed replacement home.
+// eslint-disable-next-line no-unused-vars
 function Discover({ onOpenService, onOpenAiIntake }) {
   const { t, fmt, catName, serviceInfo, CATS, BASE_SERVICES } = useLang();
   const [cat, setCat] = useState("all");
@@ -2979,6 +3112,61 @@ const CSS = `
 .photo-strip{ display:flex; gap:8px; overflow-x:auto; margin:8px 0; }
 .photo-strip-thumb{ flex-shrink:0; width:64px; height:64px; border-radius:10px; overflow:hidden; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); display:block; }
 .photo-strip-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+/* ---- conversation home (Epic 03, WP1 + WP7) ----
+   Spacing uses the --space-* scale rather than fresh ad hoc pixels: the tokens have
+   existed since the Design Direction Lock with zero usages (docs/design/DESIGN_TOKENS.md),
+   and new code has no reason to repeat the untokenized pattern that document flags. */
+.conv-home{ padding:var(--space-5) var(--space-5) var(--space-6); display:flex; flex-direction:column; gap:var(--space-4); }
+.conv-greet{ display:flex; flex-direction:column; gap:var(--space-1); }
+.conv-time{ font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.06em; }
+.conv-hello{ font-family:var(--font-display); font-size:22px; font-weight:600; color:var(--ink); line-height:1.2; }
+
+.conv-actions{ display:flex; gap:var(--space-3); }
+.conv-action{
+  flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--space-1);
+  background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card);
+  border-radius:16px; padding:var(--space-4) var(--space-3); cursor:pointer;
+  transition:transform var(--motion-base), box-shadow var(--motion-base);
+}
+.conv-action:hover{ transform:translateY(-2px); box-shadow:0 4px 16px rgba(31,77,58,0.12); }
+.conv-action:active{ transform:translateY(0) scale(0.985); }
+.conv-action-glyph{
+  width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff;
+  display:flex; align-items:center; justify-content:center; margin-bottom:var(--space-1);
+}
+.conv-action-photo .conv-action-glyph{ background:var(--amber); }
+.conv-action-title{ font-size:13px; font-weight:700; color:var(--ink); }
+.conv-action-sub{ font-size:11px; color:var(--ink-soft); line-height:1.35; }
+
+/* Deliberately quieter than the two tiles above — typing was never the differentiator
+   (docs/product/HOMEPAGE_DIRECTION.md). Still a real button: keyboard-reachable and
+   announced, not a decorative div. */
+.conv-textrow{
+  display:flex; align-items:center; gap:var(--space-2); width:100%;
+  background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card);
+  border-radius:999px; padding:var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  cursor:pointer; text-align:left; min-height:44px;
+  transition:box-shadow var(--motion-base);
+}
+.conv-textrow:hover{ box-shadow:0 3px 14px rgba(31,77,58,0.10); }
+.conv-textrow-label{ flex:1; font-size:13px; color:var(--ink-soft); }
+.conv-textrow-send{
+  width:26px; height:26px; border-radius:50%; background:var(--sage-bg); color:var(--forest-dark);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+
+.trust-strip{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+  gap:var(--space-1) var(--space-2); list-style:none; margin:var(--space-1) 0 0; padding:0;
+}
+.trust-strip-item{ font-size:11px; color:var(--ink-soft); }
+.trust-strip-item + .trust-strip-item::before{ content:"·"; color:var(--line-strong); margin-right:var(--space-2); }
+
+@media (prefers-reduced-motion: reduce){
+  .conv-action, .conv-textrow{ transition:none; }
+  .conv-action:hover{ transform:none; }
+}
 
 .ai-intake-cta{
   display:flex; align-items:center; gap:10px; width:100%; text-align:start;
