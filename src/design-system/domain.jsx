@@ -30,6 +30,67 @@ export function TrustStrip({ items, label }) {
   );
 }
 
+// Bars driven by a real 0..1 mic level. The per-bar multipliers give the row a
+// waveform shape instead of one uniform pulse, but every bar's height comes from the
+// same measured input — nothing here animates on its own (EXPERIENCE_VISION.md §7).
+const WAVEFORM_BAR_SCALE = [0.45, 0.75, 1, 0.8, 0.55, 0.85, 1, 0.7, 0.5];
+
+// Voice capture, presentational only: the caller owns the recognizer and the meter and
+// passes their current output down (see the design-system convention at the top of
+// this file). Implements the sequence in EXPERIENCE_VISION.md §6, Fig. 4 — listening,
+// transcript building as it's spoken, then a gentle confirmation. There is deliberately
+// no separate "review your transcript" step.
+export function VoiceCapture({ state, level = 0, transcript, meterAvailable = true, listeningLabel, doneLabel, stopLabel, onStop }) {
+  const listening = state === "listening";
+  return (
+    <div className="voice-capture">
+      <div className="voice-status">
+        <span className={"voice-dot" + (listening ? " voice-dot-live" : "")} />
+        {listening ? listeningLabel : doneLabel}
+      </div>
+
+      {listening && (
+        <div className="voice-wave" aria-hidden="true">
+          {WAVEFORM_BAR_SCALE.map((scale, i) => (
+            <span
+              key={i}
+              className="voice-bar"
+              // A still row when metering is unavailable — an honest "no signal" rather
+              // than a decorative animation pretending to hear something.
+              style={{ transform: `scaleY(${meterAvailable ? 0.15 + level * scale * 0.85 : 0.15})` }}
+            />
+          ))}
+        </div>
+      )}
+
+      <p className="voice-transcript" aria-live="polite">{transcript}</p>
+
+      {listening && (
+        <button type="button" className="voice-stop" onClick={onStop}>{stopLabel}</button>
+      )}
+    </div>
+  );
+}
+
+// Photo capture, presentational only. EXPERIENCE_VISION.md §6, Fig. 5: the photo shows
+// full width and unhidden, and the confidence tag sits *on the photo itself* rather
+// than in a separate results panel — the proof and the evidence stay in one place.
+export function PhotoCapture({ previewUrl, analyzing, tag, alt, analyzingLabel, confirmLabel, retakeLabel, onConfirm, onRetake }) {
+  return (
+    <div className="photo-capture">
+      <div className="photo-capture-frame">
+        {previewUrl && <img src={previewUrl} alt={alt} className="photo-capture-img" />}
+        {analyzing && <span className="photo-capture-tag photo-capture-tag-pending">{analyzingLabel}</span>}
+        {!analyzing && tag && <span className="photo-capture-tag">{tag}</span>}
+      </div>
+      <div className="photo-capture-actions">
+        <button type="button" className="photo-capture-retake" onClick={onRetake}>{retakeLabel}</button>
+        <button type="button" className="photo-capture-confirm" onClick={onConfirm} disabled={analyzing}>{confirmLabel}</button>
+      </div>
+    </div>
+  );
+}
+
 // The service tile grid on the Discover screen.
 export function ServiceCard({ icon: Icon, name, certifiedOnly, certifiedLabel, proCountLabel, rating, ctaLabel, ctaVariant = "quote", onClick }) {
   return (

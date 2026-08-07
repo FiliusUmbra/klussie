@@ -63,6 +63,49 @@ export function isSpeechRecognitionSupported() {
   return typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
+// Live microphone input level, 0..1, sampled per animation frame.
+//
+// Deliberately separate from startSpeechRecognition: the Web Speech API gives us words
+// but never exposes audio levels, and EXPERIENCE_VISION.md §7 is explicit that the
+// listening waveform must be "tied to actual audio input, not decorative looping" — so
+// a faked animation would miss the point of the requirement. Both can hold the mic at
+// once; the permission prompt is shared, not doubled.
+//
+// Throws if the browser has no getUserMedia or the user denies the mic. Callers should
+// degrade to a still indicator rather than substituting a fake animation.
+export async function startAudioLevelMeter({ onLevel }) {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AudioCtx();
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 256;
+  ctx.createMediaStreamSource(stream).connect(analyser);
+
+  const samples = new Uint8Array(analyser.frequencyBinCount);
+  let frame = null;
+  const tick = () => {
+    analyser.getByteTimeDomainData(samples);
+    // RMS deviation from the 128 midpoint. The x3 lifts normal speech into a visible
+    // range — without it a conversational voice barely moves the bars.
+    let sumSquares = 0;
+    for (let i = 0; i < samples.length; i++) {
+      const deviation = (samples[i] - 128) / 128;
+      sumSquares += deviation * deviation;
+    }
+    onLevel(Math.min(1, Math.sqrt(sumSquares / samples.length) * 3));
+    frame = requestAnimationFrame(tick);
+  };
+  tick();
+
+  return {
+    stop: () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      stream.getTracks().forEach((track) => track.stop());
+      ctx.close();
+    },
+  };
+}
+
 // Thin wrapper around the browser's native speech recognition. Returns a controller
 // with .stop(); callbacks report interim + final transcript as the user speaks.
 export function startSpeechRecognition(locale, { onResult, onEnd, onError }) {

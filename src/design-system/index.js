@@ -3,4 +3,4 @@
 // primitives/overlays/domain split.
 export { Avatar, Badge, Rating, Button, Card, PriceTag } from "./primitives.jsx";
 export { Drawer, Modal } from "./overlays.jsx";
-export { TicketTear, TrustStrip, ServiceCard, JobCard, QuoteCard, TrustBadge, AIMessage, Timeline } from "./domain.jsx";
+export { TicketTear, TrustStrip, VoiceCapture, PhotoCapture, ServiceCard, JobCard, QuoteCard, TrustBadge, AIMessage, Timeline } from "./domain.jsx";

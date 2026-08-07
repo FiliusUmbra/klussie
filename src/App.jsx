@@ -36,9 +36,9 @@ import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems, updatePort
 import { addTestimonial, fetchTestimonials, deleteTestimonial } from "./lib/testimonials";
 import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
-import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "./lib/aiIntake";
+import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition, startAudioLevelMeter } from "./lib/aiIntake";
 import { translateMessage } from "./lib/translate";
-import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, AIMessage, Timeline } from "./design-system";
+import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, VoiceCapture, PhotoCapture, AIMessage, Timeline } from "./design-system";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -141,6 +141,9 @@ const STRINGS = {
     convTypeLabel:"Of typ het even…",
     trustVerifiedPros:"Geverifieerde vakmensen", trustAvgRating:"gemiddeld", trustTransparentPricing:"Transparante prijzen",
     trustStripLabel:"Waarom je Klussie kunt vertrouwen",
+    convVoiceListening:"Ik luister...", convVoiceGotIt:"Genoteerd.", convVoiceStop:"Klaar", convVoiceWaiting:"Begin maar te vertellen...",
+    convContinue:"Ga verder", convPhotoAlt:"Foto van je klus", convPhotoAnalyzing:"Even kijken...",
+    convPhotoConfirm:"Dat is genoeg", convPhotoRetake:"Andere foto",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -229,6 +232,9 @@ const STRINGS = {
     convTypeLabel:"Ou écris-le…",
     trustVerifiedPros:"Pros vérifiés", trustAvgRating:"en moyenne", trustTransparentPricing:"Prix transparents",
     trustStripLabel:"Pourquoi faire confiance à Klussie",
+    convVoiceListening:"Je t'écoute...", convVoiceGotIt:"C'est noté.", convVoiceStop:"Terminé", convVoiceWaiting:"Vas-y, raconte...",
+    convContinue:"Continuer", convPhotoAlt:"Photo de ton chantier", convPhotoAnalyzing:"Je regarde...",
+    convPhotoConfirm:"C'est suffisant", convPhotoRetake:"Autre photo",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -317,6 +323,9 @@ const STRINGS = {
     convTypeLabel:"Oder tipp es ein…",
     trustVerifiedPros:"Geprüfte Profis", trustAvgRating:"Durchschnitt", trustTransparentPricing:"Transparente Preise",
     trustStripLabel:"Warum du Klussie vertrauen kannst",
+    convVoiceListening:"Ich höre zu...", convVoiceGotIt:"Notiert.", convVoiceStop:"Fertig", convVoiceWaiting:"Erzähl einfach los...",
+    convContinue:"Weiter", convPhotoAlt:"Foto deines Auftrags", convPhotoAnalyzing:"Einen Moment...",
+    convPhotoConfirm:"Das genügt", convPhotoRetake:"Anderes Foto",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -405,6 +414,9 @@ const STRINGS = {
     convTypeLabel:"Or type it out…",
     trustVerifiedPros:"Verified pros", trustAvgRating:"average", trustTransparentPricing:"Transparent pricing",
     trustStripLabel:"Why you can trust Klussie",
+    convVoiceListening:"I'm listening...", convVoiceGotIt:"Got it.", convVoiceStop:"Done", convVoiceWaiting:"Go ahead, tell me...",
+    convContinue:"Continue", convPhotoAlt:"Photo of your job", convPhotoAnalyzing:"Taking a look...",
+    convPhotoConfirm:"That's enough", convPhotoRetake:"Different photo",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -493,6 +505,9 @@ const STRINGS = {
     convTypeLabel:"أو اكتبها…",
     trustVerifiedPros:"حرفيون موثّقون", trustAvgRating:"المتوسط", trustTransparentPricing:"أسعار شفافة",
     trustStripLabel:"لماذا يمكنك الوثوق بـ Klussie",
+    convVoiceListening:"أنا أستمع...", convVoiceGotIt:"تم التسجيل.", convVoiceStop:"انتهيت", convVoiceWaiting:"تفضل، احكِ لي...",
+    convContinue:"متابعة", convPhotoAlt:"صورة العمل المطلوب", convPhotoAnalyzing:"ألقي نظرة...",
+    convPhotoConfirm:"هذا يكفي", convPhotoRetake:"صورة أخرى",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -581,6 +596,9 @@ const STRINGS = {
     convTypeLabel:"Ya da yazıver…",
     trustVerifiedPros:"Doğrulanmış ustalar", trustAvgRating:"ortalama", trustTransparentPricing:"Şeffaf fiyatlar",
     trustStripLabel:"Klussie'ye neden güvenebilirsin",
+    convVoiceListening:"Dinliyorum...", convVoiceGotIt:"Not aldım.", convVoiceStop:"Bitti", convVoiceWaiting:"Buyur, anlat...",
+    convContinue:"Devam et", convPhotoAlt:"İşinin fotoğrafı", convPhotoAnalyzing:"Bir bakayım...",
+    convPhotoConfirm:"Bu kadarı yeter", convPhotoRetake:"Başka fotoğraf",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -669,6 +687,9 @@ const STRINGS = {
     convTypeLabel:"Или напишите…",
     trustVerifiedPros:"Проверенные мастера", trustAvgRating:"в среднем", trustTransparentPricing:"Прозрачные цены",
     trustStripLabel:"Почему Klussie можно доверять",
+    convVoiceListening:"Слушаю...", convVoiceGotIt:"Записал.", convVoiceStop:"Готово", convVoiceWaiting:"Говорите, я слушаю...",
+    convContinue:"Продолжить", convPhotoAlt:"Фото вашей задачи", convPhotoAnalyzing:"Смотрю...",
+    convPhotoConfirm:"Этого достаточно", convPhotoRetake:"Другое фото",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -757,6 +778,9 @@ const STRINGS = {
     convTypeLabel:"或者打字描述…",
     trustVerifiedPros:"已验证师傅", trustAvgRating:"平均分", trustTransparentPricing:"价格透明",
     trustStripLabel:"为什么可以信任 Klussie",
+    convVoiceListening:"我在听...", convVoiceGotIt:"记下了。", convVoiceStop:"说完了", convVoiceWaiting:"请讲，我在听...",
+    convContinue:"继续", convPhotoAlt:"你的活儿的照片", convPhotoAnalyzing:"我看看...",
+    convPhotoConfirm:"这样就够了", convPhotoRetake:"换一张",
   },
 };
 
@@ -1603,7 +1627,7 @@ function CustomerApp({ showToast }) {
   return (
     <div className="view">
       <div className="content">
-        {tab === "discover" && <ConversationHome onStart={() => setAiIntakeOpen(true)} />}
+        {tab === "discover" && <ConversationHome onStart={(seed) => setAiIntakeOpen(seed || {})} />}
         {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && <CustomerProfile requests={requests} />}
@@ -1620,6 +1644,8 @@ function CustomerApp({ showToast }) {
       {quoteForm && <QuoteFormSheet service={quoteForm} onClose={() => setQuoteForm(null)} onSubmit={(answers) => { createRequest(quoteForm, answers); setQuoteForm(null); setTab("requests"); }} />}
       {aiIntakeOpen && (
         <AiIntakeSheet
+          initialText={aiIntakeOpen.text || ""}
+          initialPhotos={aiIntakeOpen.photos || []}
           onClose={() => setAiIntakeOpen(false)}
           onSubmitted={async (payload) => { await createRequestFromAi(payload); setTab("requests"); }}
         />
@@ -1647,18 +1673,154 @@ function timeGreeting(t) {
   return t.greetEvening;
 }
 
+// WP3. Owns the recognizer and the mic meter; VoiceCapture itself stays presentational.
+// Metering is best-effort: if getUserMedia is unavailable or denied, recognition still
+// runs and the bars sit still rather than animating on nothing.
+function VoiceCapturePanel({ onDone, onCancel }) {
+  const { t, langCode } = useLang();
+  const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
+  const [finalText, setFinalText] = useState("");
+  const [interim, setInterim] = useState("");
+  const [level, setLevel] = useState(0);
+  const [meterAvailable, setMeterAvailable] = useState(true);
+  const [state, setState] = useState("listening");
+  const recognizerRef = useRef(null);
+  const meterRef = useRef(null);
+  const finalRef = useRef("");
+
+  useEffect(() => {
+    let cancelled = false;
+    try {
+      recognizerRef.current = startSpeechRecognition(langMeta.locale, {
+        onResult: ({ finalText: done, interimText }) => {
+          if (done) {
+            finalRef.current = (finalRef.current ? finalRef.current + " " : "") + done;
+            setFinalText(finalRef.current);
+          }
+          setInterim(interimText);
+        },
+        onEnd: () => { if (!cancelled) setState("done"); },
+        onError: () => { if (!cancelled) setState("done"); },
+      });
+    } catch {
+      onCancel();
+      return;
+    }
+
+    startAudioLevelMeter({ onLevel: (v) => { if (!cancelled) setLevel(v); } })
+      .then((meter) => {
+        if (cancelled) { meter.stop(); return; }
+        meterRef.current = meter;
+      })
+      .catch(() => { if (!cancelled) setMeterAvailable(false); });
+
+    return () => {
+      cancelled = true;
+      recognizerRef.current?.stop();
+      meterRef.current?.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recognition ended with nothing usable — no point confirming an empty transcript.
+  useEffect(() => {
+    if (state === "done" && !finalRef.current.trim()) onCancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  const stop = () => {
+    recognizerRef.current?.stop();
+    meterRef.current?.stop();
+    setState("done");
+  };
+
+  const spoken = [finalText, interim].filter(Boolean).join(" ");
+
+  return (
+    <div className="conv-capture">
+      <VoiceCapture
+        state={state}
+        level={level}
+        meterAvailable={meterAvailable}
+        transcript={spoken || t.convVoiceWaiting}
+        listeningLabel={t.convVoiceListening}
+        doneLabel={t.convVoiceGotIt}
+        stopLabel={t.convVoiceStop}
+        onStop={stop}
+      />
+      {/* finalText mirrors finalRef; the ref exists only so the recognizer callback can
+          accumulate without a stale closure, and must not be read during render. */}
+      {state === "done" && finalText.trim() && (
+        <button type="button" className="btn-primary" onClick={() => onDone(finalText.trim())}>
+          {t.convContinue}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// WP4. Runs the analysis needed for the on-photo confidence tag (Fig. 5), then hands
+// the file onward. Note: the interim handoff to AiIntakeSheet re-analyzes, so the photo
+// path currently costs two AI calls — acceptable only because this whole handoff is
+// scaffolding that WP5/WP6 delete, not a permanent shape.
+// previewUrl is created by whoever picked the file and revoked by that same owner, not
+// here. Creating it in this component and revoking it from a cleanup breaks under
+// StrictMode's double-invoke — the first cleanup revokes the only URL and the image is
+// left pointing at a dead blob.
+function PhotoCapturePanel({ file, previewUrl, onDone, onCancel }) {
+  const { t, langCode, BASE_SERVICES, serviceInfo } = useLang();
+  const [analyzing, setAnalyzing] = useState(true);
+  const [tag, setTag] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const services = BASE_SERVICES.map((s) => ({ id: s.id, name: serviceInfo(s.id).name, category: s.cat, blurb: serviceInfo(s.id).blurb }));
+    analyzeJobRequest({ photos: [file], services, locale: langCode })
+      .then((res) => {
+        if (cancelled) return;
+        // Prefer what the model actually saw; fall back to the problem title. Confidence
+        // is shown as-is, including when it's low — that's the honest signal.
+        const label = res.brandDetected || res.problem;
+        setTag(label ? `${label} · ${Math.round(res.confidence)}%` : null);
+      })
+      .catch(() => { if (!cancelled) setTag(null); })
+      .finally(() => { if (!cancelled) setAnalyzing(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]);
+
+  return (
+    <div className="conv-capture">
+      <PhotoCapture
+        previewUrl={previewUrl}
+        alt={t.convPhotoAlt}
+        analyzing={analyzing}
+        tag={tag}
+        analyzingLabel={t.convPhotoAnalyzing}
+        confirmLabel={t.convPhotoConfirm}
+        retakeLabel={t.convPhotoRetake}
+        onConfirm={() => onDone(file)}
+        onRetake={onCancel}
+      />
+    </div>
+  );
+}
+
 // The conversation canvas — the customer's front door, replacing Discover's category
 // grid as the first thing anyone sees (ADR-0007; docs/product/EXPERIENCE_VISION.md §2).
 //
-// This is WP1 + WP7 of docs/architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md: the
-// Rest state only. The unfold states (recap → AI understanding → professional →
-// booking) are WP5/6/8/9. Until those land, all three entry points open the existing
-// AiIntakeSheet, which already handles voice, photo, and text — so the app keeps a
-// working request path at every commit instead of shipping buttons that do nothing.
+// WP1 + WP7 built the Rest state; WP3 + WP4 add real in-canvas voice and photo capture
+// on top of it. The unfold states after capture (recap → AI understanding →
+// professional → booking) are still WP5/6/8/9 — so once capture completes, the captured
+// input is handed to the existing AiIntakeSheet, pre-filled, and that finishes the job.
+// That handoff is scaffolding those later packages remove; it exists so every commit
+// leaves a working request path rather than a flow that dead-ends after "Got it."
 function ConversationHome({ onStart }) {
   const { t } = useLang();
   const { profile } = useAuth();
   const [trust, setTrust] = useState(null);
+  const [capture, setCapture] = useState(null); // null | "voice" | { file }
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1680,6 +1842,30 @@ function ConversationHome({ onStart }) {
   if (trust && trust.ratingAvg != null) trustItems.push(`${trust.ratingAvg.toFixed(1)}★ ${t.trustAvgRating}`);
   trustItems.push(t.trustTransparentPricing);
 
+  // The capture session owns the preview URL for its whole life: created here when the
+  // file is picked, revoked by closeCapture or on unmount. Keeping both sides in event
+  // handlers (rather than an effect) is what makes it survive StrictMode's double-mount.
+  const pickPhoto = (e) => {
+    const file = (e.target.files || [])[0];
+    e.target.value = "";
+    if (file) setCapture({ file, previewUrl: URL.createObjectURL(file) });
+  };
+
+  const closeCapture = () => {
+    if (capture && capture.previewUrl) URL.revokeObjectURL(capture.previewUrl);
+    setCapture(null);
+  };
+
+  // Covers leaving the tab mid-capture, which never runs closeCapture. The ref is synced
+  // in an effect rather than during render so the unmount cleanup sees the latest value
+  // without reading state through a stale closure.
+  const captureRef = useRef(null);
+  useEffect(() => { captureRef.current = capture; }, [capture]);
+  useEffect(() => () => {
+    const open = captureRef.current;
+    if (open && open.previewUrl) URL.revokeObjectURL(open.previewUrl);
+  }, []);
+
   return (
     <div className="conv-home">
       <div className="conv-greet">
@@ -1687,23 +1873,51 @@ function ConversationHome({ onStart }) {
         <div className="conv-hello">{firstName ? `${t.convWelcomeBack}, ${firstName}.` : t.convWelcome}</div>
       </div>
 
-      <div className="conv-actions">
-        <button type="button" className="conv-action" onClick={() => onStart("voice")}>
-          <span className="conv-action-glyph"><Mic size={17} /></span>
-          <span className="conv-action-title">{t.convSpeakTitle}</span>
-          <span className="conv-action-sub">{t.convSpeakSub}</span>
-        </button>
-        <button type="button" className="conv-action conv-action-photo" onClick={() => onStart("photo")}>
-          <span className="conv-action-glyph"><Camera size={17} /></span>
-          <span className="conv-action-title">{t.convPhotoTitle}</span>
-          <span className="conv-action-sub">{t.convPhotoSub}</span>
-        </button>
-      </div>
+      {capture === "voice" ? (
+        <VoiceCapturePanel
+          onDone={(transcript) => { setCapture(null); onStart({ text: transcript }); }}
+          onCancel={() => setCapture(null)}
+        />
+      ) : capture ? (
+        <PhotoCapturePanel
+          file={capture.file}
+          previewUrl={capture.previewUrl}
+          // Ownership of previewUrl transfers to the sheet here — deliberately not
+          // revoked, since the sheet renders that exact URL. Cancelling instead goes
+          // through closeCapture, which does release it.
+          onDone={(file) => { setCapture(null); onStart({ photos: [{ file, previewUrl: capture.previewUrl }] }); }}
+          onCancel={closeCapture}
+        />
+      ) : (
+        <>
+          <div className="conv-actions">
+            <button
+              type="button"
+              className="conv-action"
+              onClick={() => setCapture("voice")}
+              disabled={!isSpeechRecognitionSupported()}
+              title={isSpeechRecognitionSupported() ? undefined : t.aiSpeechUnsupported}
+            >
+              <span className="conv-action-glyph"><Mic size={17} /></span>
+              <span className="conv-action-title">{t.convSpeakTitle}</span>
+              <span className="conv-action-sub">{isSpeechRecognitionSupported() ? t.convSpeakSub : t.aiSpeechUnsupported}</span>
+            </button>
+            <button type="button" className="conv-action conv-action-photo" onClick={() => photoInputRef.current?.click()}>
+              <span className="conv-action-glyph"><Camera size={17} /></span>
+              <span className="conv-action-title">{t.convPhotoTitle}</span>
+              <span className="conv-action-sub">{t.convPhotoSub}</span>
+            </button>
+            {/* capture="environment" opens the rear camera directly on mobile rather
+                than a file browser — "tap Show me → camera" per Fig. 5. */}
+            <input ref={photoInputRef} type="file" accept="image/*" capture="environment" hidden onChange={pickPhoto} />
+          </div>
 
-      <button type="button" className="conv-textrow" onClick={() => onStart("text")}>
-        <span className="conv-textrow-label">{t.convTypeLabel}</span>
-        <span className="conv-textrow-send"><ChevronRight size={14} /></span>
-      </button>
+          <button type="button" className="conv-textrow" onClick={() => onStart({})}>
+            <span className="conv-textrow-label">{t.convTypeLabel}</span>
+            <span className="conv-textrow-send"><ChevronRight size={14} /></span>
+          </button>
+        </>
+      )}
 
       <TrustStrip items={trustItems} label={t.trustStripLabel} />
     </div>
@@ -1895,16 +2109,21 @@ const AI_FOLLOWUP_ROUND_LIMIT = 2;
 // budget/whenPref), plus an ai_analysis record for the review screen and, later, the
 // pro's lead view. Never auto-submits \u2014 the customer always reviews and can edit
 // everything (including overriding the matched service) before it becomes a real request.
-function AiIntakeSheet({ onClose, onSubmitted }) {
+// initialText/initialPhotos let the conversation canvas hand off what it already
+// captured (WP3/WP4) so the customer doesn't re-describe the job. Both default to empty,
+// so every existing call site is unaffected. initialPhotos arrive as { file, previewUrl }
+// with their preview URL already created — ownership transfers here rather than this
+// component minting a second URL for the same file.
+function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos = [] }) {
   const { t, langCode, BASE_SERVICES, serviceInfo } = useLang();
   const { profile } = useAuth();
   const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
 
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [listening, setListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognizerRef = useRef(null);
-  const [photos, setPhotos] = useState([]);
+  const [photos, setPhotos] = useState(() => initialPhotos.map(({ file, previewUrl }) => ({ file, previewUrl })));
   const photoInputRef = useRef(null);
 
   const [stage, setStage] = useState("compose"); // compose | followup | review
@@ -1924,7 +2143,11 @@ function AiIntakeSheet({ onClose, onSubmitted }) {
   useEffect(() => {
     return () => {
       recognizerRef.current?.stop();
-      photos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      // Never revoke a handed-off URL: under StrictMode this cleanup fires once while
+      // the component is still mounted, and killing a transferred preview leaves the
+      // thumbnail pointing at a dead blob. Handed-off URLs are released on page unload.
+      const transferred = new Set(initialPhotos.map((p) => p.previewUrl));
+      photos.forEach((p) => { if (!transferred.has(p.previewUrl)) URL.revokeObjectURL(p.previewUrl); });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -3154,6 +3377,63 @@ const CSS = `
 .conv-textrow-send{
   width:26px; height:26px; border-radius:50%; background:var(--sage-bg); color:var(--forest-dark);
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+
+/* ---- voice + photo capture (Epic 03, WP3 + WP4) ---- */
+.conv-capture{ display:flex; flex-direction:column; gap:var(--space-3); }
+
+.voice-capture{
+  background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card);
+  border-radius:16px; padding:var(--space-4); display:flex; flex-direction:column;
+  align-items:center; gap:var(--space-3);
+}
+.voice-status{ display:flex; align-items:center; gap:var(--space-2); font-size:12px; color:var(--ink-soft); }
+.voice-dot{ width:8px; height:8px; border-radius:50%; background:var(--line-strong); }
+.voice-dot-live{ background:var(--forest); }
+.voice-wave{ display:flex; align-items:center; justify-content:center; gap:3px; height:36px; }
+/* Height comes from the measured level via inline transform — the only transition here
+   smooths the sampling, it never animates on its own. */
+.voice-bar{
+  width:4px; height:32px; border-radius:2px; background:var(--forest);
+  transform-origin:center; transition:transform var(--motion-fast);
+}
+.voice-transcript{
+  margin:0; text-align:center; font-size:14px; line-height:1.45; color:var(--ink);
+  min-height:2.9em; max-width:32ch;
+}
+.voice-stop{
+  background:var(--sage-bg); color:var(--forest-dark); border:none; border-radius:999px;
+  padding:var(--space-2) var(--space-5); font-size:12.5px; font-weight:600; cursor:pointer;
+  min-height:44px;
+}
+
+.photo-capture{ display:flex; flex-direction:column; gap:var(--space-3); }
+/* flex-shrink:0 is load-bearing: this sits inside nested flex columns, and without it
+   the frame collapses to a few pixels tall, leaving the on-photo tag floating above a
+   sliver of image instead of sitting on it. */
+.photo-capture-frame{ position:relative; border-radius:16px; overflow:hidden; box-shadow:var(--shadow-card); flex-shrink:0; }
+.photo-capture-img{ display:block; width:100%; height:auto; }
+/* The tag sits on the photo itself (Fig. 5). Dark scrim rather than a tinted surface so
+   contrast holds over an arbitrary photo, which is the whole risk with on-image text. */
+.photo-capture-tag{
+  position:absolute; left:var(--space-3); bottom:var(--space-3);
+  background:rgba(14,25,19,0.82); color:#fff; font-size:11.5px; font-weight:600;
+  padding:var(--space-1) var(--space-3); border-radius:999px;
+}
+.photo-capture-tag-pending{ font-weight:500; opacity:0.9; }
+.photo-capture-actions{ display:flex; gap:var(--space-2); }
+.photo-capture-retake, .photo-capture-confirm{
+  flex:1; min-height:44px; border-radius:12px; font-size:13px; font-weight:600; cursor:pointer;
+}
+.photo-capture-retake{ background:var(--sage-bg); color:var(--forest-dark); border:none; }
+.photo-capture-confirm{ background:var(--forest); color:#fff; border:none; }
+.photo-capture-confirm:disabled{ opacity:0.55; cursor:default; }
+
+.conv-action:disabled{ opacity:0.55; cursor:default; }
+.conv-action:disabled:hover{ transform:none; box-shadow:var(--shadow-card); }
+
+@media (prefers-reduced-motion: reduce){
+  .voice-bar{ transition:none; }
 }
 
 .trust-strip{
