@@ -49,14 +49,12 @@ flagged at its work package too; collected here so they don't get lost.
    needed." It doesn't say where the browse UI itself lives afterward —
    a second-level screen, a Profile-tab affordance, or removed from the
    customer app entirely. Blocks WP1's final shape.
-2. **Trust strip copy vs. real data (WP7).**
-   `HOMEPAGE_DIRECTION.md`'s prototype strip reads "Verified pros ·
-   Insured work · 4.9★ average." `EXPERIENCE_VISION.md` §8's own Trust
-   Framework marks **Insured work** as "Not yet real — needs its own
-   workstream, not implied by copy alone," and `PRODUCT_CONSTITUTION.md`
-   Rule 9 forbids claiming a trust signal with no evidence behind it.
-   The two approved documents conflict on this specific string. Needs a
-   call: ship only the real signals, or accept the claim knowingly.
+2. ~~**Trust strip copy vs. real data (WP7).**~~ **RESOLVED
+   2026-08-06 — [`../adr/0011-trust-strip-shows-only-verified-signals.md`](../adr/0011-trust-strip-shows-only-verified-signals.md).**
+   Ship only signals backed by real data; "Insured work" does not ship
+   until insurance verification exists (Epic 06). WP7 unblocked, with
+   one sub-question left for that package: the minimum review count
+   below which a rating aggregate is withheld rather than shown.
 3. **What "Book Peter" actually does to the data model (WP9).**
    The approved flow is one button, no second-guessing. Today's schema
    reaches `status = 'booked'` only via a `quotes` row transitioning
@@ -297,20 +295,26 @@ keys ×8 locales.
 **Acceptance criteria.**
 - Renders identically in Rest and post-booking states, in the same
   position — it must not move as the canvas unfolds.
-- **Only displays trust signals backed by real data** per
-  `EXPERIENCE_VISION.md` §8 and `PRODUCT_CONSTITUTION.md` Rule 9.
-  Verified-pro status and rating are real (`pro_stats.is_certified`,
-  computed trust score); insurance verification is not.
-- Rating shown is a real aggregate, not a hardcoded "4.9★."
+- **Only displays trust signals backed by real data**, per
+  [`../adr/0011-trust-strip-shows-only-verified-signals.md`](../adr/0011-trust-strip-shows-only-verified-signals.md).
+  Verified-pro status (`pro_stats.is_certified`, badge tiers) and the
+  computed trust score / real review ratings are real; insurance
+  verification is not and does not ship here.
+- Rating shown is a real aggregate from `pro_stats`, never a hardcoded
+  "4.9★."
+- A minimum review count is chosen below which the rating signal is
+  withheld rather than displayed — a technically-real average computed
+  from three reviews still misleads. Decide the threshold in this
+  package and record it; don't leave it implicit.
 
-**Complexity.** S — *if* open question 2 is answered first. Blocked on
-that answer otherwise.
+**Complexity.** S
 
-**Risks.** Open question 2 is a genuine conflict between two approved
-documents, not an oversight to paper over. Shipping "Insured work" as
-literal copy with no verification data behind it would violate Rule 9 —
-the single rule `EXPERIENCE_VISION.md` §8 cites by name for this exact
-case.
+**Risks.** Low now that ADR-0011 settles the conflict. The one live
+risk is the threshold above: set it too high and the strip is nearly
+empty on a young marketplace; set it too low and the strip technically
+complies with Rule 9 while still overstating. Neither extreme is a
+code problem — it's a judgment call worth stating out loud when WP7
+ships.
 
 ---
 

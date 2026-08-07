@@ -71,6 +71,7 @@ pointing at whatever replaced it.
 | [0008](0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Implemented (design direction) |
 | [0009](0009-docs-folder-reorganization.md) | Reorganize `docs/` into category subfolders | Implemented |
 | [0010](0010-defer-permissions-layer-formalization.md) | Defer Permissions layer formalization until Trust & Safety needs it | Implemented (deferral) |
+| [0011](0011-trust-strip-shows-only-verified-signals.md) | The trust strip shows only signals backed by real data | Implemented |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see

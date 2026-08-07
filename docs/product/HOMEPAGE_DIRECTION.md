@@ -56,6 +56,15 @@ elevated — genuinely first-class, not icons buried in a composer. Typing
 stays available but visually quieter underneath, since it was never the
 differentiator; voice and photo are.
 
+> **Update (2026-08-06) — see [`../adr/0011-trust-strip-shows-only-verified-signals.md`](../adr/0011-trust-strip-shows-only-verified-signals.md).**
+> The prototype's strip copy above reads "Verified pros · Insured work ·
+> 4.9★ average." **"Insured work" does not ship** — no
+> insurance-verification data exists behind it, and
+> `EXPERIENCE_VISION.md` §8 plus Constitution Rule 9 forbid claiming an
+> unevidenced trust signal. The prototype text is left unedited as the
+> historical record of what was approved; don't restore that signal
+> thinking it was dropped by accident.
+
 **Why the trust strip never moves.** It's present before a word is typed
 and still there after booking — trust isn't a stage in the flow here,
 it's the ground the whole flow stands on, which is the actual argument
