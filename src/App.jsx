@@ -38,7 +38,7 @@ import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition, startAudioLevelMeter } from "./lib/aiIntake";
 import { translateMessage } from "./lib/translate";
-import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, VoiceCapture, PhotoCapture, AIMessage, Timeline } from "./design-system";
+import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, UnfoldPanel, UnfoldItem, VoiceCapture, PhotoCapture, AIMessage, Timeline } from "./design-system";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -144,6 +144,7 @@ const STRINGS = {
     convVoiceListening:"Ik luister...", convVoiceGotIt:"Genoteerd.", convVoiceStop:"Klaar", convVoiceWaiting:"Begin maar te vertellen...",
     convContinue:"Ga verder", convPhotoAlt:"Foto van je klus", convPhotoAnalyzing:"Even kijken...",
     convPhotoConfirm:"Dat is genoeg", convPhotoRetake:"Andere foto",
+    convPhotoRecap:"Foto van de klus toegevoegd", convUrgency_low:"Kan wachten", convUrgency_medium:"Vrij dringend", convUrgency_high:"Dringend",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -235,6 +236,7 @@ const STRINGS = {
     convVoiceListening:"Je t'écoute...", convVoiceGotIt:"C'est noté.", convVoiceStop:"Terminé", convVoiceWaiting:"Vas-y, raconte...",
     convContinue:"Continuer", convPhotoAlt:"Photo de ton chantier", convPhotoAnalyzing:"Je regarde...",
     convPhotoConfirm:"C'est suffisant", convPhotoRetake:"Autre photo",
+    convPhotoRecap:"Photo du chantier ajoutée", convUrgency_low:"Peut attendre", convUrgency_medium:"Assez urgent", convUrgency_high:"Urgent",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -326,6 +328,7 @@ const STRINGS = {
     convVoiceListening:"Ich höre zu...", convVoiceGotIt:"Notiert.", convVoiceStop:"Fertig", convVoiceWaiting:"Erzähl einfach los...",
     convContinue:"Weiter", convPhotoAlt:"Foto deines Auftrags", convPhotoAnalyzing:"Einen Moment...",
     convPhotoConfirm:"Das genügt", convPhotoRetake:"Anderes Foto",
+    convPhotoRecap:"Foto des Auftrags hinzugefügt", convUrgency_low:"Kann warten", convUrgency_medium:"Ziemlich dringend", convUrgency_high:"Dringend",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -417,6 +420,7 @@ const STRINGS = {
     convVoiceListening:"I'm listening...", convVoiceGotIt:"Got it.", convVoiceStop:"Done", convVoiceWaiting:"Go ahead, tell me...",
     convContinue:"Continue", convPhotoAlt:"Photo of your job", convPhotoAnalyzing:"Taking a look...",
     convPhotoConfirm:"That's enough", convPhotoRetake:"Different photo",
+    convPhotoRecap:"Photo of the job added", convUrgency_low:"Can wait", convUrgency_medium:"Fairly urgent", convUrgency_high:"Urgent",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -508,6 +512,7 @@ const STRINGS = {
     convVoiceListening:"أنا أستمع...", convVoiceGotIt:"تم التسجيل.", convVoiceStop:"انتهيت", convVoiceWaiting:"تفضل، احكِ لي...",
     convContinue:"متابعة", convPhotoAlt:"صورة العمل المطلوب", convPhotoAnalyzing:"ألقي نظرة...",
     convPhotoConfirm:"هذا يكفي", convPhotoRetake:"صورة أخرى",
+    convPhotoRecap:"تمت إضافة صورة العمل", convUrgency_low:"يمكن الانتظار", convUrgency_medium:"عاجل نسبيًا", convUrgency_high:"عاجل",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -599,6 +604,7 @@ const STRINGS = {
     convVoiceListening:"Dinliyorum...", convVoiceGotIt:"Not aldım.", convVoiceStop:"Bitti", convVoiceWaiting:"Buyur, anlat...",
     convContinue:"Devam et", convPhotoAlt:"İşinin fotoğrafı", convPhotoAnalyzing:"Bir bakayım...",
     convPhotoConfirm:"Bu kadarı yeter", convPhotoRetake:"Başka fotoğraf",
+    convPhotoRecap:"İşin fotoğrafı eklendi", convUrgency_low:"Bekleyebilir", convUrgency_medium:"Oldukça acil", convUrgency_high:"Acil",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -690,6 +696,7 @@ const STRINGS = {
     convVoiceListening:"Слушаю...", convVoiceGotIt:"Записал.", convVoiceStop:"Готово", convVoiceWaiting:"Говорите, я слушаю...",
     convContinue:"Продолжить", convPhotoAlt:"Фото вашей задачи", convPhotoAnalyzing:"Смотрю...",
     convPhotoConfirm:"Этого достаточно", convPhotoRetake:"Другое фото",
+    convPhotoRecap:"Фото задачи добавлено", convUrgency_low:"Может подождать", convUrgency_medium:"Довольно срочно", convUrgency_high:"Срочно",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -781,6 +788,7 @@ const STRINGS = {
     convVoiceListening:"我在听...", convVoiceGotIt:"记下了。", convVoiceStop:"说完了", convVoiceWaiting:"请讲，我在听...",
     convContinue:"继续", convPhotoAlt:"你的活儿的照片", convPhotoAnalyzing:"我看看...",
     convPhotoConfirm:"这样就够了", convPhotoRetake:"换一张",
+    convPhotoRecap:"已添加活儿的照片", convUrgency_low:"可以等等", convUrgency_medium:"比较急", convUrgency_high:"紧急",
   },
 };
 
@@ -1646,6 +1654,7 @@ function CustomerApp({ showToast }) {
         <AiIntakeSheet
           initialText={aiIntakeOpen.text || ""}
           initialPhotos={aiIntakeOpen.photos || []}
+          initialResult={aiIntakeOpen.result || null}
           onClose={() => setAiIntakeOpen(false)}
           onSubmitted={async (payload) => { await createRequestFromAi(payload); setTab("requests"); }}
         />
@@ -1771,6 +1780,7 @@ function PhotoCapturePanel({ file, previewUrl, onDone, onCancel }) {
   const { t, langCode, BASE_SERVICES, serviceInfo } = useLang();
   const [analyzing, setAnalyzing] = useState(true);
   const [tag, setTag] = useState(null);
+  const analysisRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1778,6 +1788,9 @@ function PhotoCapturePanel({ file, previewUrl, onDone, onCancel }) {
     analyzeJobRequest({ photos: [file], services, locale: langCode })
       .then((res) => {
         if (cancelled) return;
+        // Kept so the canvas can reuse it rather than asking the model the same question
+        // twice about the same photo.
+        analysisRef.current = res;
         // Prefer what the model actually saw; fall back to the problem title. Confidence
         // is shown as-is, including when it's low — that's the honest signal.
         const label = res.brandDetected || res.problem;
@@ -1799,7 +1812,7 @@ function PhotoCapturePanel({ file, previewUrl, onDone, onCancel }) {
         analyzingLabel={t.convPhotoAnalyzing}
         confirmLabel={t.convPhotoConfirm}
         retakeLabel={t.convPhotoRetake}
-        onConfirm={() => onDone(file)}
+        onConfirm={() => onDone(file, analysisRef.current)}
         onRetake={onCancel}
       />
     </div>
@@ -1816,10 +1829,12 @@ function PhotoCapturePanel({ file, previewUrl, onDone, onCancel }) {
 // That handoff is scaffolding those later packages remove; it exists so every commit
 // leaves a working request path rather than a flow that dead-ends after "Got it."
 function ConversationHome({ onStart }) {
-  const { t } = useLang();
+  const { t, langCode, BASE_SERVICES, serviceInfo } = useLang();
   const { profile } = useAuth();
   const [trust, setTrust] = useState(null);
-  const [capture, setCapture] = useState(null); // null | "voice" | { file }
+  const [capture, setCapture] = useState(null); // null | "voice" | { file, previewUrl }
+  // null | { recap, text?, photos?, analyzing, analysis, failed }
+  const [conversation, setConversation] = useState(null);
   const photoInputRef = useRef(null);
 
   useEffect(() => {
@@ -1866,6 +1881,48 @@ function ConversationHome({ onStart }) {
     if (open && open.previewUrl) URL.revokeObjectURL(open.previewUrl);
   }, []);
 
+  // WP5: the analysis now runs on the canvas, so the understanding appears in place
+  // rather than only inside the sheet — and the result is handed onward instead of the
+  // same job being sent to the model a second time.
+  const beginConversation = async ({ recap, text, photos, analysis: precomputed }) => {
+    // The photo path already analyzed this exact photo to render its on-photo tag —
+    // reuse that result rather than asking the model the same question again.
+    if (precomputed) {
+      setConversation({ recap, text, photos, analyzing: false, analysis: precomputed, failed: false });
+      return;
+    }
+    setConversation({ recap, text, photos, analyzing: true, analysis: null, failed: false });
+    try {
+      const services = BASE_SERVICES.map((s) => ({ id: s.id, name: serviceInfo(s.id).name, category: s.cat, blurb: serviceInfo(s.id).blurb }));
+      const analysis = await analyzeJobRequest({
+        text,
+        photos: (photos || []).map((p) => p.file),
+        services,
+        locale: langCode,
+      });
+      setConversation((c) => (c ? { ...c, analyzing: false, analysis } : c));
+    } catch {
+      // Not a dead end: the customer can still continue into the sheet, which will
+      // analyze again. Silence here would be the worse failure (UX_PATTERNS.md names
+      // missing error handling as this app's biggest gap).
+      setConversation((c) => (c ? { ...c, analyzing: false, failed: true } : c));
+    }
+  };
+
+  const continueToSheet = () => {
+    const c = conversation;
+    setConversation(null);
+    onStart({ text: c.text, photos: c.photos, result: c.analysis });
+  };
+
+  // "Supply-line leak · Plumbing · Urgent" — the customer's own problem reflected back,
+  // structured. Only parts the model actually returned are shown.
+  const understandingLine = (analysis) => {
+    const service = analysis.matchedServiceId ? serviceInfo(analysis.matchedServiceId)?.name : null;
+    const urgency = analysis.urgency ? t[`convUrgency_${analysis.urgency}`] : null;
+    return [analysis.problem, service, urgency].filter(Boolean).join(" · ");
+  };
+
   return (
     <div className="conv-home">
       <div className="conv-greet">
@@ -1873,19 +1930,57 @@ function ConversationHome({ onStart }) {
         <div className="conv-hello">{firstName ? `${t.convWelcomeBack}, ${firstName}.` : t.convWelcome}</div>
       </div>
 
-      {capture === "voice" ? (
+      {conversation ? (
+        <UnfoldPanel>
+          <UnfoldItem>
+            <div className="conv-recap">{conversation.recap}</div>
+          </UnfoldItem>
+
+          {conversation.analyzing && (
+            <UnfoldItem>
+              <div className="conv-thinking"><Loader2 size={14} className="spin" /> {t.aiAnalyzing}</div>
+            </UnfoldItem>
+          )}
+
+          {conversation.analysis && (
+            <UnfoldItem>
+              <AIMessage label={t.aiAnalysisLabel} confidence={Math.round(conversation.analysis.confidence)}>
+                <div className="conv-understanding-line">{understandingLine(conversation.analysis)}</div>
+              </AIMessage>
+            </UnfoldItem>
+          )}
+
+          {conversation.failed && (
+            <UnfoldItem>
+              <div className="conv-thinking">{t.aiGenericError}</div>
+            </UnfoldItem>
+          )}
+
+          {!conversation.analyzing && (
+            <UnfoldItem delayIndex={1}>
+              <button type="button" className="btn-primary conv-continue" onClick={continueToSheet}>
+                {t.convContinue}
+              </button>
+            </UnfoldItem>
+          )}
+        </UnfoldPanel>
+      ) : capture === "voice" ? (
         <VoiceCapturePanel
-          onDone={(transcript) => { setCapture(null); onStart({ text: transcript }); }}
+          onDone={(transcript) => { setCapture(null); beginConversation({ recap: transcript, text: transcript }); }}
           onCancel={() => setCapture(null)}
         />
       ) : capture ? (
         <PhotoCapturePanel
           file={capture.file}
           previewUrl={capture.previewUrl}
-          // Ownership of previewUrl transfers to the sheet here — deliberately not
-          // revoked, since the sheet renders that exact URL. Cancelling instead goes
-          // through closeCapture, which does release it.
-          onDone={(file) => { setCapture(null); onStart({ photos: [{ file, previewUrl: capture.previewUrl }] }); }}
+          // Ownership of previewUrl transfers onward here — deliberately not revoked,
+          // since the conversation and then the sheet render that exact URL. Cancelling
+          // instead goes through closeCapture, which does release it.
+          onDone={(file, analysis) => {
+            const photo = { file, previewUrl: capture.previewUrl };
+            setCapture(null);
+            beginConversation({ recap: t.convPhotoRecap, photos: [photo], analysis });
+          }}
           onCancel={closeCapture}
         />
       ) : (
@@ -2103,6 +2198,18 @@ function QuoteFormSheet({ service, onClose, onSubmit }) {
 
 const AI_FOLLOWUP_ROUND_LIMIT = 2;
 
+// Shared by AiIntakeSheet's state initializers and its post-analysis handler, so a
+// result handed in from the conversation canvas populates the editable fields exactly
+// the way a result analyzed inside the sheet does.
+function editableFromResult(res) {
+  return {
+    serviceId: res?.matchedServiceId || null,
+    description: res?.description || "",
+    budget: res?.estimatedBudget ? String(res.estimatedBudget.max ?? res.estimatedBudget.min ?? "") : "",
+    when: res?.urgency === "low" ? "flexible" : "this_week",
+  };
+}
+
 // AI-guided alternative to QuoteFormSheet: describe a job by speaking, typing, and/or
 // attaching photos; one Claude call classifies it against klussie's real service
 // catalog and returns the same shape as the manual form (details/detailsJson/city/
@@ -2114,7 +2221,10 @@ const AI_FOLLOWUP_ROUND_LIMIT = 2;
 // so every existing call site is unaffected. initialPhotos arrive as { file, previewUrl }
 // with their preview URL already created — ownership transfers here rather than this
 // component minting a second URL for the same file.
-function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos = [] }) {
+// initialResult lets the canvas hand over an analysis it already ran (WP5) so the same
+// job isn't sent to the model twice. With one, the sheet opens straight at the stage
+// that result implies — follow-up questions if the model asked any, otherwise review.
+function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos = [], initialResult = null }) {
   const { t, langCode, BASE_SERVICES, serviceInfo } = useLang();
   const { profile } = useAuth();
   const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
@@ -2126,18 +2236,21 @@ function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos =
   const [photos, setPhotos] = useState(() => initialPhotos.map(({ file, previewUrl }) => ({ file, previewUrl })));
   const photoInputRef = useRef(null);
 
-  const [stage, setStage] = useState("compose"); // compose | followup | review
+  const seeded = editableFromResult(initialResult);
+  const [stage, setStage] = useState(
+    initialResult ? (initialResult.followUpQuestions?.length ? "followup" : "review") : "compose"
+  ); // compose | followup | review
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(initialResult);
   const [priorQA, setPriorQA] = useState([]);
   const [round, setRound] = useState(0);
 
-  const [editServiceId, setEditServiceId] = useState(null);
-  const [editDescription, setEditDescription] = useState("");
-  const [editBudget, setEditBudget] = useState("");
+  const [editServiceId, setEditServiceId] = useState(seeded.serviceId);
+  const [editDescription, setEditDescription] = useState(seeded.description);
+  const [editBudget, setEditBudget] = useState(seeded.budget);
   const [editCity, setEditCity] = useState(profile?.city || "");
-  const [editWhen, setEditWhen] = useState("this_week");
+  const [editWhen, setEditWhen] = useState(seeded.when);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -2185,10 +2298,11 @@ function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos =
   };
 
   const applyResultToEditable = (res) => {
-    setEditServiceId(res.matchedServiceId || null);
-    setEditDescription(res.description || "");
-    setEditBudget(res.estimatedBudget ? String(res.estimatedBudget.max ?? res.estimatedBudget.min ?? "") : "");
-    setEditWhen(res.urgency === "low" ? "flexible" : "this_week");
+    const next = editableFromResult(res);
+    setEditServiceId(next.serviceId);
+    setEditDescription(next.description);
+    setEditBudget(next.budget);
+    setEditWhen(next.when);
   };
 
   const runAnalysis = async (qaForThisCall) => {
@@ -3378,6 +3492,36 @@ const CSS = `
   width:26px; height:26px; border-radius:50%; background:var(--sage-bg); color:var(--forest-dark);
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
+
+/* ---- progressive reveal (Epic 03, WP6) ----
+   An animation rather than a transition, so each item plays exactly once when it
+   mounts. --motion-base is the only duration used; no new motion value is introduced
+   (docs/design/DESIGN_TOKENS.md owns the two that exist). */
+.unfold{ display:flex; flex-direction:column; gap:var(--space-3); }
+@keyframes unfold-in{
+  from{ opacity:0; transform:translateY(8px); }
+  to{ opacity:1; transform:none; }
+}
+.unfold-item{ animation:unfold-in var(--motion-base) ease-out both; }
+
+@media (prefers-reduced-motion: reduce){
+  /* Ships with the component, not as a later fix: the staging is the decoration here,
+     the content order carries the meaning. */
+  .unfold-item{ animation:none; }
+}
+
+.conv-recap{
+  align-self:flex-start; max-width:85%; background:var(--forest); color:#fff;
+  font-size:13px; line-height:1.45; padding:var(--space-2) var(--space-3);
+  border-radius:13px; border-bottom-left-radius:4px;
+}
+.conv-thinking{ display:flex; align-items:center; gap:var(--space-2); font-size:12.5px; color:var(--ink-soft); }
+/* --ink, not the --amber-text the HTML prototypes used: that token has never existed in
+   this codebase's :root, so referencing it silently fell back to an inherited grey at
+   roughly 2.2:1 on the amber tint. Same undefined-token trap DESIGN_TOKENS.md's audit
+   has now caught three times. --ink on --amber-bg is ~14:1. */
+.conv-understanding-line{ font-size:13px; font-weight:600; color:var(--ink); }
+.conv-continue{ margin-top:var(--space-1); }
 
 /* ---- voice + photo capture (Epic 03, WP3 + WP4) ---- */
 .conv-capture{ display:flex; flex-direction:column; gap:var(--space-3); }

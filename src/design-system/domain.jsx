@@ -30,6 +30,31 @@ export function TrustStrip({ items, label }) {
   );
 }
 
+// The progressive-reveal primitive (EXPERIENCE_VISION.md §10) that the canvas unfolds
+// through: recap → understanding → professional → booking.
+//
+// Design note, since no approved document specifies the API and three later work
+// packages depend on it: items animate on *mount*, not on a timer replaying a known
+// list. The prototype staggered four already-known items after one click, but in the
+// real flow each piece arrives when its data does — the recap immediately, the analysis
+// seconds later. Mount-driven animation makes the sequence fall out of real arrival
+// order, and `delayIndex` staggers the cases where several land in the same tick
+// (a professional card and its booking button, say). A CSS animation rather than a
+// transition is what makes "animate when you appear" work at all.
+export function UnfoldPanel({ children }) {
+  return <div className="unfold">{children}</div>;
+}
+
+const UNFOLD_STAGGER_MS = 90;
+
+export function UnfoldItem({ delayIndex = 0, children }) {
+  return (
+    <div className="unfold-item" style={{ animationDelay: `${delayIndex * UNFOLD_STAGGER_MS}ms` }}>
+      {children}
+    </div>
+  );
+}
+
 // Bars driven by a real 0..1 mic level. The per-bar multipliers give the row a
 // waveform shape instead of one uniform pulse, but every bar's height comes from the
 // same measured input — nothing here animates on its own (EXPERIENCE_VISION.md §7).

@@ -3,7 +3,34 @@
 // level, transcript building) can only be verified against controlled props here.
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { VoiceCapture, PhotoCapture } from "../domain.jsx";
+import { VoiceCapture, PhotoCapture, UnfoldPanel, UnfoldItem } from "../domain.jsx";
+
+describe("UnfoldPanel / UnfoldItem", () => {
+  it("renders items in the order given, so the sequence follows arrival order", () => {
+    const { container } = render(
+      <UnfoldPanel>
+        <UnfoldItem><span>recap</span></UnfoldItem>
+        <UnfoldItem><span>understanding</span></UnfoldItem>
+      </UnfoldPanel>
+    );
+    const texts = [...container.querySelectorAll(".unfold-item")].map((el) => el.textContent);
+    expect(texts).toEqual(["recap", "understanding"]);
+  });
+
+  it("staggers only when a caller asks for it, so a late arrival is not held back", () => {
+    const { container } = render(
+      <UnfoldPanel>
+        <UnfoldItem><span>first</span></UnfoldItem>
+        <UnfoldItem delayIndex={1}><span>second</span></UnfoldItem>
+      </UnfoldPanel>
+    );
+    const [a, b] = [...container.querySelectorAll(".unfold-item")];
+    // Default is no delay: an item that arrives on its own appears immediately rather
+    // than waiting on a position it never had.
+    expect(a.style.animationDelay).toBe("0ms");
+    expect(b.style.animationDelay).toBe("90ms");
+  });
+});
 
 const voiceLabels = {
   listeningLabel: "Listening",
