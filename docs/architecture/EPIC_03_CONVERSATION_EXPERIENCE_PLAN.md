@@ -55,13 +55,19 @@ flagged at its work package too; collected here so they don't get lost.
    until insurance verification exists (Epic 06). WP7 unblocked, with
    one sub-question left for that package: the minimum review count
    below which a rating aggregate is withheld rather than shown.
-3. **What "Book Peter" actually does to the data model (WP9).**
-   The approved flow is one button, no second-guessing. Today's schema
-   reaches `status = 'booked'` only via a `quotes` row transitioning
-   `sent → accepted` (`handle_quote_accepted()`). Whether booking from
-   the canvas creates request + quote + acceptance in one action, or
-   routes into the existing quote flow, is a real backend decision the
-   design documents don't make. Blocks WP9.
+3. ~~**What "Book Peter" actually does to the data model (WP9).**~~
+   **RESOLVED 2026-08-10 — [`../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md`](../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md).**
+   Neither original option survived: instant book would have had the
+   platform invent the professional's price (`quotes.price` is
+   `not null`, and the canvas has only an AI estimate range), and
+   routing into the quote flow would have deleted the approved Relief
+   state. One tap instead creates a *directed request* — binding on the
+   customer, carrying a pre-authorized ceiling — and the professional's
+   own response at or below that ceiling books it through the existing
+   `handle_quote_accepted()` path. WP9 unblocked, and it does now need
+   a migration, contrary to its original brief. Two things that ADR
+   leaves to WP9: what happens when a directed professional never
+   responds, and the truthful replacement for "arrives today."
 
 ## Dependency sequence
 
@@ -358,32 +364,46 @@ work belongs to Epic 09, not here.
 arrives today"), then a warm confirmation rather than a transactional
 receipt (§3, §4).
 
-**Dependencies.** WP8 (needs a selected professional); open question 3
-must be answered before this can be built.
+**Dependencies.** WP8 (needs a selected professional). Open question 3
+is resolved — see
+[`../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md`](../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md),
+which this package now implements.
 
-**Files affected.** `src/App.jsx` (booking handler in `CustomerApp`),
-likely `src/lib/requests.js` (a combined create-and-book helper, if
-that's the route chosen); no schema change is expected, but that
-depends on the answer to open question 3.
+**Files affected.** A new `supabase/migrations/` file (directed-professional
+reference, the new `service_requests.status` value, the pre-authorized
+ceiling) — the original brief expected no schema change, and ADR-0012
+resolved that the other way. Plus `src/App.jsx` (booking handler in
+`CustomerApp`) and `src/lib/requests.js` (a directed-request helper).
 
 **Acceptance criteria.**
-- Tapping book produces a real `service_requests` row that genuinely
-  reaches `status = 'booked'` through the existing state machine and
-  its triggers — including the `QuoteAccepted` / `RequestCreated`
-  domain events wired in Epic 01, which must still fire correctly.
-- The Relief state follows in place, on the same canvas — no navigation.
+- Tapping book produces a real directed `service_requests` row, visible
+  to the matched professional and to nobody else, and writes no `quotes`
+  row on their behalf.
+- A professional response at or below the customer's pre-authorized
+  ceiling reaches `status = 'booked'` through the *existing*
+  `handle_quote_accepted()` path, with the `QuoteAccepted` /
+  `RequestCreated` domain events wired in Epic 01 still firing
+  correctly and for real reasons.
+- The Relief state follows in place, on the same canvas — no navigation
+  — and claims only that the request is placed and this professional
+  has it. Not that the job is confirmed, and not when anyone arrives:
+  "arrives today" may not ship (ADR-0012).
 - Failure is handled with real copy, not a silent no-op
   (`UX_PATTERNS.md` names error handling as the app's biggest gap;
   don't widen it).
+- The unanswered-directed-request case is designed, not left to rot —
+  ADR-0012 names it and deliberately does not decide it.
 
-**Complexity.** L — the only package with real backend implications.
+**Complexity.** L — the only package with real backend implications,
+now including a migration.
 
-**Risks.** Highest-risk package in the epic. An "instant book" that
-bypasses the quote flow changes the marketplace's core assumption that
-a pro opts in by quoting before being committed to a job. That's a
-product decision with real consequences for professionals, not a UI
-detail — it needs an explicit answer (and plausibly its own ADR) before
-code.
+**Risks.** Still the highest-risk package in the epic, though the
+product question underneath it is settled: ADR-0012 rejected instant
+book precisely because it would have committed a professional to a job
+at a price the platform invented for them. The remaining risk is
+execution — a directed request has exactly one recipient, so the
+graceful degradation the many-quotes flow gave for free has to be built
+deliberately.
 
 ---
 
@@ -487,7 +507,7 @@ suggests while the patterns get established.
 | 6 | Progressive reveal | M | — |
 | 7 | Trust strip | S | **Open question 2** |
 | 8 | Professional recommendation card | M | — |
-| 9 | Booking transition | L | **Open question 3** |
+| 9 | Booking transition | L | Unblocked — [ADR-0012](../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md) |
 | 10 | Mobile polish | S | — |
 | 11 | Accessibility | M | — |
 | 12 | Testing | M | — |

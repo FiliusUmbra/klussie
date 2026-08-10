@@ -65,6 +65,16 @@ differentiator; voice and photo are.
 > historical record of what was approved; don't restore that signal
 > thinking it was dropped by accident.
 
+> **Update (2026-08-10) — see [`../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md`](../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md).**
+> The book button above reads "Book Peter — arrives today." **"arrives
+> today" does not ship**, and the button does not book the job outright.
+> One tap commits the *customer* to one named professional; that
+> professional's own response is still what books it, at their own
+> price. Nobody has committed to today at the moment this button is
+> tapped, and the pro-match card's "price" is an AI estimate range, not
+> a quote. As above, the prototype text is left unedited as the
+> historical record of what was approved.
+
 **Why the trust strip never moves.** It's present before a word is typed
 and still there after booking — trust isn't a stage in the flow here,
 it's the ground the whole flow stands on, which is the actual argument

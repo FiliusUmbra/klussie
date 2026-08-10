@@ -72,6 +72,7 @@ pointing at whatever replaced it.
 | [0009](0009-docs-folder-reorganization.md) | Reorganize `docs/` into category subfolders | Implemented |
 | [0010](0010-defer-permissions-layer-formalization.md) | Defer Permissions layer formalization until Trust & Safety needs it | Implemented (deferral) |
 | [0011](0011-trust-strip-shows-only-verified-signals.md) | The trust strip shows only signals backed by real data | Implemented |
+| [0012](0012-one-tap-booking-commits-the-customer-not-the-professional.md) | One-tap booking commits the customer, not the professional | Proposed |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see
