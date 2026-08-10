@@ -3393,6 +3393,22 @@ const CSS = `
 .statusbar{ display:flex; justify-content:space-between; padding:10px 26px 2px; font-size:12px; font-weight:600; color:var(--ink); direction:ltr; }
 .statusbar-dots{ letter-spacing:2px; opacity:0.5; }
 .screen{ position:relative; height:calc(100% - 26px); display:flex; flex-direction:column; }
+
+/* The phone frame is a demo shell — device chrome, not app UI (docs/design/DESIGN_TOKENS.md
+   draws the same distinction). At 390px fixed width it overflowed a real 375px phone
+   viewport by 8px, found in Epic 03's WP10 pass. On an actual phone the device is the
+   frame, so below this width the mockup gives way and the app goes full-bleed: no
+   border, no radius, no notch, and the real status bar replaces the painted one.
+   dvh rather than vh so mobile browser chrome collapsing doesn't leave a gap. */
+@media (max-width: 460px){
+  .stage{ padding:0; gap:0; min-height:100vh; min-height:100dvh; justify-content:flex-start; }
+  .phone{ width:100%; height:100vh; height:100dvh; border:none; border-radius:0; box-shadow:none; }
+  .notch, .statusbar{ display:none; }
+  .screen{ height:100%; }
+  /* The role/language switcher is demo scaffolding; keeping it above the app costs
+     vertical space that a real phone does not have to spare. */
+  .topbar{ display:none; }
+}
 .view{ flex:1; display:flex; flex-direction:column; min-height:0; }
 .content{ flex:1; overflow-y:auto; }
 .pad{ padding:18px 20px 30px; }
@@ -3473,7 +3489,9 @@ const CSS = `
 .star-picker button{ background:none; border:none; cursor:pointer; padding:0; }
 
 .tabbar{ display:flex; border-top:1px solid var(--line); background:var(--surface); padding:8px 6px 14px; }
-.tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; font-size:10px; color:var(--ink-soft); font-family:var(--font-body); font-weight:600; cursor:pointer; }
+/* min-height:44px — the tab was 38px tall, under the minimum touch target, on the one bar
+   every screen depends on to get anywhere (Epic 03 WP10). */
+.tab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:44px; gap:3px; background:none; border:none; font-size:10px; color:var(--ink-soft); font-family:var(--font-body); font-weight:600; cursor:pointer; }
 .tab-on{ color:var(--forest); }
 .tab-icon-wrap{ position:relative; }
 .tab-badge{ position:absolute; top:-5px; right:-8px; background:var(--amber); color:#fff; font-size:9px; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
@@ -3554,12 +3572,13 @@ const CSS = `
   display:flex; align-items:center; justify-content:center; margin-bottom:var(--space-1);
 }
 .conv-action-photo .conv-action-glyph{ background:var(--amber); }
-.conv-action-title{ font-size:13px; font-weight:700; color:var(--ink); }
+/* Two lines are reserved whether or not the title needs them, so the two tiles' subtitles
+   sit on the same baseline in every locale. Without this the layout depends on string
+   length: Dutch "Vertel het me gewoon" wraps while "Laat het me zien" doesn't, and the
+   subtitles fall out of alignment — a per-locale accident, not a design. */
+.conv-action-title{ font-size:13px; font-weight:700; color:var(--ink); line-height:1.3; min-height:2.6em; }
 .conv-action-sub{ font-size:11px; color:var(--ink-soft); line-height:1.35; }
 
-/* Deliberately quieter than the two tiles above — typing was never the differentiator
-   (docs/product/HOMEPAGE_DIRECTION.md). Still a real button: keyboard-reachable and
-   announced, not a decorative div. */
 /* No focus indicator existed anywhere in this app before Epic 03's WP11 audit: every
    interactive element computed outline:none, so keyboard users could reach controls but
    never see which one they were on. PRODUCT_CONSTITUTION.md Rule 6 requires every
@@ -3577,24 +3596,35 @@ const CSS = `
   overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
 
+/* Deliberately quieter than the two tiles above — typing was never the differentiator
+   (docs/product/HOMEPAGE_DIRECTION.md). Still a real button: keyboard-reachable and
+   announced, not a decorative div. */
 .conv-textrow{
   display:flex; align-items:center; gap:var(--space-2); width:100%;
   background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card);
-  border-radius:999px; padding:var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius:999px; padding:0 var(--space-2) 0 var(--space-4);
   text-align:left; min-height:44px;
   transition:box-shadow var(--motion-base);
 }
 .conv-textrow:focus-within{ box-shadow:0 3px 14px rgba(31,77,58,0.10); }
+/* align-self:stretch, so the field fills the pill's full height rather than sitting as a
+   16px band inside it. The pill reads as one tap target; before this, a tap on its
+   vertical padding — most of its area — landed on the form and focused nothing. */
 .conv-textrow-input{
-  flex:1; min-width:0; border:none; background:none; outline:none;
+  flex:1; min-width:0; align-self:stretch; border:none; background:none; outline:none;
   font-family:inherit; font-size:13px; color:var(--ink); padding:0;
 }
 .conv-textrow-input::placeholder{ color:var(--ink-soft); }
 .conv-textrow-send{
+  position:relative;
   width:32px; height:32px; border-radius:50%; background:var(--sage-bg); color:var(--forest-dark);
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
   border:none; cursor:pointer; transition:opacity var(--motion-fast);
 }
+/* The circle stays 32px — the approved design — while the touch target reaches the 44px
+   minimum. Growing the button itself would either burst the 44px pill or shrink its
+   padding, so the extra area is claimed invisibly around the circle instead. */
+.conv-textrow-send::after{ content:""; position:absolute; inset:-6px; border-radius:50%; }
 /* Disabled rather than erroring on an empty draft — nothing to say yet isn't a mistake. */
 .conv-textrow-send:disabled{ opacity:0.4; cursor:default; }
 

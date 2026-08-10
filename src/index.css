@@ -66,6 +66,14 @@ body {
   box-sizing: border-box;
 }
 
+/* The side rails frame the app against a wide desktop background. At phone widths there
+   is no background left to frame — they just take 2px off a screen that should be
+   full-bleed. Matches the max-width:460px breakpoint in App.jsx's stylesheet, which is
+   where the rest of the full-bleed treatment lives. */
+@media (max-width: 460px) {
+  #root { border-inline: 0; }
+}
+
 h1,
 h2 {
   font-family: var(--heading);
