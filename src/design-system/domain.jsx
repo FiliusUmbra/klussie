@@ -30,6 +30,37 @@ export function TrustStrip({ items, label }) {
   );
 }
 
+// The third way in: typing. Deliberately quieter than the two capture tiles above it —
+// HOMEPAGE_DIRECTION.md is explicit that typing "was never the differentiator", so this
+// stays a single low-key row rather than a second focal point.
+//
+// A real <form> with a real labelled input: the placeholder is a hint, not an accessible
+// name, and submitting on Enter is what anyone typing actually expects. An empty draft
+// disables the submit rather than raising an error — prevention over an error-state dead
+// end, given UX_PATTERNS.md already flags error copy as this app's weakest area.
+export function TextComposer({ value, onChange, onSubmit, placeholder, label, submitLabel, icon }) {
+  const empty = !value.trim();
+  return (
+    <form
+      className="conv-textrow"
+      onSubmit={(e) => { e.preventDefault(); if (!empty) onSubmit(); }}
+    >
+      <label className="visually-hidden" htmlFor="conv-composer">{label}</label>
+      <input
+        id="conv-composer"
+        className="conv-textrow-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      <button type="submit" className="conv-textrow-send" disabled={empty} aria-label={submitLabel}>
+        {icon}
+      </button>
+    </form>
+  );
+}
+
 // The recent-work slot EXPERIENCE_VISION.md §10 calls for on the professional-match
 // card — the one piece QuoteCard/TrustBadge/Avatar genuinely didn't already cover.
 // Renders nothing at all when a professional has no portfolio yet, which is the common

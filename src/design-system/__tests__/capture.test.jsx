@@ -2,8 +2,51 @@
 // blocks microphone access, so the successful listening path (bars reacting to a real
 // level, transcript building) can only be verified against controlled props here.
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { VoiceCapture, PhotoCapture, UnfoldPanel, UnfoldItem, RecentWorkStrip } from "../domain.jsx";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { VoiceCapture, PhotoCapture, UnfoldPanel, UnfoldItem, RecentWorkStrip, TextComposer } from "../domain.jsx";
+
+const composerLabels = { placeholder: "Or type it out…", label: "Describe your job", submitLabel: "Send" };
+
+describe("TextComposer", () => {
+  it("gives the input a real accessible name rather than relying on the placeholder", () => {
+    render(<TextComposer value="" onChange={() => {}} onSubmit={() => {}} {...composerLabels} />);
+    // getByLabelText only passes if the label is genuinely associated with the input.
+    const input = screen.getByLabelText("Describe your job");
+    expect(input.placeholder).toBe("Or type it out…");
+  });
+
+  it("blocks submission on an empty or whitespace-only draft without raising an error", () => {
+    const onSubmit = vi.fn();
+    const { container, rerender } = render(
+      <TextComposer value="" onChange={() => {}} onSubmit={onSubmit} {...composerLabels} />
+    );
+    expect(container.querySelector(".conv-textrow-send").disabled).toBe(true);
+
+    rerender(<TextComposer value="   " onChange={() => {}} onSubmit={onSubmit} {...composerLabels} />);
+    expect(container.querySelector(".conv-textrow-send").disabled).toBe(true);
+
+    // Submitting anyway (Enter in the field) must still be a no-op, not an error state.
+    container.querySelector("form").requestSubmit();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("submits a real draft, including via Enter rather than only the button", () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <TextComposer value="my sink leaks" onChange={() => {}} onSubmit={onSubmit} {...composerLabels} />
+    );
+    expect(container.querySelector(".conv-textrow-send").disabled).toBe(false);
+    container.querySelector("form").requestSubmit();
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  it("reports each keystroke to its caller, which owns the draft", () => {
+    const onChange = vi.fn();
+    render(<TextComposer value="" onChange={onChange} onSubmit={() => {}} {...composerLabels} />);
+    fireEvent.change(screen.getByLabelText("Describe your job"), { target: { value: "leak" } });
+    expect(onChange).toHaveBeenCalledWith("leak");
+  });
+});
 
 describe("RecentWorkStrip", () => {
   it("renders a thumbnail per portfolio item, captioned for screen readers", () => {

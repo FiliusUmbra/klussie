@@ -38,7 +38,7 @@ import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition, startAudioLevelMeter } from "./lib/aiIntake";
 import { translateMessage } from "./lib/translate";
-import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, UnfoldPanel, UnfoldItem, VoiceCapture, PhotoCapture, RecentWorkStrip, AIMessage, Timeline } from "./design-system";
+import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, UnfoldPanel, UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, AIMessage, Timeline } from "./design-system";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
@@ -145,7 +145,8 @@ const STRINGS = {
     convContinue:"Ga verder", convPhotoAlt:"Foto van je klus", convPhotoAnalyzing:"Even kijken...",
     convPhotoConfirm:"Dat is genoeg", convPhotoRetake:"Andere foto",
     convPhotoRecap:"Foto van de klus toegevoegd", convUrgency_low:"Kan wachten", convUrgency_medium:"Vrij dringend", convUrgency_high:"Dringend",
-    convRecentWork:"Recent werk", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
+    convRecentWork:"Recent werk",
+    convComposerLabel:"Beschrijf je klus", convSendLabel:"Versturen", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -238,7 +239,8 @@ const STRINGS = {
     convContinue:"Continuer", convPhotoAlt:"Photo de ton chantier", convPhotoAnalyzing:"Je regarde...",
     convPhotoConfirm:"C'est suffisant", convPhotoRetake:"Autre photo",
     convPhotoRecap:"Photo du chantier ajoutée", convUrgency_low:"Peut attendre", convUrgency_medium:"Assez urgent", convUrgency_high:"Urgent",
-    convRecentWork:"Travaux récents", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
+    convRecentWork:"Travaux récents",
+    convComposerLabel:"Décris ton chantier", convSendLabel:"Envoyer", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -331,7 +333,8 @@ const STRINGS = {
     convContinue:"Weiter", convPhotoAlt:"Foto deines Auftrags", convPhotoAnalyzing:"Einen Moment...",
     convPhotoConfirm:"Das genügt", convPhotoRetake:"Anderes Foto",
     convPhotoRecap:"Foto des Auftrags hinzugefügt", convUrgency_low:"Kann warten", convUrgency_medium:"Ziemlich dringend", convUrgency_high:"Dringend",
-    convRecentWork:"Aktuelle Arbeiten", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
+    convRecentWork:"Aktuelle Arbeiten",
+    convComposerLabel:"Beschreibe deinen Auftrag", convSendLabel:"Senden", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -424,7 +427,8 @@ const STRINGS = {
     convContinue:"Continue", convPhotoAlt:"Photo of your job", convPhotoAnalyzing:"Taking a look...",
     convPhotoConfirm:"That's enough", convPhotoRetake:"Different photo",
     convPhotoRecap:"Photo of the job added", convUrgency_low:"Can wait", convUrgency_medium:"Fairly urgent", convUrgency_high:"Urgent",
-    convRecentWork:"Recent work", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
+    convRecentWork:"Recent work",
+    convComposerLabel:"Describe your job", convSendLabel:"Send", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -517,7 +521,8 @@ const STRINGS = {
     convContinue:"متابعة", convPhotoAlt:"صورة العمل المطلوب", convPhotoAnalyzing:"ألقي نظرة...",
     convPhotoConfirm:"هذا يكفي", convPhotoRetake:"صورة أخرى",
     convPhotoRecap:"تمت إضافة صورة العمل", convUrgency_low:"يمكن الانتظار", convUrgency_medium:"عاجل نسبيًا", convUrgency_high:"عاجل",
-    convRecentWork:"أعمال حديثة", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
+    convRecentWork:"أعمال حديثة",
+    convComposerLabel:"صف العمل المطلوب", convSendLabel:"إرسال", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -610,7 +615,8 @@ const STRINGS = {
     convContinue:"Devam et", convPhotoAlt:"İşinin fotoğrafı", convPhotoAnalyzing:"Bir bakayım...",
     convPhotoConfirm:"Bu kadarı yeter", convPhotoRetake:"Başka fotoğraf",
     convPhotoRecap:"İşin fotoğrafı eklendi", convUrgency_low:"Bekleyebilir", convUrgency_medium:"Oldukça acil", convUrgency_high:"Acil",
-    convRecentWork:"Son işler", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
+    convRecentWork:"Son işler",
+    convComposerLabel:"İşini anlat", convSendLabel:"Gönder", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -703,7 +709,8 @@ const STRINGS = {
     convContinue:"Продолжить", convPhotoAlt:"Фото вашей задачи", convPhotoAnalyzing:"Смотрю...",
     convPhotoConfirm:"Этого достаточно", convPhotoRetake:"Другое фото",
     convPhotoRecap:"Фото задачи добавлено", convUrgency_low:"Может подождать", convUrgency_medium:"Довольно срочно", convUrgency_high:"Срочно",
-    convRecentWork:"Недавние работы", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
+    convRecentWork:"Недавние работы",
+    convComposerLabel:"Опишите задачу", convSendLabel:"Отправить", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -796,7 +803,8 @@ const STRINGS = {
     convContinue:"继续", convPhotoAlt:"你的活儿的照片", convPhotoAnalyzing:"我看看...",
     convPhotoConfirm:"这样就够了", convPhotoRetake:"换一张",
     convPhotoRecap:"已添加活儿的照片", convUrgency_low:"可以等等", convUrgency_medium:"比较急", convUrgency_high:"紧急",
-    convRecentWork:"近期作品", convEstimateLabel:"参考价", convNoProYet:"你附近暂时没有可接这类活儿的师傅。",
+    convRecentWork:"近期作品",
+    convComposerLabel:"描述你的活儿", convSendLabel:"发送", convEstimateLabel:"参考价", convNoProYet:"你附近暂时没有可接这类活儿的师傅。",
   },
 };
 
@@ -1837,6 +1845,7 @@ function ConversationHome({ onStart }) {
   const [capture, setCapture] = useState(null); // null | "voice" | { file, previewUrl }
   // null | { recap, text?, photos?, analyzing, analysis, failed }
   const [conversation, setConversation] = useState(null);
+  const [draft, setDraft] = useState("");
   const photoInputRef = useRef(null);
 
   useEffect(() => {
@@ -2074,10 +2083,15 @@ function ConversationHome({ onStart }) {
             <input ref={photoInputRef} type="file" accept="image/*" capture="environment" hidden onChange={pickPhoto} />
           </div>
 
-          <button type="button" className="conv-textrow" onClick={() => onStart({})}>
-            <span className="conv-textrow-label">{t.convTypeLabel}</span>
-            <span className="conv-textrow-send"><ChevronRight size={14} /></span>
-          </button>
+          <TextComposer
+            value={draft}
+            onChange={setDraft}
+            onSubmit={() => { const text = draft.trim(); setDraft(""); beginConversation({ recap: text, text }); }}
+            placeholder={t.convTypeLabel}
+            label={t.convComposerLabel}
+            submitLabel={t.convSendLabel}
+            icon={<ChevronRight size={14} />}
+          />
         </>
       )}
 
@@ -3546,19 +3560,34 @@ const CSS = `
 /* Deliberately quieter than the two tiles above — typing was never the differentiator
    (docs/product/HOMEPAGE_DIRECTION.md). Still a real button: keyboard-reachable and
    announced, not a decorative div. */
+/* Available to any component needing a label that screen readers get and sighted users
+   don't. Clip-based rather than display:none, which would hide it from assistive tech
+   as well and defeat the point. */
+.visually-hidden{
+  position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+  overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
 .conv-textrow{
   display:flex; align-items:center; gap:var(--space-2); width:100%;
   background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card);
-  border-radius:999px; padding:var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-  cursor:pointer; text-align:left; min-height:44px;
+  border-radius:999px; padding:var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  text-align:left; min-height:44px;
   transition:box-shadow var(--motion-base);
 }
-.conv-textrow:hover{ box-shadow:0 3px 14px rgba(31,77,58,0.10); }
-.conv-textrow-label{ flex:1; font-size:13px; color:var(--ink-soft); }
-.conv-textrow-send{
-  width:26px; height:26px; border-radius:50%; background:var(--sage-bg); color:var(--forest-dark);
-  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+.conv-textrow:focus-within{ box-shadow:0 3px 14px rgba(31,77,58,0.10); }
+.conv-textrow-input{
+  flex:1; min-width:0; border:none; background:none; outline:none;
+  font-family:inherit; font-size:13px; color:var(--ink); padding:0;
 }
+.conv-textrow-input::placeholder{ color:var(--ink-soft); }
+.conv-textrow-send{
+  width:32px; height:32px; border-radius:50%; background:var(--sage-bg); color:var(--forest-dark);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  border:none; cursor:pointer; transition:opacity var(--motion-fast);
+}
+/* Disabled rather than erroring on an empty draft — nothing to say yet isn't a mistake. */
+.conv-textrow-send:disabled{ opacity:0.4; cursor:default; }
 
 /* ---- progressive reveal (Epic 03, WP6) ----
    An animation rather than a transition, so each item plays exactly once when it
