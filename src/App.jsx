@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useContext, createContext } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Search, Star, MapPin, ChevronRight, X, Check, User, Home, ClipboardList,
   MessageCircle, Send, Briefcase, TrendingUp, ThumbsUp, Clock, ShieldCheck, Globe, BadgeCheck, LogOut, Mail, Lock, Camera,
   Mic, Sparkles, Loader2, AlertTriangle,
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./lib/auth.jsx";
+import { LangContext, useLang } from "./lib/lang";
 import { fetchCatalog } from "./lib/catalog";
 import {
   createServiceRequest,
@@ -813,11 +814,6 @@ const STRINGS = {
 const PLATFORM_COMMISSION_RATE = 0.12;
 const FLEXI_TAX_FREE_THRESHOLD = 18440;
 const BOOST_WEEKLY_PRICE = 9;
-
-/* --------------------------------- CONTEXT --------------------------------- */
-
-const LangContext = createContext(null);
-function useLang() { return useContext(LangContext); }
 
 /* --------------------------------- HELPERS --------------------------------- */
 
@@ -1779,9 +1775,9 @@ function VoiceCapturePanel({ onDone, onCancel }) {
 }
 
 // WP4. Runs the analysis needed for the on-photo confidence tag (Fig. 5), then hands
-// the file onward. Note: the interim handoff to AiIntakeSheet re-analyzes, so the photo
-// path currently costs two AI calls — acceptable only because this whole handoff is
-// scaffolding that WP5/WP6 delete, not a permanent shape.
+// the file onward together with that analysis. WP5 made the canvas reuse it rather than
+// re-asking the model, so the photo path costs one AI call, not two — pinned by
+// "asks the model about the photo exactly once" in src/__tests__/conversationHome.test.jsx.
 // previewUrl is created by whoever picked the file and revoked by that same owner, not
 // here. Creating it in this component and revoking it from a cleanup breaks under
 // StrictMode's double-invoke — the first cleanup revokes the only URL and the image is
@@ -1838,7 +1834,10 @@ function PhotoCapturePanel({ file, previewUrl, onDone, onCancel }) {
 // input is handed to the existing AiIntakeSheet, pre-filled, and that finishes the job.
 // That handoff is scaffolding those later packages remove; it exists so every commit
 // leaves a working request path rather than a flow that dead-ends after "Got it."
-function ConversationHome({ onStart }) {
+// Exported for WP12's state-machine tests. The six states in EXPERIENCE_VISION.md §4 are
+// this component's internal state rather than routes, so they're only reachable by
+// driving the component itself — there is no pure module to test instead.
+export function ConversationHome({ onStart }) {
   const { t, fmt, langCode, proBadgeLabel, BASE_SERVICES, serviceInfo } = useLang();
   const { profile } = useAuth();
   const [trust, setTrust] = useState(null);
