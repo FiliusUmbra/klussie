@@ -92,8 +92,16 @@ export function RecentWorkStrip({ items, label }) {
 // order, and `delayIndex` staggers the cases where several land in the same tick
 // (a professional card and its booking button, say). A CSS animation rather than a
 // transition is what makes "animate when you appear" work at all.
-export function UnfoldPanel({ children }) {
-  return <div className="unfold">{children}</div>;
+// aria-live is the point of this container, not decoration. The whole mechanic is
+// content appearing over time; without it, a screen-reader user hears the recap once and
+// then silence while the analysis, the professional, and the booking control all arrive
+// unannounced. Polite rather than assertive: none of this should interrupt mid-sentence.
+export function UnfoldPanel({ children, label }) {
+  return (
+    <div className="unfold" aria-live="polite" aria-label={label}>
+      {children}
+    </div>
+  );
 }
 
 const UNFOLD_STAGGER_MS = 90;
@@ -156,8 +164,12 @@ export function PhotoCapture({ previewUrl, analyzing, tag, alt, analyzingLabel, 
     <div className="photo-capture">
       <div className="photo-capture-frame">
         {previewUrl && <img src={previewUrl} alt={alt} className="photo-capture-img" />}
-        {analyzing && <span className="photo-capture-tag photo-capture-tag-pending">{analyzingLabel}</span>}
-        {!analyzing && tag && <span className="photo-capture-tag">{tag}</span>}
+        {/* The tag going from "looking at it" to a real reading is a state change, so it
+            is announced rather than only appearing over the image. */}
+        <span aria-live="polite">
+          {analyzing && <span className="photo-capture-tag photo-capture-tag-pending">{analyzingLabel}</span>}
+          {!analyzing && tag && <span className="photo-capture-tag">{tag}</span>}
+        </span>
       </div>
       <div className="photo-capture-actions">
         <button type="button" className="photo-capture-retake" onClick={onRetake}>{retakeLabel}</button>

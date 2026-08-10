@@ -86,6 +86,19 @@ describe("UnfoldPanel / UnfoldItem", () => {
     expect(texts).toEqual(["recap", "understanding"]);
   });
 
+  it("is a labelled polite live region, so stages arriving later are announced", () => {
+    const { container } = render(
+      <UnfoldPanel label="Progress of your request">
+        <UnfoldItem><span>recap</span></UnfoldItem>
+      </UnfoldPanel>
+    );
+    const panel = container.querySelector(".unfold");
+    // Without this the whole mechanic is silent for screen-reader users: they hear the
+    // first item and nothing as the analysis and professional arrive.
+    expect(panel.getAttribute("aria-live")).toBe("polite");
+    expect(panel.getAttribute("aria-label")).toBe("Progress of your request");
+  });
+
   it("staggers only when a caller asks for it, so a late arrival is not held back", () => {
     const { container } = render(
       <UnfoldPanel>
@@ -176,6 +189,14 @@ describe("PhotoCapture", () => {
     // The tag being a descendant of the frame is what keeps proof and evidence together.
     expect(frame.contains(tag)).toBe(true);
     expect(tag.textContent).toBe("Bosch · 94%");
+  });
+
+  it("announces the tag going from analysing to a real reading", () => {
+    const { container } = render(<PhotoCapture previewUrl="blob:fake" analyzing tag={null} {...photoLabels} />);
+    const live = container.querySelector("[aria-live]");
+    expect(live).not.toBeNull();
+    expect(live.getAttribute("aria-live")).toBe("polite");
+    expect(live.textContent).toContain("Taking a look...");
   });
 
   it("blocks confirmation while the photo is still being analyzed", () => {

@@ -7,9 +7,13 @@
 // there's exactly one place those values live (Product Constitution, rule 8).
 import { Star } from "lucide-react";
 
+// Both branches are decorative: the photo has empty alt, and the initials are a visual
+// shorthand for a name that is always rendered next to it. Without aria-hidden a screen
+// reader announces "PP" and then "Peter Painter" — found during Epic 03's WP11 audit,
+// where the initials were being read into the unfold's live region.
 export function Avatar({ url, initials, size }) {
   return (
-    <div className={"avatar" + (size ? ` avatar-${size}` : "")}>
+    <div className={"avatar" + (size ? ` avatar-${size}` : "")} aria-hidden="true">
       {url ? <img src={url} alt="" /> : initials}
     </div>
   );

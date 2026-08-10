@@ -146,7 +146,7 @@ const STRINGS = {
     convPhotoConfirm:"Dat is genoeg", convPhotoRetake:"Andere foto",
     convPhotoRecap:"Foto van de klus toegevoegd", convUrgency_low:"Kan wachten", convUrgency_medium:"Vrij dringend", convUrgency_high:"Dringend",
     convRecentWork:"Recent werk",
-    convComposerLabel:"Beschrijf je klus", convSendLabel:"Versturen", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
+    convComposerLabel:"Beschrijf je klus", convProgressLabel:"Voortgang van je aanvraag", convSendLabel:"Versturen", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
@@ -240,7 +240,7 @@ const STRINGS = {
     convPhotoConfirm:"C'est suffisant", convPhotoRetake:"Autre photo",
     convPhotoRecap:"Photo du chantier ajoutée", convUrgency_low:"Peut attendre", convUrgency_medium:"Assez urgent", convUrgency_high:"Urgent",
     convRecentWork:"Travaux récents",
-    convComposerLabel:"Décris ton chantier", convSendLabel:"Envoyer", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
+    convComposerLabel:"Décris ton chantier", convProgressLabel:"Avancement de ta demande", convSendLabel:"Envoyer", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
@@ -334,7 +334,7 @@ const STRINGS = {
     convPhotoConfirm:"Das genügt", convPhotoRetake:"Anderes Foto",
     convPhotoRecap:"Foto des Auftrags hinzugefügt", convUrgency_low:"Kann warten", convUrgency_medium:"Ziemlich dringend", convUrgency_high:"Dringend",
     convRecentWork:"Aktuelle Arbeiten",
-    convComposerLabel:"Beschreibe deinen Auftrag", convSendLabel:"Senden", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
+    convComposerLabel:"Beschreibe deinen Auftrag", convProgressLabel:"Fortschritt deiner Anfrage", convSendLabel:"Senden", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
@@ -428,7 +428,7 @@ const STRINGS = {
     convPhotoConfirm:"That's enough", convPhotoRetake:"Different photo",
     convPhotoRecap:"Photo of the job added", convUrgency_low:"Can wait", convUrgency_medium:"Fairly urgent", convUrgency_high:"Urgent",
     convRecentWork:"Recent work",
-    convComposerLabel:"Describe your job", convSendLabel:"Send", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
+    convComposerLabel:"Describe your job", convProgressLabel:"Progress of your request", convSendLabel:"Send", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
@@ -522,7 +522,7 @@ const STRINGS = {
     convPhotoConfirm:"هذا يكفي", convPhotoRetake:"صورة أخرى",
     convPhotoRecap:"تمت إضافة صورة العمل", convUrgency_low:"يمكن الانتظار", convUrgency_medium:"عاجل نسبيًا", convUrgency_high:"عاجل",
     convRecentWork:"أعمال حديثة",
-    convComposerLabel:"صف العمل المطلوب", convSendLabel:"إرسال", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
+    convComposerLabel:"صف العمل المطلوب", convProgressLabel:"تقدّم طلبك", convSendLabel:"إرسال", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
@@ -616,7 +616,7 @@ const STRINGS = {
     convPhotoConfirm:"Bu kadarı yeter", convPhotoRetake:"Başka fotoğraf",
     convPhotoRecap:"İşin fotoğrafı eklendi", convUrgency_low:"Bekleyebilir", convUrgency_medium:"Oldukça acil", convUrgency_high:"Acil",
     convRecentWork:"Son işler",
-    convComposerLabel:"İşini anlat", convSendLabel:"Gönder", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
+    convComposerLabel:"İşini anlat", convProgressLabel:"Talebinin ilerlemesi", convSendLabel:"Gönder", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
@@ -710,7 +710,7 @@ const STRINGS = {
     convPhotoConfirm:"Этого достаточно", convPhotoRetake:"Другое фото",
     convPhotoRecap:"Фото задачи добавлено", convUrgency_low:"Может подождать", convUrgency_medium:"Довольно срочно", convUrgency_high:"Срочно",
     convRecentWork:"Недавние работы",
-    convComposerLabel:"Опишите задачу", convSendLabel:"Отправить", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
+    convComposerLabel:"Опишите задачу", convProgressLabel:"Ход вашей заявки", convSendLabel:"Отправить", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
@@ -804,7 +804,7 @@ const STRINGS = {
     convPhotoConfirm:"这样就够了", convPhotoRetake:"换一张",
     convPhotoRecap:"已添加活儿的照片", convUrgency_low:"可以等等", convUrgency_medium:"比较急", convUrgency_high:"紧急",
     convRecentWork:"近期作品",
-    convComposerLabel:"描述你的活儿", convSendLabel:"发送", convEstimateLabel:"参考价", convNoProYet:"你附近暂时没有可接这类活儿的师傅。",
+    convComposerLabel:"描述你的活儿", convProgressLabel:"你的请求进度", convSendLabel:"发送", convEstimateLabel:"参考价", convNoProYet:"你附近暂时没有可接这类活儿的师傅。",
   },
 };
 
@@ -1964,7 +1964,7 @@ function ConversationHome({ onStart }) {
       </div>
 
       {conversation ? (
-        <UnfoldPanel>
+        <UnfoldPanel label={t.convProgressLabel}>
           <UnfoldItem>
             <div className="conv-recap">{conversation.recap}</div>
           </UnfoldItem>
@@ -3560,6 +3560,15 @@ const CSS = `
 /* Deliberately quieter than the two tiles above — typing was never the differentiator
    (docs/product/HOMEPAGE_DIRECTION.md). Still a real button: keyboard-reachable and
    announced, not a decorative div. */
+/* No focus indicator existed anywhere in this app before Epic 03's WP11 audit: every
+   interactive element computed outline:none, so keyboard users could reach controls but
+   never see which one they were on. PRODUCT_CONSTITUTION.md Rule 6 requires every
+   interactive element be keyboard-reachable, and reachable-but-invisible does not meet
+   it. Global rather than scoped to this epic's components — the gap is app-wide, and
+   fixing only the new screens would leave the rest inconsistent.
+   :focus-visible, so it appears for keyboard use without ringing on every mouse click. */
+:focus-visible{ outline:2px solid var(--forest); outline-offset:2px; border-radius:4px; }
+
 /* Available to any component needing a label that screen readers get and sighted users
    don't. Clip-based rather than display:none, which would hide it from assistive tech
    as well and defeat the point. */
