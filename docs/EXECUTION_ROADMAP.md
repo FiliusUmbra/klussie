@@ -115,22 +115,32 @@ a written incident-response runbook exists for "production is down" and
 completed and approved (`adr/0007`, `adr/0008`) after `ROADMAP.md` was
 written, and is genuinely ready to build now rather than waiting for a
 later phase slot.
-**Status:** Planning complete, implementation not started (2026-08-06).
-The engineering execution plan — 12 work packages with scope,
-dependencies, files, acceptance criteria, complexity, and risks — is
-[`architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md`](./architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md).
-Zero application code written yet: `VoiceCapture`, `PhotoCapture`,
-`TrustStrip`, and `UnfoldPanel` (`product/EXPERIENCE_VISION.md` §10)
-still don't exist in `src/design-system/`.
+**Status:** Implemented (2026-08-11). All 12 work packages in
+[`architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md`](./architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md)
+are built, plus a homepage evolution beyond WP1's Rest state (see that
+document's "What shipped beyond the plan"). `VoiceCapture`,
+`PhotoCapture`, `TrustStrip`, and `UnfoldPanel`
+(`product/EXPERIENCE_VISION.md` §10) all exist in
+`src/design-system/`, joined by `SegmentedTabs`. The homepage itself
+lives in `src/home/`, not `src/App.jsx`.
+
+**Still open in this epic:** real photography (the hero ships a locally
+authored SVG stand-in — `design/ILLUSTRATION_GUIDELINES.md` still
+records zero photography assets), the My Home / My Items schema
+(`ROADMAP.md` Phase 13, so out of this epic's scope by design), and the
+returning-user question below.
 
 **Entry criteria:** none beyond Epic 01's Core Platform groundwork
 being stable — this is client-side UI work, not dependent on payments,
 trust & safety, or any other business-logic epic.
 **Exit criteria:** the Discover tab's category grid is no longer the
-first thing a customer sees; the six-state canvas
-(`product/EXPERIENCE_VISION.md` §4) is real and navigable end to end;
-the one open question in `product/HOMEPAGE_DIRECTION.md` (returning-user
-behavior) is resolved, not deferred silently.
+first thing a customer sees (**met**); the six-state canvas
+(`product/EXPERIENCE_VISION.md` §4) is real and navigable end to end
+(**met**); the one open question in `product/HOMEPAGE_DIRECTION.md`
+(returning-user behavior) is resolved, not deferred silently
+(**met** — a returning customer now gets "Vandaag voor jouw woning"
+ranked from their real requests, plus an "in progress right now" list;
+the trust strip does not move, per that document's own argument).
 **Key docs:** `architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md`
 (the work-package breakdown — read this first when implementing),
 `product/HOMEPAGE_DIRECTION.md`, `product/EXPERIENCE_VISION.md`,

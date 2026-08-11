@@ -17,14 +17,14 @@ priorities, risks, debt, decisions. It does not own product philosophy
 - **Current milestone:** Phase 1 — Foundation, In Progress. (§2)
 - **Current priorities:** Core Platform extraction, Design System
   migration, event-bus wiring. Full list: (§8)
-- **Biggest technical debt:** no automated tests, no TypeScript, `App.jsx`
-  at 2,823 lines. Full list: (§12)
-- **Biggest project risks:** no payment system, no automated tests,
+- **Biggest technical debt:** no TypeScript, no CI, `App.jsx` still at
+  3,459 lines. Full list: (§12)
+- **Biggest project risks:** no payment system, no CI gate,
   single-maintainer project. Full list: (§13)
 - **Protected architecture:** never bypass the AI Gateway, never expose AI
   keys client-side, never put business logic in UI. Full list: (§17)
 - **Next implementation task:** event-bus wiring into existing
-  request/quote/message flows. (§9)
+  request/quote/message flows, then Phase 2. (§9)
 
 ### Document map
 
@@ -53,6 +53,7 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `architecture/API_SPEC.md` | API contracts (internal + future public API) | Implemented |
 | `engineering/SECURITY.md` | Threat model, security posture | Implemented |
 | `product/MONETIZATION.md` | Revenue model, commission structure | Implemented |
+| `design/` companion set | Tokens, components, layout, responsive, UX patterns, animation, accessibility, copy, iconography, illustration, governance, white-label — see `design/README.md` | Implemented |
 
 Don't link to a `Planned` row as if it exists. When a section below needs
 detail that belongs in one of them, treat it as a reason to write that
@@ -114,17 +115,22 @@ professional who can solve it. Full vision: §5.
 
 ```
 Current Milestone     Execution Roadmap Epic 03 — Conversation Experience
-Status                Planning complete, implementation not started
-Current Objective     Implement the approved conversational homepage per
-                       architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md
-                       (12 work packages; 3 open questions block WP1/7/9)
+Status                Implemented (2026-08-11)
+Current Objective     Done: all 12 work packages of
+                       architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md, plus
+                       the intent-first homepage evolution on top of WP1's Rest
+                       state (hero, section tabs, intent-before-input-method,
+                       "today for your home", My Home / My Items, first-login
+                       tour). All 3 originally-blocking open questions resolved
+                       (ADR-0011, ADR-0012, and Discover retained-not-deleted).
+                       Next objective is Phase 2 (Testing/CI/TypeScript)
 Previous Milestone    Epic 01 — Foundation Completion: FROZEN 2026-08-06 at
                        commit 91a2ee4. Domain event bus (5 of 9 events) live
                        in production; Permissions layer deferred (ADR-0010);
                        Vitest harness real and passing. TypeScript, CI,
                        staging project, Playwright, and the release pipeline
                        remain undone — frozen, not finished
-Current Branch        phase-1-ui-redesign (20 commits ahead of main, pushed)
+Current Branch        phase-1-ui-redesign (ahead of main; Epic 03 commit local, not pushed)
 Next Deliverable      Event-bus wiring into existing request/quote/message
                        flows, then Phase 2 (Testing, CI, TypeScript, Release
                        Strategy) — application work, separate from the
@@ -156,7 +162,7 @@ disagrees with this table, this table wins.
 | Payments | Planned. Commission is a display-only constant on a demo invoice; no integration implemented |
 | Auth | Implemented — Supabase Auth, email/password. Every AI endpoint requires a session and is rate-limited |
 | Repository structure | See [`README.md`](../README.md#repository-structure) for the canonical layout — not duplicated here. Current layout does **not** match the target described in §6 |
-| Testing | Planned — no test suite implemented |
+| Testing | In Progress — Vitest + React Testing Library, 231 tests across 10 files covering `src/lib` helpers and the customer homepage. No E2E, no CI runner |
 | Core Platform | 3 of 11 layers Implemented (Auth, AI Gateway) or In Progress (Permissions). 8 layers Planned: Payments, Matching, Messaging, Notifications, Storage, Analytics, Marketplace Engine, API |
 
 ---
@@ -175,13 +181,13 @@ disagrees with this table, this table wins.
 | Documentation | Implemented — 23 of 23 Document Map rows implemented, integrity-audited (`IMPLEMENTATION_READINESS_REVIEW.md`); Foundation Freeze complete (9 of 9 phases) | Keep current as reality changes going forward; next structural addition is `company/`, whenever a real need for it exists | New baseline | Unassigned |
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
-| Accessibility | Planned — not yet audited | Constitution Rule 6 formally verified | New baseline | Unassigned |
-| Testing | Planned — 0% coverage, no test suite implemented | Defined in Phase 2 | New baseline | Unassigned |
-| Design System | In Progress — 14 components implemented, most of `App.jsx` unmigrated | Full adoption, dark mode, white-label tokens | New baseline | Unassigned |
+| Accessibility | In Progress — `design/ACCESSIBILITY.md` audit done; Epic 03 added a global focus ring, a real focus trap + focus restoration on `Modal`, live regions, ARIA tablist semantics, and 44px touch targets on new surfaces. Older screens not re-audited | Constitution Rule 6 formally verified | Improving | Unassigned |
+| Testing | In Progress — 231 tests, 10 files; critical `src/lib` logic and the homepage covered, most of `App.jsx` not | Defined in Phase 2 | Improving | Unassigned |
+| Design System | In Progress — 21 components implemented (Epic 03 added TrustStrip, UnfoldPanel/UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, SegmentedTabs/TabPanel); most of `App.jsx` still unmigrated | Full adoption, dark mode, white-label tokens | Improving | Unassigned |
 | AI | In Progress — AI Gateway, intake, translation implemented | Full capability routing + eval automation | New baseline | Unassigned |
 | Marketplace Engine | In Progress — SQL-function matching implemented, no ranking/geo | Real Marketplace Engine implemented | New baseline | Unassigned |
 | Payment Engine | Planned — no integration implemented | Stripe Connect implemented | New baseline | Unassigned |
-| Developer Experience | In Progress — one 2,823-line file, no types, no tests | Modular, typed, tested | New baseline | Unassigned |
+| Developer Experience | In Progress — `App.jsx` down to 3,459 lines with the homepage extracted to `src/home/`; no types; tests real but partial | Modular, typed, tested | Improving | Unassigned |
 | Deployment | Implemented — working Vercel pipeline, both apps | CI gate before deploy implemented | New baseline | Unassigned |
 | Infrastructure | Planned — no queue, no cache, single region | Defined once scale requires it (§16) | New baseline | Unassigned |
 
@@ -353,13 +359,14 @@ Principles and KPIs are not alternatives. A feature needs a reason
 
 | Severity | Item | Impact | Recommended Fix | Phase | Priority |
 |---|---|---|---|---|---|
-| 🔴 Critical | No automated tests | Every change risks a silent regression in production | Stand up a test runner + critical-path coverage | Phase 2 | P0 |
+| 🟠 High | No CI pipeline | Tests exist (231) but nothing runs them on a merge or deploy, so a regression still reaches production unnoticed | Add a CI gate on lint + test + build | Phase 2 | P0 |
 | 🟠 High | No TypeScript | Type errors reach production undetected | Incremental adoption, smallest/most-depended-on files first | Phase 2 | P1 |
-| 🟠 High | `App.jsx` at 2,823 lines | High change-collision risk, slow review, slow onboarding | Split into feature modules as each area gets touched | Phase 1→2 | P1 |
+| 🟠 High | `App.jsx` at 3,459 lines | High change-collision risk, slow review, slow onboarding | Split into feature modules as each area gets touched — the customer homepage moved to `src/home/` in Epic 03; the pro app and the sheets are the next candidates | Phase 1→2 | P1 |
 | 🟠 High | No payment system | No real revenue path | Stripe Connect integration | Phase 4 | P1 |
 | 🟡 Medium | Commission math + trust score inline in `App.jsx` | Violates §17 Protected Decisions; hard to reuse/test | Move to a Core Platform module | Phase 1 | P2 |
 | 🟡 Medium | Design System migration incomplete | Visual inconsistency, duplicated markup | Migrate remaining screens opportunistically | Phase 1 | P2 |
 | 🟡 Medium | `pro_matches_request()` is a bare SQL function | No ranking/availability/geo, limits match quality | Build the real Marketplace Engine | Phase 5 | P2 |
+| 🟡 Medium | `awaiting_pro` status leaks to the UI untranslated | `StatusPill`'s map in `src/App.jsx` has no case for the status a directed request sits in (ADR-0012), so its fallback renders the raw enum value — a customer who used one-tap booking sees `awaiting_pro` in `RequestsList` and `RequestDetailSheet` in all 8 locales | Add a `statusAwaitingPro` key across all 8 locales and map it; wording must not imply the job is booked, since ADR-0012 commits the customer, not the professional. Check `REQUEST_STATUS_ORDER` and the detail timeline for the same gap | Phase 1 | P2 |
 | 🟢 Low | Browser Web Speech API for voice intake | Inconsistent quality across browsers/mobile | Evaluate Whisper or similar | Phase 9 | P3 |
 | 🟢 Low | Categories/services hardcoded seed data | Adding a service needs a deploy, not a config change | Marketplace Engine configurable taxonomy | Phase 5 | P3 |
 
@@ -372,7 +379,7 @@ detail.
 
 **High**
 - No revenue path yet — payments are entirely Planned, not implemented.
-- No automated tests — a bad deploy could reach production unnoticed.
+- No CI — tests exist but nothing gates a merge or deploy on them.
 - Single-maintainer project — no redundancy on any system.
 
 **Medium**
@@ -423,9 +430,12 @@ so this section doesn't duplicate a source of truth (Constitution Rule
 | [0004](./adr/0004-domain-events-via-security-definer-rpc.md) | Route domain events through `emit_domain_event()` RPC | Implemented |
 | [0005](./adr/0005-testing-ci-disaster-recovery-before-payments.md) | Move Testing/CI/Disaster Recovery ahead of Payments in the roadmap | Implemented |
 | [0006](./adr/0006-design-direction-lock.md) | Design Direction Lock: evolve the warm identity, reject the cooler SaaS-dashboard register | Implemented |
-| [0007](./adr/0007-conversational-homepage-ia.md) | Conversational-first homepage over marketplace/category-grid IA | Implemented (design direction) |
-| [0008](./adr/0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Implemented (design direction) |
+| [0007](./adr/0007-conversational-homepage-ia.md) | Conversational-first homepage over marketplace/category-grid IA | Implemented (built, Epic 03) |
+| [0008](./adr/0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Implemented (built as homepage sections, not a nav destination — Epic 03) |
 | [0009](./adr/0009-docs-folder-reorganization.md) | Reorganize `docs/` into category subfolders | Implemented |
+| [0010](./adr/0010-defer-permissions-layer-formalization.md) | Defer formalizing the Permissions layer | Implemented |
+| [0011](./adr/0011-trust-strip-shows-only-verified-signals.md) | The trust strip shows only signals backed by real data | Implemented (built, Epic 03 WP7) |
+| [0012](./adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md) | One-tap booking commits the customer, not the professional | Implemented (built, Epic 03 WP9) |
 
 ---
 
@@ -504,4 +514,4 @@ instinct should be: **"I'll open Klussie."**
 
 ---
 
-*Version 1.5 — 2026-08-05 (AI Session Instructions: added the design-docs read step)*
+*Version 1.6 — 2026-08-11 (Epic 03 implemented: milestone, testing/accessibility/design-system status, ADR index 0010–0012, technical debt refreshed against the real codebase)*

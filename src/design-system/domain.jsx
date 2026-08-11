@@ -3,7 +3,7 @@
 // logic and no data-fetching of their own — callers pass in already-resolved values
 // (translated labels, formatted numbers), keeping these components pure presentation.
 // See docs/engineering/ENGINEERING_STANDARDS.md, "no business logic in UI."
-import { Sparkles, BadgeCheck } from "lucide-react";
+import { Sparkles, BadgeCheck, Mic, Camera } from "lucide-react";
 import { Rating } from "./primitives.jsx";
 
 export function TicketTear() {
@@ -30,30 +30,71 @@ export function TrustStrip({ items, label }) {
   );
 }
 
-// The third way in: typing. Deliberately quieter than the two capture tiles above it —
-// HOMEPAGE_DIRECTION.md is explicit that typing "was never the differentiator", so this
-// stays a single low-key row rather than a second focal point.
+// The composer: one row that accepts all three answer methods.
+//
+// Typing, speaking and showing a photo now sit together rather than typing being a
+// quiet row beneath two elevated tiles. That is a deliberate change from the original
+// Rest state (HOMEPAGE_DIRECTION.md's "two elevated actions"): the tiles asked the
+// customer to pick an *input method* before saying anything, and input method is not
+// what somebody with a leaking sink is thinking about. Intent comes first now
+// (IntentSuggestions), and voice and photo stay first-class here as equally reachable
+// ways to answer — not demoted, re-placed.
 //
 // A real <form> with a real labelled input: the placeholder is a hint, not an accessible
 // name, and submitting on Enter is what anyone typing actually expects. An empty draft
 // disables the submit rather than raising an error — prevention over an error-state dead
 // end, given UX_PATTERNS.md already flags error copy as this app's weakest area.
-export function TextComposer({ value, onChange, onSubmit, placeholder, label, submitLabel, icon }) {
+//
+// `inputRef` is exposed so the caller can move focus here when an intent is chosen,
+// which is what makes "choose an intent, then answer" one continuous motion.
+export function TextComposer({
+  value, onChange, onSubmit, placeholder, label, submitLabel, icon, inputId = "conv-composer",
+  inputRef, onVoice, voiceLabel, voiceDisabled, voiceDisabledTitle, onPhoto, photoLabel,
+  emphasisePhoto = false,
+}) {
   const empty = !value.trim();
   return (
     <form
       className="conv-textrow"
       onSubmit={(e) => { e.preventDefault(); if (!empty) onSubmit(); }}
     >
-      <label className="visually-hidden" htmlFor="conv-composer">{label}</label>
+      <label className="visually-hidden" htmlFor={inputId}>{label}</label>
       <input
-        id="conv-composer"
+        id={inputId}
+        ref={inputRef}
         className="conv-textrow-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete="off"
       />
+      {/* Icon-only, so each carries a real accessible name — never a bare glyph
+          (PRODUCT_CONSTITUTION.md Rule 6). Disabled rather than hidden when speech
+          isn't supported: a control that vanishes per browser is harder to trust than
+          one that explains itself. */}
+      {onVoice && (
+        <button
+          type="button"
+          className="conv-textrow-tool"
+          onClick={onVoice}
+          disabled={voiceDisabled}
+          aria-label={voiceLabel}
+          title={voiceDisabled ? voiceDisabledTitle : voiceLabel}
+        >
+          <Mic size={16} />
+        </button>
+      )}
+      {onPhoto && (
+        <button
+          type="button"
+          className={"conv-textrow-tool" + (emphasisePhoto ? " conv-textrow-tool-on" : "")}
+          onClick={onPhoto}
+          aria-label={photoLabel}
+          title={photoLabel}
+        >
+          <Camera size={16} />
+        </button>
+      )}
       <button type="submit" className="conv-textrow-send" disabled={empty} aria-label={submitLabel}>
         {icon}
       </button>

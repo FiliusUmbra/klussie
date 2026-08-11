@@ -497,27 +497,62 @@ suggests while the patterns get established.
 
 ## Complexity summary
 
-| WP | Package | Complexity | Blocked? |
+| WP | Package | Complexity | Status |
 |---|---|---|---|
-| 1 | Homepage shell | M | Open question 1 (partially) |
-| 2 | Conversation composer | S | — |
-| 3 | Voice interaction | M | — |
-| 4 | Photo interaction | M | — |
-| 5 | AI understanding cards | S | — |
-| 6 | Progressive reveal | M | — |
-| 7 | Trust strip | S | **Open question 2** |
-| 8 | Professional recommendation card | M | — |
-| 9 | Booking transition | L | Unblocked — [ADR-0012](../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md) |
-| 10 | Mobile polish | S | — |
-| 11 | Accessibility | M | — |
-| 12 | Testing | M | — |
+| 1 | Homepage shell | M | Implemented — and since evolved, see below |
+| 2 | Conversation composer | S | Implemented — extended with voice/photo controls |
+| 3 | Voice interaction | M | Implemented |
+| 4 | Photo interaction | M | Implemented |
+| 5 | AI understanding cards | S | Implemented |
+| 6 | Progressive reveal | M | Implemented |
+| 7 | Trust strip | S | Implemented — [ADR-0011](../adr/0011-trust-strip-shows-only-verified-signals.md) |
+| 8 | Professional recommendation card | M | Implemented |
+| 9 | Booking transition | L | Implemented — [ADR-0012](../adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md) |
+| 10 | Mobile polish | S | Implemented |
+| 11 | Accessibility | M | Implemented |
+| 12 | Testing | M | Implemented — 231 tests, 10 files |
 
-Suggested first implementation conversation: **WP1 + WP7 together** —
-the shell and the trust strip are the two Rest-state pieces, they're
-independent of the unfold machinery, and building them first makes the
-approved Rest state real and reviewable before any of the harder
-interaction work starts. WP7 needs open question 2 answered first.
+## What shipped beyond the plan
+
+WP1 delivered the approved Rest state — greeting, two elevated capture
+tiles, quiet text row, trust strip. A later founder-approved iteration
+replaced part of it, and this section records that honestly rather than
+leaving the plan reading as if it were still the shipped design:
+
+- **Intent now precedes input method.** The two tiles ("Vertel het me
+  gewoon" / "Laat het me zien") asked the customer to choose *how* to
+  speak before saying anything. Five intent chips replaced them; voice
+  and photo moved into the composer as equally reachable ways to answer.
+  `HOMEPAGE_DIRECTION.md`'s "two elevated actions" is therefore
+  superseded on this one point — the reasoning (voice and photo are the
+  differentiator) still holds, the placement changed.
+- **A photographic hero** carrying the greeting and the primary
+  question. Ships with a locally authored SVG stand-in;
+  `design/ILLUSTRATION_GUIDELINES.md`'s "zero photography assets" is
+  still true and real sourcing is still outstanding.
+- **Three homepage sections** (Klussie / Mijn woning / Mijn spullen) as
+  an ARIA tablist, implementing `HOME_OPERATING_SYSTEM.md` and
+  `PROPERTY_MEMORY.md`'s surfaces without adding a nav destination
+  ([ADR-0008](../adr/0008-my-home-replaces-discover-tab.md)).
+- **Follow-up questions per intent**, one at a time, configured in
+  `src/lib/homeIntents.js` — plus a safety interruption for gas, fire,
+  flooding, electrical and structural mentions.
+- **"Vandaag voor jouw woning"**, ranked from real `service_requests`
+  rows in `src/lib/homeToday.js`, with an honest onboarding state.
+- **A first-login tour** for new accounts only, replayable from
+  Profiel → Hulp & uitleg.
+
+**Where the code lives:** `src/home/` (19 modules) and `src/lib/home*.js`,
+not `src/App.jsx` — the plan's "Files affected" sections all name
+`src/App.jsx` because that was the convention when it was written.
+
+**Known limitations at implementation time:** no photography; no
+`home_assets` / household-items schema, so My Home and My Items ship
+disabled actions with visible "Nog niet beschikbaar" labels
+(`ROADMAP.md` Phase 13 owns that work); the phone-mockup shell still
+bounds desktop (`design/RESPONSIVE_SYSTEM.md`, its own phase).
 
 ---
 
-Version 1.0 — 2026-08-06 (Epic 03 planning; no implementation)
+Version 1.1 — 2026-08-11 (all 12 work packages implemented; records the
+intent-first iteration that superseded part of WP1)

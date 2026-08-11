@@ -2,10 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import {
   Search, Star, MapPin, ChevronRight, X, Check, User, Home, ClipboardList,
   MessageCircle, Send, Briefcase, TrendingUp, ThumbsUp, Clock, ShieldCheck, Globe, BadgeCheck, LogOut, Mail, Lock, Camera,
-  Mic, Sparkles, Loader2, AlertTriangle,
+  Mic, Sparkles, Loader2, AlertTriangle, HelpCircle,
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./lib/auth.jsx";
-import { LangContext, useLang } from "./lib/lang";
+import { LangContext, useLang, LANGS } from "./lib/lang";
+import { HOME_STRINGS } from "./lib/homeStrings";
+import { FOLLOW_UP_STRINGS } from "./lib/homeFollowUpStrings";
 import { fetchCatalog } from "./lib/catalog";
 import {
   createServiceRequest,
@@ -21,7 +23,7 @@ import {
   subscribeToProLeads,
   subscribeToProQuoteUpdates,
 } from "./lib/requests";
-import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo, fetchReviewsForPro, fetchPlatformTrustStats, findBestProForService, trustScore } from "./lib/pros";
+import { fetchProServices, updateProServices, updateProProfile, boostProfile, fetchPublicProInfo, fetchReviewsForPro, trustScore } from "./lib/pros";
 import {
   fetchConversations,
   fetchMessages,
@@ -37,22 +39,18 @@ import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems, updatePort
 import { addTestimonial, fetchTestimonials, deleteTestimonial } from "./lib/testimonials";
 import { uploadRequestPhoto, fetchRequestPhotos } from "./lib/requestPhotos";
 import { SERVICE_QUESTIONS } from "./lib/serviceQuestions";
-import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition, startAudioLevelMeter } from "./lib/aiIntake";
+import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "./lib/aiIntake";
 import { translateMessage } from "./lib/translate";
-import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, TrustStrip, UnfoldPanel, UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, AIMessage, Timeline } from "./design-system";
+import { Avatar, Badge, Rating, Button, PriceTag, Drawer, Modal, ServiceCard, JobCard, QuoteCard, TrustBadge, AIMessage, Timeline } from "./design-system";
+import { ConversationHome } from "./home/ConversationHome.jsx";
+import { CustomerOnboarding } from "./home/CustomerOnboarding.jsx";
+import { useHomeTour } from "./home/useHomeTour.js";
+import { HOME_CSS } from "./home/homeStyles.js";
 
 /* ------------------------------- LANGUAGES -------------------------------- */
 
-const LANGS = [
-  { code: "nl", label: "Nederlands", locale: "nl-BE" },
-  { code: "fr", label: "Français", locale: "fr-BE" },
-  { code: "de", label: "Deutsch", locale: "de-DE" },
-  { code: "en", label: "English", locale: "en-GB" },
-  { code: "ar", label: "العربية", locale: "ar" },
-  { code: "tr", label: "Türkçe", locale: "tr-TR" },
-  { code: "ru", label: "Русский", locale: "ru-RU" },
-  { code: "zh", label: "中文", locale: "zh-CN" },
-];
+// LANGS moved to src/lib/lang.js so modules outside this file can read it — see the
+// import above.
 
 const STRINGS = {
   nl: {
@@ -147,6 +145,9 @@ const STRINGS = {
     convPhotoConfirm:"Dat is genoeg", convPhotoRetake:"Andere foto",
     convPhotoRecap:"Foto van de klus toegevoegd", convUrgency_low:"Kan wachten", convUrgency_medium:"Vrij dringend", convUrgency_high:"Dringend",
     convRecentWork:"Recent werk",
+    convBookCta:"Boek {name}", convBookDetails:"Liever zelf invullen", convBookingSaving:"Bezig...",
+    convBookingFailed:"Het boeken lukte niet. Probeer het opnieuw.",
+    convReliefTitle:"Je aanvraag is verstuurd", convReliefSub:"{name} heeft alles wat nodig is. Je hoort het zodra hij of zij reageert.",
     convComposerLabel:"Beschrijf je klus", convProgressLabel:"Voortgang van je aanvraag", convSendLabel:"Versturen", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
   },
   fr: {
@@ -241,6 +242,9 @@ const STRINGS = {
     convPhotoConfirm:"C'est suffisant", convPhotoRetake:"Autre photo",
     convPhotoRecap:"Photo du chantier ajoutée", convUrgency_low:"Peut attendre", convUrgency_medium:"Assez urgent", convUrgency_high:"Urgent",
     convRecentWork:"Travaux récents",
+    convBookCta:"Réserver {name}", convBookDetails:"Plutôt remplir moi-même", convBookingSaving:"En cours...",
+    convBookingFailed:"La réservation a échoué. Réessayez.",
+    convReliefTitle:"Votre demande est envoyée", convReliefSub:"{name} a tout ce qu'il faut. Vous serez prévenu dès sa réponse.",
     convComposerLabel:"Décris ton chantier", convProgressLabel:"Avancement de ta demande", convSendLabel:"Envoyer", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
   },
   de: {
@@ -335,6 +339,9 @@ const STRINGS = {
     convPhotoConfirm:"Das genügt", convPhotoRetake:"Anderes Foto",
     convPhotoRecap:"Foto des Auftrags hinzugefügt", convUrgency_low:"Kann warten", convUrgency_medium:"Ziemlich dringend", convUrgency_high:"Dringend",
     convRecentWork:"Aktuelle Arbeiten",
+    convBookCta:"{name} buchen", convBookDetails:"Lieber selbst ausfüllen", convBookingSaving:"Läuft...",
+    convBookingFailed:"Die Buchung hat nicht geklappt. Bitte erneut versuchen.",
+    convReliefTitle:"Deine Anfrage ist raus", convReliefSub:"{name} hat alles Nötige. Du hörst, sobald eine Antwort da ist.",
     convComposerLabel:"Beschreibe deinen Auftrag", convProgressLabel:"Fortschritt deiner Anfrage", convSendLabel:"Senden", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
   },
   en: {
@@ -429,6 +436,9 @@ const STRINGS = {
     convPhotoConfirm:"That's enough", convPhotoRetake:"Different photo",
     convPhotoRecap:"Photo of the job added", convUrgency_low:"Can wait", convUrgency_medium:"Fairly urgent", convUrgency_high:"Urgent",
     convRecentWork:"Recent work",
+    convBookCta:"Book {name}", convBookDetails:"Add details instead", convBookingSaving:"Sending...",
+    convBookingFailed:"That didn't go through. Please try again.",
+    convReliefTitle:"Your request is in", convReliefSub:"{name} has everything they need. You'll hear as soon as they respond.",
     convComposerLabel:"Describe your job", convProgressLabel:"Progress of your request", convSendLabel:"Send", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
   },
   ar: {
@@ -523,6 +533,9 @@ const STRINGS = {
     convPhotoConfirm:"هذا يكفي", convPhotoRetake:"صورة أخرى",
     convPhotoRecap:"تمت إضافة صورة العمل", convUrgency_low:"يمكن الانتظار", convUrgency_medium:"عاجل نسبيًا", convUrgency_high:"عاجل",
     convRecentWork:"أعمال حديثة",
+    convBookCta:"احجز {name}", convBookDetails:"أفضّل الإدخال بنفسي", convBookingSaving:"جارٍ الإرسال...",
+    convBookingFailed:"لم يتم الحجز. حاول مرة أخرى.",
+    convReliefTitle:"تم إرسال طلبك", convReliefSub:"لدى {name} كل ما يلزم. سنخبرك فور وصول الرد.",
     convComposerLabel:"صف العمل المطلوب", convProgressLabel:"تقدّم طلبك", convSendLabel:"إرسال", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
   },
   tr: {
@@ -617,6 +630,9 @@ const STRINGS = {
     convPhotoConfirm:"Bu kadarı yeter", convPhotoRetake:"Başka fotoğraf",
     convPhotoRecap:"İşin fotoğrafı eklendi", convUrgency_low:"Bekleyebilir", convUrgency_medium:"Oldukça acil", convUrgency_high:"Acil",
     convRecentWork:"Son işler",
+    convBookCta:"{name} ile devam et", convBookDetails:"Kendim doldurayım", convBookingSaving:"Gönderiliyor...",
+    convBookingFailed:"Rezervasyon yapılamadı. Lütfen tekrar deneyin.",
+    convReliefTitle:"Talebin iletildi", convReliefSub:"{name} gereken her şeye sahip. Yanıt gelir gelmez haber vereceğiz.",
     convComposerLabel:"İşini anlat", convProgressLabel:"Talebinin ilerlemesi", convSendLabel:"Gönder", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
   },
   ru: {
@@ -711,6 +727,9 @@ const STRINGS = {
     convPhotoConfirm:"Этого достаточно", convPhotoRetake:"Другое фото",
     convPhotoRecap:"Фото задачи добавлено", convUrgency_low:"Может подождать", convUrgency_medium:"Довольно срочно", convUrgency_high:"Срочно",
     convRecentWork:"Недавние работы",
+    convBookCta:"Выбрать {name}", convBookDetails:"Заполню сам", convBookingSaving:"Отправляем...",
+    convBookingFailed:"Не удалось отправить. Попробуйте ещё раз.",
+    convReliefTitle:"Заявка отправлена", convReliefSub:"У {name} есть всё необходимое. Сообщим, как только придёт ответ.",
     convComposerLabel:"Опишите задачу", convProgressLabel:"Ход вашей заявки", convSendLabel:"Отправить", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
   },
   zh: {
@@ -805,6 +824,9 @@ const STRINGS = {
     convPhotoConfirm:"这样就够了", convPhotoRetake:"换一张",
     convPhotoRecap:"已添加活儿的照片", convUrgency_low:"可以等等", convUrgency_medium:"比较急", convUrgency_high:"紧急",
     convRecentWork:"近期作品",
+    convBookCta:"预约 {name}", convBookDetails:"我自己填写", convBookingSaving:"提交中...",
+    convBookingFailed:"提交未成功，请再试一次。",
+    convReliefTitle:"你的需求已送出", convReliefSub:"{name} 已收到所有信息。对方回复后我们会通知你。",
     convComposerLabel:"描述你的活儿", convProgressLabel:"你的请求进度", convSendLabel:"发送", convEstimateLabel:"参考价", convNoProYet:"你附近暂时没有可接这类活儿的师傅。",
   },
 };
@@ -923,7 +945,9 @@ function AppShell() {
   }, []);
 
   const langMeta = LANGS.find((l) => l.code === langCode);
-  const t = STRINGS[langCode];
+  // The homepage's copy lives in its own modules so this file didn't grow by ~90 keys
+  // × 8 locales; merged here so `t` stays one flat lookup at every call site.
+  const t = { ...STRINGS[langCode], ...HOME_STRINGS[langCode], ...FOLLOW_UP_STRINGS[langCode] };
   const dir = langCode === "ar" ? "rtl" : "ltr";
 
   // Keep the document's lang attribute in sync with the selected locale —
@@ -973,7 +997,7 @@ function AppShell() {
   return (
     <LangContext.Provider value={ctx}>
       <div className="stage" dir={dir}>
-        <style>{CSS}</style>
+        <style>{CSS + HOME_CSS}</style>
 
         <div className="topbar">
           {session && (
@@ -1552,6 +1576,11 @@ function CustomerApp({ showToast }) {
   const [requests, setRequests] = useState(null);
   const [conversations, setConversations] = useState(null);
   const [openConversation, setOpenConversation] = useState(null);
+  // Which section of the homepage is showing. Lifted out of ConversationHome only
+  // because the tour can end on "Stel eerst mijn woning in" and has to land the
+  // customer there — nothing else reaches in.
+  const [homeSection, setHomeSection] = useState("klussie");
+  const tour = useHomeTour();
 
   const refresh = () => fetchCustomerRequests(user.id).then(setRequests);
   const refreshConversations = () => fetchConversations(user.id).then(setConversations);
@@ -1641,10 +1670,18 @@ function CustomerApp({ showToast }) {
   return (
     <div className="view">
       <div className="content">
-        {tab === "discover" && <ConversationHome onStart={(seed) => setAiIntakeOpen(seed || {})} />}
+        {tab === "discover" && (
+          <ConversationHome
+            onStart={(seed) => setAiIntakeOpen(seed || {})}
+            requests={requests}
+            section={homeSection}
+            onSectionChange={setHomeSection}
+            onOpenRequest={(id) => setOpenRequest(id)}
+          />
+        )}
         {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
-        {tab === "profile" && <CustomerProfile requests={requests} />}
+        {tab === "profile" && <CustomerProfile requests={requests} onReplayTour={tour.replay} />}
       </div>
 
       <BottomNav tab={tab} setTab={setTab} items={[
@@ -1653,6 +1690,20 @@ function CustomerApp({ showToast }) {
         { id: "messages", label: t.navMessages, icon: MessageCircle, badge: conversations.reduce((sum, c) => sum + c.unreadCount, 0) },
         { id: "profile", label: t.navProfile, icon: User },
       ]} />
+
+      {/* Ending the tour on "set up my home first" is the only thing that moves the
+          homepage's section from outside it — hence the tab switch alongside it, so the
+          customer is looking at what they just chose rather than at the Klussie tab. */}
+      {tour.open && (
+        <CustomerOnboarding
+          t={t}
+          onFinish={async (result) => {
+            const destination = await tour.finish(result);
+            setTab("discover");
+            setHomeSection(destination === "myHome" ? "myHome" : "klussie");
+          }}
+        />
+      )}
 
       {activeService && <ServiceSheet service={activeService} onClose={() => setActiveService(null)} onRequest={() => { setQuoteForm(activeService); setActiveService(null); }} />}
       {quoteForm && <QuoteFormSheet service={quoteForm} onClose={() => setQuoteForm(null)} onSubmit={(answers) => { createRequest(quoteForm, answers); setQuoteForm(null); setTab("requests"); }} />}
@@ -1679,425 +1730,10 @@ function CustomerApp({ showToast }) {
   );
 }
 
-// Time-aware greeting for the conversation home. Local device time, three bands —
-// deliberately not a data-driven "personalization," just the time of day.
-function timeGreeting(t) {
-  const hour = new Date().getHours();
-  if (hour < 12) return t.greetMorning;
-  if (hour < 18) return t.greetAfternoon;
-  return t.greetEvening;
-}
-
-// WP3. Owns the recognizer and the mic meter; VoiceCapture itself stays presentational.
-// Metering is best-effort: if getUserMedia is unavailable or denied, recognition still
-// runs and the bars sit still rather than animating on nothing.
-function VoiceCapturePanel({ onDone, onCancel }) {
-  const { t, langCode } = useLang();
-  const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
-  const [finalText, setFinalText] = useState("");
-  const [interim, setInterim] = useState("");
-  const [level, setLevel] = useState(0);
-  const [meterAvailable, setMeterAvailable] = useState(true);
-  const [state, setState] = useState("listening");
-  const recognizerRef = useRef(null);
-  const meterRef = useRef(null);
-  const finalRef = useRef("");
-
-  useEffect(() => {
-    let cancelled = false;
-    try {
-      recognizerRef.current = startSpeechRecognition(langMeta.locale, {
-        onResult: ({ finalText: done, interimText }) => {
-          if (done) {
-            finalRef.current = (finalRef.current ? finalRef.current + " " : "") + done;
-            setFinalText(finalRef.current);
-          }
-          setInterim(interimText);
-        },
-        onEnd: () => { if (!cancelled) setState("done"); },
-        onError: () => { if (!cancelled) setState("done"); },
-      });
-    } catch {
-      onCancel();
-      return;
-    }
-
-    startAudioLevelMeter({ onLevel: (v) => { if (!cancelled) setLevel(v); } })
-      .then((meter) => {
-        if (cancelled) { meter.stop(); return; }
-        meterRef.current = meter;
-      })
-      .catch(() => { if (!cancelled) setMeterAvailable(false); });
-
-    return () => {
-      cancelled = true;
-      recognizerRef.current?.stop();
-      meterRef.current?.stop();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Recognition ended with nothing usable — no point confirming an empty transcript.
-  useEffect(() => {
-    if (state === "done" && !finalRef.current.trim()) onCancel();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
-
-  const stop = () => {
-    recognizerRef.current?.stop();
-    meterRef.current?.stop();
-    setState("done");
-  };
-
-  const spoken = [finalText, interim].filter(Boolean).join(" ");
-
-  return (
-    <div className="conv-capture">
-      <VoiceCapture
-        state={state}
-        level={level}
-        meterAvailable={meterAvailable}
-        transcript={spoken || t.convVoiceWaiting}
-        listeningLabel={t.convVoiceListening}
-        doneLabel={t.convVoiceGotIt}
-        stopLabel={t.convVoiceStop}
-        onStop={stop}
-      />
-      {/* finalText mirrors finalRef; the ref exists only so the recognizer callback can
-          accumulate without a stale closure, and must not be read during render. */}
-      {state === "done" && finalText.trim() && (
-        <button type="button" className="btn-primary" onClick={() => onDone(finalText.trim())}>
-          {t.convContinue}
-        </button>
-      )}
-    </div>
-  );
-}
-
-// WP4. Runs the analysis needed for the on-photo confidence tag (Fig. 5), then hands
-// the file onward together with that analysis. WP5 made the canvas reuse it rather than
-// re-asking the model, so the photo path costs one AI call, not two — pinned by
-// "asks the model about the photo exactly once" in src/__tests__/conversationHome.test.jsx.
-// previewUrl is created by whoever picked the file and revoked by that same owner, not
-// here. Creating it in this component and revoking it from a cleanup breaks under
-// StrictMode's double-invoke — the first cleanup revokes the only URL and the image is
-// left pointing at a dead blob.
-function PhotoCapturePanel({ file, previewUrl, onDone, onCancel }) {
-  const { t, langCode, BASE_SERVICES, serviceInfo } = useLang();
-  const [analyzing, setAnalyzing] = useState(true);
-  const [tag, setTag] = useState(null);
-  const analysisRef = useRef(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const services = BASE_SERVICES.map((s) => ({ id: s.id, name: serviceInfo(s.id).name, category: s.cat, blurb: serviceInfo(s.id).blurb }));
-    analyzeJobRequest({ photos: [file], services, locale: langCode })
-      .then((res) => {
-        if (cancelled) return;
-        // Kept so the canvas can reuse it rather than asking the model the same question
-        // twice about the same photo.
-        analysisRef.current = res;
-        // Prefer what the model actually saw; fall back to the problem title. Confidence
-        // is shown as-is, including when it's low — that's the honest signal.
-        const label = res.brandDetected || res.problem;
-        setTag(label ? `${label} · ${Math.round(res.confidence)}%` : null);
-      })
-      .catch(() => { if (!cancelled) setTag(null); })
-      .finally(() => { if (!cancelled) setAnalyzing(false); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file]);
-
-  return (
-    <div className="conv-capture">
-      <PhotoCapture
-        previewUrl={previewUrl}
-        alt={t.convPhotoAlt}
-        analyzing={analyzing}
-        tag={tag}
-        analyzingLabel={t.convPhotoAnalyzing}
-        confirmLabel={t.convPhotoConfirm}
-        retakeLabel={t.convPhotoRetake}
-        onConfirm={() => onDone(file, analysisRef.current)}
-        onRetake={onCancel}
-      />
-    </div>
-  );
-}
-
-// The conversation canvas — the customer's front door, replacing Discover's category
-// grid as the first thing anyone sees (ADR-0007; docs/product/EXPERIENCE_VISION.md §2).
-//
-// WP1 + WP7 built the Rest state; WP3 + WP4 add real in-canvas voice and photo capture
-// on top of it. The unfold states after capture (recap → AI understanding →
-// professional → booking) are still WP5/6/8/9 — so once capture completes, the captured
-// input is handed to the existing AiIntakeSheet, pre-filled, and that finishes the job.
-// That handoff is scaffolding those later packages remove; it exists so every commit
-// leaves a working request path rather than a flow that dead-ends after "Got it."
-// Exported for WP12's state-machine tests. The six states in EXPERIENCE_VISION.md §4 are
-// this component's internal state rather than routes, so they're only reachable by
-// driving the component itself — there is no pure module to test instead.
-export function ConversationHome({ onStart }) {
-  const { t, fmt, langCode, proBadgeLabel, BASE_SERVICES, serviceInfo } = useLang();
-  const { profile } = useAuth();
-  const [trust, setTrust] = useState(null);
-  const [capture, setCapture] = useState(null); // null | "voice" | { file, previewUrl }
-  // null | { recap, text?, photos?, analyzing, analysis, failed }
-  const [conversation, setConversation] = useState(null);
-  const [draft, setDraft] = useState("");
-  const photoInputRef = useRef(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    // A failed trust fetch leaves `trust` null, which simply drops the data-backed
-    // items from the strip — never a broken or fabricated signal.
-    fetchPlatformTrustStats()
-      .then((stats) => { if (!cancelled) setTrust(stats); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-
-  const firstName = (profile?.full_name || "").trim().split(/\s+/)[0];
-
-  // Only signals with real data behind them (ADR-0011). Transparent pricing is a
-  // property of how quoting works, not a claim about a dataset, so it always holds;
-  // verified pros and the rating average appear only when the numbers exist.
-  const trustItems = [];
-  if (trust && trust.verifiedProCount > 0) trustItems.push(t.trustVerifiedPros);
-  if (trust && trust.ratingAvg != null) trustItems.push(`${trust.ratingAvg.toFixed(1)}★ ${t.trustAvgRating}`);
-  trustItems.push(t.trustTransparentPricing);
-
-  // The capture session owns the preview URL for its whole life: created here when the
-  // file is picked, revoked by closeCapture or on unmount. Keeping both sides in event
-  // handlers (rather than an effect) is what makes it survive StrictMode's double-mount.
-  const pickPhoto = (e) => {
-    const file = (e.target.files || [])[0];
-    e.target.value = "";
-    if (file) setCapture({ file, previewUrl: URL.createObjectURL(file) });
-  };
-
-  const closeCapture = () => {
-    if (capture && capture.previewUrl) URL.revokeObjectURL(capture.previewUrl);
-    setCapture(null);
-  };
-
-  // Covers leaving the tab mid-capture, which never runs closeCapture. The ref is synced
-  // in an effect rather than during render so the unmount cleanup sees the latest value
-  // without reading state through a stale closure.
-  const captureRef = useRef(null);
-  useEffect(() => { captureRef.current = capture; }, [capture]);
-  useEffect(() => () => {
-    const open = captureRef.current;
-    if (open && open.previewUrl) URL.revokeObjectURL(open.previewUrl);
-  }, []);
-
-  // WP5: the analysis now runs on the canvas, so the understanding appears in place
-  // rather than only inside the sheet — and the result is handed onward instead of the
-  // same job being sent to the model a second time.
-  const beginConversation = async ({ recap, text, photos, analysis: precomputed }) => {
-    // The photo path already analyzed this exact photo to render its on-photo tag —
-    // reuse that result rather than asking the model the same question again.
-    if (precomputed) {
-      setConversation({ recap, text, photos, analyzing: false, analysis: precomputed, failed: false });
-      return;
-    }
-    setConversation({ recap, text, photos, analyzing: true, analysis: null, failed: false });
-    try {
-      const services = BASE_SERVICES.map((s) => ({ id: s.id, name: serviceInfo(s.id).name, category: s.cat, blurb: serviceInfo(s.id).blurb }));
-      const analysis = await analyzeJobRequest({
-        text,
-        photos: (photos || []).map((p) => p.file),
-        services,
-        locale: langCode,
-      });
-      setConversation((c) => (c ? { ...c, analyzing: false, analysis } : c));
-    } catch {
-      // Not a dead end: the customer can still continue into the sheet, which will
-      // analyze again. Silence here would be the worse failure (UX_PATTERNS.md names
-      // missing error handling as this app's biggest gap).
-      setConversation((c) => (c ? { ...c, analyzing: false, failed: true } : c));
-    }
-  };
-
-  const continueToSheet = () => {
-    const c = conversation;
-    setConversation(null);
-    onStart({ text: c.text, photos: c.photos, result: c.analysis });
-  };
-
-  // WP8. Runs once an analysis names a service; a null result is a real outcome (no pro
-  // offers that service in this city yet), not an error to hide.
-  useEffect(() => {
-    const serviceId = conversation?.analysis?.matchedServiceId;
-    if (!serviceId || conversation.pro !== undefined) return;
-    let cancelled = false;
-    const service = BASE_SERVICES.find((s) => s.id === serviceId);
-    findBestProForService({ serviceId, city: profile?.city || null, certifiedOnly: !!service?.certifiedOnly })
-      .then(async (pro) => {
-        if (cancelled) return;
-        // Portfolio is fetched only for the one professional actually being shown.
-        const work = pro ? await fetchPortfolioItems(pro.id).catch(() => []) : [];
-        // fetchPortfolioItems returns raw rows; the design system takes camelCase, and
-        // shouldn't have to know database column names.
-        const shaped = work.slice(0, 3).map((w) => ({ id: w.id, imageUrl: w.image_url, caption: w.caption }));
-        if (!cancelled) setConversation((c) => (c ? { ...c, pro, work: shaped } : c));
-      })
-      .catch(() => { if (!cancelled) setConversation((c) => (c ? { ...c, pro: null, work: [] } : c)); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation?.analysis?.matchedServiceId]);
-
-  // "Supply-line leak · Plumbing · Urgent" — the customer's own problem reflected back,
-  // structured. Only parts the model actually returned are shown.
-  const understandingLine = (analysis) => {
-    const service = analysis.matchedServiceId ? serviceInfo(analysis.matchedServiceId)?.name : null;
-    const urgency = analysis.urgency ? t[`convUrgency_${analysis.urgency}`] : null;
-    return [analysis.problem, service, urgency].filter(Boolean).join(" · ");
-  };
-
-  return (
-    <div className="conv-home">
-      <div className="conv-greet">
-        <div className="conv-time">{timeGreeting(t)}</div>
-        <div className="conv-hello">{firstName ? `${t.convWelcomeBack}, ${firstName}.` : t.convWelcome}</div>
-      </div>
-
-      {conversation ? (
-        <UnfoldPanel label={t.convProgressLabel}>
-          <UnfoldItem>
-            <div className="conv-recap">{conversation.recap}</div>
-          </UnfoldItem>
-
-          {conversation.analyzing && (
-            <UnfoldItem>
-              <div className="conv-thinking"><Loader2 size={14} className="spin" /> {t.aiAnalyzing}</div>
-            </UnfoldItem>
-          )}
-
-          {conversation.analysis && (
-            <UnfoldItem>
-              <AIMessage label={t.aiAnalysisLabel} confidence={Math.round(conversation.analysis.confidence)}>
-                <div className="conv-understanding-line">{understandingLine(conversation.analysis)}</div>
-              </AIMessage>
-            </UnfoldItem>
-          )}
-
-          {conversation.failed && (
-            <UnfoldItem>
-              <div className="conv-thinking">{t.aiGenericError}</div>
-            </UnfoldItem>
-          )}
-
-          {conversation.pro && (
-            <UnfoldItem>
-              <QuoteCard className="conv-pro">
-                <div className="conv-pro-top">
-                  <Avatar url={conversation.pro.avatarUrl} initials={conversation.pro.initials} />
-                  <div className="conv-pro-meta">
-                    <div className="conv-pro-name">
-                      {conversation.pro.name}
-                      {proBadgeLabel(conversation.pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(conversation.pro.badgeTier)}</Badge>}
-                    </div>
-                    <TrustBadge
-                      rating={conversation.pro.rating}
-                      reviewCount={conversation.pro.reviews}
-                      score={trustScore(conversation.pro)}
-                      scoreLabel={t.trustScoreLabel}
-                      fmt={fmt}
-                    />
-                  </div>
-                </div>
-                <RecentWorkStrip items={conversation.work} label={t.convRecentWork} />
-                {/* An estimate from the analysis, never a price. No quote exists at this
-                    point in the flow, and presenting a range as if it were a firm price
-                    is exactly the shortcut Constitution Rule 9 rules out. */}
-                {conversation.analysis?.estimatedBudget && (
-                  <div className="conv-pro-estimate">
-                    {t.convEstimateLabel}{" "}
-                    <b>
-                      <PriceTag amount={conversation.analysis.estimatedBudget.min} fmt={fmt} />
-                      {" – "}
-                      <PriceTag amount={conversation.analysis.estimatedBudget.max} fmt={fmt} />
-                    </b>
-                  </div>
-                )}
-              </QuoteCard>
-            </UnfoldItem>
-          )}
-
-          {conversation.pro === null && (
-            <UnfoldItem>
-              <div className="conv-thinking">{t.convNoProYet}</div>
-            </UnfoldItem>
-          )}
-
-          {!conversation.analyzing && (
-            <UnfoldItem delayIndex={1}>
-              <button type="button" className="btn-primary conv-continue" onClick={continueToSheet}>
-                {t.convContinue}
-              </button>
-            </UnfoldItem>
-          )}
-        </UnfoldPanel>
-      ) : capture === "voice" ? (
-        <VoiceCapturePanel
-          onDone={(transcript) => { setCapture(null); beginConversation({ recap: transcript, text: transcript }); }}
-          onCancel={() => setCapture(null)}
-        />
-      ) : capture ? (
-        <PhotoCapturePanel
-          file={capture.file}
-          previewUrl={capture.previewUrl}
-          // Ownership of previewUrl transfers onward here — deliberately not revoked,
-          // since the conversation and then the sheet render that exact URL. Cancelling
-          // instead goes through closeCapture, which does release it.
-          onDone={(file, analysis) => {
-            const photo = { file, previewUrl: capture.previewUrl };
-            setCapture(null);
-            beginConversation({ recap: t.convPhotoRecap, photos: [photo], analysis });
-          }}
-          onCancel={closeCapture}
-        />
-      ) : (
-        <>
-          <div className="conv-actions">
-            <button
-              type="button"
-              className="conv-action"
-              onClick={() => setCapture("voice")}
-              disabled={!isSpeechRecognitionSupported()}
-              title={isSpeechRecognitionSupported() ? undefined : t.aiSpeechUnsupported}
-            >
-              <span className="conv-action-glyph"><Mic size={17} /></span>
-              <span className="conv-action-title">{t.convSpeakTitle}</span>
-              <span className="conv-action-sub">{isSpeechRecognitionSupported() ? t.convSpeakSub : t.aiSpeechUnsupported}</span>
-            </button>
-            <button type="button" className="conv-action conv-action-photo" onClick={() => photoInputRef.current?.click()}>
-              <span className="conv-action-glyph"><Camera size={17} /></span>
-              <span className="conv-action-title">{t.convPhotoTitle}</span>
-              <span className="conv-action-sub">{t.convPhotoSub}</span>
-            </button>
-            {/* capture="environment" opens the rear camera directly on mobile rather
-                than a file browser — "tap Show me → camera" per Fig. 5. */}
-            <input ref={photoInputRef} type="file" accept="image/*" capture="environment" hidden onChange={pickPhoto} />
-          </div>
-
-          <TextComposer
-            value={draft}
-            onChange={setDraft}
-            onSubmit={() => { const text = draft.trim(); setDraft(""); beginConversation({ recap: text, text }); }}
-            placeholder={t.convTypeLabel}
-            label={t.convComposerLabel}
-            submitLabel={t.convSendLabel}
-            icon={<ChevronRight size={14} />}
-          />
-        </>
-      )}
-
-      <TrustStrip items={trustItems} label={t.trustStripLabel} />
-    </div>
-  );
-}
+// The conversation home moved to src/home/ConversationHome.jsx in the homepage
+// redesign, together with its capture panels, greeting helper, and unfold canvas.
+// src/App.jsx was already the largest file in the repository (MASTER_CONTEXT.md §12);
+// the homepage grew, so it left rather than making that worse. It is imported above.
 
 // Retained intentionally, not dead code: EXPERIENCE_VISION.md §10 retires the category
 // grid as the *entry point* but keeps the matching logic beneath it, and where this
@@ -2813,7 +2449,7 @@ function ReviewSheet({ onClose, onSubmit }) {
   );
 }
 
-function CustomerProfile({ requests }) {
+function CustomerProfile({ requests, onReplayTour }) {
   const { t, serviceInfo } = useLang();
   const { user, profile, signOut } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
@@ -2832,6 +2468,16 @@ function CustomerProfile({ requests }) {
       {reviews.map((r) => (
         <QuoteCard key={r.id}><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Rating value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></QuoteCard>
       ))}
+      {/* Profiel → Hulp & uitleg → Rondleiding opnieuw bekijken. A tour that can only
+          ever be seen once is a tour nobody can go back to when they finally need it. */}
+      {onReplayTour && (
+        <>
+          <div className="section-title" style={{ marginTop: 18 }}>{t.helpSectionTitle}</div>
+          <button className="btn-secondary" onClick={onReplayTour}>
+            <HelpCircle size={13} /> {t.helpReplayTour}
+          </button>
+        </>
+      )}
       <button className="btn-secondary" style={{ marginTop: 14 }} onClick={() => setEditOpen(true)}>{t.editProfileBtn}</button>
       <button className="btn-secondary" style={{ marginTop: 8 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
       {editOpen && <EditProfileSheet onClose={() => setEditOpen(false)} />}
@@ -3627,6 +3273,33 @@ const CSS = `
 /* Disabled rather than erroring on an empty draft — nothing to say yet isn't a mistake. */
 .conv-textrow-send:disabled{ opacity:0.4; cursor:default; }
 
+/* ---- booking + relief (Epic 03, WP9 / ADR-0012) ---- */
+.conv-actions-row{ display:flex; flex-direction:column; gap:var(--space-2); }
+.conv-book{ display:flex; align-items:center; justify-content:center; gap:var(--space-2); width:100%; min-height:44px; }
+.conv-continue{ width:100%; min-height:44px; }
+/* #b3432f is this app's error colour — a literal repeated at eight other call sites and
+   never tokenized. Matching it rather than inventing a ninth value; tokenizing all nine
+   is a separate change, not this package's. */
+.conv-book-error{ margin-top:var(--space-2); font-size:12px; color:#b3432f; text-align:center; }
+
+/* Contained, not full-screen (§7): the confirmation is the only thing left on the
+   canvas, so it doesn't also need to take the whole screen to be noticed. */
+.conv-relief{
+  display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--space-2);
+  background:var(--sage-bg); border-radius:16px; padding:var(--space-5) var(--space-4);
+}
+.conv-relief-mark{
+  width:40px; height:40px; border-radius:50%; background:var(--forest); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  animation:relief-bloom var(--motion-base) ease-out;
+}
+@keyframes relief-bloom{
+  from{ transform:scale(0.7); opacity:0; }
+  to{ transform:scale(1); opacity:1; }
+}
+.conv-relief-title{ font-family:var(--font-display); font-size:17px; font-weight:600; color:var(--ink); }
+.conv-relief-sub{ font-size:12.5px; color:var(--ink-soft); line-height:1.45; max-width:30ch; }
+
 /* ---- progressive reveal (Epic 03, WP6) ----
    An animation rather than a transition, so each item plays exactly once when it
    mounts. --motion-base is the only duration used; no new motion value is introduced
@@ -3642,6 +3315,8 @@ const CSS = `
   /* Ships with the component, not as a later fix: the staging is the decoration here,
      the content order carries the meaning. */
   .unfold-item{ animation:none; }
+  /* Same reasoning for the confirmation bloom — the checkmark carries the message. */
+  .conv-relief-mark{ animation:none; }
 }
 
 .conv-recap{

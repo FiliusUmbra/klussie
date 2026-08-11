@@ -25,6 +25,14 @@ vi.mock("../lib/aiIntake", () => ({
   startSpeechRecognition: vi.fn(),
   startAudioLevelMeter: vi.fn(() => Promise.resolve({ stop: vi.fn() })),
 }));
+vi.mock("../lib/requests", async (importOriginal) => ({
+  ...(await importOriginal()),
+  createDirectedRequest: vi.fn(),
+}));
+vi.mock("../lib/requestPhotos", () => ({
+  uploadRequestPhoto: vi.fn(() => Promise.resolve()),
+  fetchRequestPhotos: vi.fn(() => Promise.resolve([])),
+}));
 vi.mock("../lib/portfolio", () => ({
   fetchPortfolioItems: vi.fn(() => Promise.resolve([])),
   uploadPortfolioImage: vi.fn(),
@@ -33,16 +41,30 @@ vi.mock("../lib/portfolio", () => ({
   deletePortfolioItem: vi.fn(),
 }));
 
-import { ConversationHome } from "../App.jsx";
+import { ConversationHome } from "../home/ConversationHome.jsx";
 import { LangContext } from "../lib/lang";
 import { fetchPlatformTrustStats, findBestProForService } from "../lib/pros";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "../lib/aiIntake";
 import { fetchPortfolioItems } from "../lib/portfolio";
+import { createDirectedRequest } from "../lib/requests";
+import { uploadRequestPhoto } from "../lib/requestPhotos";
 
 // `t` returns each key as its own value, so assertions name the string key rather than a
 // Dutch sentence — these tests are about which state renders, not about copy, and they
 // shouldn't break when wording is revised.
-const t = new Proxy({}, { get: (_, key) => String(key) });
+//
+// Keys the UI interpolates keep their {name} placeholder, so a substitution that silently
+// stops happening shows up as a literal "{name}" reaching the screen rather than passing.
+const TEMPLATES = {
+  convBookCta: "convBookCta {name}",
+  convReliefSub: "convReliefSub {name}",
+  homeGreetName: "{greeting}, {name}",
+  homeGreetNoName: "{greeting}",
+  followUpProgress: "followUpProgress {n}/{total}",
+};
+const t = new Proxy({}, {
+  get: (_, key) => TEMPLATES[key] ?? String(key),
+});
 
 const BASE_SERVICES = [
   { id: "svc-plumbing", cat: "repairs" },
@@ -110,6 +132,8 @@ beforeEach(() => {
   vi.mocked(fetchPortfolioItems).mockResolvedValue([]);
   vi.mocked(analyzeJobRequest).mockResolvedValue(analysis);
   vi.mocked(isSpeechRecognitionSupported).mockReturnValue(true);
+  vi.mocked(createDirectedRequest).mockResolvedValue({ id: "req-1" });
+  vi.mocked(uploadRequestPhoto).mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -120,9 +144,10 @@ describe("ConversationHome — rest state", () => {
   it("opens on the greeting, the two capture tiles, and the quiet text row", async () => {
     renderHome();
 
-    expect(screen.getByText("convSpeakTitle")).toBeTruthy();
-    expect(screen.getByText("convPhotoTitle")).toBeTruthy();
+    expect(screen.getByText("intentBroken")).toBeTruthy();
     expect(screen.getByLabelText("convComposerLabel")).toBeTruthy();
+    expect(screen.getByLabelText("homeVoiceAction")).toBeTruthy();
+    expect(screen.getByLabelText("homePhotoAction")).toBeTruthy();
     // No conversation has started, so nothing has unfolded yet.
     expect(document.querySelector(".unfold")).toBeNull();
     await waitFor(() => expect(fetchPlatformTrustStats).toHaveBeenCalled());
@@ -130,14 +155,24 @@ describe("ConversationHome — rest state", () => {
 
   it("greets a known customer by first name only", () => {
     renderHome();
-    expect(screen.getByText("convWelcomeBack, Cathy.")).toBeTruthy();
+    // The band depends on the clock, which useHomeContext's own tests pin directly;
+    // what this asserts is that the greeting is personalised and drops the surname.
+    const greeting = document.querySelector(".home-hero-greeting").textContent;
+    expect(greeting).toMatch(/^greet(Morning|Afternoon|Evening), Cathy$/);
+  });
+
+  it("asks the primary question as the page's heading", () => {
+    renderHome();
+    const heading = document.querySelector(".home-hero-question");
+    expect(heading.tagName).toBe("H1");
+    expect(heading.textContent).toBe("homeQuestion");
   });
 
   it("disables the speak tile when the browser has no speech recognition", () => {
     vi.mocked(isSpeechRecognitionSupported).mockReturnValue(false);
     renderHome();
 
-    const speak = screen.getByText("convSpeakTitle").closest("button");
+    const speak = screen.getByLabelText("homeVoiceAction");
     // Disabled with an explanation, rather than a tile that silently does nothing.
     expect(speak.disabled).toBe(true);
     expect(speak.getAttribute("title")).toBe("aiSpeechUnsupported");
@@ -179,7 +214,7 @@ describe("ConversationHome — rest → thinking → understanding", () => {
     await startConversation();
 
     // The canvas transformed; it did not navigate to a second screen.
-    expect(screen.queryByText("convSpeakTitle")).toBeNull();
+    expect(screen.queryByLabelText("convComposerLabel")).toBeNull();
     expect(document.querySelector(".unfold")).not.toBeNull();
     // The customer's own words come back first, before any analysis exists.
     expect(screen.getByText("my sink is leaking")).toBeTruthy();
@@ -391,10 +426,10 @@ describe("ConversationHome — voice capture", () => {
     const recognizer = captureRecognizer();
     renderHome();
 
-    await act(async () => { screen.getByText("convSpeakTitle").closest("button").click(); });
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
 
     expect(document.querySelector(".voice-capture")).not.toBeNull();
-    expect(screen.queryByText("convPhotoTitle")).toBeNull();
+    expect(screen.queryByLabelText("convComposerLabel")).toBeNull();
     expect(startSpeechRecognition).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
     expect(recognizer.handlers).toBeDefined();
   });
@@ -402,7 +437,7 @@ describe("ConversationHome — voice capture", () => {
   it("builds the transcript from final and interim results as they arrive", async () => {
     const recognizer = captureRecognizer();
     renderHome();
-    await act(async () => { screen.getByText("convSpeakTitle").closest("button").click(); });
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
 
     await act(async () => { recognizer.handlers.onResult({ finalText: "my sink", interimText: "is lea" }); });
     expect(screen.getByText("my sink is lea")).toBeTruthy();
@@ -416,7 +451,7 @@ describe("ConversationHome — voice capture", () => {
   it("turns a finished transcript into a conversation, analysis and all", async () => {
     const recognizer = captureRecognizer();
     renderHome();
-    await act(async () => { screen.getByText("convSpeakTitle").closest("button").click(); });
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
     await act(async () => { recognizer.handlers.onResult({ finalText: "my sink is leaking", interimText: "" }); });
 
     // Stopping releases the recognizer rather than leaving the mic open.
@@ -432,13 +467,13 @@ describe("ConversationHome — voice capture", () => {
   it("returns to rest when recognition ends with nothing said", async () => {
     const recognizer = captureRecognizer();
     renderHome();
-    await act(async () => { screen.getByText("convSpeakTitle").closest("button").click(); });
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
 
     await act(async () => { recognizer.handlers.onEnd(); });
 
     // No transcript means nothing to confirm; the tiles come back rather than stranding
     // the customer on an empty "Got it."
-    expect(screen.getByText("convSpeakTitle")).toBeTruthy();
+    expect(screen.getByLabelText("convComposerLabel")).toBeTruthy();
     expect(document.querySelector(".voice-capture")).toBeNull();
     expect(analyzeJobRequest).not.toHaveBeenCalled();
   });
@@ -446,18 +481,18 @@ describe("ConversationHome — voice capture", () => {
   it("returns to rest when the recognizer errors out", async () => {
     const recognizer = captureRecognizer();
     renderHome();
-    await act(async () => { screen.getByText("convSpeakTitle").closest("button").click(); });
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
 
     await act(async () => { recognizer.handlers.onError({ error: "not-allowed" }); });
-    expect(screen.getByText("convSpeakTitle")).toBeTruthy();
+    expect(screen.getByLabelText("convComposerLabel")).toBeTruthy();
   });
 
   it("returns to rest rather than crashing when the recognizer won't start at all", async () => {
     vi.mocked(startSpeechRecognition).mockImplementation(() => { throw new Error("no recognizer"); });
     renderHome();
 
-    await act(async () => { screen.getByText("convSpeakTitle").closest("button").click(); });
-    expect(screen.getByText("convSpeakTitle")).toBeTruthy();
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
+    expect(screen.getByLabelText("convComposerLabel")).toBeTruthy();
   });
 });
 
@@ -518,7 +553,7 @@ describe("ConversationHome — photo capture", () => {
 
     await act(async () => { document.querySelector(".photo-capture-retake").click(); });
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:test-preview");
-    expect(screen.getByText("convSpeakTitle")).toBeTruthy();
+    expect(screen.getByLabelText("convComposerLabel")).toBeTruthy();
   });
 
   it("still lets the customer continue when the photo analysis fails", async () => {
@@ -529,6 +564,160 @@ describe("ConversationHome — photo capture", () => {
     await waitFor(() => expect(document.querySelector(".photo-capture-confirm").disabled).toBe(false));
     // No tag rather than an invented one, and the way forward stays open.
     expect(document.querySelector(".photo-capture-tag")).toBeNull();
+  });
+});
+
+describe("ConversationHome — booking and relief (WP9 / ADR-0012)", () => {
+  const bookButton = () => document.querySelector(".conv-book");
+
+  async function reachProfessional() {
+    vi.mocked(findBestProForService).mockResolvedValue(pro);
+    renderHome();
+    await startConversation("my sink is leaking");
+    await waitFor(() => expect(screen.getByText("Peter Painter")).toBeTruthy());
+  }
+
+  it("offers booking this professional as the primary action, details as the quieter one", async () => {
+    await reachProfessional();
+
+    // The placeholder really was substituted — a broken interpolation would leave
+    // "{name}" on the button.
+    expect(bookButton().textContent).toBe("convBookCta Peter Painter");
+    expect(bookButton().className).toContain("btn-primary");
+    // Directing at one pro is never the only way forward.
+    expect(document.querySelector(".conv-continue").className).toContain("btn-secondary");
+    expect(screen.getByText("convBookDetails")).toBeTruthy();
+  });
+
+  it("directs the request at that professional with the estimate's ceiling", async () => {
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+
+    expect(createDirectedRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        proId: "pro-1",
+        serviceId: "svc-plumbing",
+        categoryId: "repairs",
+        // The top of the range the customer just saw and accepted — never the midpoint
+        // or the minimum, either of which would authorize less than was shown.
+        autoAcceptMax: 260,
+        details: "my sink is leaking",
+        city: "Brussels",
+      })
+    );
+  });
+
+  it("maps a low-urgency job to flexible timing and anything else to this week", async () => {
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+    expect(createDirectedRequest).toHaveBeenCalledWith(expect.objectContaining({ whenPref: "this_week" }));
+
+    vi.mocked(createDirectedRequest).mockClear();
+    vi.mocked(analyzeJobRequest).mockResolvedValue({ ...analysis, urgency: "low" });
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+    expect(createDirectedRequest).toHaveBeenCalledWith(expect.objectContaining({ whenPref: "flexible" }));
+  });
+
+  it("withholds the book button when there is no estimate to authorize against", async () => {
+    vi.mocked(analyzeJobRequest).mockResolvedValue({ ...analysis, estimatedBudget: null });
+    await reachProfessional();
+
+    // No ceiling means no bounded commitment; offering the button anyway would make the
+    // customer authorize an open-ended amount (ADR-0012).
+    expect(bookButton()).toBeNull();
+    // The ordinary path is still there, and is primary again in its absence.
+    expect(document.querySelector(".conv-continue").className).toContain("btn-primary");
+  });
+
+  it("never writes a quote or books the job itself", async () => {
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+
+    const call = vi.mocked(createDirectedRequest).mock.calls[0][0];
+    // The professional's own quote is what books this. Anything here that set a price,
+    // a booked pro, or a status would be committing them without their consent.
+    expect(call).not.toHaveProperty("price");
+    expect(call).not.toHaveProperty("bookedProId");
+    expect(call).not.toHaveProperty("status");
+  });
+
+  it("quiets the canvas down to the confirmation once the request is placed", async () => {
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+
+    await waitFor(() => expect(screen.getByText("convReliefTitle")).toBeTruthy());
+    // EXPERIENCE_VISION.md §7: at Relief everything else quiets.
+    expect(screen.queryByText("my sink is leaking")).toBeNull();
+    expect(screen.queryByText("Peter Painter")).toBeNull();
+    expect(bookButton()).toBeNull();
+    expect(screen.queryByText("convBookDetails")).toBeNull();
+  });
+
+  it("names who has the request without claiming the job is confirmed", async () => {
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+
+    await waitFor(() => expect(document.querySelector(".conv-relief")).not.toBeNull());
+    const relief = document.querySelector(".conv-relief").textContent;
+    expect(relief).toContain("Peter Painter");
+    // ADR-0012: no arrival claim may appear here — nobody has agreed to a time.
+    expect(relief).not.toMatch(/today|vandaag/i);
+  });
+
+  it("sends the photos along, since they are the clearest thing the pro will see", async () => {
+    vi.mocked(findBestProForService).mockResolvedValue(pro);
+    URL.createObjectURL = vi.fn(() => "blob:test-preview");
+    URL.revokeObjectURL = vi.fn();
+    renderHome();
+
+    const file = new File(["x"], "sink.jpg", { type: "image/jpeg" });
+    const input = document.querySelector('input[type="file"]');
+    Object.defineProperty(input, "files", { value: [file], configurable: true });
+    await act(async () => { fireEvent.change(input); });
+    await waitFor(() => expect(document.querySelector(".photo-capture-confirm").disabled).toBe(false));
+    await act(async () => { document.querySelector(".photo-capture-confirm").click(); });
+    await waitFor(() => expect(screen.getByText("Peter Painter")).toBeTruthy());
+
+    await act(async () => { bookButton().click(); });
+    await waitFor(() => expect(uploadRequestPhoto).toHaveBeenCalledWith("req-1", undefined, file));
+  });
+
+  it("keeps the confirmation when a photo upload fails after the request exists", async () => {
+    vi.mocked(uploadRequestPhoto).mockRejectedValue(new Error("storage down"));
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+
+    // The request is real by then; rolling it back over a failed image would lose the
+    // customer's actual commitment.
+    await waitFor(() => expect(screen.getByText("convReliefTitle")).toBeTruthy());
+  });
+
+  it("says so and stays usable when the request cannot be placed", async () => {
+    vi.mocked(createDirectedRequest).mockRejectedValue(new Error("offline"));
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("convBookingFailed");
+    // Not a dead end: the button is still there to try again, and so is the other path.
+    expect(bookButton()).not.toBeNull();
+    expect(screen.getByText("convBookDetails")).toBeTruthy();
+    expect(screen.queryByText("convReliefTitle")).toBeNull();
+  });
+
+  it("blocks a second tap while the first is still in flight", async () => {
+    let resolve;
+    vi.mocked(createDirectedRequest).mockReturnValue(new Promise((r) => { resolve = r; }));
+    await reachProfessional();
+    await act(async () => { bookButton().click(); });
+
+    // Double-tapping must not produce two requests to the same professional.
+    expect(bookButton().disabled).toBe(true);
+    expect(screen.getByText("convBookingSaving")).toBeTruthy();
+
+    await act(async () => { resolve({ id: "req-1" }); });
+    expect(createDirectedRequest).toHaveBeenCalledTimes(1);
   });
 });
 

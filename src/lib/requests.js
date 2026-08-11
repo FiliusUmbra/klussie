@@ -3,6 +3,7 @@ import { initialsFrom } from "./pros";
 
 const REQUEST_SELECT = `
   id, customer_id, service_id, category_id, details, details_json, ai_analysis, when_pref, budget, city, status, booked_pro_id, created_at, updated_at,
+  directed_pro_id, directed_until, auto_accept_max,
   quotes ( id, request_id, pro_id, price, message, status, sent_at,
     pro:pro_profiles ( profile_id, pro_type, profiles ( full_name, avatar_url ), pro_stats ( rating_avg, rating_count, badge_tier, is_certified ) )
   ),
@@ -51,6 +52,12 @@ function reshapeRequest(row) {
     answers: { when: row.when_pref, details: row.details, fields: row.details_json || null, aiAnalysis: row.ai_analysis || null, budget: row.budget, city: row.city },
     quotes,
     bookedProId: row.booked_pro_id,
+    // ADR-0012. directedUntil is what separates "still waiting on this professional"
+    // from "lapsed, now open to anyone" — the row itself never changes when the window
+    // closes, so callers have to compare against the clock, same as the RLS gate does.
+    directedProId: row.directed_pro_id,
+    directedUntil: row.directed_until ? new Date(row.directed_until).getTime() : null,
+    autoAcceptMax: row.auto_accept_max != null ? Number(row.auto_accept_max) : null,
     review: review ? { stars: review.stars, text: review.body } : null,
   };
 }
@@ -75,6 +82,42 @@ export async function createServiceRequest({ customerId, serviceId, categoryId, 
   return reshapeRequest(data);
 }
 
+// One tap on the conversation canvas (Epic 03 WP9, implementing ADR-0012). Creates a
+// request addressed to one professional, carrying the ceiling the customer accepted
+// along with the estimate.
+//
+// Deliberately does NOT write a quote, set booked_pro_id, or touch status beyond
+// 'awaiting_pro': the professional's own quote is still the only thing that books this,
+// and their price is still the only price. `directed_until` is left to the database —
+// the length of the exclusive window is a platform rule, not something a client sends.
+export async function createDirectedRequest({
+  customerId, serviceId, categoryId, proId, autoAcceptMax,
+  details, detailsJson, aiAnalysis, whenPref, city,
+}) {
+  if (!proId) throw new Error("createDirectedRequest requires a professional to direct to");
+  if (!(autoAcceptMax > 0)) throw new Error("createDirectedRequest requires a positive ceiling");
+
+  const { data, error } = await supabase
+    .from("service_requests")
+    .insert({
+      customer_id: customerId,
+      service_id: serviceId,
+      category_id: categoryId,
+      details,
+      details_json: detailsJson && Object.keys(detailsJson).length ? detailsJson : null,
+      ai_analysis: aiAnalysis || null,
+      when_pref: whenPref,
+      city: city || null,
+      status: "awaiting_pro",
+      directed_pro_id: proId,
+      auto_accept_max: autoAcceptMax,
+    })
+    .select(REQUEST_SELECT)
+    .single();
+  if (error) throw error;
+  return reshapeRequest(data);
+}
+
 export async function fetchCustomerRequests(customerId) {
   const { data, error } = await supabase
     .from("service_requests")
@@ -87,11 +130,16 @@ export async function fetchCustomerRequests(customerId) {
 
 // Open leads matching this pro's offered services (RLS already scopes visibility);
 // excludes ones they've already quoted.
+//
+// 'awaiting_pro' is included because that is the status a directed request sits in
+// (ADR-0012), and RLS is what makes it appear for the addressed professional and nobody
+// else while the window is open. Omitting it here would have hidden directed requests
+// from the one person allowed to act on them.
 export async function fetchProLeads(proId) {
   const { data, error } = await supabase
     .from("service_requests")
     .select(REQUEST_SELECT)
-    .in("status", ["collecting", "quotes_ready"])
+    .in("status", ["collecting", "awaiting_pro", "quotes_ready"])
     .neq("customer_id", proId)
     .order("created_at", { ascending: false });
   if (error) throw error;
