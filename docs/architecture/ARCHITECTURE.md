@@ -185,19 +185,26 @@ owns the real underlying capability ships it — see
 
 ## Client architecture
 
-- `src/App.jsx` — still the single entry point for both the customer
-  and professional experience (2,823 lines as of this writing — see
-  `../engineering/ENGINEERING_STANDARDS.md` for the honest scorecard on
-  extracting this).
+- `src/App.jsx` — the composition root, and nothing more: it wraps
+  `src/shell/AppShell.jsx` in the auth provider. The Engineering Health
+  sprint took it from 3,459 lines to 19 by splitting the app into feature
+  folders; `../engineering/ENGINEERING_STANDARDS.md` documents the
+  boundaries and what each one owns.
+- `src/shell/AppShell.jsx` decides which surface renders — welcome,
+  role selection, `src/customer/CustomerApp.jsx`, or
+  `src/pro/ProApp.jsx`. It is the only place that routing-like logic
+  lives.
 - 8-locale i18n (`nl`, `fr`, `de`, `en`, `ar`, `tr`, `ru`, `zh`,
-  including right-to-left Arabic) — a flat `STRINGS` table inside
-  `App.jsx`, not yet extracted to per-locale files.
+  including right-to-left Arabic). Three flat tables —
+  `src/lib/appStrings.js`, `homeStrings.js`, `homeFollowUpStrings.js` —
+  merged into one `t` lookup by `src/lib/langContext.js`. Still not
+  per-locale files; `appStrings.test.js` enforces key parity across all
+  eight so a forgotten translation fails in CI rather than on screen.
 - No routing library — the app is state-driven, not URL-driven; no
   code-splitting exists because there are no routes.
-- `src/design-system/` components are real and have real call sites
-  (Discover, RequestsList, pro leads, RequestDetailSheet, ProProfile),
-  but most of `App.jsx`'s older inline markup hasn't migrated onto them
-  yet.
+- `src/design-system/` components are real and have real call sites, but
+  inline markup remains in `ProProfile`, `ProPublicProfileSheet` and
+  `CustomerProfile`.
 
 ## Known gaps
 

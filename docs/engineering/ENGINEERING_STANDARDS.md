@@ -7,10 +7,9 @@ or current project status (`MASTER_CONTEXT.md`).
 Concrete rules that keep `docs/PRODUCT_CONSTITUTION.md` enforceable in code review,
 not just in spirit.
 
-- **No component over 300 lines.** `src/App.jsx` is 2,823 lines and violates this
-  today, by a wide margin — that's not a contradiction, it's the reason Phase 1's
-  Design System extraction is the first real cut into that file, not a someday
-  cleanup.
+- **No component over 300 lines.** Held as of the Engineering Health sprint: the
+  largest component is `AiIntakeSheet.jsx` at 300. `src/App.jsx`, which spent most
+  of Phase 1 in the thousands, is now 19 lines.
 - **No function over 40 lines.** If it's longer, it's doing more than one thing —
   split it.
 - **Everything typed.** TypeScript adoption starts in Phase 2, incrementally
@@ -33,6 +32,30 @@ not just in spirit.
   rules — these belong in `src/lib` or a Core Platform module, not inline in a
   component's render function.
 
+## Feature boundaries
+
+The Engineering Health sprint replaced "everything lives in `App.jsx`" with folders
+that mean something. Where a change belongs is now answerable without opening a file:
+
+| Folder | Owns |
+|---|---|
+| `src/App.jsx` | Composition root. Auth provider wrapping the shell — nothing else |
+| `src/shell/` | Chrome, locale switch, role preview, toast, and which surface renders |
+| `src/auth/` | Getting signed in, and choosing a role once |
+| `src/profile/` | Profile editing and pro-profile setup, shared by both sides |
+| `src/customer/` | The customer experience: requests, quotes, intake, invoices, reviews |
+| `src/pro/` | The professional experience: leads, quoting, jobs, pro profile |
+| `src/messaging/` | Conversations and translation, shared by both sides |
+| `src/requests/` | How a request is summarised wherever one is shown |
+| `src/home/` | The conversation homepage (Epic 03) |
+| `src/ui/` | App-level primitives too small for the Design System |
+| `src/design-system/` | Reusable visual components |
+| `src/lib/` | Every rule, every constant, every string table. No JSX |
+
+The dependency direction is one-way: `App` → `shell` → feature → shared → `lib`.
+A feature folder importing from a sibling feature is a smell; the two shared folders
+(`requests`, `messaging`) exist precisely so it doesn't have to.
+
 ## Where the codebase stands against this today
 
 Honest accounting, so this document doesn't read as aspirational fiction.
@@ -40,28 +63,37 @@ Status uses only: **Implemented**, **In Progress**, **Planned**.
 
 | Standard | Status |
 |---|---|
-| No component over 300 lines | In Progress — `src/App.jsx` is 2,823 lines. The Design System (`src/design-system/`, 4 files, ~220 lines) is Implemented with genuine usages (Discover, RequestsList, pro leads, RequestDetailSheet, ProProfile), but most of `App.jsx`'s inline patterns aren't migrated yet — that's follow-up work, not a one-phase job |
-| No function over 40 lines | In Progress — most `src/lib` functions comply, several `App.jsx` components don't |
+| No component over 300 lines | Implemented — largest single component is `AiIntakeSheet.jsx` at 300. Two files exceed 300 without breaking the rule: `design-system/domain.jsx` (317) holds ~10 small components, and `appStrings.js` (789) / `homeStrings.js` (626) / `appStyles.js` (461) are data, not components |
+| No function over 40 lines | In Progress — one known violation in `src/lib` (`catalog.js`'s `fetchCatalog`, 51 lines); several render functions also exceed it, which is a JSX-length problem rather than a branching-complexity one |
 | Everything typed | Planned — starts Phase 2 |
-| Everything documented | In Progress — `src/lib/*.js` and `src/design-system/*.jsx` are well-commented; inline component logic in `App.jsx` less so |
-| Everything reusable | In Progress — 14 Design System components exist (Button, Card, Modal, Drawer, Avatar, Badge, Rating, ServiceCard, AIMessage, JobCard, Timeline, QuoteCard, TrustBadge, PriceTag), each with at least one real call site, not speculative scaffolding. Many inline `.svc-card`/`.ticket`/`.quote-card` instances in `App.jsx` remain unmigrated |
-| No duplicated code | In Progress — `SERVICE_QUESTIONS` is correctly shared between client and `api/ai-intake.js`; `Avatar`/`Badge`/`Rating`/`Sheet` now have exactly one implementation each instead of being defined once and copy-referenced |
+| Everything documented | Implemented — every module carries a header explaining *why* it exists; the feature split gave the previously uncommented inline components a home and a reason |
+| Everything reusable | In Progress — 21 Design System components, each with a real call site. Inline `.quote-card`/`.ticket` markup remains in `ProProfile`, `ProPublicProfileSheet` and `CustomerProfile` |
+| No duplicated code | Implemented — the sprint removed the last known duplicates: two status→label maps became `requestStatus.js`, two unread-count reductions became `unreadTotal`, the `Sheet`/`Drawer` double-name became `Drawer`, and six copies of the loading placeholder became `LoadingScreen` |
 | No inline SQL | Implemented |
-| No inline prompts | Implemented — prompts now have a `/ai/` home; prompt-construction logic with runtime dependencies stays in the endpoint by design (see `ai/intake/prompt.md`) |
-| No magic numbers | In Progress — see `CONFIDENCE_THRESHOLD`, `MAX_PHOTOS`, `WINDOW_MINUTES`, `MAX_CALLS_PER_WINDOW`; a few uncontained cases likely remain |
-| No business logic in UI | Planned — commission math and trust-score computation are still inline in `src/App.jsx` |
+| No inline prompts | Implemented — prompts have a `/ai/` home; prompt-construction logic with runtime dependencies stays in the endpoint by design (see `ai/intake/prompt.md`) |
+| No magic numbers | Implemented — the sprint named the last uncontained cases: `PLATFORM_COMMISSION_RATE`, `VAT_RATE`, `FLEXI_TAX_FREE_THRESHOLD`, `BOOST_WEEKLY_PRICE`, `TYPICAL_PRICE_*_FACTOR`, `CONFIDENCE_HIGH`/`_MEDIUM`, `TOAST_DURATION_MS`, `FALLBACK_QUOTE_PRICE` |
+| No business logic in UI | Implemented — commission and VAT in `billing.js`, trust score in `pros.js`, request lifecycle in `requestStatus.js`, intake rules in `aiIntakeModel.js`, pro eligibility in `proStatus.js`. Each has unit tests |
 
 ## Known follow-up (not done in this pass)
 
-- Most of `App.jsx`'s remaining inline `.svc-card`/`.ticket`/`.quote-card`/price patterns
-  (SendQuoteSheet, ProJobs, CustomerProfile, ProPublicProfileSheet, and others) still
-  write their own markup instead of using the Design System — migrated opportunistically
-  as those areas get touched, not swept all at once.
-- A handful of places in `src/App.jsx` render literal `\uXXXX` escape-sequence text
-  instead of the real character (JSX text content doesn't interpret backslash escapes
-  the way a JS string does) — one instance fixed in `RequestDetailSheet`, the rest
-  flagged as a separate follow-up task.
+- **The extracted feature components have no render tests.** Their rules are unit-tested
+  (`src/lib/__tests__`, 345 tests total), but no test asserts that `RequestDetailSheet`
+  renders a timeline or that `InvoiceSheet` shows the right total. The Engineering Health
+  sprint verified the move by line-level diff, build, lint and a manual smoke test — good
+  enough to trust the move, not good enough to protect the next one.
+- **12 places render literal `\uXXXX` escape text** instead of the real character (JSX
+  text content doesn't interpret backslash escapes the way a JS string does). Carried
+  through the sprint unchanged and deliberately, since fixing it changes what a customer
+  reads and that sprint's contract was identical behaviour. Every site now carries a
+  comment pointing here.
+- **Inline `.quote-card`/`.ticket`/price markup** in `ProProfile`, `ProPublicProfileSheet`
+  and `CustomerProfile` still bypasses the Design System — migrated opportunistically as
+  those areas get touched, not swept all at once.
+- **`src/customer/Discover.jsx` is unreferenced.** Kept on purpose: EXPERIENCE_VISION.md
+  §10 retires the category grid as an entry point but keeps the matching logic, and where
+  the browse UI lands is still open. It now sits in its own file so the decision is
+  visible rather than buried.
 
 ---
 
-Version 1.1 — 2026-08-06 (backfilled the version footer this document was missing since it predates that convention)
+Version 1.2 — 2026-08-11 (Engineering Health sprint: feature boundaries introduced, App.jsx split, business logic extracted and tested; status table re-audited against the real tree)

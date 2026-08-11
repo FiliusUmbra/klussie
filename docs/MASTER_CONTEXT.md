@@ -17,8 +17,9 @@ priorities, risks, debt, decisions. It does not own product philosophy
 - **Current milestone:** Phase 1 — Foundation, In Progress. (§2)
 - **Current priorities:** Core Platform extraction, Design System
   migration, event-bus wiring. Full list: (§8)
-- **Biggest technical debt:** no TypeScript, no CI, `App.jsx` still at
-  3,459 lines. Full list: (§12)
+- **Biggest technical debt:** no TypeScript, no CI. `App.jsx` is no longer
+  on this list — the Engineering Health sprint reduced it to 19 lines by
+  splitting it into feature modules. Full list: (§12)
 - **Biggest project risks:** no payment system, no CI gate,
   single-maintainer project. Full list: (§13)
 - **Protected architecture:** never bypass the AI Gateway, never expose AI
@@ -182,12 +183,12 @@ disagrees with this table, this table wins.
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | In Progress — `design/ACCESSIBILITY.md` audit done; Epic 03 added a global focus ring, a real focus trap + focus restoration on `Modal`, live regions, ARIA tablist semantics, and 44px touch targets on new surfaces. Older screens not re-audited | Constitution Rule 6 formally verified | Improving | Unassigned |
-| Testing | In Progress — 231 tests, 10 files; critical `src/lib` logic and the homepage covered, most of `App.jsx` not | Defined in Phase 2 | Improving | Unassigned |
+| Testing | In Progress — 345 tests, 20 files; all `src/lib` business logic and the homepage covered. The feature components extracted from `App.jsx` have no render tests yet — their *rules* are tested, their markup is not | Defined in Phase 2 | Improving | Unassigned |
 | Design System | In Progress — 21 components implemented (Epic 03 added TrustStrip, UnfoldPanel/UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, SegmentedTabs/TabPanel); most of `App.jsx` still unmigrated | Full adoption, dark mode, white-label tokens | Improving | Unassigned |
 | AI | In Progress — AI Gateway, intake, translation implemented | Full capability routing + eval automation | New baseline | Unassigned |
 | Marketplace Engine | In Progress — SQL-function matching implemented, no ranking/geo | Real Marketplace Engine implemented | New baseline | Unassigned |
 | Payment Engine | Planned — no integration implemented | Stripe Connect implemented | New baseline | Unassigned |
-| Developer Experience | In Progress — `App.jsx` down to 3,459 lines with the homepage extracted to `src/home/`; no types; tests real but partial | Modular, typed, tested | Improving | Unassigned |
+| Developer Experience | In Progress — `App.jsx` down to 19 lines; the app is now organised by feature (`src/shell`, `src/auth`, `src/profile`, `src/customer`, `src/pro`, `src/messaging`, `src/requests`, `src/ui`, `src/home`) with every rule in `src/lib`. No component exceeds 300 lines. No types yet | Modular, typed, tested | Improving | Unassigned |
 | Deployment | Implemented — working Vercel pipeline, both apps | CI gate before deploy implemented | New baseline | Unassigned |
 | Infrastructure | Planned — no queue, no cache, single region | Defined once scale requires it (§16) | New baseline | Unassigned |
 
@@ -298,9 +299,13 @@ Full specs: [`architecture/ARCHITECTURE.md`](./architecture/ARCHITECTURE.md) /
 
 1. Finish Phase 1: event-bus wiring into existing flows, real Permissions
    layer.
-2. Migrate remaining `App.jsx` inline UI onto the Design System.
-3. Move commission math and trust-score computation out of `App.jsx` and
-   into a Core Platform module.
+2. Migrate remaining inline UI onto the Design System — now scoped per
+   feature folder rather than "somewhere in `App.jsx`".
+3. ~~Move commission math and trust-score computation out of `App.jsx`~~ —
+   done in the Engineering Health sprint (`src/lib/billing.js`,
+   `src/lib/pros.js`). Promoting them from `src/lib` to a Core Platform
+   module is still open, and only matters once the server needs the same
+   math.
 4. Begin Phase 2: testing framework, incremental TypeScript, release
    strategy.
 
@@ -359,14 +364,14 @@ Principles and KPIs are not alternatives. A feature needs a reason
 
 | Severity | Item | Impact | Recommended Fix | Phase | Priority |
 |---|---|---|---|---|---|
-| 🟠 High | No CI pipeline | Tests exist (231) but nothing runs them on a merge or deploy, so a regression still reaches production unnoticed | Add a CI gate on lint + test + build | Phase 2 | P0 |
+| 🟠 High | No CI pipeline | Tests exist (345) but nothing runs them on a merge or deploy, so a regression still reaches production unnoticed | Add a CI gate on lint + test + build | Phase 2 | P0 |
 | 🟠 High | No TypeScript | Type errors reach production undetected | Incremental adoption, smallest/most-depended-on files first | Phase 2 | P1 |
-| 🟠 High | `App.jsx` at 3,459 lines | High change-collision risk, slow review, slow onboarding | Split into feature modules as each area gets touched — the customer homepage moved to `src/home/` in Epic 03; the pro app and the sheets are the next candidates | Phase 1→2 | P1 |
 | 🟠 High | No payment system | No real revenue path | Stripe Connect integration | Phase 4 | P1 |
-| 🟡 Medium | Commission math + trust score inline in `App.jsx` | Violates §17 Protected Decisions; hard to reuse/test | Move to a Core Platform module | Phase 1 | P2 |
+| 🟡 Medium | No render tests on the extracted feature components | The Engineering Health sprint moved ~2,150 lines of JSX into `src/customer`, `src/pro`, `src/auth`, `src/profile` and `src/messaging` with their rules unit-tested but their markup unverified by any test. The move was checked by line-level diff, build, lint and manual smoke — not by assertions that survive the next change | Add render tests per feature folder, starting with the surfaces that spend money: `RequestDetailSheet`, `InvoiceSheet`, `ProProfile` | Phase 2 | P2 |
+| 🟡 Medium | Literal `\uXXXX` escape text rendered in 12 places | JSX text content doesn't interpret backslash escapes, so customers see `€` where a euro sign belongs — in the invoice totals, the budget fields, the flexi tracker and the boost price. Preserved verbatim through the Engineering Health sprint because fixing it changes what a customer reads, which that sprint promised not to do | Replace each with the real character. Sites are commented in `ServiceSheet.jsx`, `QuoteFormSheet.jsx`, `AiIntakeSheet.jsx`, `InvoiceSheet.jsx`, `SendQuoteSheet.jsx`, `ProProfile.jsx`, `AppShell.jsx` | Phase 1 | P2 |
 | 🟡 Medium | Design System migration incomplete | Visual inconsistency, duplicated markup | Migrate remaining screens opportunistically | Phase 1 | P2 |
 | 🟡 Medium | `pro_matches_request()` is a bare SQL function | No ranking/availability/geo, limits match quality | Build the real Marketplace Engine | Phase 5 | P2 |
-| 🟡 Medium | `awaiting_pro` status leaks to the UI untranslated | `StatusPill`'s map in `src/App.jsx` has no case for the status a directed request sits in (ADR-0012), so its fallback renders the raw enum value — a customer who used one-tap booking sees `awaiting_pro` in `RequestsList` and `RequestDetailSheet` in all 8 locales | Add a `statusAwaitingPro` key across all 8 locales and map it; wording must not imply the job is booked, since ADR-0012 commits the customer, not the professional. Check `REQUEST_STATUS_ORDER` and the detail timeline for the same gap | Phase 1 | P2 |
+| 🟡 Medium | `awaiting_pro` status leaks to the UI untranslated | The status table in `src/lib/requestStatus.js` has no case for the status a directed request sits in (ADR-0012), so its fallback renders the raw enum value — a customer who used one-tap booking sees `awaiting_pro` in `RequestsList` and `RequestDetailSheet` in all 8 locales, and gets no timeline on the detail sheet at all | Add a `statusAwaitingPro` key across all 8 locales and a `PRESENTATION` entry for it; wording must not imply the job is booked, since ADR-0012 commits the customer, not the professional. Decide where it sits in `REQUEST_STATUS_ORDER` — the timeline gap is the same bug. Both fallbacks are now pinned by `requestStatus.test.js`, so the fix has one place to land | Phase 1 | P2 |
 | 🟢 Low | Browser Web Speech API for voice intake | Inconsistent quality across browsers/mobile | Evaluate Whisper or similar | Phase 9 | P3 |
 | 🟢 Low | Categories/services hardcoded seed data | Adding a service needs a deploy, not a config change | Marketplace Engine configurable taxonomy | Phase 5 | P3 |
 

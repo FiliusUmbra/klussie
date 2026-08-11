@@ -63,8 +63,17 @@ docs/               Governance & architecture documentation
   adr/              Architecture Decision Records
   features/         Feature-brief template, process, and briefs
 src/
-  App.jsx           Main application (customer + professional experiences)
-  lib/              Data access and business logic
+  App.jsx           Composition root (auth provider + shell)
+  shell/            App chrome, locale, role preview, surface selection
+  auth/             Sign-in and first-run role choice
+  profile/          Profile editing, pro-profile setup (both sides)
+  customer/         Customer experience: requests, quotes, intake, invoices
+  pro/              Professional experience: leads, quoting, jobs
+  messaging/        Conversations and message translation (both sides)
+  requests/         How a request is summarised wherever it appears
+  home/             The conversation homepage
+  ui/               App-level primitives below the design system
+  lib/              Data access, business rules, string tables
   design-system/    Shared UI components
 supabase/
   migrations/       Database schema and RLS policies
