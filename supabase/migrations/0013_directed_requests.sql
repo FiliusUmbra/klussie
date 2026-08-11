@@ -17,19 +17,59 @@
 -- No new "booked" writer is introduced. That is the point: one path to 'booked', and it
 -- still runs through a real quote from a real professional.
 
+-- Re-runnable on purpose. This repository keeps no migration ledger — 0001_init.sql's
+-- own header says "paste this into the SQL Editor" — so there is nothing recording which
+-- files have already been applied, and the honest failure mode is somebody re-running one
+-- and hitting `column "directed_pro_id" ... already exists` with no way to tell whether
+-- the rest of the file landed. Every statement *in this file* is therefore guarded, so
+-- applying it twice is a no-op rather than an error. Run supabase/diagnostics/CHECK_STATE.sql
+-- to see what is actually present.
+--
+-- Scope warning: 0013, 0014 and 0015 are guarded. 0001–0012 are NOT — they still use bare
+-- `create table` / `add column` / `create index`, so re-running any of those fails exactly
+-- the way described above. Do not read this file as evidence that the migration set as a
+-- whole is replayable.
+--
+-- Edited in place rather than corrected by a follow-up, which is the opposite of what
+-- 0014's header describes (and of how 0005 corrected 0004). The distinction: a follow-up
+-- is required when the *schema outcome* changes, because production already has the old
+-- outcome. Nothing here changes the outcome — a fresh database ends up with the same
+-- columns, the same constraint names and the same constraint definitions either way — so
+-- this is a replayability change to the file, not a correction to the schema, and
+-- splitting it into 0016 would leave the un-runnable version as the one people find first.
+
 -- =========================================================================
 -- COLUMNS
+--
+-- Constraints are declared separately below rather than inline on the columns. With
+-- `add column if not exists`, Postgres skips the *entire* column definition when the
+-- column already exists — including any inline REFERENCES or CHECK. A database where the
+-- column landed but its constraint didn't is precisely the partially-applied state this
+-- guarding exists to repair, and inline constraints would silently leave it unrepaired
+-- while reporting success.
 alter table public.service_requests
-  add column directed_pro_id uuid references public.pro_profiles (profile_id),
+  add column if not exists directed_pro_id uuid,
   -- When the exclusive window closes. ADR-0012 named the unanswered directed request as
   -- a real failure mode and left the answer to this package: the request falls back to
   -- open quoting. Expiry is evaluated lazily by pro_matches_request() rather than by a
   -- scheduled job — no cron or external scheduler exists in this project, and a
   -- visibility rule that expires on read needs neither.
-  add column directed_until timestamptz,
+  add column if not exists directed_until timestamptz,
   -- The customer's pre-authorization: the most they agreed to before seeing a quote.
   -- Not a payment hold — no money moves until Epic 04 (ADR-0005 gates it).
-  add column auto_accept_max numeric(10,2) check (auto_accept_max > 0);
+  add column if not exists auto_accept_max numeric(10,2);
+
+-- Both carry the exact names Postgres would have generated for the inline forms
+-- (<table>_<column>_fkey, <table>_<column>_check), so a database built from the earlier
+-- version of this file and one built from this version are indistinguishable.
+alter table public.service_requests drop constraint if exists service_requests_directed_pro_id_fkey;
+alter table public.service_requests
+  add constraint service_requests_directed_pro_id_fkey
+  foreign key (directed_pro_id) references public.pro_profiles (profile_id);
+
+alter table public.service_requests drop constraint if exists service_requests_auto_accept_max_check;
+alter table public.service_requests
+  add constraint service_requests_auto_accept_max_check check (auto_accept_max > 0);
 
 comment on column public.service_requests.directed_pro_id is
   'ADR-0012: the one professional this request is addressed to. Null for ordinary open requests.';
@@ -39,6 +79,7 @@ comment on column public.service_requests.auto_accept_max is
 -- All three travel together. A request directed at nobody, or directed with no ceiling,
 -- is not a state this feature has any meaning in — better rejected by the database than
 -- handled defensively in three places.
+alter table public.service_requests drop constraint if exists service_requests_directed_complete;
 alter table public.service_requests
   add constraint service_requests_directed_complete check (
     (directed_pro_id is null and directed_until is null and auto_accept_max is null)
@@ -56,7 +97,7 @@ alter table public.service_requests
 
 -- The pro's own lead list filters on this; partial because directed requests are the
 -- minority and an index over mostly-nulls earns nothing.
-create index service_requests_directed_pro_idx
+create index if not exists service_requests_directed_pro_idx
   on public.service_requests (directed_pro_id)
   where directed_pro_id is not null;
 
