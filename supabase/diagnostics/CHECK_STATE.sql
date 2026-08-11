@@ -14,7 +14,7 @@
 -- anything that runs that directory in order (`supabase db push`, or a ledger added later)
 -- would otherwise pick it up.
 --
--- Scope: 0013–0015 only. It says nothing about 0001–0012, which are also the migrations
+-- Scope: 0013–0017 only. It says nothing about 0001–0012, which are also the migrations
 -- that are not re-runnable.
 --
 -- Every row should read 'applied'. Anything reading 'MISSING' still needs its migration.
@@ -89,6 +89,56 @@ from (values
   ('0015 · profiles.home_tour_completed_at',
    exists (select 1 from information_schema.columns
            where table_schema = 'public' and table_name = 'profiles'
-             and column_name = 'home_tour_completed_at'))
+             and column_name = 'home_tour_completed_at')),
+
+  ('0016 · household_items table',
+   exists (select 1 from information_schema.tables
+           where table_schema = 'public' and table_name = 'household_items')),
+
+  -- Without RLS this table is readable by every authenticated user, which for an
+  -- inventory of someone's possessions is the worst failure this schema has.
+  ('0016 · household_items RLS enabled',
+   coalesce((select relrowsecurity from pg_class
+             where oid = to_regclass('public.household_items')), false)),
+
+  ('0016 · household_items owner policy',
+   exists (select 1 from pg_policies
+           where schemaname = 'public' and tablename = 'household_items'
+             and policyname = 'owners manage own items')),
+
+  ('0016 · item-photos bucket (private)',
+   exists (select 1 from storage.buckets where id = 'item-photos' and public = false)),
+
+  ('0016 · updated_at trigger',
+   exists (select 1 from pg_trigger where tgname = 'household_items_touch')),
+
+  -- Without the widened constraints, a customer switching to Spanish or Persian fails on
+  -- write; without the translations, they get a fully translated shell around blank
+  -- service names. Both halves are checked.
+  ('0017 · profiles.locale accepts es/fa',
+   exists (select 1 from pg_constraint
+           where conname = 'profiles_locale_check'
+             and pg_get_constraintdef(oid) like '%''fa''%'
+             and pg_get_constraintdef(oid) like '%''es''%')),
+
+  ('0017 · category_translations accepts es/fa',
+   exists (select 1 from pg_constraint
+           where conname = 'category_translations_locale_check'
+             and pg_get_constraintdef(oid) like '%''fa''%')),
+
+  ('0017 · service_translations accepts es/fa',
+   exists (select 1 from pg_constraint
+           where conname = 'service_translations_locale_check'
+             and pg_get_constraintdef(oid) like '%''fa''%')),
+
+  ('0017 · every category named in es and fa',
+   (select count(*) filter (where locale = 'es') = (select count(*) from public.categories)
+       and count(*) filter (where locale = 'fa') = (select count(*) from public.categories)
+    from public.category_translations where locale in ('es','fa'))),
+
+  ('0017 · every active service named in es and fa',
+   (select count(*) filter (where locale = 'es') = (select count(*) from public.services where active)
+       and count(*) filter (where locale = 'fa') = (select count(*) from public.services where active)
+    from public.service_translations where locale in ('es','fa')))
 ) as t(item, present)
 order by 1;

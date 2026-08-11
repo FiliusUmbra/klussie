@@ -20,7 +20,7 @@ payment. No category picker, no jargon, no manually comparing ten
 providers. The long-term ambition is multi-vertical and multi-country;
 today it's a Belgian home-services marketplace with a genuinely
 differentiated, already-shipped AI layer (multimodal job intake,
-real-time chat translation across 8 languages).
+real-time chat translation across 10 languages).
 
 ## The rules that cannot be broken
 

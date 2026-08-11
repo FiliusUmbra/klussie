@@ -33,6 +33,10 @@ countries. Full vision: [`docs/MASTER_CONTEXT.md` §5, Product Vision](./docs/MA
 | Live chat with AI message translation | Implemented |
 | Reviews, reputation score, pro portfolios/testimonials | Implemented |
 | Location-based matching, pause profile, report a business | Implemented |
+| My Home — property timeline derived from real jobs, pros, reviews, photos | Implemented |
+| My Items — household inventory entered by hand, with photos | Implemented |
+| AI recognising an item from its photo | Planned — the schema and confirm-before-save flow exist (migration 0016); the recognition itself is not wired |
+| Rooms, installations, documents, maintenance schedules | Planned — no schema yet (ADR-0008) |
 | Payments (Stripe Connect) | Planned |
 | Professional identity/insurance verification | Planned |
 | Push/email/SMS notifications | Planned |

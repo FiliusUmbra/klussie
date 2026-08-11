@@ -70,7 +70,7 @@ not fixed here because each needs more than a label:
   "Close" and "Remove photo" in English while every other word on screen
   is translated. Real, consistent with the rest of the app's localization
   effort not yet reaching this layer — flagged as a real task (add these
-  to `STRINGS` across all 8 locales, the same pattern used for every
+  to `STRINGS` across all 10 locales, the same pattern used for every
   other piece of copy in the app), not solved by hardcoding yet more
   English strings in this pass.
 - **No live-region announcements exist** for async state changes (a quote

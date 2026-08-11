@@ -102,7 +102,7 @@ a client create a `service_requests` row against a nonexistent service.
 ### Translation prompt, in detail (`api/translate-message.js`)
 
 Fixed system prompt, target language resolved from a small
-`LANGUAGE_NAMES` map (the same 8 locales as everywhere else in the
+`LANGUAGE_NAMES` map (the same 10 locales as everywhere else in the
 product). Explicitly instructed to keep tone "casual and natural, like
 a real chat message — not a formal document," and to return the
 original text unchanged if it's already in the target language (so

@@ -99,7 +99,7 @@ Translates a single chat message into a target locale.
 ```
 
 `400` if `text` is missing, not a string, over 2000 characters, or if
-`targetLocale` isn't one of the 8 supported locales.
+`targetLocale` isn't one of the 10 supported locales.
 
 **Response body (`200`):**
 

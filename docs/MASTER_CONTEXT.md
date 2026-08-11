@@ -163,7 +163,9 @@ disagrees with this table, this table wins.
 | Payments | Planned. Commission is a display-only constant on a demo invoice; no integration implemented |
 | Auth | Implemented — Supabase Auth, email/password. Every AI endpoint requires a session and is rate-limited |
 | Repository structure | See [`README.md`](../README.md#repository-structure) for the canonical layout — not duplicated here. Current layout does **not** match the target described in §6 |
-| Testing | In Progress — Vitest + React Testing Library, 231 tests across 10 files covering `src/lib` helpers and the customer homepage. No E2E, no CI runner |
+| Testing | In Progress — Vitest + React Testing Library, 404 tests across 22 files covering every `src/lib` module and the customer homepage including both Property Memory surfaces. No E2E, no CI runner |
+| Property Memory | In Progress — My Home V1 is derived entirely from existing rows (jobs, professionals, reviews, AI analyses, photos) via `src/lib/homeTimeline.js`, no new schema. My Items V1 is real storage (`household_items`, migration 0016) with manual entry and photos, and carries `source`/`ai_suggestion` so photo recognition can later propose values the owner confirms. Rooms, installations, documents and maintenance schedules remain Planned — no schema (ADR-0008) |
+| Localization | Implemented — 10 locales (`nl`, `fr`, `de`, `en`, `es`, `ar`, `fa`, `tr`, `ru`, `zh`), two right-to-left. UI copy lives in three tables under `src/lib`; catalog names live in the database. Parity across all three tables is derived from `LANGS` and enforced by `homeStrings.test.js` |
 | Core Platform | 3 of 11 layers Implemented (Auth, AI Gateway) or In Progress (Permissions). 8 layers Planned: Payments, Matching, Messaging, Notifications, Storage, Analytics, Marketplace Engine, API |
 
 ---
@@ -183,7 +185,7 @@ disagrees with this table, this table wins.
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | In Progress — `design/ACCESSIBILITY.md` audit done; Epic 03 added a global focus ring, a real focus trap + focus restoration on `Modal`, live regions, ARIA tablist semantics, and 44px touch targets on new surfaces. Older screens not re-audited | Constitution Rule 6 formally verified | Improving | Unassigned |
-| Testing | In Progress — 345 tests, 20 files; all `src/lib` business logic and the homepage covered. The feature components extracted from `App.jsx` have no render tests yet — their *rules* are tested, their markup is not | Defined in Phase 2 | Improving | Unassigned |
+| Testing | In Progress — 404 tests, 22 files; all `src/lib` business logic, the homepage, and both Property Memory surfaces covered. The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is not | Defined in Phase 2 | Improving | Unassigned |
 | Design System | In Progress — 21 components implemented (Epic 03 added TrustStrip, UnfoldPanel/UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, SegmentedTabs/TabPanel); most of `App.jsx` still unmigrated | Full adoption, dark mode, white-label tokens | Improving | Unassigned |
 | AI | In Progress — AI Gateway, intake, translation implemented | Full capability routing + eval automation | New baseline | Unassigned |
 | Marketplace Engine | In Progress — SQL-function matching implemented, no ranking/geo | Real Marketplace Engine implemented | New baseline | Unassigned |
@@ -364,7 +366,7 @@ Principles and KPIs are not alternatives. A feature needs a reason
 
 | Severity | Item | Impact | Recommended Fix | Phase | Priority |
 |---|---|---|---|---|---|
-| 🟠 High | No CI pipeline | Tests exist (345) but nothing runs them on a merge or deploy, so a regression still reaches production unnoticed | Add a CI gate on lint + test + build | Phase 2 | P0 |
+| 🟠 High | No CI pipeline | Tests exist (404) but nothing runs them on a merge or deploy, so a regression still reaches production unnoticed | Add a CI gate on lint + test + build | Phase 2 | P0 |
 | 🟠 High | No TypeScript | Type errors reach production undetected | Incremental adoption, smallest/most-depended-on files first | Phase 2 | P1 |
 | 🟠 High | No payment system | No real revenue path | Stripe Connect integration | Phase 4 | P1 |
 | 🟡 Medium | No render tests on the extracted feature components | The Engineering Health sprint moved ~2,150 lines of JSX into `src/customer`, `src/pro`, `src/auth`, `src/profile` and `src/messaging` with their rules unit-tested but their markup unverified by any test. The move was checked by line-level diff, build, lint and manual smoke — not by assertions that survive the next change | Add render tests per feature folder, starting with the surfaces that spend money: `RequestDetailSheet`, `InvoiceSheet`, `ProProfile` | Phase 2 | P2 |

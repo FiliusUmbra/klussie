@@ -4,10 +4,19 @@
 // are genuinely testable — greeting band, trust-signal eligibility, today's priority —
 // are testable without rendering anything (ENGINEERING_STANDARDS.md, "no business
 // logic in UI").
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchPlatformTrustStats } from "../lib/pros";
-import { fetchHomeProfile, fetchItemInventory, knownFactsFrom } from "../lib/homeInventory.js";
+import { fetchHomeProfile, knownFactsFrom } from "../lib/homeInventory.js";
+import { fetchHouseholdItems } from "../lib/householdItems.js";
 import { pickTodayItem, activeRequests, completedWork } from "../lib/homeToday.js";
+import {
+  propertySummary,
+  openWork,
+  finishedWork,
+  trustedProfessionals,
+  homeHistory,
+  requestsWithPossiblePhotos,
+} from "../lib/homeTimeline.js";
 import { interpolate } from "../lib/homeStrings.js";
 
 const MORNING_ENDS_AT = 12;
@@ -47,7 +56,11 @@ export function trustItemsFrom(t, trust) {
 export function useHomeContext({ t, profile, requests }) {
   const [trust, setTrust] = useState(null);
   const [homeProfile, setHomeProfile] = useState(null);
-  const [inventory, setInventory] = useState(null);
+  // null means "not loaded yet" and [] means "genuinely nothing recorded" — My Items
+  // renders a different thing for each, so they must not collapse into one value.
+  const [items, setItems] = useState(null);
+  const [itemsError, setItemsError] = useState(null);
+  const ownerId = profile?.id;
 
   useEffect(() => {
     let cancelled = false;
@@ -59,25 +72,57 @@ export function useHomeContext({ t, profile, requests }) {
     fetchHomeProfile()
       .then((p) => { if (!cancelled) setHomeProfile(p); })
       .catch(() => {});
-    fetchItemInventory()
-      .then((i) => { if (!cancelled) setInventory(i); })
-      .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  // Items reload on a token rather than by calling a fetch function directly, so the
+  // read lives in one effect with one cancellation path. `refreshItems` only asks for
+  // another pass; it never sets item state itself.
+  const [reloadToken, setReloadToken] = useState(0);
+  const refreshItems = useCallback(() => setReloadToken((n) => n + 1), []);
+
+  useEffect(() => {
+    if (!ownerId) return;
+    let cancelled = false;
+    fetchHouseholdItems(ownerId)
+      .then((rows) => { if (!cancelled) { setItems(rows); setItemsError(null); } })
+      // Surfaced rather than swallowed: an inventory that silently shows nothing after a
+      // failed read looks exactly like an inventory the customer never filled in, and
+      // would invite them to enter everything a second time.
+      .catch((err) => { if (!cancelled) setItemsError(err.message || String(err)); });
+    return () => { cancelled = true; };
+  }, [ownerId, reloadToken]);
 
   const today = useMemo(() => pickTodayItem(requests), [requests]);
   const active = useMemo(() => activeRequests(requests, today?.request?.id), [requests, today]);
   const previousWork = useMemo(() => completedWork(requests), [requests]);
   const knownFacts = useMemo(() => knownFactsFrom(homeProfile), [homeProfile]);
 
+  // My Home V1: everything below is derived from requests the customer already has.
+  // Nothing here reads a table that does not exist (HOME_OPERATING_SYSTEM.md §2).
+  const property = useMemo(() => propertySummary(profile, requests), [profile, requests]);
+  const open = useMemo(() => openWork(requests), [requests]);
+  const finished = useMemo(() => finishedWork(requests), [requests]);
+  const trustedPros = useMemo(() => trustedProfessionals(requests), [requests]);
+  const history = useMemo(() => homeHistory(requests), [requests]);
+  const photoSources = useMemo(() => requestsWithPossiblePhotos(requests), [requests]);
+
   return {
     greeting: greetingLine(t, profile?.full_name),
     trustItems: trustItemsFrom(t, trust),
     homeProfile,
-    inventory,
     knownFacts,
     today,
     activeRequests: active,
     previousWork,
+    property,
+    openWork: open,
+    finishedWork: finished,
+    trustedPros,
+    history,
+    photoSources,
+    items,
+    itemsError,
+    refreshItems,
   };
 }

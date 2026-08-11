@@ -63,7 +63,7 @@ Status uses only: **Implemented**, **In Progress**, **Planned**.
 
 | Standard | Status |
 |---|---|
-| No component over 300 lines | Implemented — largest single component is `AiIntakeSheet.jsx` at 300. Two files exceed 300 without breaking the rule: `design-system/domain.jsx` (317) holds ~10 small components, and `appStrings.js` (789) / `homeStrings.js` (626) / `appStyles.js` (461) are data, not components |
+| No component over 300 lines | Implemented — largest single component is `AiIntakeSheet.jsx` at 300. Files above 300 that don't break the rule: `design-system/domain.jsx` (317) holds ~10 small components, and `homeStrings.js` (1,030) / `appStrings.js` (983) / `appStyles.js` (463) / `homeStyles.js` (360) / `homeFollowUpStrings.js` (242) are data across 10 locales, not components |
 | No function over 40 lines | In Progress — one known violation in `src/lib` (`catalog.js`'s `fetchCatalog`, 51 lines); several render functions also exceed it, which is a JSX-length problem rather than a branching-complexity one |
 | Everything typed | Planned — starts Phase 2 |
 | Everything documented | Implemented — every module carries a header explaining *why* it exists; the feature split gave the previously uncommented inline components a home and a reason |
@@ -77,7 +77,7 @@ Status uses only: **Implemented**, **In Progress**, **Planned**.
 ## Known follow-up (not done in this pass)
 
 - **The extracted feature components have no render tests.** Their rules are unit-tested
-  (`src/lib/__tests__`, 345 tests total), but no test asserts that `RequestDetailSheet`
+  (`src/lib/__tests__`, 404 tests total), but no test asserts that `RequestDetailSheet`
   renders a timeline or that `InvoiceSheet` shows the right total. The Engineering Health
   sprint verified the move by line-level diff, build, lint and a manual smoke test — good
   enough to trust the move, not good enough to protect the next one.

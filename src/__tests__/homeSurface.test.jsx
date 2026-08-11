@@ -38,8 +38,16 @@ vi.mock("../lib/portfolio", () => ({
   updatePortfolioCaption: vi.fn(),
   deletePortfolioItem: vi.fn(),
 }));
+vi.mock("../lib/householdItems", () => ({
+  fetchHouseholdItems: vi.fn(() => Promise.resolve([])),
+  createHouseholdItem: vi.fn(),
+  updateHouseholdItem: vi.fn(),
+  setHouseholdItemPhoto: vi.fn(),
+  deleteHouseholdItem: vi.fn(),
+}));
 
 import { ConversationHome } from "../home/ConversationHome.jsx";
+import { fetchHouseholdItems } from "../lib/householdItems";
 import { LangContext } from "../lib/lang";
 import { fetchPlatformTrustStats, findBestProForService } from "../lib/pros";
 import { analyzeJobRequest } from "../lib/aiIntake";
@@ -98,6 +106,9 @@ beforeEach(() => {
   vi.mocked(fetchPlatformTrustStats).mockResolvedValue({ verifiedProCount: 0, reviewCount: 0, ratingAvg: null });
   vi.mocked(findBestProForService).mockResolvedValue(null);
   vi.mocked(analyzeJobRequest).mockResolvedValue({ problem: "leak", confidence: 80 });
+  // Reset explicitly: afterEach's clearAllMocks clears recorded calls but keeps any
+  // implementation a test installed, which would leak one test's inventory into the next.
+  vi.mocked(fetchHouseholdItems).mockResolvedValue([]);
 });
 
 afterEach(() => { vi.clearAllMocks(); });
@@ -373,80 +384,177 @@ describe("today for your home", () => {
 describe("My Home", () => {
   const openMyHome = () => fireEvent.click(within(screen.getByRole("tablist")).getAllByRole("tab")[1]);
 
-  it("leads with its own question and its five quick actions", () => {
+  it("leads with its question and a way back into the conversation", () => {
     renderHome();
     openMyHome();
     expect(screen.getByText("myHomeQuestion")).toBeTruthy();
-    for (const key of ["myHomeAddRoom", "myHomeAddInstallation", "myHomeUploadDoc", "myHomeLogMaintenance", "homeReportProblem"]) {
-      expect(screen.getByText(key)).toBeTruthy();
-    }
+    expect(screen.getByText("homeReportProblem")).toBeTruthy();
   });
 
-  it("marks what Klussie cannot do yet instead of pretending", () => {
-    renderHome();
-    openMyHome();
-    expect(screen.getByText("homeNotBuiltYetNote")).toBeTruthy();
-    expect(screen.getByText("myHomeAddRoom").closest("button").disabled).toBe(true);
-    // The one genuinely wired action is not disabled with the rest.
-    expect(screen.getByText("homeReportProblem").closest("button").disabled).toBe(false);
-  });
-
-  it("sends 'report a problem' back to the conversation, which is the part that works", () => {
+  it("sends 'report a problem' back to the conversation, which is where things start", () => {
     renderHome();
     openMyHome();
     fireEvent.click(screen.getByText("homeReportProblem").closest("button"));
     expect(screen.getByText("intentBroken")).toBeTruthy();
   });
 
-  it("shows all six groups, empty rather than fabricated", () => {
-    renderHome();
+  it("shows an invitation rather than a blank page for a home with no history", () => {
+    // "Never show a blank page" — a brand-new account still gets something to read.
+    renderHome({ requests: [] });
     openMyHome();
-    for (const key of ["myHomeSummaryTitle", "myHomeRoomsTitle", "myHomeInstallationsTitle",
-      "myHomeMaintenanceTitle", "myHomeDocumentsTitle", "myHomeHistoryTitle"]) {
-      expect(screen.getByText(key)).toBeTruthy();
-    }
+    expect(screen.getByText("myHomeActiveEmpty")).toBeTruthy();
     expect(screen.getByText("myHomeHistoryEmpty")).toBeTruthy();
+    expect(screen.getByText("myHomeProsEmpty")).toBeTruthy();
+    expect(screen.getByText("myHomeReviewsEmpty")).toBeTruthy();
+    expect(screen.getByText("myHomeAiEmpty")).toBeTruthy();
   });
 
-  it("fills Previous work from real completed requests, because that data is real", () => {
+  it("states each section's emptiness in its own words, not one repeated line", () => {
+    // Five identical "nothing saved" lines tell a customer nothing about what would
+    // fill them; that was the old placeholder's failure and is worth keeping fixed.
+    renderHome({ requests: [] });
+    openMyHome();
+    const empties = [...document.querySelectorAll(".home-group-empty")].map((n) => n.textContent);
+    expect(new Set(empties).size).toBe(empties.length);
+  });
+
+  it("shows the property header from the customer's own profile", () => {
+    renderHome({ requests: [request({ status: "completed" })] });
+    openMyHome();
+    expect(screen.getByText("Brussels")).toBeTruthy();
+  });
+
+  it("builds the history from real completed requests", () => {
     const { onOpenRequest } = renderHome({
-      requests: [request({ id: "done", status: "completed", review: { stars: 5 } })],
+      requests: [request({ id: "done", status: "completed" })],
     });
     openMyHome();
     expect(screen.queryByText("myHomeHistoryEmpty")).toBeNull();
-    fireEvent.click(screen.getByText("name:svc-plumbing").closest("button"));
+    fireEvent.click(screen.getAllByText("name:svc-plumbing")[0].closest("button"));
     expect(onOpenRequest).toHaveBeenCalledWith("done");
+  });
+
+  it("separates work in progress from work that is finished", () => {
+    renderHome({
+      requests: [
+        request({ id: "running", status: "booked" }),
+        request({ id: "done", status: "completed" }),
+      ],
+    });
+    openMyHome();
+    expect(screen.queryByText("myHomeActiveEmpty")).toBeNull();
+    expect(screen.queryByText("myHomeHistoryEmpty")).toBeNull();
+  });
+
+  it("lists a professional only once the job they were booked for finished", () => {
+    const withPro = (status) => request({
+      id: "j", status, bookedProId: "peter",
+      quotes: [{ id: "q", proId: "peter", price: 100, pro: { id: "peter", name: "Peter", initials: "P", avatarUrl: null } }],
+    });
+
+    const booked = renderHome({ requests: [withPro("booked")] });
+    openMyHome();
+    expect(screen.getByText("myHomeProsEmpty")).toBeTruthy();
+    booked.unmount();
+
+    renderHome({ requests: [withPro("completed")] });
+    openMyHome();
+    expect(screen.getByText("Peter")).toBeTruthy();
+    expect(screen.getByText("myHomeOneJobTogether")).toBeTruthy();
+  });
+
+  it("shows a review the customer wrote, on the job it belongs to", () => {
+    renderHome({
+      requests: [request({ id: "done", status: "reviewed", review: { stars: 5, text: "Excellent work" } })],
+    });
+    openMyHome();
+    expect(screen.getAllByText('"Excellent work"').length).toBeGreaterThan(0);
+    expect(screen.queryByText("myHomeReviewsEmpty")).toBeNull();
+  });
+
+  it("does not render an AI section for an analysis that says nothing", () => {
+    // A confidence score with no causes and no materials is a row that exists and tells
+    // the customer nothing.
+    renderHome({
+      requests: [request({ status: "completed", answers: { aiAnalysis: { confidence: 90 } } })],
+    });
+    openMyHome();
+    expect(screen.getByText("myHomeAiEmpty")).toBeTruthy();
   });
 });
 
 describe("My Items", () => {
   const openMyItems = () => fireEvent.click(within(screen.getByRole("tablist")).getAllByRole("tab")[2]);
 
-  it("leads with its own question and its five quick actions", () => {
+  const item = (over) => ({
+    id: "i1", name: "Washing machine", category: "appliance", room: null,
+    brand: null, model: null, photoPath: null, photoUrl: null,
+    purchasedOn: null, notes: null, source: "manual", aiSuggestion: null,
+    createdAt: 1000, updatedAt: 1000, ...over,
+  });
+
+  it("leads with its question and a way to add something", () => {
     renderHome();
     openMyItems();
     expect(screen.getByText("myItemsQuestion")).toBeTruthy();
-    for (const key of ["myItemsScan", "myItemsReceipt", "myItemsWarranty", "myItemsManual", "homeReportProblem"]) {
-      expect(screen.getByText(key)).toBeTruthy();
-    }
+    expect(screen.getByText("itemAddTitle")).toBeTruthy();
   });
 
-  it("claims no scanning, no receipt reading, and no guarantee checking", () => {
+  it("invites a first item rather than showing empty category headings", async () => {
     renderHome();
     openMyItems();
-    for (const key of ["myItemsScan", "myItemsReceipt", "myItemsWarranty", "myItemsManual"]) {
-      expect(screen.getByText(key).closest("button").disabled, key).toBe(true);
-    }
-    expect(screen.getByText("homeNotBuiltYetNote")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("myItemsEmptyTitle")).toBeTruthy());
+    expect(screen.getByText("myItemsEmptyHint")).toBeTruthy();
+    // The old placeholder printed five headings with nothing under them.
+    expect(screen.queryByText("itemCatAppliance")).toBeNull();
   });
 
-  it("shows the item groups with an honest empty line each", () => {
+  it("groups real items by category and counts them", async () => {
+    vi.mocked(fetchHouseholdItems).mockResolvedValue([
+      item({ id: "a", name: "Boiler", category: "appliance" }),
+      item({ id: "b", name: "Drill", category: "tool" }),
+    ]);
     renderHome();
     openMyItems();
-    for (const key of ["myItemsAppliances", "myItemsElectronics", "myItemsFurniture", "myItemsGarden", "myItemsRecent"]) {
-      expect(screen.getByText(key)).toBeTruthy();
-    }
-    expect(screen.getAllByText("homeNothingSavedYet").length).toBe(5);
+    await waitFor(() => expect(screen.getByText("Boiler")).toBeTruthy());
+    expect(screen.getByText("Drill")).toBeTruthy();
+    expect(screen.getByText("itemCatAppliance")).toBeTruthy();
+    expect(screen.getByText("itemCatTool")).toBeTruthy();
+    // Categories the household owns nothing in stay off the page.
+    expect(screen.queryByText("itemCatGarden")).toBeNull();
+  });
+
+  it("shows brand and model when known, and nothing in their place when not", async () => {
+    vi.mocked(fetchHouseholdItems).mockResolvedValue([
+      item({ id: "a", name: "Boiler", brand: "Vaillant", model: "ecoTEC" }),
+      item({ id: "b", name: "Sofa", category: "furniture" }),
+    ]);
+    renderHome();
+    openMyItems();
+    await waitFor(() => expect(screen.getByText("Vaillant ecoTEC")).toBeTruthy());
+    // No "Unknown brand" filler under the item that has none.
+    expect(screen.getByText("Sofa").closest(".item-card").querySelector(".item-card-sub")).toBeNull();
+  });
+
+  it("opens the form to add an item, with only the name required", async () => {
+    renderHome();
+    openMyItems();
+    await waitFor(() => expect(screen.getByText("myItemsEmptyTitle")).toBeTruthy());
+    fireEvent.click(screen.getByText("itemAddTitle").closest("button"));
+
+    const save = screen.getByText("itemSaveNew").closest("button");
+    expect(save.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("itemNameLabel"), { target: { value: "Dishwasher" } });
+    expect(save.disabled).toBe(false);
+  });
+
+  it("says so when the inventory could not be read, instead of looking empty", async () => {
+    // An empty-looking list after a failed read would invite entering everything twice.
+    vi.mocked(fetchHouseholdItems).mockRejectedValue(new Error("network down"));
+    renderHome();
+    openMyItems();
+    await waitFor(() => expect(screen.getByText("myItemsLoadFailed")).toBeTruthy());
+    expect(screen.queryByText("myItemsEmptyTitle")).toBeNull();
   });
 });
 

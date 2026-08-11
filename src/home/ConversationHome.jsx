@@ -97,8 +97,8 @@ export function ConversationHome({ onStart, requests = [], section = "klussie", 
         <TabPanel id={`${ID_PREFIX}-panel-myHome`} tabId={`${ID_PREFIX}-tab-myHome`} active={activeSection === "myHome"}>
           <MyHomePanel
             t={t}
-            homeProfile={homeCtx.homeProfile}
-            previousWork={homeCtx.previousWork}
+            homeCtx={homeCtx}
+            requests={requests}
             serviceInfo={serviceInfo}
             fmtDate={fmtDate}
             onReportProblem={() => setSection("klussie")}
@@ -107,7 +107,13 @@ export function ConversationHome({ onStart, requests = [], section = "klussie", 
         </TabPanel>
 
         <TabPanel id={`${ID_PREFIX}-panel-myItems`} tabId={`${ID_PREFIX}-tab-myItems`} active={activeSection === "myItems"}>
-          <MyItemsPanel t={t} inventory={homeCtx.inventory} onReportProblem={() => setSection("klussie")} />
+          <MyItemsPanel
+            t={t}
+            ownerId={profile?.id}
+            items={homeCtx.items}
+            itemsError={homeCtx.itemsError}
+            onRefresh={homeCtx.refreshItems}
+          />
         </TabPanel>
 
         {/* capture="environment" opens the rear camera directly on mobile rather than a

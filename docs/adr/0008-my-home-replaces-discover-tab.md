@@ -38,3 +38,27 @@ already exists gets looked back on.
   Phase 13, which this design is the spec for).
 - This is a design decision, not yet implemented — the Profile tab in
   `src/App.jsx` today has none of these five groups.
+
+## Status update — V1 shipped (2026-08-11)
+
+Two of the five groups are now real, which is what this ADR predicted
+would be possible without new schema:
+
+- **History and People are implemented.** `src/lib/homeTimeline.js`
+  derives the property record entirely from existing rows — completed
+  jobs, the professionals actually booked on them, reviews, AI analyses
+  and request photos. No table was added for any of it.
+- **My Items is implemented and did need new schema.** `household_items`
+  (migration 0016) is the first real Property Memory storage: items a
+  person enters by hand, with `source` and `ai_suggestion` columns so a
+  later photo-recognition flow can propose a brand and model for the
+  owner to confirm. The check constraint has no value for unconfirmed
+  model output, so "the user always confirms" is enforced in the
+  database rather than in whichever client wrote last.
+- **The home itself, Systems and Documents remain unbuilt**, exactly as
+  this ADR said. `src/lib/homeInventory.js` still returns empty for
+  rooms, installations, maintenance and documents, and the surfaces say
+  so per section rather than with one blanket "not built yet" note.
+
+The IA decision itself is unchanged: still no new tab, still sections of
+the conversational front door.

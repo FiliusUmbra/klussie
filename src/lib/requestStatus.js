@@ -6,7 +6,7 @@
 // adding a status meant remembering both, and only one of them had a fallback.
 //
 // Copy stays out of here on purpose (same rule as homeIntents.js): this module returns
-// `labelKey` values into `t`, never literal strings, so all 8 locales stay real.
+// `labelKey` values into `t`, never literal strings, so all 10 locales stay real.
 
 /** The lifecycle, in order. Index position drives the timeline on a request. */
 export const REQUEST_STATUS_ORDER = ["collecting", "quotes_ready", "booked", "completed", "reviewed"];

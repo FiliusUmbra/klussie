@@ -14,9 +14,9 @@ import { HOME_STRINGS } from "./homeStrings.js";
 import { FOLLOW_UP_STRINGS } from "./homeFollowUpStrings.js";
 import { WHEN_LABEL_KEYS } from "./requestStatus.js";
 
-// The only right-to-left locale klussie ships. A set rather than an equality check so
-// adding Hebrew or Farsi is a one-word edit here instead of a growing ternary.
-const RTL_LANGS = new Set(["ar"]);
+// The right-to-left locales klussie ships. A set rather than an equality check, which is
+// what made adding Persian a one-word edit here instead of a growing ternary.
+const RTL_LANGS = new Set(["ar", "fa"]);
 
 // Badge tiers that say something worth saying. Any other tier — including none — renders
 // no badge rather than an empty one.
@@ -35,7 +35,7 @@ export function buildLangContext(langCode, catalog) {
   const langMeta = LANGS.find((l) => l.code === langCode);
 
   // The homepage keeps its copy in its own modules so App's table didn't grow by ~90 keys
-  // × 8 locales; merged here so `t` stays one flat lookup at every call site.
+  // × 10 locales; merged here so `t` stays one flat lookup at every call site.
   const t = { ...APP_STRINGS[langCode], ...HOME_STRINGS[langCode], ...FOLLOW_UP_STRINGS[langCode] };
 
   return {

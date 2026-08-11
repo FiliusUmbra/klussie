@@ -10,7 +10,7 @@
 // customer is thinking, "Vertel het me gewoon" is only how they'd say it.
 
 // `labelKey` / `questionKey` are keys into `t` (src/lib/homeStrings.js and
-// src/lib/homeFollowUpStrings.js) — never literal copy, so all 8 locales stay real.
+// src/lib/homeFollowUpStrings.js) — never literal copy, so all 10 locales stay real.
 //
 // answerMode:
 //   "text"  — typed, spoken, or photographed; the composer stays fully available.

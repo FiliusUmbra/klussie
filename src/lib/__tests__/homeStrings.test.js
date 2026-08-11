@@ -1,20 +1,27 @@
 // Locale parity, checked mechanically.
 //
-// The app has 8 locales and one 3,900-line file where copy used to live; a key added
-// to Dutch and forgotten everywhere else renders the raw key name to a French or
-// Arabic customer, silently, with nothing failing. This is the check that turns that
-// into a red test.
+// A key added to Dutch and forgotten everywhere else renders the raw key name to a
+// French or Persian customer, silently, with nothing failing. This is the check that
+// turns that into a red test.
+//
+// The locale list is derived from LANGS rather than repeated here on purpose: LANGS is
+// what fills the language picker, so a locale offered to customers but missing from a
+// string table now fails here instead of shipping a screen full of key names. Adding a
+// language means adding it in one place and being told exactly what is still missing.
 import { describe, it, expect } from "vitest";
 import { HOME_STRINGS, interpolate } from "../homeStrings.js";
 import { FOLLOW_UP_STRINGS } from "../homeFollowUpStrings.js";
+import { APP_STRINGS } from "../appStrings.js";
+import { LANGS } from "../lang.js";
 
-const SUPPORTED = ["nl", "fr", "de", "en", "ar", "tr", "ru", "zh"];
+const SUPPORTED = LANGS.map((l) => l.code);
 
 describe.each([
+  ["APP_STRINGS", APP_STRINGS],
   ["HOME_STRINGS", HOME_STRINGS],
   ["FOLLOW_UP_STRINGS", FOLLOW_UP_STRINGS],
 ])("%s", (_name, table) => {
-  it("covers all 8 supported locales and no others", () => {
+  it("covers every locale the language picker offers, and no others", () => {
     expect(Object.keys(table).sort()).toEqual([...SUPPORTED].sort());
   });
 
@@ -44,6 +51,18 @@ describe.each([
         expect(placeholders(table[locale][key]), `${locale}.${key}`).toEqual(expected);
       }
     }
+  });
+});
+
+describe("right-to-left locales", () => {
+  it("ships a string table for every RTL language the picker offers", () => {
+    // Arabic and Persian share a script but not a language; a Persian customer getting
+    // Arabic copy would be the shortcut worth failing over.
+    for (const code of ["ar", "fa"]) {
+      expect(SUPPORTED, `${code} missing from LANGS`).toContain(code);
+      expect(HOME_STRINGS[code], `${code} missing from HOME_STRINGS`).toBeDefined();
+    }
+    expect(HOME_STRINGS.fa.homeTabMyHome).not.toBe(HOME_STRINGS.ar.homeTabMyHome);
   });
 });
 

@@ -194,12 +194,16 @@ owns the real underlying capability ships it — see
   role selection, `src/customer/CustomerApp.jsx`, or
   `src/pro/ProApp.jsx`. It is the only place that routing-like logic
   lives.
-- 8-locale i18n (`nl`, `fr`, `de`, `en`, `ar`, `tr`, `ru`, `zh`,
-  including right-to-left Arabic). Three flat tables —
+- 10-locale i18n (`nl`, `fr`, `de`, `en`, `es`, `ar`, `fa`, `tr`, `ru`,
+  `zh`, including right-to-left Arabic and Persian). Three flat tables —
   `src/lib/appStrings.js`, `homeStrings.js`, `homeFollowUpStrings.js` —
   merged into one `t` lookup by `src/lib/langContext.js`. Still not
-  per-locale files; `appStrings.test.js` enforces key parity across all
-  eight so a forgotten translation fails in CI rather than on screen.
+  per-locale files; `homeStrings.test.js` derives its locale list from
+  `LANGS` and enforces key parity across all three tables, so a language
+  offered in the picker but missing copy fails in CI rather than rendering
+  key names to a customer. Catalog names live in the database
+  (`category_translations`, `service_translations`) and are widened by the
+  same migration that widens the `locale` check constraints — see 0017.
 - No routing library — the app is state-driven, not URL-driven; no
   code-splitting exists because there are no routes.
 - `src/design-system/` components are real and have real call sites, but
