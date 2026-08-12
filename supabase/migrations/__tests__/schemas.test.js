@@ -16,19 +16,9 @@
 // which is recorded in the work package.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { FROZEN_DOC, frozenSchemas } from "./frozenSchemas.js";
 
-const FROZEN_DOC = "docs/architecture/SUPABASE_ARCHITECTURE.md";
 const MIGRATION = "supabase/migrations/0018_schemas.sql";
-
-// §2's schema table, and only that table. Bounded by the two headings so a backticked
-// identifier elsewhere in the document cannot be mistaken for a schema.
-function schemasFromArchitecture(doc) {
-  const section = doc.slice(
-    doc.indexOf("## 2 · Schema Organisation"),
-    doc.indexOf("## 3 · Identifier Strategy")
-  );
-  return [...section.matchAll(/^\|\s*`([a-z_]+)`\s*\|/gm)].map((m) => m[1]);
-}
 
 // `create schema if not exists <name>` — the guarded form, which is what makes the
 // migration re-runnable. An unguarded `create schema` deliberately does not match:
@@ -40,7 +30,7 @@ function schemasCreatedBy(sql) {
 }
 
 describe("0018_schemas migration", () => {
-  const declared = schemasFromArchitecture(readFileSync(FROZEN_DOC, "utf8"));
+  const declared = frozenSchemas();
   const created = schemasCreatedBy(readFileSync(MIGRATION, "utf8"));
 
   it("reads ten schemas out of the frozen architecture", () => {
