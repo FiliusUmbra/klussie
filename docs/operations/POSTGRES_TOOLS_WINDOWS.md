@@ -102,16 +102,34 @@ staging** — it holds no real customer data.
 
 | Field | Value |
 |---|---|
-| Host | `aws-1-eu-west-1.pooler.supabase.com` |
+| Host | **Per project — see below. Not a constant.** |
 | Port | `5432` — **session mode**, required for `pg_dump` |
 | Database | `postgres` |
 | User | `postgres.<project-ref>` |
 | Password | Project Settings → Database → Database password |
 
+> **The pooler host differs per project, even within one region.**
+> Two Klussie projects, both `eu-west-1`, sit on different pooler
+> clusters. Using the wrong one fails with
+> `FATAL: (ENOTFOUND) tenant/user postgres.<ref> not found` — which looks
+> like a bad username but is a wrong-host error.
+
+**Verified 2026-08-12:**
+
+| Project | Pooler host |
+|---|---|
+| `klussie` (production) | `aws-0-eu-west-1.pooler.supabase.com` |
+| `klussie-staging` | `aws-1-eu-west-1.pooler.supabase.com` |
+
+**Find it for any project:** Dashboard → Project Settings → Database →
+**Connection pooling**. The CLI also writes it to `supabase/.temp/pooler-url`
+for whichever project is currently linked.
+
 **Use the pooler, not `db.<project-ref>.supabase.co`.** The direct host
-may resolve to IPv6 only, which many Windows networks cannot reach. The
-pooler is reachable over IPv4, and port **5432** is session mode — port
-6543 is transaction mode and **`pg_dump` will not work against it.**
+resolves to IPv6, which works on some networks and not others — on this
+machine it resolved to `2a05:d018:…` and connected, but that is not
+portable. The pooler answers over IPv4. Port **5432** is session mode;
+port 6543 is transaction mode and **`pg_dump` will not work against it.**
 
 If you do not have the database password, reset it in Project Settings →
 Database. Resetting does not affect the anon key the application uses.
@@ -170,6 +188,7 @@ treat it as the credential store it is.
 | Connection times out | Direct IPv6-only host | Use the pooler host (§5.1) |
 | `prepared statement ... already exists` | Transaction-mode pooler | Use port **5432**, not 6543 |
 | Authentication failed | Wrong username shape | User is `postgres.<project-ref>`, not `postgres` |
+| `(ENOTFOUND) tenant/user postgres.<ref> not found` | **Wrong pooler host** — the ref is not a tenant on that cluster | Use the project's own pooler host (§5.1). Not a username problem, despite the message |
 | Password prompt in a script | `PGPASSWORD` not exported | §5.2 |
 
 ---

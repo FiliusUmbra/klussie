@@ -106,12 +106,26 @@ different cloud account, or an external drive kept elsewhere.
 Set the connection once per session. Details and the password source are
 in [`POSTGRES_TOOLS_WINDOWS.md`](POSTGRES_TOOLS_WINDOWS.md) §5.
 
+**Connection targets, verified 2026-08-12:**
+
+| Project | Ref | Pooler host |
+|---|---|---|
+| `klussie` (production) | `wyxspgdzwyzsqezmtndx` | `aws-0-eu-west-1.pooler.supabase.com` |
+| `klussie-staging` | `mxcuxnvjfnktwjcmkqqk` | `aws-1-eu-west-1.pooler.supabase.com` |
+
+**The pooler host is per project, not per region.** Both are in
+`eu-west-1` and they are on different clusters. The wrong host fails with
+`(ENOTFOUND) tenant/user … not found`, which reads like a username error
+and is not one. A new project's host is in Dashboard → Project Settings →
+Database → Connection pooling.
+
 ```bash
-export PGHOST=aws-1-eu-west-1.pooler.supabase.com
+# PGHOST is per project, not per region — see the table below.
+export PGHOST=<the-project's-pooler-host>
 export PGPORT=5432                 # session mode — 6543 will not work
 export PGDATABASE=postgres
 export PGUSER=postgres.<project-ref>
-export PGPASSWORD='<database-password>'
+export PGPASSWORD='<database-password>'   # or omit and use pgpass.conf
 
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 DEST=/path/outside/the/repo/klussie-backup-$STAMP
