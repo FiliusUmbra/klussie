@@ -35,13 +35,16 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `MASTER_CONTEXT.md` | This file — executive overview | Implemented |
 | `READING_GUIDES.md` | Role-based reading order (CEO/Product/Design/Frontend/Backend/AI/DevOps/QA) | Implemented |
 | `IMPLEMENTATION_READINESS_REVIEW.md` | Point-in-time audit of doc-set integrity before Phase 9's execution roadmap | Implemented |
-| `EXECUTION_ROADMAP.md` | 10-epic execution sequence bridging documentation to implementation | Implemented |
+| `IMPLEMENTATION_ROADMAP.md` | **The master engineering plan — the only source of truth for what to build next.** 27 epics, work-package standard, completion gates, migration pattern. Supersedes the two rows below for execution purposes | Implemented |
+| `../ENGINEERING.md` | **The engineering operating manual** — workflow, branch/commit conventions, verification gates, deviation procedure. First thing an engineer reads before touching code | Implemented |
+| `../implementation/` | Engineering workspace — templates (work package, Definition of Done, review, rollback, ADR workflow, epic completion) and per-epic trackers | Implemented |
+| `EXECUTION_ROADMAP.md` | 10-epic execution sequence bridging documentation to implementation | **Superseded** by `IMPLEMENTATION_ROADMAP.md`; retained as history |
 | `architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md` | Epic 03's 12 work packages — scope, dependencies, files, acceptance, complexity, risks | Implemented |
 | `product/PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
 | `engineering/ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
 | `design/DESIGN_SYSTEM.md` | Visual and interaction design direction (constitution tier — see `design/README.md` for the full companion-doc set) | Implemented |
 | `operations/AUTH_PROVIDER_SETUP.md` | External OAuth provider registration steps (Authentication UX Redesign, Phase 2) | Implemented |
-| `architecture/ROADMAP.md` | Full phase-by-phase implementation roadmap (13 phases) | Implemented |
+| `architecture/ROADMAP.md` | Full phase-by-phase implementation roadmap (13 phases) | **Superseded** by `IMPLEMENTATION_ROADMAP.md`; retained as history |
 | `product/HOMEPAGE_CONCEPTS.md` | Three original conversational-homepage concepts (A/B/C) | Implemented |
 | `product/HOMEPAGE_DIRECTION.md` | The chosen homepage direction — C's foundation, B's restraint | Implemented |
 | `product/EXPERIENCE_VISION.md` | 10-part experience spec for the conversational homepage | Implemented |
@@ -49,7 +52,11 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `product/PROPERTY_MEMORY.md` | Underlying philosophy of Digital Property Memory | Implemented |
 | `adr/README.md` | Architecture Decision Records — index of all ADRs | Implemented |
 | `features/README.md` | Feature-brief process, template, and index | Implemented |
-| `architecture/ARCHITECTURE.md` | Detailed system architecture | Implemented |
+| `architecture/PLATFORM_DOMAIN_MODEL.md` | **The platform's permanent domain model — highest-level architectural document, FROZEN at Version 1.0 (ADR-0015).** Owns what the platform *is*: 14 Platform Principles, the Capability Engine (§6), identity/workspace/capability, property–location–asset and the Digital Twin, Service Records, Workflows, the Execution Model, Property Memory, Workspace Knowledge, the Knowledge Graph and Provider Intelligence. Every other architectural document is subordinate to it; changes require an ADR | Implemented |
+| `architecture/DATABASE_ARCHITECTURE.md` | **The data architecture implementing the domain model.** Owns aggregates vs projections, storage classes, tenancy and the crossing registry, the event backbone, and what every future migration must satisfy. No SQL — the physical schema is the next milestone | Implemented |
+| `architecture/SYSTEM_ARCHITECTURE.md` | **The logical software architecture.** Owns the 24 platform engines, their ownership boundaries and contracts, engine communication, the event flow, and the AI/workflow/search/analytics/integration runtimes. No code, no APIs, no infrastructure | Implemented |
+| `architecture/SUPABASE_ARCHITECTURE.md` | **The persistence blueprint.** Owns schema organisation, aggregate placement, UUID/mutability strategy, RLS philosophy, event partitioning, projection mechanics, and which Supabase service does what. No DDL — migrations are the next milestone | Implemented |
+| `architecture/ARCHITECTURE.md` | Detailed system architecture — owns what is *currently built*, which will differ from `PLATFORM_DOMAIN_MODEL.md` for years by design | Implemented |
 | `architecture/AI_ARCHITECTURE.md` | AI Gateway internals, prompt/eval framework | Implemented |
 | `architecture/API_SPEC.md` | API contracts (internal + future public API) | Implemented |
 | `engineering/SECURITY.md` | Threat model, security posture | Implemented |
@@ -229,6 +236,16 @@ job because it evolves.
 ## 6. Architecture Overview
 
 > 🎯 **Target architecture — not yet built.** See §3 for what exists today.
+>
+> ⚠️ **Superseded as a description of the platform.** Since ADR-0013 and
+> ADR-0014, what the platform *is* is owned by
+> [`architecture/PLATFORM_DOMAIN_MODEL.md`](./architecture/PLATFORM_DOMAIN_MODEL.md).
+> The eleven-layer list below mixes domain concerns (Payments, Matching),
+> infrastructure adapters (Storage, Notifications) and delivery mechanisms
+> (API), and contains no properties, assets, workspaces or capabilities —
+> it is a useful *implementation checklist* and is retained as one. It is
+> no longer a model of the architecture. Where the two disagree, the
+> domain model wins.
 
 ```mermaid
 flowchart TB
@@ -443,6 +460,9 @@ so this section doesn't duplicate a source of truth (Constitution Rule
 | [0010](./adr/0010-defer-permissions-layer-formalization.md) | Defer formalizing the Permissions layer | Implemented |
 | [0011](./adr/0011-trust-strip-shows-only-verified-signals.md) | The trust strip shows only signals backed by real data | Implemented (built, Epic 03 WP7) |
 | [0012](./adr/0012-one-tap-booking-commits-the-customer-not-the-professional.md) | One-tap booking commits the customer, not the professional | Implemented (built, Epic 03 WP9) |
+| [0013](./adr/0013-workspace-centred-platform-domain-model.md) | Adopt a workspace-centred platform domain model | Implemented (domain model; no application code yet) |
+| [0014](./adr/0014-capability-model-as-the-platform-organising-concept.md) | The Capability Model is the platform's organising concept | Implemented (domain model; no application code yet) |
+| [0015](./adr/0015-service-records-digital-twin-workflows-and-execution-strategies.md) | Service Records, Digital Twin, Knowledge Graph, Workflows, Execution Strategies — **platform architecture frozen at Version 1.0** | Implemented (domain model; no application code yet) |
 
 ---
 

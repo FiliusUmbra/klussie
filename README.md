@@ -89,7 +89,13 @@ links here rather than repeating it.
 
 ## Documentation
 
-Read in this order:
+**Implementing something? Start with [`ENGINEERING.md`](./ENGINEERING.md)** —
+the engineering operating manual: workflow, conventions, gates, and where
+everything lives. What to build next is
+[`docs/IMPLEMENTATION_ROADMAP.md`](./docs/IMPLEMENTATION_ROADMAP.md); work
+is tracked in [`implementation/`](./implementation/README.md).
+
+For everything else, read in this order:
 
 1. [`docs/AI_CONTEXT.md`](./docs/AI_CONTEXT.md) — the fast-onboarding briefing every AI session reads first
 2. [`docs/MASTER_CONTEXT.md`](./docs/MASTER_CONTEXT.md) — single source of truth: current milestone, architecture status, priorities, risks, protected decisions
