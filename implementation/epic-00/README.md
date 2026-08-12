@@ -26,7 +26,7 @@ Nothing else starts until this is done.
 | 00.03 | Introduce TypeScript toolchain without migrating code | Medium | **In review** — [wp file](wp-00.03-typescript-toolchain.md) |
 | 00.04 | Migrate one leaf module to TypeScript as proof | Low | **In review** — [wp file](wp-00.04-first-typescript-module.md) |
 | 00.05 | Add type-check to CI | Low | **In review** — [wp file](wp-00.05-typecheck-in-ci.md) |
-| 00.06 | Provision the staging Supabase project | Medium | **Blocked** — runbook ready, needs account owner ([wp file](wp-00.06-staging-environment.md)) |
+| 00.06 | Provision the staging Supabase project | Medium | **Complete** — 17/17 migrations replayed from empty ([wp file](wp-00.06-staging-environment.md)) |
 | 00.07 | Document and verify a restore | Medium | Not started |
 | 00.08 | Add a regression baseline for the current product | **High** | Not started |
 
@@ -42,8 +42,9 @@ From the epic definition:
            Outstanding for this gate — see wp-00.01-ci-pipeline.md. -->
 - [ ] **Branch protection enabled on `main`**, requiring the CI check to
       pass before merge (manual repository setting)
-- [ ] A staging Supabase project exists, with all migrations applied from
-      empty, proving replayability
+- [x] A staging Supabase project exists, with all migrations applied from
+      empty, proving replayability — **17/17, no file modified, verified
+      via `migration list --linked` and a clean `db push --dry-run`**
 - [ ] TypeScript compiles alongside JavaScript, with at least one module
       migrated to prove the toolchain
 - [ ] `CHANGELOG.md` exists

@@ -13,12 +13,14 @@ engineering workflow (`../../ENGINEERING.md`), or disaster recovery
 | Environment | Status | Purpose |
 |---|---|---|
 | **Local** | Available | Development. Points at whichever remote environment the developer configures |
-| **Staging** | **Not yet provisioned** — this document is the runbook | Verify before production |
-| **Production** | Live, real users | The only environment Klussie has ever had |
+| **Staging** | **Provisioned** (2026-08-12) — all 17 migrations replayed from empty | Verify before production |
+| **Production** | Live, real users | Was the only environment Klussie had ever had |
 
-> **Production has been the only environment since the first migration.**
-> `../architecture/ARCHITECTURE.md` records this as a known gap, and
-> `IMPLEMENTATION_ROADMAP.md` §5 is why Epic 00 comes first.
+> **Production is no longer the only environment.** Staging was built
+> from an empty database by `supabase db push --linked`, applying all 17
+> migrations in order with no file modified and no failure — the first
+> time the migration chain has ever been proven to reconstruct the
+> schema from nothing.
 
 ## 2 · The rule this document exists to enforce
 
