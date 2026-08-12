@@ -1,6 +1,6 @@
 # ADR-0016: Operate production on the Free plan, without automatic backups
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0017](0017-free-tier-disaster-recovery-strategy.md)
 **Date:** 2026-08-12
 **Related:** `../operations/DISASTER_RECOVERY.md`,
 `../operations/ENVIRONMENTS.md`, `../IMPLEMENTATION_ROADMAP.md` Epic 00

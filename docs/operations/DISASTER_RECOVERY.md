@@ -1,175 +1,315 @@
 # Klussie — Disaster Recovery
 
-**This document owns:** what backup coverage Klussie actually has, how to
-restore, and the record of restore drills performed. It does not own
-environments (`ENVIRONMENTS.md`) or architecture.
+**This document owns:** what is backed up, how, how often, how to restore
+it, and the record of drills performed. It is written so that an engineer
+who has never seen this system can recover it using only this page.
 
-> **A restore that has never been tested is a hypothesis.**
-> `../architecture/DATABASE_ARCHITECTURE.md` §4 makes verified restore a
-> requirement for Historical-class data, and this project has never run
-> one.
+Prerequisite: [`POSTGRES_TOOLS_WINDOWS.md`](POSTGRES_TOOLS_WINDOWS.md).
+Decision and rationale: [ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md).
+
+> **A restore that has never been tested is a hypothesis.** §8 is empty.
+> Until it has a row, Klussie's recovery is unproven.
 
 ---
 
-## 1 · Verified backup posture
+## 1 · The situation this strategy is built for
 
-Queried read-only against the production project on 2026-08-12 with
-Supabase CLI v2.114.0:
+Klussie runs on the **Supabase Free plan** and stays there until it has
+paying customers ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)).
+That means:
 
-```
-supabase backups list --project-ref <production-ref>
-
-{ "region": "eu-west-1",
-  "walg_enabled": true,
-  "pitr_enabled": false,
-  "backups": [],
-  "physical_backup_data": {} }
-```
-
-| Fact | Value |
+| Platform mechanism | Available? |
 |---|---|
-| Region | `eu-west-1` |
-| Point-in-Time Recovery | **Disabled** |
-| Physical backups listed | **None** |
-| Postgres | 17.6.1.141 |
+| Automatic daily backups | **No** — Pro and above only |
+| Point-in-Time Recovery | **No** — paid add-on |
+| Downloadable platform backups | **No** — not offered on Free |
 
-**`supabase backups list` reports *physical* backups** — that is its own
-documented description.
+**Everything below is self-managed.** Nothing recovers Klussie unless
+somebody ran a backup first.
 
-## 2 · Confirmed: production is on the Free plan
+**Two things Supabase's own tooling will not do for you**, both verified:
 
-**Confirmed by the CTO, 2026-08-12.** Recorded as
-[ADR-0016](../adr/0016-operate-production-on-free-plan-without-automatic-backups.md).
+- **`supabase db dump` requires Docker**, even against a remote database.
+- **`supabase db dump` excludes the `auth` and `storage` schemas.** It
+  exists to capture your schema for migrations, not to recover a
+  database. **A dump taken with its defaults contains no user accounts.**
 
-Supabase's published policy:
+This strategy therefore uses native `pg_dump` over the session-mode
+pooler, which needs no Docker and lets us choose exactly which schemas
+are captured.
 
-- **Free Plan** — no automatic backups. Supabase directs Free projects to
-  export their own data with `supabase db dump` and keep off-site copies.
-  Backups are not available for download.
-- **Pro / Team / Enterprise** — automatic daily backups, last 7 days
-  accessible. PITR is a paid add-on which *replaces* daily backups.
+## 2 · What must be backed up
 
-> **Production has no automatic backup.** Every request, quote, message,
-> review and household item exists in exactly one place. This is a
-> knowingly accepted risk with a defined removal trigger — see ADR-0016 —
-> not an oversight.
+| Asset | Lives in | Recoverable from git? | Mechanism |
+|---|---|:---:|---|
+| **Application schema** | Postgres `public` | Partly — migrations exist, drift does not | `pg_dump --schema-only` |
+| **Application data** | Postgres `public` | **No** | `pg_dump --data-only` |
+| **User accounts** | Postgres `auth` | **No** | `pg_dump -n auth` |
+| **Storage metadata** | Postgres `storage` | **No** | `pg_dump -n storage` |
+| **Storage objects** | Supabase Storage (S3) | **No** | `supabase storage cp -r` |
+| **Migrations** | `supabase/migrations/` | **Yes** | git |
+| **Serverless functions** | `api/*.js` | **Yes** | git — Vercel, not Supabase |
+| **Application config** | repo | **Yes** | git |
+| **Environment variables** | `.env.local`, Vercel project settings | **No** — gitignored | §6, manual |
 
-## 3 · The fallback mechanism, and why it does not currently work
+**Three of these are the whole job**, because everything else either
+lives in git or can be rebuilt from it: **`public` data**, **`auth`
+users**, and **storage objects**.
 
-`supabase db dump` produces a logical dump over the network and needs no
-plan entitlement. It is what Supabase recommends to Free projects, and it
-is the only backup that would exist off Supabase infrastructure.
+**Klussie has no Supabase Edge Functions.** The `api/*.js` endpoints are
+Vercel serverless functions, tracked in git, redeployed from the
+repository. Nothing to back up separately — but see §6 for their
+environment variables, which are *not* in git.
+
+## 3 · Objectives
+
+Chosen for a pre-revenue product, and deliberately modest. Both tighten
+at first revenue.
+
+| Objective | Target | Meaning |
+|---|---|---|
+| **RPO** — Recovery Point Objective | **24 hours** | Up to one day of activity may be lost |
+| **RPO around migrations** | **~0** | A pre-migration backup precedes every schema change |
+| **RTO** — Recovery Time Objective | **4 hours** | From decision-to-restore to serving customers |
+
+**Why 24 hours is acceptable now**, and will not be later: Klussie has no
+paying customers and low daily volume, so a day's loss is recoverable by
+asking a handful of people to resubmit. At the first paid transaction
+that stops being true, because a lost payment is not something a customer
+should be asked to repeat.
+
+**RTO is a target, not a measurement.** It becomes real when §8 has a
+row.
+
+## 4 · Schedule
+
+| Cadence | Scope | Retention | Trigger |
+|---|---|---|---|
+| **Pre-migration** | Full — schema, data, auth | Until the migration is confirmed good, minimum 7 days | **Mandatory gate** before any production migration |
+| **Daily** | Data + auth | 7 days | End of day, if anything changed |
+| **Weekly** | Full + storage objects | 4 weeks | Monday |
+| **Monthly archive** | Full + storage objects | **12 months**, off-site | 1st of the month |
+
+**The pre-migration backup is the one that matters most for the
+roadmap.** `IMPLEMENTATION_ROADMAP.md` commits to twenty-six epics of
+migration against this database. That gate is what converts each schema
+epic from an irreversible act into a recoverable one, and it is
+referenced from `ENGINEERING.md` §8 for exactly that reason.
+
+**At least one copy leaves the machine that made it.** A dump sitting
+beside the working tree survives neither a disk failure nor a stolen
+laptop. Monthly archives in particular belong somewhere else — a
+different cloud account, or an external drive kept elsewhere.
+
+## 5 · Taking a backup
+
+Set the connection once per session. Details and the password source are
+in [`POSTGRES_TOOLS_WINDOWS.md`](POSTGRES_TOOLS_WINDOWS.md) §5.
 
 ```bash
-npx supabase db dump --project-ref <ref> -f schema.sql                    # schema
-npx supabase db dump --project-ref <ref> --role-only -f roles.sql         # roles
-npx supabase db dump --project-ref <ref> --data-only --use-copy -f data.sql  # data
+export PGHOST=aws-1-eu-west-1.pooler.supabase.com
+export PGPORT=5432                 # session mode — 6543 will not work
+export PGDATABASE=postgres
+export PGUSER=postgres.<project-ref>
+export PGPASSWORD='<database-password>'
+
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+DEST=/path/outside/the/repo/klussie-backup-$STAMP
+mkdir -p "$DEST"
 ```
 
-Restore is the reverse: roles, then schema, then data, into an empty
-project.
+> **Never write a dump inside the working tree.** `.gitignore` does not
+> cover `*.sql`, so it would be committed — publishing every customer
+> record to the repository.
 
-**Verified 2026-08-12: this does not work on the current development
-machine.**
+### 5.1 · Schema
 
+```bash
+pg_dump --schema-only --no-owner --no-privileges \
+        -n public -n auth -n storage \
+        -f "$DEST/schema.sql"
 ```
-npx supabase db dump --linked -f schema.sql
-→ LegacyDockerRunError: failed to run docker.
+
+### 5.2 · Application data
+
+```bash
+pg_dump --data-only --no-owner --no-privileges \
+        --column-inserts -n public \
+        -f "$DEST/data-public.sql"
 ```
 
-`db dump` runs `pg_dump` inside a Docker container **even when dumping a
-remote database**. Docker is not installed. Native `pg_dump` and `psql`
-are not installed either.
+`--column-inserts` is slower and larger than COPY format, and is chosen
+deliberately: the output is readable, diffable, and survives a partial
+restore. At Klussie's current volume the cost is irrelevant; revisit when
+it stops being.
 
-| Mechanism | Available? |
-|---|---|
-| Supabase automatic backups | **No** — Free plan |
-| Point-in-Time Recovery | **No** — disabled, paid add-on |
-| `supabase db dump` | **No** — requires Docker, not installed |
-| Native `pg_dump` / `psql` | **No** — not installed |
+### 5.3 · User accounts — the one nothing else covers
 
-**There is currently no working backup mechanism of any kind.** Closing
-this needs a tooling decision: install Docker, or install Postgres client
-tools, or upgrade the plan. ADR-0016 §Consequences explains why that
-decision was not folded into it.
+```bash
+pg_dump --data-only --no-owner --no-privileges \
+        --column-inserts \
+        -t auth.users -t auth.identities \
+        -f "$DEST/data-auth.sql"
+```
 
-**A schema-only dump is not a backup of the business.** It restores the
-shape and loses every request, quote, message and review. Only a data
-dump is a recovery of the product.
+**Without this file, a restore produces a working application that
+nobody can log into.**
 
-## 4 · The restore drill
+### 5.4 · Storage objects
 
-The drill proves the copy is real. It is the whole point of this
-document, and it has **not yet been performed.**
+No Docker; talks to the Storage API rather than the database:
 
-1. **Confirm the plan** (§2). This determines whether a platform backup
-   exists to restore, or whether §3 is the only path.
-2. **Create a scratch project.** Throwaway, clearly named, same region
-   (`eu-west-1`), destroyed afterwards. **Not staging** — see §5.
-3. **Restore into it.**
-   - Platform backup: Dashboard → Database → Backups → restore to a new
-     project. Supabase documents this as *"Restore to a new project"*.
-   - Or from a §3 dump: roles, then schema, then data.
-4. **Verify against known data.** Not "it looks fine": pick specific rows
-   known to exist in production — a particular request, its quotes, its
-   conversation — and confirm they are present and intact. Confirm row
-   counts for the main tables match.
-5. **Record the result in §6**, including **how long it took**. Recovery
-   time is the number that matters in an incident, and it is unknown
-   until measured.
-6. **Destroy the scratch project.**
+```bash
+for b in avatars portfolio request-photos item-photos; do
+  npx supabase storage cp -r "ss:///$b" "$DEST/storage/$b" \
+      --project-ref <project-ref> --experimental
+done
+```
 
-## 5 · Handling production data
+The four buckets above are the current set. Confirm with
+`npx supabase storage ls --project-ref <ref> --experimental` — a new
+bucket added by a future epic must be added here.
 
-**A restore drill copies real personal data into a new place.** That is a
-data-protection decision, not a convenience, and it must be deliberate:
+### 5.5 · Environment variables
 
-- **The scratch project is not staging.** `ENVIRONMENTS.md` §6 forbids
-  copying production data into staging, and that rule stands. A drill
-  target is single-purpose, short-lived, and destroyed when finished.
-- **Restrict access** to it for its lifetime.
-- **Destroy it promptly.** A forgotten drill project is an unmonitored
-  copy of the customer database.
-- **Never commit a dump.** `.gitignore` covers `*.local` and `.env*`, not
-  `*.sql` — a dump written into the repository would be committed. Write
-  dumps outside the working tree.
-- **Prefer schema-only** for any rehearsal that does not specifically
-  need real rows.
+See §6. They are not in git and not in the database.
 
-## 6 · Drill record
+### 5.6 · Record it
+
+Append a line to the backup log kept alongside the archives: timestamp,
+what was captured, byte sizes, and who took it. A backup nobody can find
+is not a backup.
+
+## 6 · Environment variables
+
+Not in git, not in the database, and required to bring the application
+back up.
+
+| Variable | Where it lives | Where to recover it from |
+|---|---|---|
+| `VITE_SUPABASE_URL` | `.env.local`, Vercel | Supabase dashboard — new project's URL |
+| `VITE_SUPABASE_ANON_KEY` | `.env.local`, Vercel | Supabase dashboard — new project's anon key |
+| `ANTHROPIC_API_KEY` | `.env.local`, Vercel | Anthropic console — **cannot be recovered, only reissued** |
+
+The first two are regenerated by the restore itself. **`ANTHROPIC_API_KEY`
+is different**: if it is lost and no copy exists, a new key must be
+issued and updated in Vercel. Keep a copy in a password manager — not in
+the repository, not in a backup archive.
+
+Capture the full Vercel environment configuration whenever it changes.
+It is small and changes rarely, which is exactly why it gets forgotten.
+
+## 7 · Restore procedure
+
+Written to be executed by an engineer who has not seen this system
+before. Assumes the worst case: the production project is gone.
+
+**Before starting, note the time.** §8 wants the duration.
+
+### Step 1 — Create a target project
+
+Supabase dashboard → new project, region **`eu-west-1`** to match, named
+distinctly. Record its project ref and database password.
+
+### Step 2 — Install the tools
+
+[`POSTGRES_TOOLS_WINDOWS.md`](POSTGRES_TOOLS_WINDOWS.md), if not already
+done. Verify with `pg_dump --version` ≥ 17.
+
+### Step 3 — Point the connection at the new project
+
+As §5, with the new project's ref and password.
+
+### Step 4 — Restore the schema
+
+```bash
+psql -f "$BACKUP/schema.sql"
+```
+
+Expect errors about objects that already exist — Supabase creates `auth`
+and `storage` itself. **Read them.** Errors about `public` tables are
+real; errors about Supabase-managed objects are not.
+
+**Alternative, and preferred if the backup predates recent migrations:**
+apply the repository's migrations instead —
+`npx supabase db push --linked` — then restore data only. The migrations
+are authoritative for schema; the dump is authoritative for data.
+
+### Step 5 — Restore user accounts, then data
+
+Order matters. `public` rows reference `auth.users`.
+
+```bash
+psql -f "$BACKUP/data-auth.sql"
+psql -f "$BACKUP/data-public.sql"
+```
+
+### Step 6 — Restore storage objects
+
+```bash
+for b in avatars portfolio request-photos item-photos; do
+  npx supabase storage cp -r "$BACKUP/storage/$b" "ss:///$b" \
+      --project-ref <new-ref> --experimental
+done
+```
+
+Buckets must exist first — the schema restore creates their metadata.
+
+### Step 7 — Repoint the application
+
+Update `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel to the
+new project, re-add `ANTHROPIC_API_KEY`, and redeploy.
+
+### Step 8 — Verify against known data
+
+Not "it looks fine". Check specific things:
+
+- [ ] Row counts for `service_requests`, `quotes`, `messages`, `reviews`,
+      `profiles` match the source
+- [ ] A known user can sign in
+- [ ] A known request shows its quotes and conversation
+- [ ] An avatar and a request photo both load
+- [ ] Creating a new request works end to end
+
+### Step 9 — Record it
+
+Fill in §8, including **how long it took**. That number is the only
+honest RTO.
+
+## 8 · Drill record
 
 | Date | Source | Target | Verified against | Duration | Result |
 |---|---|---|---|---|---|
 | — | — | — | — | — | **No drill has ever been performed** |
 
-Until a row exists here, Klussie's backups are unproven.
+## 9 · Handling backups safely
 
-## 7 · Open decisions
+**A backup is a complete copy of the customer database.** It carries
+every obligation the production database does.
 
-**Resolved**
+- **Never inside the working tree.** `.gitignore` does not cover `*.sql`.
+- **Never in staging.** `ENVIRONMENTS.md` §6 forbids production data
+  there; a drill uses a short-lived scratch project, destroyed after.
+- **Encrypt archives at rest**, particularly the off-site monthly ones.
+- **Destroy expired backups** per the retention in §4. An old dump on an
+  unmonitored drive is an unmanaged copy of everyone's personal data.
+- **Restrict access** to whoever operates recovery.
 
-- ~~Which plan is production on?~~ **Free**, confirmed 2026-08-12.
-- ~~Is operating without automatic backups acceptable?~~ **Accepted for
-  now**, with a removal trigger — [ADR-0016](../adr/0016-operate-production-on-free-plan-without-automatic-backups.md).
+## 10 · Open items
 
-**Still open**
-
-- **Which tooling closes the gap?** Docker (enables `supabase db dump`),
-  native Postgres client tools (lighter, per-machine setup), or a plan
-  upgrade. Until one is chosen there is no mechanism at all (§3).
-- **Who owns the schedule, and where do dumps live?** An unscheduled
-  backup is not a backup. Off-site storage is the point — a dump on the
-  same laptop as the working tree protects against far less than it
-  appears to.
-- **What recovery time is acceptable?** Unknown until §4 step 5 measures
-  it, and unmeasurable until a mechanism exists.
-
-**The removal trigger to watch:** ADR-0016 expects this decision to be
-reversed **before Epic 03's first migration runs against production**.
-That epic backfills a workspace onto every existing row — the first
-change in the roadmap whose failure mode is unrecoverable data rather
-than a revertable read path.
+- **Nothing is automated yet.** The schedule in §4 is performed by hand.
+  Scripting it is a natural follow-up and needs an owner; a manual
+  schedule fails silently, which is its main weakness (ADR-0017).
+- **§8 is empty.** Until a drill runs, RTO is a target and the procedure
+  is untested.
+- **`.gitignore` does not cover `*.sql`.** Mitigated by instruction here;
+  a rule in `.gitignore` would be stronger.
 
 ---
 
-Version 1.0 — 2026-08-12 (Epic 00 WP07)
+Version 2.0 — 2026-08-12 (Epic 00 WP07: replaced the "no mechanism"
+posture with a self-managed free-tier strategy per ADR-0017 — native
+`pg_dump` over the session pooler, explicit `auth` capture, storage via
+the Storage API, four cadences, stated RPO/RTO)
+
+Version 1.0 — 2026-08-12 (recorded that no backup mechanism existed)

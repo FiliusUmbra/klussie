@@ -233,7 +233,14 @@ npx supabase migration list --linked  # what is applied where
 ```
 
 **Always dry-run first**, and rehearse in staging before production —
-once staging exists, that is the rule for every epic from 01 onward.
+staging exists as of WP 00.06, so that is the rule for every epic from 01
+onward.
+
+> **Take a backup before every production migration.** Klussie is on the
+> Supabase Free plan and has no automatic backups, so this gate is the
+> only thing that makes a schema change recoverable
+> ([ADR-0017](docs/adr/0017-free-tier-disaster-recovery-strategy.md)).
+> Procedure: [`docs/operations/DISASTER_RECOVERY.md`](docs/operations/DISASTER_RECOVERY.md) §5.
 
 No `supabase/config.toml` is needed: Klussie uses Supabase Cloud, not the
 local Docker stack, so `supabase status` failing without Docker is
