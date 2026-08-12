@@ -27,7 +27,7 @@ Nothing else starts until this is done.
 | 00.04 | Migrate one leaf module to TypeScript as proof | Low | **In review** — [wp file](wp-00.04-first-typescript-module.md) |
 | 00.05 | Add type-check to CI | Low | **In review** — [wp file](wp-00.05-typecheck-in-ci.md) |
 | 00.06 | Provision the staging Supabase project | Medium | **Complete** — 17/17 migrations replayed from empty ([wp file](wp-00.06-staging-environment.md)) |
-| 00.07 | Document and verify a restore | Medium | Not started |
+| 00.07 | Document and verify a restore | Medium | **Blocked on a finding** — production reports no backups ([wp file](wp-00.07-verify-restore.md)) |
 | 00.08 | Add a regression baseline for the current product | **High** | Not started |
 
 ## Acceptance
