@@ -76,6 +76,7 @@ pointing at whatever replaced it.
 | [0013](0013-workspace-centred-platform-domain-model.md) | Adopt a workspace-centred platform domain model | Implemented (domain model) — extended by [0014](0014-capability-model-as-the-platform-organising-concept.md) |
 | [0014](0014-capability-model-as-the-platform-organising-concept.md) | The Capability Model is the platform's organising concept | Implemented (domain model) — extended by [0015](0015-service-records-digital-twin-workflows-and-execution-strategies.md) |
 | [0015](0015-service-records-digital-twin-workflows-and-execution-strategies.md) | Service Records, the Digital Twin, the Knowledge Graph, Workflows and Execution Strategies — architecture frozen at Version 1.0 | Implemented (domain model) |
+| [0016](0016-operate-production-on-free-plan-without-automatic-backups.md) | Operate production on the Free plan, without automatic backups | Accepted — revisit before Epic 03 |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see
