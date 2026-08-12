@@ -78,6 +78,7 @@ pointing at whatever replaced it.
 | [0015](0015-service-records-digital-twin-workflows-and-execution-strategies.md) | Service Records, the Digital Twin, the Knowledge Graph, Workflows and Execution Strategies — architecture frozen at Version 1.0 | Implemented (domain model) |
 | [0016](0016-operate-production-on-free-plan-without-automatic-backups.md) | Operate production on the Free plan, without automatic backups | Superseded by [0017](0017-free-tier-disaster-recovery-strategy.md) |
 | [0017](0017-free-tier-disaster-recovery-strategy.md) | A self-managed disaster recovery strategy on the Free plan | Accepted |
+| [0018](0018-restore-mode-suspend-triggers-during-logical-restore.md) | Restore Mode — suspend platform triggers during logical restores | **Proposed** — recorded, not implemented |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see

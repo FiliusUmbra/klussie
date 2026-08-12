@@ -249,6 +249,64 @@ bucket added by a future epic must be added here.
 
 See §6. They are not in git and not in the database.
 
+### 5.9 · Why `--column-inserts` rather than COPY
+
+`pg_dump --data-only` emits `COPY … FROM stdin` by default, which is the
+faster format. Klussie deliberately does not use it. The reasoning, since
+this is the kind of choice that looks like an oversight later:
+
+| Dimension | COPY (default) | `--column-inserts` | Better |
+|---|---|---|---|
+| **Restore speed** | One bulk statement; roughly 10–100× faster at volume | One parsed, planned statement per row | **COPY** |
+| **File size** | Compact, tab-delimited | Column names repeated on every row | **COPY** |
+| **Trigger interaction** | **Fires row-level triggers** | Fires row-level triggers | **Tie** — neither avoids §5.0 |
+| **Conflict handling** | **Impossible.** No `ON CONFLICT`; one conflicting row aborts the entire table load | `--on-conflict-do-nothing` supported | **inserts, decisively** |
+| **Failure granularity** | All-or-nothing per table | Per row — 3 bad rows lose 3 rows | **inserts** |
+| **Portability** | PostgreSQL-specific | Standard SQL, hand-editable | **inserts** |
+| **Schema evolution** | Column list explicit in the COPY header — tolerates reordering | Column list on every row — tolerates reordering | **Tie** |
+| **Readability / diffability** | Poor | Good | **inserts** |
+
+**The decisive row is conflict handling, and it is not a preference.**
+Verified directly:
+
+```
+pg_dump --data-only --on-conflict-do-nothing …
+→ error: option --on-conflict-do-nothing requires option --inserts,
+  --rows-per-insert, or --column-inserts
+```
+
+§5.0 established that `handle_new_user` sits on `auth.users`, cannot be
+deferred by `--section` ordering, and **will** create `profiles` rows
+during a restore. Those rows conflict with the ones in
+`03-data-public.sql`. With `--column-inserts` the conflict is skipped and
+the restore continues. **With COPY, that single conflict aborts the whole
+`profiles` load.**
+
+**Schema evolution is a tie, not a win** — worth stating because it is
+often cited as the reason to prefer inserts. Modern `pg_dump` writes an
+explicit column list into the COPY header, so both formats survive column
+reordering and added defaulted columns. Only plain `--inserts` (without
+`--column-inserts`) is positional and fragile; it is not used here.
+
+**Speed is currently irrelevant.** Measured on production, 2026-08-12:
+
+```
+public schema: 371 rows, 1064 kB total
+```
+
+At that volume the difference between COPY and per-row inserts is
+unmeasurable. **Klussie is roughly three orders of magnitude away from
+the point where this trade matters.**
+
+**Revisit when any of these becomes true:**
+
+- `03-data-public.sql` takes more than ~15 minutes to restore — at a
+  4-hour RTO, restore time stops being free.
+- Public data exceeds ~1 million rows or ~1 GB.
+- **Restore Mode is adopted** ([ADR-0018](../adr/0018-restore-mode-suspend-triggers-during-logical-restore.md)).
+  That removes the conflict problem entirely, which removes the only
+  decisive argument for inserts — and COPY becomes the better default.
+
 ### 5.8 · Record it
 
 Append a line to the backup log kept alongside the archives: timestamp,
