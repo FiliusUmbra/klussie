@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   verify:
-    name: Lint, test, build
+    name: Lint, type-check, test, build
     runs-on: ubuntu-latest
 
     steps:
@@ -30,6 +30,12 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      # Before Test deliberately: type errors are cheap to detect and the
+      # suite is not, so a type error fails the run in seconds rather than
+      # after the tests have finished.
+      - name: Type-check
+        run: npm run typecheck
 
       - name: Test
         run: npm test
