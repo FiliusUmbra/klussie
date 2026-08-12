@@ -1,6 +1,6 @@
 # Epic 01 — Schema Foundation & Event Backbone
 
-**Status.** Not started — blocked on Epic 00
+**Status.** In progress — 1 of 7 packages
 **Purpose.** Create the ten schemas and the event outbox, so every later
 epic has somewhere correct to put things and a way to emit facts.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -12,12 +12,14 @@ epic has somewhere correct to put things and a way to emit facts.
 
 - **Epic 00 complete** — in particular WP 00.06 (staging) and WP 00.01
   (CI). **No migration in this epic runs before staging exists.**
+  **Cleared 2026-08-12** — Epic 00 closed; staging holds all 17
+  migrations applied from empty.
 
 ## Work packages
 
 | WP | Title | Complexity | Status |
 |---|---|---|---|
-| 01.01 | Create the ten schemas with no tables | Low | Not started |
+| 01.01 | [Create the ten schemas with no tables](wp-01.01-ten-schemas.md) | Low | **Done** |
 | 01.02 | Establish role grants mirroring engine ownership | Medium | Not started |
 | 01.03 | Install extensions in a dedicated schema | Low | Not started |
 | 01.04 | Create the partitioned events table | **High** | Not started |
