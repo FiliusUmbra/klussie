@@ -723,11 +723,41 @@ tenant-scoped archival. It adds what physical partitioning is for: time
 ranges detach as whole units for archiving, and old ranges are never
 touched by current queries.
 
-**Ordering.** Per subject, not per workspace — constraint 11. A
-monotonic per-subject sequence is carried on the row. Cross-subject
-ordering is not provided, is not needed, and no consumer may assume it.
-This is what keeps a two-hundred-thousand-asset enterprise from
-serialising its writes through one ordering point.
+**Ordering.** Per subject, not per workspace — constraint 11. The
+`subject_sequence` envelope field carries it: **gapless, assigned by the
+owning engine inside the transaction that writes the aggregate.**
+Cross-subject ordering is not provided, is not needed, and no consumer
+may assume it. This is what keeps a two-hundred-thousand-asset enterprise
+from serialising its writes through one ordering point.
+
+**Gaplessness is an engine invariant, not a database constraint**
+([ADR-0019](../adr/0019-canonical-platform-event-envelope.md)).
+PostgreSQL requires a unique constraint on a partitioned table to include
+every partition key column. This table is partitioned by `workspace_id`
+**and** `occurred_at`, so a unique constraint including `occurred_at`
+would permit the same `subject_sequence` twice in two time partitions —
+precisely what it exists to forbid. Uniqueness and gaplessness are
+therefore enforced by the emitting engine. **This is weaker than a
+constraint, and anyone assuming otherwise will build on a guarantee the
+database is not making.**
+
+Deriving the next value in-transaction serialises concurrent writes *to
+the same subject*. That is the intended trade — per-subject, not
+per-workspace — and a gap-tolerant sequence would forfeit the loss
+detection the field exists for.
+
+**Envelope columns.** Every row carries the thirteen fields defined in
+`DATABASE_ARCHITECTURE.md` §23. Placement follows from them:
+
+| Concern | Columns |
+|---|---|
+| Primary key | `(workspace_id, occurred_at, event_id)` — must include both partition keys |
+| Hash partition | `workspace_id` |
+| Range sub-partition | `occurred_at` |
+| Subject ordering read path | `(workspace_id, subject_type, subject_id, subject_sequence)` |
+| Trace lookup | `correlation_id` |
+| Causal traversal | `causation_id` |
+| Consumer cursor | `(occurred_at, event_id)` within a partition — UUIDv7 supplies the tiebreak |
 
 **Canonical versus derived events.** Canonical events are facts emitted
 by an owning engine and are permanent. Derived events — produced by a
@@ -736,6 +766,13 @@ workflow or a detected pattern — are **marked as derived and are not
 themselves a system of record.** They may be regenerated. Keeping the two
 distinguishable prevents a derived signal from being mistaken for a fact
 about the business.
+
+**The marking is the `is_derived` envelope field**, not a naming
+convention ([ADR-0019](../adr/0019-canonical-platform-event-envelope.md)).
+It matters most on rebuild: **canonical events are replayed, derived
+events are regenerated.** Replaying a derived event duplicates an
+inference the rebuild is about to make again, so the filter must be
+structural rather than a string-prefix match on `event_type`.
 
 **Retention.** Permanent. Ranges older than the hot window are detached
 and archived to cold storage (§21), and remain restorable for replay.
@@ -1335,6 +1372,11 @@ four bilateral crossings and four platform-level structures.
     cores from the first migration** (§19).
 11. **Events written in the same transaction as their change** — a change
     without an event must be impossible (§12).
+11a. **Events carry the full canonical Event Envelope from the first
+    migration** — all thirteen fields
+    ([ADR-0019](../adr/0019-canonical-platform-event-envelope.md)).
+    Adding one later means rewriting every partition of a table designed
+    never to be rewritten.
 12. **Location paths via `ltree`**, rewritten in the same transaction as
     `LocationTreeChanged` (§11.2).
 13. **Service Record as core, annexes and amendments** — three tables, no
@@ -1352,6 +1394,11 @@ finding against this document** — to be raised and recorded as an ADR,
 not designed around.
 
 ---
+
+Amended 2026-08-12 by [ADR-0019](../adr/0019-canonical-platform-event-envelope.md)
+— §12 gains envelope columns, index placement, the `is_derived` marking
+and the engine-invariant ordering note; §24 gains constraint 11a.
+Completes Version 1.0 rather than superseding it.
 
 Version 1.0 — 2026-08-11 (Milestone 4 — the persistence architecture
 implementing `PLATFORM_DOMAIN_MODEL.md`, `DATABASE_ARCHITECTURE.md` and

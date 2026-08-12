@@ -1393,9 +1393,21 @@ so a change without an event is impossible; and meaning the same thing
 forever.
 
 **Canonical events** are a versioned, platform-scoped contract. A new
-event type is additive. An existing type's meaning never changes — a new
-version is a new type, and both remain interpretable for as long as
-consumers exist.
+event type is additive. **An existing type's meaning never changes** —
+both remain interpretable for as long as consumers exist.
+
+Versioning works on two levels, and the distinction is load-bearing
+([ADR-0019](../adr/0019-canonical-platform-event-envelope.md)):
+
+- **Additive change** — a new optional field, every existing consumer
+  still correct without modification. Increment `event_version`.
+- **Semantic change** — the event means something different, or an
+  existing field changes interpretation. **Mint a new `event_type`.**
+
+Without the second rule meaning drifts silently. Without the first,
+adding one optional attribute forces a type rename and a dual-write
+migration across every consumer — a cost high enough that teams overload
+existing fields instead, which is how meaning drifts anyway.
 
 **Consumers derive; they never write back.** Timeline, notifications,
 analytics, audit, search, knowledge and read models all read the event
@@ -1422,6 +1434,45 @@ preceded an unrelated invoice event elsewhere in the same enterprise is
 not. Consumers must never depend on cross-subject ordering, and any
 projection that does is a design error rather than a reason to strengthen
 the guarantee.
+
+### The Event Envelope
+
+Every domain event carries the same thirteen fields, identical across
+every engine, immutable once written. Decided by
+[ADR-0019](../adr/0019-canonical-platform-event-envelope.md), which
+records the reasoning.
+
+**The membership rule:** *a field belongs in the envelope if and only if
+a consumer needs it without knowing what the event type means.*
+Everything else is payload.
+
+| Field | Type | Purpose |
+|---|---|---|
+| `event_id` | UUIDv7 | Identity; the idempotency key every consumer deduplicates on |
+| `event_type` | text | Dispatch. `<engine>.<aggregate>.<past-participle>` |
+| `event_version` | smallint | Additive payload revisions (above) |
+| `workspace_id` | uuid, **not null** | Tenancy |
+| `actor_type` | enum | `person` · `system` · `integration` · `intelligence` |
+| `actor_ref` | uuid/text | Person reference or system identifier. **No foreign key** (§5) |
+| `subject_type` | text | What the event is about |
+| `subject_id` | uuid | Which one |
+| `subject_sequence` | bigint | Gapless order within a subject |
+| `occurred_at` | timestamptz | When it became true |
+| `correlation_id` | UUIDv7 | Everything caused by one originating action |
+| `causation_id` | uuid, nullable | The direct parent; null only for a root |
+| `is_derived` | boolean, **not null** | Canonical fact, or regenerable inference |
+
+**`subject_sequence` is the ordering guarantee**, assigned by the owning
+engine inside the transaction that writes the aggregate. Gapless, so a
+consumer receiving 7 after 5 knows it lost one.
+
+**`occurred_at` is not an ordering field.** Clock skew and equal
+timestamps make time unsafe for ordering; ordering is `subject_sequence`.
+
+**There are no workspace-less domain events.** Platform-scoped actions —
+fact promotion, catalogue changes, operator configuration — are Audit
+records (§33), not domain events. This keeps the tenancy field
+non-nullable, which a nullable one would quietly destroy.
 
 **Causality where it genuinely spans subjects** — a quote acceptance that
 opens a conversation and grants access — is expressed by events carrying
@@ -2330,6 +2381,10 @@ against this document — to be raised and recorded as an ADR, not designed
 around.
 
 ---
+
+Amended 2026-08-12 by [ADR-0019](../adr/0019-canonical-platform-event-envelope.md)
+— §23 gains the canonical Event Envelope and the additive-versus-semantic
+versioning split. Completes Version 1.0 rather than superseding it.
 
 Version 1.0 — 2026-08-11 (Milestone 2 — the data architecture
 implementing `PLATFORM_DOMAIN_MODEL.md` Version 1.0, reviewed at

@@ -335,10 +335,22 @@ Capability precedes permission because a behaviour that does not exist in
 a workspace cannot be permitted in it, and checking in this order means
 the cheaper, context-resolved check runs first.
 
-**Delivery guarantees.** At-least-once. Consumers must be idempotent.
-Events are ordered **per subject, not per workspace**
-(`DATABASE_ARCHITECTURE.md` §23) — no consumer may depend on cross-subject
-ordering.
+**Delivery guarantees.** At-least-once. Consumers must be idempotent,
+deduplicating on `event_id`. Events are ordered **per subject, not per
+workspace** (`DATABASE_ARCHITECTURE.md` §23) — no consumer may depend on
+cross-subject ordering.
+
+**Every event carries the Event Envelope** — thirteen fields identical
+across every engine, defined in `DATABASE_ARCHITECTURE.md` §23
+([ADR-0019](../adr/0019-canonical-platform-event-envelope.md)).
+
+**`correlation_id` is propagated, never regenerated.** It originates at
+the API Gateway (§12.1) and is carried unchanged through every command
+and into every resulting event — **including events emitted by consumers
+reacting to earlier events.** One engine that drops it produces a trace
+with a hole in it, and the hole is invisible until someone needs it.
+`causation_id` carries the direct parent, giving the causal tree its
+edges rather than only its membership.
 
 **Asynchronous processing is the default posture, not a future upgrade.**
 Every consumer in the diagram above is already asynchronous. Adding
@@ -1328,6 +1340,14 @@ integrations, future public API.
 
 **Public contract.** The platform's external surface, versioned.
 
+**It also originates `correlation_id`.** One per inbound request,
+generated here and propagated unchanged into every command and every
+resulting event (§5). For system-initiated work — cron, consumers,
+integrations — the job boundary generates it instead. This is the
+gateway's only contribution to the event stream, and it is here because
+the gateway is already the single place a request is recognised as one
+thing.
+
 **The context-resolution rule.** Context is resolved **once per request**
 and passed inward as an immutable value. Engines do not re-resolve it and
 do not call Capability or Workspace per operation. This is what keeps a
@@ -2017,6 +2037,11 @@ against this document** — to be raised and recorded as an ADR, not
 designed around.
 
 ---
+
+Amended 2026-08-12 by [ADR-0019](../adr/0019-canonical-platform-event-envelope.md)
+— §5 gains envelope and correlation propagation rules; §12.1 gains
+`correlation_id` origination. Completes Version 1.0 rather than
+superseding it.
 
 Version 1.0 — 2026-08-11 (Milestone 3 — the logical software architecture
 implementing `PLATFORM_DOMAIN_MODEL.md` and `DATABASE_ARCHITECTURE.md`,

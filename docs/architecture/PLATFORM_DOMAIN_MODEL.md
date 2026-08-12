@@ -1962,6 +1962,11 @@ describes, so that a change without an event is impossible; and it means
 the same thing forever, because consumers of an old event cannot be
 asked to reinterpret it.
 
+Those four properties are the semantic minimum. The canonical **Event
+Envelope** — the complete set of fields every event carries, identical
+across every engine — is specified in `DATABASE_ARCHITECTURE.md` §23 and
+decided by [ADR-0019](../adr/0019-canonical-platform-event-envelope.md).
+
 **Events are not a message bus.** This document specifies the *semantic*
 role of events — that facts are recorded once and consumed many times. It
 does not specify delivery, ordering or subscription, which are
@@ -3257,6 +3262,11 @@ extending the first one looked like more work that week.
 ---
 
 ## Version history
+
+**Amended 2026-08-12 by [ADR-0019](../adr/0019-canonical-platform-event-envelope.md)**
+— §16 gains a pointer to the canonical Event Envelope. No existing
+wording changed. The amendment completes Version 1.0 rather than
+superseding it.
 
 **Version 1.0 — 2026-08-11 · FROZEN.** The definitive architectural
 foundation of Klussie, verified in §32 and frozen prior to
