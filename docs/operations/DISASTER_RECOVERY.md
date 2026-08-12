@@ -427,11 +427,68 @@ Not "it looks fine". Check specific things:
 Fill in §8, including **how long it took**. That number is the only
 honest RTO.
 
-## 8 · Drill record
+## 8 · Verification status
+
+**Restore procedure verified by design and tooling. Full restore drill
+deferred due to Free plan operational constraints.**
+
+This is an **operational limitation, not an engineering gap.** The Free
+plan provides two projects — production and staging — and neither may be
+consumed as a restore target: production is live, and staging is the
+rehearsal environment every schema epic from 01 onward depends on.
+Klussie will not upgrade, and will not delete staging, solely to tick
+this box.
+
+### Verified
+
+| | Evidence |
+|---|---|
+| Client tooling | PostgreSQL 18.4, no Docker, works natively |
+| Credentials | `pgpass.conf` resolved; production and staging both authenticate |
+| Connectivity | Session-mode pooler, per-project host, `select` returns `PostgreSQL 17.6` |
+| Backup commands | Every flag confirmed present in 18.4, including `--section` and `--on-conflict-do-nothing` |
+| Storage path | Storage API without Docker; four buckets enumerated on both projects |
+| Restore design | Built against the **actual** nine-trigger inventory, not a generic template |
+| Trigger suspension | `session_replication_role = 'replica'` confirmed available ([ADR-0018](../adr/0018-restore-mode-suspend-triggers-during-logical-restore.md)) |
+
+### Not verified — and what that means
+
+| Unknown | Consequence if wrong |
+|---|---|
+| That a restore reproduces production | Recovery fails at the moment it is needed |
+| Whether restored `profiles` keep their values or are overwritten by `handle_new_user` defaults (§5.0) | Silent data corruption — the application works, the names and avatars are wrong |
+| Storage object round-trip | Photos and avatars missing after recovery |
+| **Actual RTO** | The 4-hour target in §3 is an estimate, not a measurement |
+
+**The middle row is the one to watch.** It is the only known defect in
+the design, it is invisible without a drill, and it produces a database
+that looks healthy.
+
+### Drill record
 
 | Date | Source | Target | Verified against | Duration | Result |
 |---|---|---|---|---|---|
-| — | — | — | — | — | **No drill has ever been performed** |
+| — | — | — | — | — | Deferred — see above |
+
+### An option that does not need a third project
+
+Not adopted, recorded so the constraint is not mistaken for
+impossibility: **staging can be its own drill target.**
+
+WP 00.06 proved the migration chain rebuilds staging from empty in
+minutes, so staging is cheap to destroy and recreate — its value is the
+*recorded fact* that it replayed, plus the migrations in git, neither of
+which is lost by reusing it. Dump staging, wipe it, restore it, rebuild
+with `db push` if anything goes wrong.
+
+That would exercise the backup commands, the restore ordering, the
+storage round-trip, **and the `handle_new_user` hazard** — staging has
+seeded accounts, so the trigger fires there too. It would not produce a
+production-scale RTO, and it involves **no production data**, so it
+breaks no rule in §9 or `ENVIRONMENTS.md` §6.
+
+It is a CTO decision, not an engineering one, and is offered rather than
+assumed.
 
 ### The backup path is verified — 2026-08-12
 
@@ -472,10 +529,26 @@ every obligation the production database does.
 - **Nothing is automated yet.** The schedule in §4 is performed by hand.
   Scripting it is a natural follow-up and needs an owner; a manual
   schedule fails silently, which is its main weakness (ADR-0017).
-- **§8 is empty.** Until a drill runs, RTO is a target and the procedure
-  is untested.
+- **The restore is unproven** (§8). RTO is a target, and the
+  `handle_new_user` behaviour is unknown. Deferred deliberately under the
+  two-project constraint, not overlooked.
 - **`.gitignore` does not cover `*.sql`.** Mitigated by instruction here;
   a rule in `.gitignore` would be stronger.
+
+### Carried into Epic 03
+
+`IMPLEMENTATION_ROADMAP.md` Epic 03 backfills a workspace onto every
+existing production row — the first change whose failure mode is
+unrecoverable data rather than a revertable read path.
+
+**It will now run with a backup that has never been restored.** The
+pre-migration backup (§4) still makes that materially safer than having
+no backup at all, which was the position before ADR-0017. But "we have a
+backup" and "we have a *proven* backup" are different claims, and only
+the first is currently true.
+
+This is stated here so the decision is visible when Epic 03 is planned,
+rather than being discovered at the point of needing it.
 
 ---
 

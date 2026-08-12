@@ -21,13 +21,13 @@ Nothing else starts until this is done.
 
 | WP | Title | Complexity | Status |
 |---|---|---|---|
-| 00.01 | Add CI pipeline for lint, test and build | Low | **In review** — [wp file](wp-00.01-ci-pipeline.md) |
-| 00.02 | Add CHANGELOG and release note conventions | Low | **In review** — [wp file](wp-00.02-changelog.md) |
-| 00.03 | Introduce TypeScript toolchain without migrating code | Medium | **In review** — [wp file](wp-00.03-typescript-toolchain.md) |
-| 00.04 | Migrate one leaf module to TypeScript as proof | Low | **In review** — [wp file](wp-00.04-first-typescript-module.md) |
-| 00.05 | Add type-check to CI | Low | **In review** — [wp file](wp-00.05-typecheck-in-ci.md) |
+| 00.01 | Add CI pipeline for lint, test and build | Low | **Complete** — approved, [wp file](wp-00.01-ci-pipeline.md) |
+| 00.02 | Add CHANGELOG and release note conventions | Low | **Complete** — approved, [wp file](wp-00.02-changelog.md) |
+| 00.03 | Introduce TypeScript toolchain without migrating code | Medium | **Complete** — approved, [wp file](wp-00.03-typescript-toolchain.md) |
+| 00.04 | Migrate one leaf module to TypeScript as proof | Low | **Complete** — approved, [wp file](wp-00.04-first-typescript-module.md) |
+| 00.05 | Add type-check to CI | Low | **Complete** — approved, [wp file](wp-00.05-typecheck-in-ci.md) |
 | 00.06 | Provision the staging Supabase project | Medium | **Complete** — 17/17 migrations replayed from empty ([wp file](wp-00.06-staging-environment.md)) |
-| 00.07 | Document and verify a restore | Medium | **Blocked on a finding** — production reports no backups ([wp file](wp-00.07-verify-restore.md)) |
+| 00.07 | Document and verify a restore | Medium | **Complete** — verified by design and tooling; drill deferred (Free plan) ([wp file](wp-00.07-verify-restore.md)) |
 | 00.08 | Add a regression baseline for the current product | **High** | Not started |
 
 ## Acceptance
@@ -48,7 +48,14 @@ From the epic definition:
 - [ ] TypeScript compiles alongside JavaScript, with at least one module
       migrated to prove the toolchain
 - [ ] `CHANGELOG.md` exists
-- [ ] A verified restore has been performed from a production backup
+- [x] A backup strategy exists and its path is verified end to end —
+      native `pg_dump` 18.4 over the session pooler, no Docker, no plan
+      upgrade ([ADR-0017](../../docs/adr/0017-free-tier-disaster-recovery-strategy.md))
+- [ ] ~~A verified restore has been performed from a production backup~~
+      **Deferred — operational constraint.** The Free plan provides two
+      projects and neither can be consumed as a restore target. Recorded
+      in `docs/operations/DISASTER_RECOVERY.md` §8; not an engineering
+      failure
 
 ## Notes
 
