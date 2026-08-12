@@ -282,6 +282,24 @@ honest RTO.
 |---|---|---|---|---|---|
 | — | — | — | — | — | **No drill has ever been performed** |
 
+### Prerequisites verified 2026-08-12
+
+Not a drill, but the assumptions the drill rests on are no longer
+assumptions:
+
+| Checked | Result |
+|---|---|
+| Client tools installed | **PostgreSQL 18.4** — `pg_dump`, `pg_restore`, `psql` |
+| Client ≥ server | 18.4 vs 17.6 ✓ |
+| Pooler reachable from Windows | **Yes** — resolved to IPv4 `54.247.26.119`, TLS handshake completed |
+| Session mode port 5432 correct | **Yes** — server responded with an auth challenge |
+| Storage API without Docker | **Yes** — four buckets listed on both projects |
+
+Connectivity was proven with a deliberately invalid password: the server
+answered `password authentication failed`, which is a reachability
+success. **Only credentials and a restore target now stand between this
+and a completed drill.**
+
 ## 9 · Handling backups safely
 
 **A backup is a complete copy of the customer database.** It carries

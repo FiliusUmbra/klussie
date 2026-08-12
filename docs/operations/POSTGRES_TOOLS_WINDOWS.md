@@ -32,7 +32,12 @@ not a warning.
 
 Go to <https://www.postgresql.org/download/windows/> and follow
 *"Download the installer"*, which links to EDB's build. Choose **version
-17** for Windows x86-64.
+17 or later** for Windows x86-64.
+
+> **Installed on this project's machine: PostgreSQL 18.4 client tools**,
+> at `C:\Program Files\PostgreSQL\18\bin`. Verified working against the
+> 17.6 server — a newer client dumping an older server is supported; the
+> reverse is not.
 
 ### 3.2 · Run the installer
 
@@ -61,9 +66,15 @@ The installer does not always do this.
    environment variables**.
 2. **Environment Variables…** → under **User variables**, select `Path` →
    **Edit** → **New**.
-3. Add: `C:\Program Files\PostgreSQL\17\bin`
+3. Add the `bin` directory, with the version folder matching what you
+   installed — on this machine: `C:\Program Files\PostgreSQL\18\bin`
 4. OK out of all three dialogs.
 5. **Open a new terminal.** Existing terminals keep the old PATH.
+
+> **Currently not done on this machine.** The tools are installed but not
+> on PATH, so they must be invoked by full path
+> (`"C:\Program Files\PostgreSQL\18\bin\pg_dump"`). Adding them is a
+> two-minute convenience, not a blocker.
 
 ### 3.4 · Alternatives
 
@@ -129,7 +140,21 @@ unset PGPASSWORD
 - **Never** put a database password on a command line — it is visible in
   shell history and to other processes.
 - Use `PGPASSWORD` for the duration of a task and `unset` it after, or a
-  `%APPDATA%\postgresql\pgpass.conf` file if you prefer it persisted.
+  password file if you prefer it persisted.
+
+**The password file is the better option when someone else — or an
+assistant — will run the backup for you**, because the password never
+appears in a command, a transcript or a log. Create
+`%APPDATA%\postgresql\pgpass.conf` with one line per database:
+
+```
+aws-1-eu-west-1.pooler.supabase.com:5432:postgres:postgres.<project-ref>:<password>
+```
+
+One line per project (production, staging, any scratch target). `libpq`
+finds it automatically, so `pg_dump` and `psql` then need no password
+argument at all. The file is read by every Postgres tool on the machine —
+treat it as the credential store it is.
 - **Never commit it.** `.gitignore` covers `.env*`, but a note-to-self in
   a `.md` or `.sql` file would be committed.
 - The staging and production passwords are different. Treat production's
