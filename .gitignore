@@ -26,3 +26,8 @@ dist-ssr
 
 .vercel
 .env*
+
+# Supabase CLI local state. Records which cloud project this machine is
+# linked to, plus cached server versions. Machine-specific, not shared —
+# each developer links their own. See docs/operations/ENVIRONMENTS.md.
+supabase/.temp/

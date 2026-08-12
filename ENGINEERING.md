@@ -220,6 +220,31 @@ Two rules that come from this and are easy to forget:
 
 Rollback: [`implementation/templates/ROLLBACK_CHECKLIST.md`](implementation/templates/ROLLBACK_CHECKLIST.md).
 
+### Applying migrations
+
+Via the Supabase CLI, which maintains the migration ledger
+(`supabase_migrations.schema_migrations`) in each project:
+
+```bash
+npx supabase migration new <name>     # creates a timestamped file
+npx supabase db push --linked --dry-run
+npx supabase db push --linked
+npx supabase migration list --linked  # what is applied where
+```
+
+**Always dry-run first**, and rehearse in staging before production —
+once staging exists, that is the rule for every epic from 01 onward.
+
+No `supabase/config.toml` is needed: Klussie uses Supabase Cloud, not the
+local Docker stack, so `supabase status` failing without Docker is
+expected. The linked project is recorded in `supabase/.temp/`, which is
+gitignored and per-machine — link your own.
+
+> **Production's ledger is not yet reconciled.** Its seventeen migrations
+> were applied by hand, so the CLI would try to re-apply all of them.
+> `docs/operations/ENVIRONMENTS.md` §9 has the one-time `migration
+> repair` procedure that must run before production is ever pushed to.
+
 ---
 
 ## 9 · Environments
@@ -233,6 +258,10 @@ Rollback: [`implementation/templates/ROLLBACK_CHECKLIST.md`](implementation/temp
 **Until WP 00.06 lands, production is the only environment.** No schema
 work happens before it exists — that ordering is the whole reason Epic 00
 comes first.
+
+Full detail, including the provisioning runbook and the production
+reconciliation that must precede any CLI push to it:
+[`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md).
 
 Never run destructive operations against production. Never push without
 being asked.
