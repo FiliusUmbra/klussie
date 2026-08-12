@@ -22,7 +22,7 @@ Nothing else starts until this is done.
 | WP | Title | Complexity | Status |
 |---|---|---|---|
 | 00.01 | Add CI pipeline for lint, test and build | Low | **In review** — [wp file](wp-00.01-ci-pipeline.md) |
-| 00.02 | Add CHANGELOG and release note conventions | Low | Not started |
+| 00.02 | Add CHANGELOG and release note conventions | Low | **In review** — [wp file](wp-00.02-changelog.md) |
 | 00.03 | Introduce TypeScript toolchain without migrating code | Medium | Not started |
 | 00.04 | Migrate one leaf module to TypeScript as proof | Low | Not started |
 | 00.05 | Add type-check to CI | Low | Not started |

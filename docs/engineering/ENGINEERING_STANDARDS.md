@@ -31,6 +31,11 @@ not just in spirit.
 - **No business logic in UI.** Commission math, trust-score computation, matching
   rules — these belong in `src/lib` or a Core Platform module, not inline in a
   component's render function.
+- **Every epic updates the changelog.** [`CHANGELOG.md`](../../CHANGELOG.md) records
+  what changed for someone using or operating Klussie, written at epic completion as
+  one of the gates in `../IMPLEMENTATION_ROADMAP.md` §7 — not per work package, which
+  would make it a second commit log. It states its own format; a behaviour change that
+  reaches users and isn't recorded there is a defect regardless of intent.
 
 ## Feature boundaries
 
@@ -95,5 +100,7 @@ Status uses only: **Implemented**, **In Progress**, **Planned**.
   visible rather than buried.
 
 ---
+
+Version 1.3 — 2026-08-12 (Epic 00 WP02: added the changelog rule)
 
 Version 1.2 — 2026-08-11 (Engineering Health sprint: feature boundaries introduced, App.jsx split, business logic extracted and tested; status table re-audited against the real tree)
