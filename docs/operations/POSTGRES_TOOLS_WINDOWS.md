@@ -8,6 +8,12 @@ production migration.
 
 **Time required:** about 10 minutes.
 
+> **Status on this project's machine: complete and verified 2026-08-12.**
+> PostgreSQL 18.4 client tools installed, `pgpass.conf` working,
+> authentication succeeding against both production and staging over the
+> session-mode pooler, with no Docker involved. This document is now the
+> guide for the *next* machine.
+
 ---
 
 ## 1 · What is being installed, and what is not
@@ -71,10 +77,11 @@ The installer does not always do this.
 4. OK out of all three dialogs.
 5. **Open a new terminal.** Existing terminals keep the old PATH.
 
-> **Currently not done on this machine.** The tools are installed but not
-> on PATH, so they must be invoked by full path
-> (`"C:\Program Files\PostgreSQL\18\bin\pg_dump"`). Adding them is a
-> two-minute convenience, not a blocker.
+> **Not done on this machine as of 2026-08-12.** The tools work but are
+> not on PATH, so they are invoked by full path
+> (`"C:\Program Files\PostgreSQL\18\bin\pg_dump"`). A two-minute
+> convenience, not a blocker — every command in
+> [`DISASTER_RECOVERY.md`](DISASTER_RECOVERY.md) works either way.
 
 ### 3.4 · Alternatives
 
@@ -136,22 +143,19 @@ Database. Resetting does not affect the anon key the application uses.
 
 ### 5.2 · Smoke test
 
-Set the password in the environment rather than typing it into a command
-line, so it does not land in your shell history:
+With `pgpass.conf` in place (§6), `-w` means no password is typed, stored
+in history, or prompted for:
 
 ```bash
-export PGPASSWORD='<staging-database-password>'
-
-psql -h aws-1-eu-west-1.pooler.supabase.com -p 5432 \
+psql -w -h aws-1-eu-west-1.pooler.supabase.com -p 5432 \
      -U postgres.<staging-ref> -d postgres \
-     -c "select count(*) from public.service_requests;"
+     -c "select current_user, version();"
 ```
 
-A row count means the toolchain works end to end.
-
-```bash
-unset PGPASSWORD
-```
+**Verified working 2026-08-12** against both projects — returns
+`postgres` and `PostgreSQL 17.6`. A successful query means the toolchain
+works end to end: tools installed, version compatible, correct pooler
+host, session-mode port, and credentials resolved from `pgpass.conf`.
 
 ## 6 · Handling the password safely
 

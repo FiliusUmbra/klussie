@@ -136,40 +136,101 @@ mkdir -p "$DEST"
 > cover `*.sql`, so it would be committed — publishing every customer
 > record to the repository.
 
-### 5.1 · Schema
+### 5.0 · Why the dumps are split into four files
+
+Klussie has **nine triggers**, and a naive data restore fires all of
+them. That would not produce a copy of production; it would produce a
+database that re-ran its own history:
+
+| Trigger | On | What it would do during a restore |
+|---|---|---|
+| `handle_new_user` | `auth.users` insert | Insert into `public.profiles` — colliding with the restored profiles |
+| `handle_new_pro_profile` | `pro_profiles` insert | Create `pro_stats` rows |
+| `handle_quote_sent` | `quotes` insert | Move the parent request's status |
+| `handle_quote_accepted` | `quotes` update | Book a request, decline siblings, open a conversation |
+| `handle_new_request` | `service_requests` insert | Emit a domain event |
+| `handle_new_review` | `reviews` insert | Recompute `pro_stats`, move request status |
+| `handle_job_completed` | `service_requests` update | Emit a domain event |
+
+**The fix is ordering.** `pg_dump --section` splits the schema so that
+tables are created *before* the data loads and **triggers, indexes,
+constraints and policies are created after it**. Nothing fires while rows
+are arriving.
+
+**One trigger cannot be deferred this way.** `handle_new_user` sits on
+`auth.users`, which Supabase creates and manages — it exists in a fresh
+project before any restore begins, and is not in our dump to reorder.
+Restoring `auth.users` **will** fire it and create `profiles` rows. The
+mitigation is `--on-conflict-do-nothing` on the public data dump, so the
+trigger-created rows do not break the restore. **Whether the resulting
+profile rows carry the restored values or the trigger's defaults is the
+single most important thing for the drill (§7 step 8) to check.**
+
+### 5.1 · Schema — pre-data
+
+Tables, types and functions. No triggers, no constraints.
 
 ```bash
-pg_dump --schema-only --no-owner --no-privileges \
-        -n public -n auth -n storage \
-        -f "$DEST/schema.sql"
+pg_dump -w --schema-only --section=pre-data \
+        --no-owner --no-privileges --quote-all-identifiers \
+        --schema=public \
+        -f "$DEST/01-schema-pre.sql"
 ```
 
-### 5.2 · Application data
+### 5.2 · Platform data — accounts and buckets
+
+The rows nothing else can reconstruct.
 
 ```bash
-pg_dump --data-only --no-owner --no-privileges \
-        --column-inserts -n public \
-        -f "$DEST/data-public.sql"
+pg_dump -w --data-only --no-owner --column-inserts \
+        -t auth.users -t auth.identities -t storage.buckets \
+        -f "$DEST/02-data-platform.sql"
 ```
 
-`--column-inserts` is slower and larger than COPY format, and is chosen
+**Without `auth.users`, a restore produces a working application that
+nobody can log into.** `storage.buckets` is included because the buckets
+must exist before objects can be uploaded back into them (§5.4).
+
+### 5.3 · Application data
+
+```bash
+pg_dump -w --data-only --no-owner --column-inserts \
+        --on-conflict-do-nothing \
+        --schema=public \
+        -f "$DEST/03-data-public.sql"
+```
+
+`--column-inserts` is slower and larger than COPY, and is chosen
 deliberately: the output is readable, diffable, and survives a partial
-restore. At Klussie's current volume the cost is irrelevant; revisit when
-it stops being.
+restore. `--on-conflict-do-nothing` is what makes the file tolerate rows
+the `auth.users` trigger has already created (§5.0). At Klussie's current
+volume the size cost is irrelevant; revisit when it stops being.
 
-### 5.3 · User accounts — the one nothing else covers
+### 5.4 · Schema — post-data
+
+Indexes, constraints, triggers and RLS policies. **Applied last**, so
+none of them act on the data as it loads.
 
 ```bash
-pg_dump --data-only --no-owner --no-privileges \
-        --column-inserts \
-        -t auth.users -t auth.identities \
-        -f "$DEST/data-auth.sql"
+pg_dump -w --schema-only --section=post-data \
+        --no-owner --no-privileges --quote-all-identifiers \
+        --schema=public \
+        -f "$DEST/04-schema-post.sql"
 ```
 
-**Without this file, a restore produces a working application that
-nobody can log into.**
+### 5.5 · The three named backups
 
-### 5.4 · Storage objects
+| Backup | Files | Use |
+|---|---|---|
+| **Schema backup** | `01` + `04` | Capturing structure. Rarely used alone — migrations are the authoritative schema source |
+| **Data backup** | `02` + `03` | Daily cadence, when the schema has not changed |
+| **Full logical backup** | `01`–`04` | Everything the database holds. **The standard.** Add §5.6 storage objects for weekly and monthly |
+
+`-w` on every command means *never prompt for a password* — the
+credential comes from `pgpass.conf`, so nothing sensitive appears in a
+command, a script, or a terminal history.
+
+### 5.6 · Storage objects
 
 No Docker; talks to the Storage API rather than the database:
 
@@ -184,11 +245,11 @@ The four buckets above are the current set. Confirm with
 `npx supabase storage ls --project-ref <ref> --experimental` — a new
 bucket added by a future epic must be added here.
 
-### 5.5 · Environment variables
+### 5.7 · Environment variables
 
 See §6. They are not in git and not in the database.
 
-### 5.6 · Record it
+### 5.8 · Record it
 
 Append a line to the backup log kept alongside the archives: timestamp,
 what was captured, byte sizes, and who took it. A backup nobody can find
@@ -234,29 +295,37 @@ done. Verify with `pg_dump --version` ≥ 17.
 
 As §5, with the new project's ref and password.
 
-### Step 4 — Restore the schema
+### Step 4 — Restore, in this order
+
+**The order is the design.** §5.0 explains why: triggers must not exist
+while data is loading.
 
 ```bash
-psql -f "$BACKUP/schema.sql"
+psql -w -v ON_ERROR_STOP=1 -f "$BACKUP/01-schema-pre.sql"     # tables, no triggers
+psql -w                    -f "$BACKUP/02-data-platform.sql"  # accounts, buckets
+psql -w                    -f "$BACKUP/03-data-public.sql"    # application data
+psql -w -v ON_ERROR_STOP=1 -f "$BACKUP/04-schema-post.sql"    # triggers, indexes, policies
 ```
 
-Expect errors about objects that already exist — Supabase creates `auth`
-and `storage` itself. **Read them.** Errors about `public` tables are
-real; errors about Supabase-managed objects are not.
+`ON_ERROR_STOP=1` on the schema steps because a failure there means the
+rest is meaningless. **Deliberately not set on the data steps** — the
+`auth.users` trigger creates profile rows, so conflicts are expected and
+`--on-conflict-do-nothing` handles them. **Read the output anyway.**
 
-**Alternative, and preferred if the backup predates recent migrations:**
-apply the repository's migrations instead —
-`npx supabase db push --linked` — then restore data only. The migrations
-are authoritative for schema; the dump is authoritative for data.
+**Alternative for step 1, preferred if the backup predates recent
+migrations:** apply the repository's migrations instead —
+`npx supabase db push --linked` — then load `02` and `03`. The migrations
+are authoritative for schema; the dump is authoritative for data. Note
+this creates triggers early, so §5.0's hazard returns; only use it when
+the schema files are known stale.
 
-### Step 5 — Restore user accounts, then data
+### Step 5 — Restoring an individual backup type
 
-Order matters. `public` rows reference `auth.users`.
-
-```bash
-psql -f "$BACKUP/data-auth.sql"
-psql -f "$BACKUP/data-public.sql"
-```
+| You have | Restore with |
+|---|---|
+| Schema backup only | `01` then `04`. Produces an empty, correct database |
+| Data backup only | `02` then `03`, into a database whose schema already matches |
+| Full logical backup | All four, in the order above |
 
 ### Step 6 — Restore storage objects
 
@@ -280,10 +349,20 @@ Not "it looks fine". Check specific things:
 
 - [ ] Row counts for `service_requests`, `quotes`, `messages`, `reviews`,
       `profiles` match the source
+- [ ] **`profiles` carry their restored values, not trigger defaults.**
+      Pick a profile with a name and avatar and confirm both survived —
+      this is the §5.0 `handle_new_user` hazard, and it is the one thing
+      most likely to be silently wrong
+- [ ] **`pro_stats` match the source**, rather than having been
+      recomputed by `handle_new_review`
+- [ ] **`domain_events` was not re-populated** by the restore itself
+- [ ] Request statuses match the source — not moved by
+      `handle_quote_sent` or `handle_job_completed`
 - [ ] A known user can sign in
 - [ ] A known request shows its quotes and conversation
 - [ ] An avatar and a request photo both load
-- [ ] Creating a new request works end to end
+- [ ] Creating a new request works end to end — proving the triggers
+      restored by `04` are live and working
 
 ### Step 9 — Record it
 
@@ -296,23 +375,26 @@ honest RTO.
 |---|---|---|---|---|---|
 | — | — | — | — | — | **No drill has ever been performed** |
 
-### Prerequisites verified 2026-08-12
+### The backup path is verified — 2026-08-12
 
-Not a drill, but the assumptions the drill rests on are no longer
-assumptions:
+Everything below was an assumption when this document was written. All of
+it has now been executed successfully:
 
 | Checked | Result |
 |---|---|
 | Client tools installed | **PostgreSQL 18.4** — `pg_dump`, `pg_restore`, `psql` |
 | Client ≥ server | 18.4 vs 17.6 ✓ |
-| Pooler reachable from Windows | **Yes** — resolved to IPv4 `54.247.26.119`, TLS handshake completed |
-| Session mode port 5432 correct | **Yes** — server responded with an auth challenge |
+| Native tools without Docker | **Yes** |
+| `pgpass.conf` | **Working** — resolved from `%APPDATA%`, readable by tooling |
+| Production authentication | **Succeeds** — `aws-0-eu-west-1.pooler.supabase.com` |
+| Staging authentication | **Succeeds** — `aws-1-eu-west-1.pooler.supabase.com` |
+| Session-mode port 5432 | **Correct** — `select` returned, server reports PostgreSQL 17.6 |
 | Storage API without Docker | **Yes** — four buckets listed on both projects |
+| All `pg_dump` flags used in §5 | **Present in 18.4**, including `--section` and `--on-conflict-do-nothing` |
 
-Connectivity was proven with a deliberately invalid password: the server
-answered `password authentication failed`, which is a reachability
-success. **Only credentials and a restore target now stand between this
-and a completed drill.**
+**What remains unproven is the restore, not the backup.** A scratch
+project and an executed drill are the only things between this document
+and a measured RTO.
 
 ## 9 · Handling backups safely
 
