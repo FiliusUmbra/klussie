@@ -1,6 +1,6 @@
 # Epic 01 — Schema Foundation & Event Backbone
 
-**Status.** In progress — 2 of 7 packages
+**Status.** In progress — 3 of 7 packages
 **Purpose.** Create the ten schemas and the event outbox, so every later
 epic has somewhere correct to put things and a way to emit facts.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -21,7 +21,7 @@ epic has somewhere correct to put things and a way to emit facts.
 |---|---|---|---|
 | 01.01 | [Create the ten schemas with no tables](wp-01.01-ten-schemas.md) | Low | **Done** |
 | 01.02 | [Establish role grants mirroring engine ownership](wp-01.02-role-grants.md) | Medium | **Done** |
-| 01.03 | Install extensions in a dedicated schema | Low | Not started |
+| 01.03 | [Install extensions in a dedicated schema](wp-01.03-extensions.md) | Low | **Done** |
 | 01.04 | Create the partitioned events table | **High** | Not started |
 | 01.05 | Create the partitioned audit table | Medium | Not started |
 | 01.06 | Add the transactional event emission helper | Medium | Not started |
