@@ -212,11 +212,23 @@ owns the real underlying capability ships it — see
 
 ## Known gaps
 
-- No staging Supabase project — production has been the only
-  environment since the first migration (`ROADMAP.md` Phase 2 closes
-  this).
-- No automated tests, no CI (`ROADMAP.md` Phase 2).
-- No backup/restore drill has ever been run (`ROADMAP.md` Phase 3).
+- ~~No staging Supabase project~~ **Closed, Epic 00 WP06.**
+  `klussie-staging` exists in `eu-west-1`, built by applying all 17
+  migrations to an empty database — the first proof the migration chain
+  reconstructs the schema from nothing.
+- ~~No automated tests, no CI~~ **Closed, Epic 00.** 411 tests across 24
+  files, and a CI pipeline gating every push and pull request on lint,
+  type-check, test and build. *(This line previously read "no automated
+  tests" while `MASTER_CONTEXT.md` §3 reported 404 — the kind of drift
+  that made both untrustworthy. Corrected here rather than left.)*
+- **No backup/restore drill has ever been run.** Still open. The backup
+  path is verified and the procedure documented
+  ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
+  no restore has been performed — the Free plan provides two projects and
+  neither can be consumed as a target
+  (`../operations/DISASTER_RECOVERY.md` §8).
+- **Branch protection is not enabled on `main`**, so CI reports failure
+  without blocking a merge.
 - No pagination anywhere — every list-fetching function in `src/lib`
   pulls an unbounded result set.
 - Search (Discover) is a client-side filter over the full catalog, not

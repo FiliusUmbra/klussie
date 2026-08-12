@@ -28,7 +28,7 @@ Nothing else starts until this is done.
 | 00.05 | Add type-check to CI | Low | **Complete** — approved, [wp file](wp-00.05-typecheck-in-ci.md) |
 | 00.06 | Provision the staging Supabase project | Medium | **Complete** — 17/17 migrations replayed from empty ([wp file](wp-00.06-staging-environment.md)) |
 | 00.07 | Document and verify a restore | Medium | **Complete** — verified by design and tooling; drill deferred (Free plan) ([wp file](wp-00.07-verify-restore.md)) |
-| 00.08 | Add a regression baseline for the current product | **High** | Not started |
+| 00.08 | Add a regression baseline for the current product | **High** | **Complete** — 59 flows inventoried, defects pinned ([wp file](wp-00.08-regression-baseline.md)) |
 
 ## Acceptance
 

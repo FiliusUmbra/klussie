@@ -1054,11 +1054,17 @@ A session takes one of five shapes:
 
 | Epic | Status |
 |---|---|
-| 00 — Engineering Foundations | Not started |
-| 01 — Schema Foundation & Event Backbone | Not started |
+| 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
+| 01 — Schema Foundation & Event Backbone | Not started — **unblocked**, staging exists |
 | 02 — Identity Engine | Not started |
 | 03 — Workspace Engine | Not started |
 | 04–26 | Not started; work packages decomposed at epic start |
+
+**Carried out of Epic 00, and relevant when Epic 03 is planned:** the
+production backup path is verified but **has never been restored**
+([ADR-0017](./adr/0017-free-tier-disaster-recovery-strategy.md)). Epic 03
+backfills a workspace onto every production row — the first change whose
+failure mode is unrecoverable data rather than a revertable read path.
 
 ---
 

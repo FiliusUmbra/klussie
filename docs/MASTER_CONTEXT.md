@@ -14,18 +14,27 @@ priorities, risks, debt, decisions. It does not own product philosophy
 - **What Klussie is:** AI-powered marketplace connecting customers with
   trusted service professionals — not a handyman app, a multi-vertical
   "operating system for trusted services." (§5)
-- **Current milestone:** Phase 1 — Foundation, In Progress. (§2)
-- **Current priorities:** Core Platform extraction, Design System
-  migration, event-bus wiring. Full list: (§8)
-- **Biggest technical debt:** no TypeScript, no CI. `App.jsx` is no longer
-  on this list — the Engineering Health sprint reduced it to 19 lines by
-  splitting it into feature modules. Full list: (§12)
-- **Biggest project risks:** no payment system, no CI gate,
-  single-maintainer project. Full list: (§13)
+- **What to build next:** [`IMPLEMENTATION_ROADMAP.md`](./IMPLEMENTATION_ROADMAP.md)
+  is the only source of truth. How to build it:
+  [`../ENGINEERING.md`](../ENGINEERING.md).
+- **Current milestone:** Epic 00 — Engineering Foundations, **complete**
+  2026-08-12. Next: Epic 01 — Schema Foundation & Event Backbone. (§2)
+- **The architecture is frozen.** `PLATFORM_DOMAIN_MODEL`,
+  `DATABASE_ARCHITECTURE`, `SYSTEM_ARCHITECTURE` and
+  `SUPABASE_ARCHITECTURE` change only by ADR. Klussie is a **Property
+  Intelligence Platform**; the marketplace is one module inside it.
+- **Biggest technical debt:** no payment system; 31 user-facing
+  components without render tests; TypeScript adopted but not at scale.
+  ~~No CI~~ closed in Epic 00. Full list: (§12)
+- **Biggest project risks:** no revenue path; **no restore drill has ever
+  been performed** (ADR-0017); single-maintainer project. Full list:
+  (§13)
 - **Protected architecture:** never bypass the AI Gateway, never expose AI
-  keys client-side, never put business logic in UI. Full list: (§17)
-- **Next implementation task:** event-bus wiring into existing
-  request/quote/message flows, then Phase 2. (§9)
+  keys client-side, never put business logic in UI, **never branch on
+  workspace type**. Full list: (§17)
+- **Before touching production data:** take a backup —
+  [`operations/DISASTER_RECOVERY.md`](./operations/DISASTER_RECOVERY.md) §5.
+  Klussie is on the Free plan and has no automatic backups.
 
 ### Document map
 
@@ -42,6 +51,8 @@ priorities, risks, debt, decisions. It does not own product philosophy
 | `architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md` | Epic 03's 12 work packages — scope, dependencies, files, acceptance, complexity, risks | Implemented |
 | `product/PRODUCT_CONSTITUTION.md` | Permanent product philosophy | Implemented |
 | `engineering/ENGINEERING_STANDARDS.md` | Enforceable code rules + scorecard | Implemented |
+| `engineering/TESTING.md` | **The regression baseline** — what counts as a behavioural regression, all 59 user-facing flows, the coverage map, and the known defects preserved deliberately | Implemented |
+| `operations/ENVIRONMENTS.md` · `DISASTER_RECOVERY.md` · `POSTGRES_TOOLS_WINDOWS.md` | Staging/production runbooks, the free-tier backup strategy, and client-tool setup | Implemented |
 | `design/DESIGN_SYSTEM.md` | Visual and interaction design direction (constitution tier — see `design/README.md` for the full companion-doc set) | Implemented |
 | `operations/AUTH_PROVIDER_SETUP.md` | External OAuth provider registration steps (Authentication UX Redesign, Phase 2) | Implemented |
 | `architecture/ROADMAP.md` | Full phase-by-phase implementation roadmap (13 phases) | **Superseded** by `IMPLEMENTATION_ROADMAP.md`; retained as history |
@@ -122,31 +133,29 @@ professional who can solve it. Full vision: §5.
 ## 2. Current Milestone
 
 ```
-Current Milestone     Execution Roadmap Epic 03 — Conversation Experience
-Status                Implemented (2026-08-11)
-Current Objective     Done: all 12 work packages of
-                       architecture/EPIC_03_CONVERSATION_EXPERIENCE_PLAN.md, plus
-                       the intent-first homepage evolution on top of WP1's Rest
-                       state (hero, section tabs, intent-before-input-method,
-                       "today for your home", My Home / My Items, first-login
-                       tour). All 3 originally-blocking open questions resolved
-                       (ADR-0011, ADR-0012, and Discover retained-not-deleted).
-                       Next objective is Phase 2 (Testing/CI/TypeScript)
-Previous Milestone    Epic 01 — Foundation Completion: FROZEN 2026-08-06 at
-                       commit 91a2ee4. Domain event bus (5 of 9 events) live
-                       in production; Permissions layer deferred (ADR-0010);
-                       Vitest harness real and passing. TypeScript, CI,
-                       staging project, Playwright, and the release pipeline
-                       remain undone — frozen, not finished
-Current Branch        phase-1-ui-redesign (ahead of main; Epic 03 commit local, not pushed)
-Next Deliverable      Event-bus wiring into existing request/quote/message
-                       flows, then Phase 2 (Testing, CI, TypeScript, Release
-                       Strategy) — application work, separate from the
-                       Foundation Freeze documentation initiative, which is
-                       now at Phase 8 of 9 (see docs/architecture/ROADMAP.md
-                       vs. this repo's own Foundation Freeze phases — two
-                       different phase-numbering sequences, don't conflate)
-Last Updated          2026-08-06
+Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 00 — Engineering Foundations
+Status                COMPLETE (2026-08-12) — 8 of 8 work packages
+Current Objective     Done: CI gating lint/type-check/test/build, TypeScript
+                       toolchain with one module converted, a staging Supabase
+                       project with all 17 migrations replayed from empty, a
+                       free-tier disaster recovery strategy, and a regression
+                       baseline covering all 59 user-facing flows.
+                       Full record: implementation/epic-00/COMPLETION.md
+Previous Milestone    Architecture phase — PLATFORM_DOMAIN_MODEL,
+                       DATABASE_ARCHITECTURE, SYSTEM_ARCHITECTURE and
+                       SUPABASE_ARCHITECTURE frozen; IMPLEMENTATION_ROADMAP
+                       supersedes EXECUTION_ROADMAP.md and architecture/ROADMAP.md
+                       for what to build next
+Current Branch        epic-00/wp-00.08-regression-baseline (stacked on 00.01-00.07;
+                       pushed, none merged to main yet)
+Next Deliverable      Epic 01 — Schema Foundation & Event Backbone. Unblocked:
+                       staging exists, which was the hard prerequisite. Work
+                       packages defined in IMPLEMENTATION_ROADMAP.md §12
+Open from Epic 00     Branch protection not enabled on main (CI reports failure
+                       without blocking merge); no restore drill performed
+                       (ADR-0017, Free plan constraint); 31 user-facing
+                       components still have no render test
+Last Updated          2026-08-12
 ```
 
 Implemented in Phase 1 so far: authenticated + rate-limited AI Gateway
@@ -170,7 +179,7 @@ disagrees with this table, this table wins.
 | Payments | Planned. Commission is a display-only constant on a demo invoice; no integration implemented |
 | Auth | Implemented — Supabase Auth, email/password. Every AI endpoint requires a session and is rate-limited |
 | Repository structure | See [`README.md`](../README.md#repository-structure) for the canonical layout — not duplicated here. Current layout does **not** match the target described in §6 |
-| Testing | In Progress — Vitest + React Testing Library, 404 tests across 22 files covering every `src/lib` module and the customer homepage including both Property Memory surfaces. No E2E, no CI runner |
+| Testing | In Progress — Vitest + React Testing Library, **411 tests across 24 files**, plus a regression baseline (`engineering/TESTING.md`). CI gates lint/type-check/test/build. 31 user-facing components still have no render test. Previously: 404 tests across 22 files covering every `src/lib` module and the customer homepage including both Property Memory surfaces. No E2E, no CI runner |
 | Property Memory | In Progress — My Home V1 is derived entirely from existing rows (jobs, professionals, reviews, AI analyses, photos) via `src/lib/homeTimeline.js`, no new schema. My Items V1 is real storage (`household_items`, migration 0016) with manual entry and photos, and carries `source`/`ai_suggestion` so photo recognition can later propose values the owner confirms. Rooms, installations, documents and maintenance schedules remain Planned — no schema (ADR-0008) |
 | Localization | Implemented — 10 locales (`nl`, `fr`, `de`, `en`, `es`, `ar`, `fa`, `tr`, `ru`, `zh`), two right-to-left. UI copy lives in three tables under `src/lib`; catalog names live in the database. Parity across all three tables is derived from `LANGS` and enforced by `homeStrings.test.js` |
 | Core Platform | 3 of 11 layers Implemented (Auth, AI Gateway) or In Progress (Permissions). 8 layers Planned: Payments, Matching, Messaging, Notifications, Storage, Analytics, Marketplace Engine, API |
@@ -192,13 +201,13 @@ disagrees with this table, this table wins.
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | In Progress — `design/ACCESSIBILITY.md` audit done; Epic 03 added a global focus ring, a real focus trap + focus restoration on `Modal`, live regions, ARIA tablist semantics, and 44px touch targets on new surfaces. Older screens not re-audited | Constitution Rule 6 formally verified | Improving | Unassigned |
-| Testing | In Progress — 404 tests, 22 files; all `src/lib` business logic, the homepage, and both Property Memory surfaces covered. The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is not | Defined in Phase 2 | Improving | Unassigned |
+| Testing | In Progress — **411 tests, 24 files**; all `src/lib` business logic, the homepage, and both Property Memory surfaces covered. The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is not | Defined in Phase 2 | Improving | Unassigned |
 | Design System | In Progress — 21 components implemented (Epic 03 added TrustStrip, UnfoldPanel/UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, SegmentedTabs/TabPanel); most of `App.jsx` still unmigrated | Full adoption, dark mode, white-label tokens | Improving | Unassigned |
 | AI | In Progress — AI Gateway, intake, translation implemented | Full capability routing + eval automation | New baseline | Unassigned |
 | Marketplace Engine | In Progress — SQL-function matching implemented, no ranking/geo | Real Marketplace Engine implemented | New baseline | Unassigned |
 | Payment Engine | Planned — no integration implemented | Stripe Connect implemented | New baseline | Unassigned |
 | Developer Experience | In Progress — `App.jsx` down to 19 lines; the app is now organised by feature (`src/shell`, `src/auth`, `src/profile`, `src/customer`, `src/pro`, `src/messaging`, `src/requests`, `src/ui`, `src/home`) with every rule in `src/lib`. No component exceeds 300 lines. No types yet | Modular, typed, tested | Improving | Unassigned |
-| Deployment | Implemented — working Vercel pipeline, both apps | CI gate before deploy implemented | New baseline | Unassigned |
+| Deployment | Implemented — Vercel pipeline plus a CI gate on lint, type-check, test and build (Epic 00). Branch protection not yet enabled | Merge blocked on CI | New baseline | Unassigned |
 | Infrastructure | Planned — no queue, no cache, single region | Defined once scale requires it (§16) | New baseline | Unassigned |
 
 ---
@@ -383,8 +392,8 @@ Principles and KPIs are not alternatives. A feature needs a reason
 
 | Severity | Item | Impact | Recommended Fix | Phase | Priority |
 |---|---|---|---|---|---|
-| 🟠 High | No CI pipeline | Tests exist (404) but nothing runs them on a merge or deploy, so a regression still reaches production unnoticed | Add a CI gate on lint + test + build | Phase 2 | P0 |
-| 🟠 High | No TypeScript | Type errors reach production undetected | Incremental adoption, smallest/most-depended-on files first | Phase 2 | P1 |
+| ✅ Closed | ~~No CI pipeline~~ — delivered in Epic 00 WP01/WP05 | Tests exist (404) but nothing runs them on a merge or deploy, so a regression still reaches production unnoticed | Add a CI gate on lint + test + build | Phase 2 | P0 |
+| 🟡 Medium | No TypeScript **at scale** — toolchain landed in Epic 00 WP03/WP04 with one module converted; the rest is still JavaScript | Type errors reach production undetected | Incremental adoption, smallest/most-depended-on files first | Phase 2 | P1 |
 | 🟠 High | No payment system | No real revenue path | Stripe Connect integration | Phase 4 | P1 |
 | 🟡 Medium | No render tests on the extracted feature components | The Engineering Health sprint moved ~2,150 lines of JSX into `src/customer`, `src/pro`, `src/auth`, `src/profile` and `src/messaging` with their rules unit-tested but their markup unverified by any test. The move was checked by line-level diff, build, lint and manual smoke — not by assertions that survive the next change | Add render tests per feature folder, starting with the surfaces that spend money: `RequestDetailSheet`, `InvoiceSheet`, `ProProfile` | Phase 2 | P2 |
 | 🟡 Medium | Literal `\uXXXX` escape text rendered in 12 places | JSX text content doesn't interpret backslash escapes, so customers see `€` where a euro sign belongs — in the invoice totals, the budget fields, the flexi tracker and the boost price. Preserved verbatim through the Engineering Health sprint because fixing it changes what a customer reads, which that sprint promised not to do | Replace each with the real character. Sites are commented in `ServiceSheet.jsx`, `QuoteFormSheet.jsx`, `AiIntakeSheet.jsx`, `InvoiceSheet.jsx`, `SendQuoteSheet.jsx`, `ProProfile.jsx`, `AppShell.jsx` | Phase 1 | P2 |

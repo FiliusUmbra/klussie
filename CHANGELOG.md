@@ -50,8 +50,42 @@ accurately.
 
 ### Added
 
-- **Engineering foundations (Epic 00, in progress).** CI pipeline gating
-  every push and pull request on lint, test and build. This changelog.
+**Epic 00 — Engineering Foundations.** Nothing in this epic changes what
+a user sees; all of it changes what can be built safely afterwards.
+
+- **CI pipeline** gating every push and pull request on lint, type-check,
+  test and build.
+- **This changelog**, and the rule that every epic updates it.
+- **TypeScript toolchain** alongside JavaScript, `strict` from the start,
+  with one leaf module converted as proof. No big-bang migration.
+- **A staging environment.** Production is no longer the only environment
+  Klussie has ever had. All 17 migrations replayed onto an empty database
+  with no file modified — **the first proof that the migration chain can
+  rebuild the schema from nothing.**
+- **A disaster recovery strategy** that works on the Supabase Free plan
+  without Docker: native `pg_dump` over the session pooler, storage via
+  the Storage API, four backup cadences, and a stated RPO/RTO
+  ([ADR-0017](docs/adr/0017-free-tier-disaster-recovery-strategy.md)).
+  Klussie previously had **no working backup mechanism of any kind**.
+- **A regression baseline** — a definition of what a behavioural
+  regression is, an inventory of all 59 user-facing flows, and automated
+  pins on the known defects so none is fixed silently
+  ([TESTING.md](docs/engineering/TESTING.md)).
+
+### Changed
+
+- Test suite grew from 404 tests across 22 files to **411 across 24**.
+- `.gitignore` now covers Supabase CLI machine state (`supabase/.temp/`).
+
+### Notes
+
+- **No behaviour changed for users in this epic.** The literal
+  escape-text defects and the untranslated `awaiting_pro` status are
+  deliberately preserved and now pinned by tests — fixing either is a
+  declared change requiring its own entry here.
+- The restore procedure is documented and its tooling verified, but **no
+  restore drill has been performed** — the Free plan provides two
+  projects and neither can be consumed as a target.
 
 ---
 
