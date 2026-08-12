@@ -73,6 +73,9 @@ pointing at whatever replaced it.
 | [0010](0010-defer-permissions-layer-formalization.md) | Defer Permissions layer formalization until Trust & Safety needs it | Implemented (deferral) |
 | [0011](0011-trust-strip-shows-only-verified-signals.md) | The trust strip shows only signals backed by real data | Implemented |
 | [0012](0012-one-tap-booking-commits-the-customer-not-the-professional.md) | One-tap booking commits the customer, not the professional | Proposed |
+| [0013](0013-workspace-centred-platform-domain-model.md) | Adopt a workspace-centred platform domain model | Implemented (domain model) — extended by [0014](0014-capability-model-as-the-platform-organising-concept.md) |
+| [0014](0014-capability-model-as-the-platform-organising-concept.md) | The Capability Model is the platform's organising concept | Implemented (domain model) — extended by [0015](0015-service-records-digital-twin-workflows-and-execution-strategies.md) |
+| [0015](0015-service-records-digital-twin-workflows-and-execution-strategies.md) | Service Records, the Digital Twin, the Knowledge Graph, Workflows and Execution Strategies — architecture frozen at Version 1.0 | Implemented (domain model) |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see
