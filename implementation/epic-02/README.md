@@ -1,6 +1,6 @@
 # Epic 02 — Identity Engine
 
-**Status.** In progress — 6 of 7 packages
+**Status.** All 7 packages done — epic not yet closed
 **Purpose.** Separate the platform's identity from Supabase Auth, and
 introduce the person reference that survives erasure.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -23,7 +23,7 @@ introduce the person reference that survives erasure.
 | 02.04 | [Dual-write identity on signup and profile change](wp-02.04-dual-write.md) | Medium | **Done** |
 | 02.05 | [Reconcile identity against profiles](wp-02.05-reconcile-identity.md) | Medium | **Done** — the gate works; it has nothing to stand on |
 | 02.06 | [Switch profile reads to the identity engine](wp-02.06-read-switch.md) | **High** | **Done** — per [ADR-0023](../../docs/adr/0023-identity-display-resolution-versus-row-visibility.md), accepted |
-| 02.07 | Implement erasure by redaction | **High** | Not started |
+| 02.07 | [Implement erasure by redaction](wp-02.07-erasure-by-redaction.md) | **High** | **Done** |
 
 **02.06 is the only behaviour-changing package in this epic**, and
 roadmap §3 makes 02.05's reconciliation a hard gate on it: a read-switch
@@ -58,11 +58,30 @@ Read these sections before starting — not the whole documents:
 
 ## Acceptance
 
-- [ ] Every existing user has an identity row with a person reference
-- [ ] All existing auth flows work unchanged — login, signup,
-      become-a-pro, profile edit
-- [ ] Erasing an identity leaves referencing rows intact
-- [ ] No durable table foreign-keys to identity
+- [x] Every existing user has an identity row with a person reference —
+      `RECONCILE_IDENTITY.sql` check 1, over four real rows
+- [x] All existing auth flows work unchanged — no write path was
+      touched; `VERIFY_IDENTITY_DUAL_WRITE.sql` proves signup still
+      creates profile and contact rows. **Not walked in a browser** — see
+      below
+- [x] Erasing an identity leaves referencing rows intact —
+      `VERIFY_IDENTITY_ERASURE.sql` check 3, eleven row counts compared
+- [x] No durable table foreign-keys to identity — `VERIFY_IDENTITY.sql`
+      check 2, across every schema
+
+**Verified on staging by twelve scripts**, each probed to prove it can
+fail before being trusted:
+
+```bash
+for f in GRANTS EXTENSIONS EVENTS AUDIT EMISSION CONSUMERS IDENTITY IDENTITY_BACKFILL IDENTITY_DUAL_WRITE IDENTITY_READ_PATH IDENTITY_ERASURE; do psql -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_$f.sql; done
+psql -v ON_ERROR_STOP=1 -f supabase/diagnostics/RECONCILE_IDENTITY.sql
+```
+
+> **Not done: a browser walk of the profile surfaces.** `.env.local`
+> points at production and staging's anon key is not available here, so
+> WP 02.06's read switch is verified at the data and contract level but
+> has never been seen rendering. That is the one gap before this epic
+> can be called finished.
 
 ## Notes
 
