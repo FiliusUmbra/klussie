@@ -1,6 +1,7 @@
 # Epic 01 — Schema Foundation & Event Backbone
 
-**Status.** All 7 packages done — epic not yet closed (see below)
+**Status.** **Complete (2026-08-13)** — 7 of 7 packages.
+Record: [`COMPLETION.md`](COMPLETION.md)
 **Purpose.** Create the ten schemas and the event outbox, so every later
 epic has somewhere correct to put things and a way to emit facts.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10

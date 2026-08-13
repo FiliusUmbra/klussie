@@ -83,16 +83,62 @@ acceptance criterion for the baseline is *"no flow is unlisted"*, and a
 promise to keep a list current is worth very little. That test makes the
 promise mechanical.
 
+### 3.1 · SQL diagnostics — added in Epic 01
+
+`npm test` runs no database. Epic 01 created schemas, partitioned tables,
+grants, an emission function and consumer storage, and **none of what
+those do is visible in their SQL text** — a grant's effect, a partition's
+routing, an append-only guard's refusal. So the epic added a second
+verification layer under `supabase/diagnostics/`, run with `psql` against
+staging:
+
+| Diagnostic | Verifies |
+|---|---|
+| `VERIFY_GRANTS.sql` | Engine ownership: each role reaches its own schema and no other |
+| `VERIFY_EXTENSIONS.sql` | `ltree` and `pg_cron` installed, and **no** extension anywhere in `public` |
+| `VERIFY_EVENTS.sql` | Envelope shape, partitioning, append-only, routing, refusals, empty default partitions |
+| `VERIFY_AUDIT.sql` | Record shape, writable by nobody, both scopes in one table, immutability |
+| `VERIFY_EMISSION.sql` | An event in a rolled-back transaction does not exist; a committed one does |
+| `VERIFY_CONSUMERS.sql` | Cursors advance, nobody can delete one, open quarantines are surfaced |
+
+```bash
+psql -w -h <pooler-host> -p 5432 -U postgres.<project-ref> -d postgres -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_EVENTS.sql
+```
+
+Each check raises an exception naming what is wrong, so `ON_ERROR_STOP=1`
+turns the file into a pass/fail gate. Connection details are in
+`../operations/POSTGRES_TOOLS_WINDOWS.md` §5.
+
+**Two of these are ongoing operational checks rather than one-time
+acceptance**, and will start mattering the moment anything writes: an
+occupied default partition means a time range was missing when a row was
+written, and an open quarantine means a consumer set an event aside and
+is waiting for a person.
+
+> **The discipline that goes with them: prove a check can fail before
+> trusting it.** Every gate in Epic 01 was probed by deliberately breaking
+> what it asserts and confirming the failure, then reverting. That
+> discipline found a real defect — two diagnostics whose failure paths
+> raised a PostgreSQL type error instead of their intended message,
+> because `array || 'literal'` is ambiguous. The gates still failed
+> closed; the messages were wrong, on exactly the paths someone reads
+> under pressure. **A probe that exercises one branch of a check has
+> verified one branch.**
+
 ## 4 · Automated coverage today
 
-404 tests across 22 files, plus the regression suite. Coverage is uneven,
-and the shape of it matters more than the number:
+497 tests across 34 files, plus the regression suite and the six SQL
+diagnostics above. Coverage is uneven, and the shape of it matters more
+than the number:
 
 | Area | Automated coverage |
 |---|---|
 | `src/lib/*` — rules, pricing, status, matching, i18n parity | **Strong.** Every module has unit tests |
 | Homepage, conversation home, onboarding, Property Memory panels | **Strong.** 111 render tests across three files |
 | Design system capture components | **Partial.** 19 tests |
+| Migration structure — schemas, grants, extensions, events, audit, emission, cursors | **Strong.** 51 tests reading the frozen documents and ADRs, so a migration diverging from them fails the build |
+| Consumer scaffolding — resumption, redelivery window, quarantine | **Strong.** 13 tests |
+| Supabase client configuration | **Strong.** 9 tests; validation at startup and at first use |
 | **`src/customer` (11 components)** | **None** |
 | **`src/pro` (5 components)** | **None** |
 | **`src/auth` (3), `src/profile` (6)** | **None** |

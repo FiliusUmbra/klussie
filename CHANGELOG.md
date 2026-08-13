@@ -50,6 +50,43 @@ accurately.
 
 ### Added
 
+**Epic 01 — Schema Foundation & Event Backbone.** Nothing here changes
+what a user sees, and nothing here is used yet. The epic is **entirely
+additive**: it creates the substrate every later epic needs, applied to
+staging only, with `public.domain_events` and its five triggers still the
+product's live event path.
+
+- **Ten engine-tier schemas**, and **twelve database roles** whose grants
+  make an engine writing another engine's schema fail on privileges
+  rather than on review ([ROLES.md](docs/operations/ROLES.md)).
+- **`ltree` and `pg_cron`**, installed outside `public`.
+- **`platform.events`** — the event outbox. Hash-partitioned by workspace,
+  range-partitioned by time, append-only, carrying all thirteen fields of
+  the [canonical event envelope](docs/adr/0019-canonical-platform-event-envelope.md).
+  Not readable by any client role.
+- **`platform.audit_records`** — the audit trail. Range-partitioned,
+  append-only, and **writable by no application role at all**, including
+  the engine that owns the schema. Records denied attempts, which no
+  domain event captures.
+- **`platform.emit_event()`** — emits an event inside the caller's
+  transaction, so a change without an event is impossible, and assigns
+  the next gapless per-subject sequence.
+- **Cursor-based consumer scaffolding** — durable per-partition cursors,
+  a quarantine that keeps one bad event from halting a stream, and a
+  runner proven to resume without gaps and to redeliver at most one event
+  after a crash.
+- **Six SQL diagnostics** under `supabase/diagnostics/`, because a
+  grant's effect, a partition's routing and an append-only guard's
+  refusal are all invisible in the SQL that creates them.
+
+**Two decisions the frozen architecture left open are recorded and
+`Proposed`, not accepted** —
+[ADR-0020](docs/adr/0020-events-partitioning-parameters.md) (eight hash
+partitions, yearly ranges, a default range partition) and
+[ADR-0021](docs/adr/0021-one-audit-table-with-nullable-workspace.md) (one
+audit table with a nullable workspace). Both are cheap to revise while
+the tables are empty and expensive afterwards.
+
 **Epic 00 — Engineering Foundations.** Nothing in this epic changes what
 a user sees; all of it changes what can be built safely afterwards.
 
@@ -74,8 +111,21 @@ a user sees; all of it changes what can be built safely afterwards.
 
 ### Changed
 
-- Test suite grew from 404 tests across 22 files to **411 across 24**.
+- Test suite grew from 404 tests across 22 files to **497 across 34**
+  (411/24 at the end of Epic 00).
 - `.gitignore` now covers Supabase CLI machine state (`supabase/.temp/`).
+
+### Fixed
+
+- **Unit tests no longer require real Supabase configuration.**
+  `src/lib/supabaseClient.js` validated configuration and constructed the
+  client as an import side effect, so any module transitively importing
+  the data layer — including files that only export pure functions —
+  could not be loaded without a configured project. CI, which correctly
+  has no credentials, failed on the import rather than on anything a test
+  asserted. The client is now created on first use; validation still runs
+  at application startup and again before construction, so a misconfigured
+  deployment fails exactly as before, with the same message.
 
 ### Notes
 
