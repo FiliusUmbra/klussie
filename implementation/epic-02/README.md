@@ -1,6 +1,6 @@
 # Epic 02 — Identity Engine
 
-**Status.** In progress — 2 of 7 packages
+**Status.** In progress — 3 of 7 packages
 **Purpose.** Separate the platform's identity from Supabase Auth, and
 introduce the person reference that survives erasure.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -19,7 +19,7 @@ introduce the person reference that survives erasure.
 |---|---|---|---|
 | 02.01 | [Create the identity table (add)](wp-02.01-identity-table.md) | Low | **Done** |
 | 02.02 | [Backfill identities from existing profiles](wp-02.02-identity-backfill.md) | Medium | **Done** — [ADR-0022](../../docs/adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) needs sign-off |
-| 02.03 | Add UUIDv7 generation | Low | Not started |
+| 02.03 | [Add UUIDv7 generation](wp-02.03-uuidv7.md) | Low | **Done** |
 | 02.04 | Dual-write identity on signup and profile change | Medium | Not started |
 | 02.05 | Reconcile identity against profiles | Medium | Not started |
 | 02.06 | Switch profile reads to the identity engine | **High** | Not started |
@@ -85,6 +85,15 @@ The sequencing was not the problem: 02.03 delivers a *JavaScript*
 generator, which cannot supply values to a SQL migration however it is
 ordered. Backfills mint v7 in SQL from each row's own creation time,
 through a function no engine can execute.
+
+**`src/lib/ids.ts` is TypeScript, and server-side resolution is
+unverified.** `api/` is built by Vercel rather than Vite, and the only
+existing cross-boundary import (`api/ai-intake.js` → `serviceQuestions.js`)
+points at a real `.js` file. Nothing imports the generator yet, so
+nothing is broken — but **02.04's dual-write may need it server-side**,
+and if the specifier does not resolve there the fix is a rename and
+stripping the annotations. Raised in
+[WP 02.03](wp-02.03-uuidv7.md) finding 1.
 
 **Staging has no profiles, so every backfill in this roadmap will be
 "verified" against an empty database.** `public.profiles` holds zero
