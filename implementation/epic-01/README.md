@@ -1,6 +1,6 @@
 # Epic 01 — Schema Foundation & Event Backbone
 
-**Status.** In progress — 4 of 7 packages
+**Status.** In progress — 5 of 7 packages
 **Purpose.** Create the ten schemas and the event outbox, so every later
 epic has somewhere correct to put things and a way to emit facts.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -23,7 +23,7 @@ epic has somewhere correct to put things and a way to emit facts.
 | 01.02 | [Establish role grants mirroring engine ownership](wp-01.02-role-grants.md) | Medium | **Done** |
 | 01.03 | [Install extensions in a dedicated schema](wp-01.03-extensions.md) | Low | **Done** |
 | 01.04 | [Create the partitioned events table](wp-01.04-events-table.md) | **High** | **Done** — [ADR-0020](../../docs/adr/0020-events-partitioning-parameters.md) needs sign-off |
-| 01.05 | Create the partitioned audit table | Medium | Not started |
+| 01.05 | [Create the partitioned audit table](wp-01.05-audit-table.md) | Medium | **Done** — [ADR-0021](../../docs/adr/0021-one-audit-table-with-nullable-workspace.md) needs sign-off |
 | 01.06 | Add the transactional event emission helper | Medium | Not started |
 | 01.07 | Add cursor-based consumer scaffolding | **High** | Not started |
 
@@ -60,3 +60,23 @@ working behaviour for no benefit.
 painful to change once the table is large — hash by workspace, then range
 by time, per `SUPABASE_ARCHITECTURE.md` §12. Ten million physical
 partitions is not possible; the workspace is the *logical* boundary.
+
+## Open, raised during the epic
+
+**Two ADRs are `Proposed` and need sign-off before the tables they govern
+carry data** — [0020](../../docs/adr/0020-events-partitioning-parameters.md)
+(events partitioning) and
+[0021](../../docs/adr/0021-one-audit-table-with-nullable-workspace.md)
+(one audit table). Both are implemented against empty tables, where
+changing them is a drop and a re-run. That window closes at the first
+written row, which is not in this epic.
+
+**The audit write path is unallocated.** This epic's definition lists it
+under Backend — *"Event emission helper … Cursor-based consumer
+scaffolding. Audit write path."* — but 01.06 is the first and 01.07 the
+second, and **no package builds the third**. After 01.05, no role can
+write an audit record at all, which is correct per
+`SUPABASE_ARCHITECTURE.md` §8 and leaves the trail unwritable. Nothing
+needs it yet. Raised in
+[WP 01.05](wp-01.05-audit-table.md) finding 1; a WP 01.08 or a fold into
+01.06 are the two obvious answers, and neither is decided here.

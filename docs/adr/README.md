@@ -81,6 +81,7 @@ pointing at whatever replaced it.
 | [0018](0018-restore-mode-suspend-triggers-during-logical-restore.md) | Restore Mode — suspend platform triggers during logical restores | **Proposed** — recorded, not implemented |
 | [0019](0019-canonical-platform-event-envelope.md) | The canonical platform Event Envelope | Accepted — completes Platform Architecture v1.0 |
 | [0020](0020-events-partitioning-parameters.md) | Eight hash partitions, yearly time ranges, and a default range partition | **Proposed** — implemented against an empty table; free to revise until the first event is written |
+| [0021](0021-one-audit-table-with-nullable-workspace.md) | One audit table with a nullable workspace, not two tables | **Proposed** — implemented against an empty table; free to revise until the first audit record is written |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see
