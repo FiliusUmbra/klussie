@@ -80,6 +80,7 @@ pointing at whatever replaced it.
 | [0017](0017-free-tier-disaster-recovery-strategy.md) | A self-managed disaster recovery strategy on the Free plan | Accepted |
 | [0018](0018-restore-mode-suspend-triggers-during-logical-restore.md) | Restore Mode — suspend platform triggers during logical restores | **Proposed** — recorded, not implemented |
 | [0019](0019-canonical-platform-event-envelope.md) | The canonical platform Event Envelope | Accepted — completes Platform Architecture v1.0 |
+| [0020](0020-events-partitioning-parameters.md) | Eight hash partitions, yearly time ranges, and a default range partition | **Proposed** — implemented against an empty table; free to revise until the first event is written |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see
