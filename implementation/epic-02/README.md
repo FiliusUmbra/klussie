@@ -1,6 +1,6 @@
 # Epic 02 — Identity Engine
 
-**Status.** In progress — 1 of 7 packages
+**Status.** In progress — 2 of 7 packages
 **Purpose.** Separate the platform's identity from Supabase Auth, and
 introduce the person reference that survives erasure.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -18,7 +18,7 @@ introduce the person reference that survives erasure.
 | WP | Title | Complexity | Status |
 |---|---|---|---|
 | 02.01 | [Create the identity table (add)](wp-02.01-identity-table.md) | Low | **Done** |
-| 02.02 | Backfill identities from existing profiles | Medium | Not started |
+| 02.02 | [Backfill identities from existing profiles](wp-02.02-identity-backfill.md) | Medium | **Done** — [ADR-0022](../../docs/adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) needs sign-off |
 | 02.03 | Add UUIDv7 generation | Low | Not started |
 | 02.04 | Dual-write identity on signup and profile change | Medium | Not started |
 | 02.05 | Reconcile identity against profiles | Medium | Not started |
@@ -79,9 +79,20 @@ here**, and both are easy to violate by accident:
 consumer cursors. This epic starts at **`0025`**, and every later
 package's number shifts by two.
 
-**02.02 backfills before 02.03 provides UUIDv7 generation.** The
-person reference is application-generated (§3) and `0025` deliberately
-gives it no database default, so the backfill in 02.02 has no generator
-to call. Either 02.02 generates v7 values in SQL, or 02.03 moves ahead of
-it. **Not decided here** — raised in
-[WP 02.01](wp-02.01-identity-table.md) finding 2 for 02.02's session.
+**~~02.02 backfills before 02.03 provides UUIDv7 generation.~~
+Resolved in 02.02 by [ADR-0022](../../docs/adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md).**
+The sequencing was not the problem: 02.03 delivers a *JavaScript*
+generator, which cannot supply values to a SQL migration however it is
+ordered. Backfills mint v7 in SQL from each row's own creation time,
+through a function no engine can execute.
+
+**Staging has no profiles, so every backfill in this roadmap will be
+"verified" against an empty database.** `public.profiles` holds zero
+rows, although ENVIRONMENTS.md §4.4 calls for two seeded accounts and
+Epic 00's completion record lists them as verified. WP 02.02 worked
+around it by building a population inside a rolled-back transaction —
+strictly better than counting zero against zero, and strictly weaker than
+real seeded data. **Epic 03's workspace backfill is the risk register's
+highest-severity item and would inherit the same gap.** Raised in
+[WP 02.02](wp-02.02-identity-backfill.md) finding 2; fixing it is a
+WP 00.06 obligation, not a package in this epic.
