@@ -1,6 +1,6 @@
 # Epic 02 — Identity Engine
 
-**Status.** In progress — 4 of 7 packages
+**Status.** In progress — 5 of 7 packages. **02.06 is blocked** — see below
 **Purpose.** Separate the platform's identity from Supabase Auth, and
 introduce the person reference that survives erasure.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -21,13 +21,22 @@ introduce the person reference that survives erasure.
 | 02.02 | [Backfill identities from existing profiles](wp-02.02-identity-backfill.md) | Medium | **Done** — [ADR-0022](../../docs/adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) needs sign-off |
 | 02.03 | [Add UUIDv7 generation](wp-02.03-uuidv7.md) | Low | **Done** |
 | 02.04 | [Dual-write identity on signup and profile change](wp-02.04-dual-write.md) | Medium | **Done** |
-| 02.05 | Reconcile identity against profiles | Medium | Not started |
-| 02.06 | Switch profile reads to the identity engine | **High** | Not started |
+| 02.05 | [Reconcile identity against profiles](wp-02.05-reconcile-identity.md) | Medium | **Done** — the gate works; it has nothing to stand on |
+| 02.06 | Switch profile reads to the identity engine | **High** | **BLOCKED** — no passing reconciliation is possible |
 | 02.07 | Implement erasure by redaction | **High** | Not started |
 
 **02.06 is the only behaviour-changing package in this epic**, and
 roadmap §3 makes 02.05's reconciliation a hard gate on it: a read-switch
 without a passing reconciliation is not permitted.
+
+> **02.06 is blocked, and not on code.** WP 02.05 built the gate and
+> proved it detects every class of drift. It cannot *pass*, because
+> neither environment has anything to reconcile: production has none of
+> this schema and an unreconciled ledger, and staging has zero profiles.
+> Unblocking is an environment decision — seed staging
+> (`ENVIRONMENTS.md` §4.4) or reconcile production's ledger and apply
+> `0018`–`0027` there (§9). Detail in
+> [WP 02.05](wp-02.05-reconcile-identity.md) finding 2.
 
 ## Architecture this epic must satisfy
 
