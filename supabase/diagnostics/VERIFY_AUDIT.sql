@@ -122,11 +122,11 @@ begin
   end loop;
 
   if not has_table_privilege('klussie_operator', 'platform.audit_records', 'SELECT') then
-    problems := problems || 'the operator cannot read the audit trail';
+    problems := problems || 'the operator cannot read the audit trail'::text;
   end if;
 
   if not (select relrowsecurity from pg_class where oid = 'platform.audit_records'::regclass) then
-    problems := problems || 'row level security is not enabled';
+    problems := problems || 'row level security is not enabled'::text;
   end if;
 
   -- Unlike platform.events, this table must HAVE a policy: events are not client-readable
@@ -136,7 +136,7 @@ begin
     where schemaname = 'platform' and tablename = 'audit_records'
       and policyname = 'audit_records_operator_read'
   ) then
-    problems := problems || 'the operator read policy is missing';
+    problems := problems || 'the operator read policy is missing'::text;
   end if;
 
   if array_length(problems, 1) is not null then
@@ -250,7 +250,7 @@ begin
     ) values (
       gen_random_uuid(), now(), 'system', 'probe', 'NotAValidAction', 'probe', 'permitted'
     );
-    accepted := accepted || 'a malformed action';
+    accepted := accepted || 'a malformed action'::text;
   exception when check_violation then null;
   end;
 
@@ -261,7 +261,7 @@ begin
     ) values (
       gen_random_uuid(), now(), 'system', '   ', 'platform.probed', 'probe', 'permitted'
     );
-    accepted := accepted || 'a blank actor_ref';
+    accepted := accepted || 'a blank actor_ref'::text;
   exception when check_violation then null;
   end;
 
@@ -273,7 +273,7 @@ begin
     ) values (
       gen_random_uuid(), now(), 'system', 'probe', 'platform.probed', 'probe', 'maybe'
     );
-    accepted := accepted || 'an outcome outside the enum';
+    accepted := accepted || 'an outcome outside the enum'::text;
   exception when invalid_text_representation then null;
   end;
 
@@ -285,7 +285,7 @@ begin
     ) values (
       gen_random_uuid(), now(), 'system', 'probe', 'platform.probed', 'probe', null
     );
-    accepted := accepted || 'a record with no outcome';
+    accepted := accepted || 'a record with no outcome'::text;
   exception when not_null_violation then null;
   end;
 

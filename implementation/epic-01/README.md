@@ -1,6 +1,6 @@
 # Epic 01 — Schema Foundation & Event Backbone
 
-**Status.** In progress — 5 of 7 packages
+**Status.** In progress — 6 of 7 packages
 **Purpose.** Create the ten schemas and the event outbox, so every later
 epic has somewhere correct to put things and a way to emit facts.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -24,7 +24,7 @@ epic has somewhere correct to put things and a way to emit facts.
 | 01.03 | [Install extensions in a dedicated schema](wp-01.03-extensions.md) | Low | **Done** |
 | 01.04 | [Create the partitioned events table](wp-01.04-events-table.md) | **High** | **Done** — [ADR-0020](../../docs/adr/0020-events-partitioning-parameters.md) needs sign-off |
 | 01.05 | [Create the partitioned audit table](wp-01.05-audit-table.md) | Medium | **Done** — [ADR-0021](../../docs/adr/0021-one-audit-table-with-nullable-workspace.md) needs sign-off |
-| 01.06 | Add the transactional event emission helper | Medium | Not started |
+| 01.06 | [Add the transactional event emission helper](wp-01.06-emission-helper.md) | Medium | **Done** |
 | 01.07 | Add cursor-based consumer scaffolding | **High** | Not started |
 
 ## Architecture this epic must satisfy

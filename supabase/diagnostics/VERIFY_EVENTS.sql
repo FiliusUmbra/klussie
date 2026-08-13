@@ -134,18 +134,18 @@ begin
   end loop;
 
   if not has_table_privilege('klussie_engine_platform', 'platform.events', 'INSERT') then
-    problems := problems || 'the owning engine cannot insert an event';
+    problems := problems || 'the owning engine cannot insert an event'::text;
   end if;
   if not has_table_privilege('klussie_consumer_delivery', 'platform.events', 'SELECT') then
-    problems := problems || 'the event deliverer cannot read the stream';
+    problems := problems || 'the event deliverer cannot read the stream'::text;
   end if;
 
   if not (select relrowsecurity from pg_class where oid = 'platform.events'::regclass) then
-    problems := problems || 'row level security is not enabled';
+    problems := problems || 'row level security is not enabled'::text;
   end if;
 
   if exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'events') then
-    problems := problems || 'a policy exists on a table that is not client-readable';
+    problems := problems || 'a policy exists on a table that is not client-readable'::text;
   end if;
 
   if array_length(problems, 1) is not null then
@@ -243,7 +243,7 @@ begin
       gen_random_uuid(), 'NotAValidType', gen_random_uuid(), 'system', 'probe',
       'diagnostic', gen_random_uuid(), 1, now(), gen_random_uuid(), false
     );
-    accepted := accepted || 'a malformed event_type';
+    accepted := accepted || 'a malformed event_type'::text;
   exception when check_violation then null;
   end;
 
@@ -257,7 +257,7 @@ begin
       gen_random_uuid(), 'platform.diagnostic.probed', null, 'system', 'probe',
       'diagnostic', gen_random_uuid(), 1, now(), gen_random_uuid(), false
     );
-    accepted := accepted || 'an event with no workspace';
+    accepted := accepted || 'an event with no workspace'::text;
   exception when not_null_violation then null;
   end;
 
@@ -271,7 +271,7 @@ begin
       gen_random_uuid(), 'platform.diagnostic.probed', gen_random_uuid(), 'system', 'probe',
       'diagnostic', gen_random_uuid(), 0, now(), gen_random_uuid(), false
     );
-    accepted := accepted || 'a subject_sequence of zero';
+    accepted := accepted || 'a subject_sequence of zero'::text;
   exception when check_violation then null;
   end;
 
@@ -284,7 +284,7 @@ begin
       gen_random_uuid(), 'platform.diagnostic.probed', gen_random_uuid(), 'robot', 'probe',
       'diagnostic', gen_random_uuid(), 1, now(), gen_random_uuid(), false
     );
-    accepted := accepted || 'an actor_type outside the enum';
+    accepted := accepted || 'an actor_type outside the enum'::text;
   exception when invalid_text_representation then null;
   end;
 
