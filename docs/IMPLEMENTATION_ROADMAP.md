@@ -1056,7 +1056,7 @@ A session takes one of five shapes:
 |---|---|
 | 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
 | 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
-| 02 — Identity Engine | Not started |
+| 02 — Identity Engine | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-02/COMPLETION.md) |
 | 03 — Workspace Engine | Not started |
 | 04–26 | Not started; work packages decomposed at epic start |
 
@@ -1065,6 +1065,28 @@ production backup path is verified but **has never been restored**
 ([ADR-0017](./adr/0017-free-tier-disaster-recovery-strategy.md)). Epic 03
 backfills a workspace onto every production row — the first change whose
 failure mode is unrecoverable data rather than a revertable read path.
+
+**Carried out of Epic 02**, and recorded in its
+[completion record](../implementation/epic-02/COMPLETION.md):
+
+- **§13 and §14's file lists predate Epic 01's decision that application
+  code does not reach the new schemas.** The list was wrong for **five of
+  Epic 02's seven packages**, always the same way: a Node script cannot
+  read the `identity` schema, a JavaScript helper cannot be transactional
+  with a database trigger, and a module wrapping an unreachable function
+  is dead code. **§14's twelve Epic 03 packages were written at the same
+  time and should be re-read before anyone starts.**
+- **Epic 02 does not reach step 6.** `public.profiles` and
+  `public.profile_contacts` both survive it
+  ([ADR-0023](./adr/0023-identity-display-resolution-versus-row-visibility.md)).
+  Retiring them needs an engine that can evaluate the confirmed-booking
+  relationship their policies encode.
+- **The read switch has never been seen rendering.** Verified at data and
+  contract level only; `.env.local` points at production and staging's
+  anon key was unavailable.
+- **`auth.users` deletion cascades into nine tables**, violating §5's "no
+  cascading deletes anywhere" and §11.4. Predates this epic; erasure
+  routes around it by never deleting.
 
 **Carried out of Epic 01**, and each recorded in its
 [completion record](../implementation/epic-01/COMPLETION.md):

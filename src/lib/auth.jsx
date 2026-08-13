@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- context file intentionally exports the provider plus its hook */
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
+import { uuidv7 } from "./ids.js";
 
 const AuthContext = createContext(null);
 
@@ -10,14 +11,62 @@ export function useAuth() {
   return ctx;
 }
 
+// The person's own attributes now come from the identity engine (Epic 02 WP06, step 5 of
+// the migration pattern). `public.profiles` is still read, and still written, for the two
+// things that are not attributes of a person: `onboarding_role_selected` and
+// `home_tour_completed_at` are state about a session, and WP 02.01 deliberately gave the
+// identity row no column for either.
+//
+// The merged object is the shape every consumer already receives. Nothing downstream
+// changes, which is the point: ADR-0023's success condition is that a user cannot tell.
+//
+// `current_identity()` is an RPC rather than a table read because `identity` is not on
+// PostgREST's exposed schemas and must not be — see migration 0028. It returns the
+// caller's own row and nobody else's.
 async function loadProfile(userId) {
-  const [{ data: profile, error: profileErr }, { data: proProfile, error: proErr }] = await Promise.all([
+  const [
+    { data: profile, error: profileErr },
+    { data: identityRows, error: identityErr },
+    { data: proProfile, error: proErr },
+  ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+    supabase.rpc("current_identity"),
     supabase.from("pro_profiles").select("*").eq("profile_id", userId).maybeSingle(),
   ]);
   if (profileErr) throw profileErr;
   if (proErr) throw proErr;
-  return { profile, proProfile };
+
+  return { profile: mergeIdentityIntoProfile(profile, identityRows, identityErr), proProfile };
+}
+
+// Identity is authoritative for the four attributes it owns; the profile row supplies the
+// rest of the shape.
+//
+// The fallback is deliberate and is not a hedge against drift. It covers one specific
+// case: code running against a database where Epic 02's migrations have not been applied,
+// where the RPC does not exist and every profile read would otherwise return a person with
+// no name. Production is exactly that database today. Drift between the two sources is a
+// different problem, and the one RECONCILE_IDENTITY.sql exists to make impossible — so
+// when this path is taken it says so rather than quietly papering over it.
+function mergeIdentityIntoProfile(profile, identityRows, identityErr) {
+  if (!profile) return profile;
+
+  const identity = Array.isArray(identityRows) ? identityRows[0] : identityRows;
+  if (identityErr || !identity) {
+    console.warn(
+      "identity read unavailable, falling back to profiles:",
+      identityErr?.message ?? "no identity row for the signed-in user"
+    );
+    return profile;
+  }
+
+  return {
+    ...profile,
+    full_name: identity.full_name,
+    avatar_url: identity.avatar_url,
+    city: identity.city,
+    locale: identity.locale,
+  };
 }
 
 export function AuthProvider({ children }) {
@@ -60,11 +109,20 @@ export function AuthProvider({ children }) {
     };
   }, [refreshProfile]);
 
+  // `person_ref` is the platform's permanent reference for this person
+  // (SUPABASE_ARCHITECTURE.md §11.4), generated here because §3 puts identifier generation
+  // in the application. It travels in the signup metadata and is read by
+  // `public.handle_new_user()`, which writes the identity row in the same transaction as
+  // the auth user and the profile — the only placement where a failure cannot leave the
+  // three disagreeing. See migration 0027.
+  //
+  // Metadata is the only channel available: the client has no write access to the
+  // `identity` schema and must not have any.
   const signUp = async (email, password, fullName) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName || null } },
+      options: { data: { full_name: fullName || null, person_ref: uuidv7() } },
     });
     if (error) throw error;
     return { needsEmailConfirmation: !data.session };
@@ -79,10 +137,15 @@ export function AuthProvider({ children }) {
   // (minimize password usage). Password sign-in above stays available as a
   // fallback, both for users who prefer it and for the existing
   // password-only test accounts.
+  //
+  // Carries a `person_ref` for the same reason as signUp: a magic link to an unknown
+  // address creates the user, so this is a signup path too. Supabase applies `data` only
+  // when it creates a user, so an existing user signing in is unaffected — their identity
+  // already exists and keeps the reference it was given.
   const signInWithOtp = async (email) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: window.location.origin, data: { person_ref: uuidv7() } },
     });
     if (error) throw error;
   };

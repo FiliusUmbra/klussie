@@ -50,6 +50,43 @@ accurately.
 
 ### Added
 
+**Epic 02 — Identity Engine.** The platform's identity is now its own,
+separate from Supabase Auth, and carries a person reference designed to
+outlive the person's data.
+
+- **`identity.identities`** — the person reference every durable record
+  will carry, with personal attributes in the one place erasure can
+  reach. No foreign key in either direction: erasure must stay a
+  redaction rather than becoming a cascade.
+- **Backfilled from every existing profile**, idempotently, with
+  identifiers minted from each row's own creation time
+  ([ADR-0022](docs/adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md)).
+- **UUIDv7 generation** (`src/lib/ids.ts`) — monotonic within a
+  millisecond, which is the only reason the format is worth choosing.
+- **Dual-write on signup**, inside the transaction that creates the auth
+  user and the profile. One signup produces exactly one identity, or
+  none of the three.
+- **A reconciliation that gates the read switch** — and refuses to report
+  success against a database with nothing to compare.
+- **Erasure by redaction** — personal data removed across all three
+  tables that hold it, the reference left valid as a key, history
+  untouched, audited per `DATABASE_ARCHITECTURE.md` §33. It deletes
+  nothing, because `public.profiles` is the parent of nine cascading
+  foreign keys.
+- **Staging test accounts** (`supabase/seed/staging_test_accounts.sql`) —
+  the seed `ENVIRONMENTS.md` §4.4 has asked for since Epic 00.
+
+### Changed
+
+- **Profile display now reads from the identity engine.** The first
+  behaviour change in the implementation roadmap, and it is designed to
+  be invisible: the same names, avatars and cities, from a different
+  source. Cross-user reads resolve *display information* rather than
+  reading the identity row, because that row also holds contact details
+  which stay private until a booking exists
+  ([ADR-0023](docs/adr/0023-identity-display-resolution-versus-row-visibility.md)).
+- Test suite grew from 497 tests across 34 files to **561 across 42**.
+
 **Epic 01 — Schema Foundation & Event Backbone.** Nothing here changes
 what a user sees, and nothing here is used yet. The epic is **entirely
 additive**: it creates the substrate every later epic needs, applied to
