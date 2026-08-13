@@ -1,6 +1,6 @@
 # Epic 02 — Identity Engine
 
-**Status.** In progress — 5 of 7 packages. **02.06 blocked on [ADR-0023](../../docs/adr/0023-identity-display-resolution-versus-row-visibility.md)**
+**Status.** In progress — 6 of 7 packages
 **Purpose.** Separate the platform's identity from Supabase Auth, and
 introduce the person reference that survives erasure.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -22,7 +22,7 @@ introduce the person reference that survives erasure.
 | 02.03 | [Add UUIDv7 generation](wp-02.03-uuidv7.md) | Low | **Done** |
 | 02.04 | [Dual-write identity on signup and profile change](wp-02.04-dual-write.md) | Medium | **Done** |
 | 02.05 | [Reconcile identity against profiles](wp-02.05-reconcile-identity.md) | Medium | **Done** — the gate works; it has nothing to stand on |
-| 02.06 | Switch profile reads to the identity engine | **High** | **BLOCKED** on [ADR-0023](../../docs/adr/0023-identity-display-resolution-versus-row-visibility.md) — the reconciliation gate passes; the permission model does not |
+| 02.06 | [Switch profile reads to the identity engine](wp-02.06-read-switch.md) | **High** | **Done** — per [ADR-0023](../../docs/adr/0023-identity-display-resolution-versus-row-visibility.md), accepted |
 | 02.07 | Implement erasure by redaction | **High** | Not started |
 
 **02.06 is the only behaviour-changing package in this epic**, and

@@ -105,6 +105,16 @@ export async function boostProfile(proId, days = 7) {
 }
 
 // Bulk-fetches the public info needed to render a pro on a quote card: name, rating, badge.
+//
+// The name and avatar come from the identity engine as of Epic 02 WP06, through
+// `resolve_identity_display` — the operation SYSTEM_ARCHITECTURE.md §6.1 calls "resolve an
+// internal person-reference to display information, subject to erasure".
+//
+// It is a resolver rather than a read of `identity.identities` because that row also holds
+// email and phone, which today are private until a booking exists. One RLS policy cannot
+// serve both column groups, and there is no field-level security in this design — ADR-0023
+// has the measurement. The resolver's return type has no column for a contact channel, so
+// this path cannot leak one however it is called.
 export async function fetchPublicProInfo(proIds) {
   const ids = [...new Set(proIds)];
   if (ids.length === 0) return {};
@@ -115,23 +125,52 @@ export async function fetchPublicProInfo(proIds) {
     .in("profile_id", ids);
   if (error) throw error;
 
+  const display = await resolveDisplay(ids);
+
   return Object.fromEntries(
-    data.map((row) => [
-      row.profile_id,
-      {
-        id: row.profile_id,
-        name: row.profiles?.full_name || "Pro",
-        initials: initialsFrom(row.profiles?.full_name),
-        avatarUrl: row.profiles?.avatar_url || null,
-        proType: row.pro_type,
-        bio: row.bio || null,
-        rating: Number(row.pro_stats?.rating_avg) || 0,
-        reviews: row.pro_stats?.rating_count || 0,
-        badgeTier: row.pro_stats?.badge_tier || null,
-        isCertified: row.pro_stats?.is_certified || false,
-      },
-    ])
+    data.map((row) => {
+      // The branch is on whether the RESOLVER ANSWERED, not on whether it had a row for
+      // this person, and the difference is erasure.
+      //
+      // A resolver that answered with no row for someone is saying they resolve to
+      // nothing — §11.4's erasure, where "the person reference remains valid as a key and
+      // resolves to nothing". Falling back to `profiles` there would put an erased
+      // person's name back on screen, which is the one outcome erasure exists to prevent.
+      //
+      // Falling back only when the resolver is unavailable covers the case that needs it:
+      // a database without Epic 02's migrations, where the RPC does not exist.
+      const resolved = display?.[row.profile_id];
+      const fullName = display ? resolved?.full_name : row.profiles?.full_name;
+      const avatarUrl = display ? resolved?.avatar_url : row.profiles?.avatar_url;
+
+      return [
+        row.profile_id,
+        {
+          id: row.profile_id,
+          name: fullName || "Pro",
+          initials: initialsFrom(fullName),
+          avatarUrl: avatarUrl || null,
+          proType: row.pro_type,
+          bio: row.bio || null,
+          rating: Number(row.pro_stats?.rating_avg) || 0,
+          reviews: row.pro_stats?.rating_count || 0,
+          badgeTier: row.pro_stats?.badge_tier || null,
+          isCertified: row.pro_stats?.is_certified || false,
+        },
+      ];
+    })
   );
+}
+
+// Returns display info keyed by the person's auth user id, or null if the resolver is
+// unavailable — which is the signal to keep using the embedded profile above.
+async function resolveDisplay(ids) {
+  const { data, error } = await supabase.rpc("resolve_identity_display", { p_auth_user_ids: ids });
+  if (error) {
+    console.warn("identity display resolution unavailable, falling back to profiles:", error.message);
+    return null;
+  }
+  return Object.fromEntries((data ?? []).map((row) => [row.auth_user_id, row]));
 }
 
 // Minimum platform-wide review count before an average rating may be shown at all.

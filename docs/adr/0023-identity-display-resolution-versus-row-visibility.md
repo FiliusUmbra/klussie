@@ -1,7 +1,7 @@
 # ADR-0023: Cross-user profile reads resolve display information; they do not read the identity row
 
-**Status:** Proposed — **blocks Epic 02 WP 02.06.** No code written; the
-read switch is not implemented until this is decided
+**Status:** **Accepted** 2026-08-13 — implemented in Epic 02 WP 02.06,
+with one deviation in transport recorded under "As implemented" below
 **Date:** 2026-08-13
 **Related:** `../architecture/SYSTEM_ARCHITECTURE.md` §6.1,
 `../architecture/SUPABASE_ARCHITECTURE.md` §7 §8 §11.1 §11.4,
@@ -191,3 +191,30 @@ accepted**, and both are outside its scope:
    local run of the app exercises real data, so "verify the UI is
    identical" cannot currently be done against staging without staging's
    anon key.
+
+---
+
+## As implemented (WP 02.06)
+
+**The substance is unchanged; the transport is not.** The decision above
+assumed an own-row RLS policy with the client reading `identity.identities`
+directly. That requires PostgREST to expose the `identity` schema, and
+**a migration cannot do it**: `pgrst.db_schemas` is not set on the
+`authenticator` role on this project, so exposed schemas are configured
+outside the database.
+
+Both operations are therefore `SECURITY DEFINER` functions in `public`,
+which PostgREST already exposes — the pattern ADR-0004 established for
+`emit_domain_event`:
+
+- `public.current_identity()` — the caller's own row, contact channels
+  included.
+- `public.resolve_identity_display(uuid[])` — name and avatar, and no
+  column for anything else.
+
+**The outcome is stricter than this ADR planned for.** Its stated cost —
+*"identity.identities becomes reachable from the client API surface for
+the first time"* — is not paid: no client role has `USAGE` on the
+`identity` schema or `SELECT` on the table, and
+`VERIFY_IDENTITY_READ_PATH.sql` check 4 keeps it that way. `identity` is
+as unreachable from a client as `platform` is.

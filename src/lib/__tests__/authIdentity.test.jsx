@@ -42,6 +42,16 @@ vi.mock("../supabaseClient", () => ({
       }),
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
     },
+    // loadProfile resolves the caller's own attributes through this as of WP 02.06.
+    // Returns a row so the merge path is exercised rather than the fallback.
+    rpc: (fn) =>
+      Promise.resolve({
+        data:
+          fn === "current_identity"
+            ? [{ full_name: "Cathy Customer", avatar_url: null, city: "Brussels", locale: "nl" }]
+            : [],
+        error: null,
+      }),
     from: (table) => {
       tablesTouched.push(table);
       return {

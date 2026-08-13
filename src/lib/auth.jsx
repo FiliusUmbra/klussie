@@ -11,14 +11,62 @@ export function useAuth() {
   return ctx;
 }
 
+// The person's own attributes now come from the identity engine (Epic 02 WP06, step 5 of
+// the migration pattern). `public.profiles` is still read, and still written, for the two
+// things that are not attributes of a person: `onboarding_role_selected` and
+// `home_tour_completed_at` are state about a session, and WP 02.01 deliberately gave the
+// identity row no column for either.
+//
+// The merged object is the shape every consumer already receives. Nothing downstream
+// changes, which is the point: ADR-0023's success condition is that a user cannot tell.
+//
+// `current_identity()` is an RPC rather than a table read because `identity` is not on
+// PostgREST's exposed schemas and must not be — see migration 0028. It returns the
+// caller's own row and nobody else's.
 async function loadProfile(userId) {
-  const [{ data: profile, error: profileErr }, { data: proProfile, error: proErr }] = await Promise.all([
+  const [
+    { data: profile, error: profileErr },
+    { data: identityRows, error: identityErr },
+    { data: proProfile, error: proErr },
+  ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+    supabase.rpc("current_identity"),
     supabase.from("pro_profiles").select("*").eq("profile_id", userId).maybeSingle(),
   ]);
   if (profileErr) throw profileErr;
   if (proErr) throw proErr;
-  return { profile, proProfile };
+
+  return { profile: mergeIdentityIntoProfile(profile, identityRows, identityErr), proProfile };
+}
+
+// Identity is authoritative for the four attributes it owns; the profile row supplies the
+// rest of the shape.
+//
+// The fallback is deliberate and is not a hedge against drift. It covers one specific
+// case: code running against a database where Epic 02's migrations have not been applied,
+// where the RPC does not exist and every profile read would otherwise return a person with
+// no name. Production is exactly that database today. Drift between the two sources is a
+// different problem, and the one RECONCILE_IDENTITY.sql exists to make impossible — so
+// when this path is taken it says so rather than quietly papering over it.
+function mergeIdentityIntoProfile(profile, identityRows, identityErr) {
+  if (!profile) return profile;
+
+  const identity = Array.isArray(identityRows) ? identityRows[0] : identityRows;
+  if (identityErr || !identity) {
+    console.warn(
+      "identity read unavailable, falling back to profiles:",
+      identityErr?.message ?? "no identity row for the signed-in user"
+    );
+    return profile;
+  }
+
+  return {
+    ...profile,
+    full_name: identity.full_name,
+    avatar_url: identity.avatar_url,
+    city: identity.city,
+    locale: identity.locale,
+  };
 }
 
 export function AuthProvider({ children }) {
