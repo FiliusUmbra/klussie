@@ -216,11 +216,29 @@ owns the real underlying capability ships it — see
   `klussie-staging` exists in `eu-west-1`, built by applying all 17
   migrations to an empty database — the first proof the migration chain
   reconstructs the schema from nothing.
-- ~~No automated tests, no CI~~ **Closed, Epic 00.** 411 tests across 24
-  files, and a CI pipeline gating every push and pull request on lint,
-  type-check, test and build. *(This line previously read "no automated
-  tests" while `MASTER_CONTEXT.md` §3 reported 404 — the kind of drift
-  that made both untrustworthy. Corrected here rather than left.)*
+- ~~No automated tests, no CI~~ **Closed, Epic 00.** 497 tests across 34
+  files as of Epic 01, and a CI pipeline gating every push and pull
+  request on lint, type-check, test and build. *(This line previously read
+  "no automated tests" while `MASTER_CONTEXT.md` §3 reported 404 — the
+  kind of drift that made both untrustworthy. Corrected here rather than
+  left.)*
+- **The platform schema foundation exists and is entirely unused**
+  (Epic 01). Ten engine-tier schemas, twelve roles, `platform.events`,
+  `platform.audit_records`, `platform.emit_event()` and consumer
+  cursor/quarantine storage are applied to **staging only**. Nothing in
+  the application reads or writes any of it, no application role can
+  reach the `platform` schema, and `public.domain_events` with its five
+  triggers remains the product's live event path. This is the gap Epics
+  02 onward close, one aggregate at a time.
+- **No application-code path into the `platform` schema**, deliberately.
+  PostgREST does not expose that schema and must not — exposing it to
+  reach `emit_event()` or a consumer cursor would expose the event stream
+  too. Engines call the emission helper SQL-side; a real background
+  consumer needs a direct Postgres connection this repository does not
+  have.
+- **Production has none of Epic 01's schema.** Its migration ledger is
+  still unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
+  prerequisite for any push to it.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

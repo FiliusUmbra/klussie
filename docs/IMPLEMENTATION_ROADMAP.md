@@ -1055,7 +1055,7 @@ A session takes one of five shapes:
 | Epic | Status |
 |---|---|
 | 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
-| 01 — Schema Foundation & Event Backbone | Not started — **unblocked**, staging exists |
+| 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
 | 02 — Identity Engine | Not started |
 | 03 — Workspace Engine | Not started |
 | 04–26 | Not started; work packages decomposed at epic start |
@@ -1065,6 +1065,26 @@ production backup path is verified but **has never been restored**
 ([ADR-0017](./adr/0017-free-tier-disaster-recovery-strategy.md)). Epic 03
 backfills a workspace onto every production row — the first change whose
 failure mode is unrecoverable data rather than a revertable read path.
+
+**Carried out of Epic 01**, and each recorded in its
+[completion record](../implementation/epic-01/COMPLETION.md):
+
+- **[ADR-0020](./adr/0020-events-partitioning-parameters.md) and
+  [ADR-0021](./adr/0021-one-audit-table-with-nullable-workspace.md) are
+  `Proposed`.** Both are implemented against empty tables, where changing
+  them costs a `drop table` and a re-run. **That window closes at the
+  first written row.**
+- **The audit write path is unallocated.** Epic 01's definition lists it
+  under Backend; no work package built it, and §8 correctly leaves
+  `platform.audit_records` writable by no application role. Nothing needs
+  it yet.
+- **No application code can reach the `platform` schema**, deliberately —
+  PostgREST does not expose it and must not. Engines call
+  `platform.emit_event()` SQL-side; a real consumer needs a direct
+  Postgres connection this repository does not have. A tooling decision
+  for the epic that runs the first consumer.
+- **Partition ranges run to the end of 2027** and are created by hand.
+  The diagnostics are the only thing that will notice a lapse.
 
 ---
 
