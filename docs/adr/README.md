@@ -83,6 +83,7 @@ pointing at whatever replaced it.
 | [0020](0020-events-partitioning-parameters.md) | Eight hash partitions, yearly time ranges, and a default range partition | **Proposed** — implemented against an empty table; free to revise until the first event is written |
 | [0021](0021-one-audit-table-with-nullable-workspace.md) | One audit table with a nullable workspace, not two tables | **Proposed** — implemented against an empty table; free to revise until the first audit record is written |
 | [0022](0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) | Backfilled identifiers are UUIDv7 minted in SQL from the row's own creation time | **Proposed** — governs every backfill in the roadmap; identifiers are permanent once written |
+| [0023](0023-identity-display-resolution-versus-row-visibility.md) | Cross-user profile reads resolve display information; they do not read the identity row | **Proposed** — **blocks WP 02.06**; no read switch until decided |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see
