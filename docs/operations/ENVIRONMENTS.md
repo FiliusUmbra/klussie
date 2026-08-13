@@ -111,17 +111,39 @@ including constraints and function bodies that a column check would miss.
 
 ### 4.4 · Seed the test accounts
 
-Create the two accounts development has used throughout, so staging
-exercises the same paths as local:
+**Seeded 2026-08-13. Run
+[`supabase/seed/staging_test_accounts.sql`](../../supabase/seed/staging_test_accounts.sql):**
 
-- A customer account.
-- A professional account with a pro profile and at least one offered
-  service.
+```bash
+psql -w -h <pooler-host> -p 5432 -U postgres.<staging-ref> -d postgres -v ON_ERROR_STOP=1 -f supabase/seed/staging_test_accounts.sql
+```
+
+Four sign-in-capable accounts, idempotent, with a shared password
+documented in the script's header. It refuses to run against a database
+that has not had Epic 01 and 02 applied — a cheap guard against being
+pointed at production.
+
+| Account | Why it exists |
+|---|---|
+| `customer@staging.klussie.test` | The ordinary case: every attribute populated |
+| `pro@staging.klussie.test` | A professional with a pro profile and one offered service |
+| `sparse@staging.klussie.test` | No name, no city, no phone — nulls are how a null-unsafe reconciliation passes over real drift |
+| `external@staging.klussie.test` | No `person_ref` in its metadata, so the identity is minted as it is for a dashboard or OAuth signup |
+
+**This was missing for a long time, and it mattered.** §5 has listed
+"test accounts seeded" as an acceptance line since WP 00.06 and Epic 00's
+completion record counted it as verified, but `public.profiles` held zero
+rows. Epic 02's reconciliation — the hard gate on its read switch — was
+therefore comparing nothing and reporting success, and every backfill in
+the roadmap would have been "verified" the same way. Seeding immediately
+exposed a real defect in a diagnostic that had only ever run against an
+empty table.
 
 Use addresses that are clearly non-production. **Never copy real user
 data into staging** — it is a different security boundary and copying
 production personal data into it is a data protection problem, not a
-convenience.
+convenience. The accounts above are fixtures; nothing about them
+describes a real person.
 
 ### 4.5 · Point the app at staging and verify
 
@@ -133,10 +155,12 @@ values, run the app, and walk the flows listed in §5.
 WP 00.06 is complete when every line here is true. Until then it is
 blocked, not done.
 
-- [ ] A staging Supabase project exists, distinctly named
-- [ ] All 17 migrations applied cleanly **from empty**, in order
-- [ ] `CHECK_STATE.sql` reports the expected schema state
-- [ ] Test accounts seeded — one customer, one professional
+- [x] A staging Supabase project exists, distinctly named
+- [x] All 17 migrations applied cleanly **from empty**, in order
+- [x] `CHECK_STATE.sql` reports the expected schema state
+- [x] Test accounts seeded — **2026-08-13**, four accounts including one
+      customer and one professional (§4.4). Previously listed as done
+      while the table was empty
 - [ ] The application runs against staging
 - [ ] Sign in works
 - [ ] A customer can create a request
@@ -218,6 +242,11 @@ every schema epic from 01 onward.
 
 - **Production's ledger is not yet reconciled** (§9). Until it is,
   `db push` against production is dangerous.
+- **`.env.local` on the maintainer's machine points at production**, not
+  staging. Switching is two values (§3), but the default being production
+  means an app run locally writes to real data — and a signup performed
+  while testing creates a real account. Point it at staging unless
+  production is specifically what is being checked.
 - **`.env.local.example` omits `ANTHROPIC_API_KEY`**, which the AI
   endpoints require.
 - **`supabase/diagnostics/CHECK_STATE.sql`** was written when no ledger

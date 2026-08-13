@@ -173,7 +173,11 @@ declare
   v_sparse identity.identities;
   v_count bigint;
 begin
-  select count(*) into v_count from identity.identities;
+  -- Scoped to the rows this check created. Counting the whole table assumes the
+  -- environment is empty, which was true when this was written and is not a property a
+  -- diagnostic may depend on — seeding staging is what exposed it.
+  select count(*) into v_count from identity.identities
+  where auth_user_id::text like '01920000-0000-4000-8000-00000000b%';
   if v_count <> 3 then
     raise exception 'Expected 3 identities after backfilling 3 profiles, found %', v_count;
   end if;
@@ -246,7 +250,8 @@ declare
   v_count_after bigint;
 begin
   select count(*), array_agg(person_ref order by created_at)
-    into v_count_before, v_before from identity.identities;
+    into v_count_before, v_before from identity.identities
+  where auth_user_id::text like '01920000-0000-4000-8000-00000000b%';
 
   insert into identity.identities (
     person_ref, auth_user_id, full_name, avatar_url, city, email, phone, locale,
@@ -260,7 +265,8 @@ begin
   where not exists (select 1 from identity.identities i where i.auth_user_id = p.id);
 
   select count(*), array_agg(person_ref order by created_at)
-    into v_count_after, v_after from identity.identities;
+    into v_count_after, v_after from identity.identities
+  where auth_user_id::text like '01920000-0000-4000-8000-00000000b%';
 
   if v_count_after <> v_count_before then
     raise exception 'Re-running inserted % extra row(s)', v_count_after - v_count_before;
@@ -298,7 +304,8 @@ begin
   left join public.profile_contacts c on c.profile_id = p.id
   where not exists (select 1 from identity.identities i where i.auth_user_id = p.id);
 
-  select count(*) into v_count from identity.identities;
+  select count(*) into v_count from identity.identities
+  where auth_user_id::text like '01920000-0000-4000-8000-00000000b%';
   if v_count <> 4 then
     raise exception 'A profile created after the backfill was not picked up by a re-run (% identities)', v_count;
   end if;

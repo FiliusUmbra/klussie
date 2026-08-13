@@ -1,6 +1,6 @@
 # Epic 02 — Identity Engine
 
-**Status.** In progress — 5 of 7 packages. **02.06 is blocked** — see below
+**Status.** In progress — 5 of 7 packages. **02.06 unblocked on staging** (2026-08-13)
 **Purpose.** Separate the platform's identity from Supabase Auth, and
 introduce the person reference that survives erasure.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -22,21 +22,24 @@ introduce the person reference that survives erasure.
 | 02.03 | [Add UUIDv7 generation](wp-02.03-uuidv7.md) | Low | **Done** |
 | 02.04 | [Dual-write identity on signup and profile change](wp-02.04-dual-write.md) | Medium | **Done** |
 | 02.05 | [Reconcile identity against profiles](wp-02.05-reconcile-identity.md) | Medium | **Done** — the gate works; it has nothing to stand on |
-| 02.06 | Switch profile reads to the identity engine | **High** | **BLOCKED** — no passing reconciliation is possible |
+| 02.06 | Switch profile reads to the identity engine | **High** | Not started — **unblocked**, reconciliation passes over 4 real rows |
 | 02.07 | Implement erasure by redaction | **High** | Not started |
 
 **02.06 is the only behaviour-changing package in this epic**, and
 roadmap §3 makes 02.05's reconciliation a hard gate on it: a read-switch
 without a passing reconciliation is not permitted.
 
-> **02.06 is blocked, and not on code.** WP 02.05 built the gate and
-> proved it detects every class of drift. It cannot *pass*, because
-> neither environment has anything to reconcile: production has none of
-> this schema and an unreconciled ledger, and staging has zero profiles.
-> Unblocking is an environment decision — seed staging
-> (`ENVIRONMENTS.md` §4.4) or reconcile production's ledger and apply
-> `0018`–`0027` there (§9). Detail in
-> [WP 02.05](wp-02.05-reconcile-identity.md) finding 2.
+> **02.06 was blocked and is now unblocked on staging.** WP 02.05 built
+> the gate and found it had nothing to compare. Staging is now seeded
+> (`supabase/seed/staging_test_accounts.sql`, `ENVIRONMENTS.md` §4.4) and
+> `RECONCILE_IDENTITY.sql` **passes over four real rows**, so the read
+> switch may proceed against staging.
+>
+> **Production remains a separate gate.** It has none of migrations
+> `0018`–`0027` and an unreconciled ledger (§9), so the reconciliation
+> must be run there too — after those migrations and the backfill land —
+> before reads switch for real users. That sequencing is a founder
+> decision and would want the three `Proposed` ADRs accepted first.
 
 ## Architecture this epic must satisfy
 
@@ -117,8 +120,15 @@ the dual-write in the trigger. **02.06's read-switch should be planned
 against the real mechanism rather than §13's description.** Raised in
 [WP 02.04](wp-02.04-dual-write.md) finding 1.
 
-**Staging has no profiles, so every backfill in this roadmap will be
-"verified" against an empty database.** `public.profiles` holds zero
+**~~Staging has no profiles, so every backfill in this roadmap will be
+"verified" against an empty database.~~ Closed 2026-08-13 — staging is
+seeded.** The point stood: within minutes of real rows existing,
+`VERIFY_IDENTITY_BACKFILL.sql` failed on a defect it had carried since WP
+02.02 — three of its checks counted the whole table rather than the rows
+they created, which is only correct on an empty database. Fixed, and the
+original note follows.
+
+**~~Original:~~** `public.profiles` holds zero
 rows, although ENVIRONMENTS.md §4.4 calls for two seeded accounts and
 Epic 00's completion record lists them as verified. WP 02.02 worked
 around it by building a population inside a rolled-back transaction —
