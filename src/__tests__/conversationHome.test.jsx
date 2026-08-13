@@ -3,9 +3,8 @@
 // and no pure module to import. The transitions are only observable by driving the
 // component, which is what this file does.
 //
-// Everything below the component is mocked: src/lib/supabaseClient.js throws at import
-// without env vars, and the AI call, the pro lookup, and the trust stats are exactly the
-// boundaries a test should control rather than reach across.
+// Everything below the component is mocked: the AI call, the pro lookup, and the trust
+// stats are exactly the boundaries a test should control rather than reach across.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 
