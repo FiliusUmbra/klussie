@@ -1,6 +1,6 @@
 # Epic 02 — Identity Engine
 
-**Status.** In progress — 3 of 7 packages
+**Status.** In progress — 4 of 7 packages
 **Purpose.** Separate the platform's identity from Supabase Auth, and
 introduce the person reference that survives erasure.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -20,7 +20,7 @@ introduce the person reference that survives erasure.
 | 02.01 | [Create the identity table (add)](wp-02.01-identity-table.md) | Low | **Done** |
 | 02.02 | [Backfill identities from existing profiles](wp-02.02-identity-backfill.md) | Medium | **Done** — [ADR-0022](../../docs/adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) needs sign-off |
 | 02.03 | [Add UUIDv7 generation](wp-02.03-uuidv7.md) | Low | **Done** |
-| 02.04 | Dual-write identity on signup and profile change | Medium | Not started |
+| 02.04 | [Dual-write identity on signup and profile change](wp-02.04-dual-write.md) | Medium | **Done** |
 | 02.05 | Reconcile identity against profiles | Medium | Not started |
 | 02.06 | Switch profile reads to the identity engine | **High** | Not started |
 | 02.07 | Implement erasure by redaction | **High** | Not started |
@@ -86,14 +86,27 @@ generator, which cannot supply values to a SQL migration however it is
 ordered. Backfills mint v7 in SQL from each row's own creation time,
 through a function no engine can execute.
 
-**`src/lib/ids.ts` is TypeScript, and server-side resolution is
-unverified.** `api/` is built by Vercel rather than Vite, and the only
-existing cross-boundary import (`api/ai-intake.js` → `serviceQuestions.js`)
-points at a real `.js` file. Nothing imports the generator yet, so
-nothing is broken — but **02.04's dual-write may need it server-side**,
-and if the specifier does not resolve there the fix is a rename and
-stripping the annotations. Raised in
-[WP 02.03](wp-02.03-uuidv7.md) finding 1.
+**~~`src/lib/ids.ts` is TypeScript, and server-side resolution is
+unverified.~~ Verified in WP 02.04: it does not resolve.**
+`import("./src/lib/ids.js")` fails with `ERR_MODULE_NOT_FOUND` under
+Node, while the existing `.js` precedent
+(`api/ai-intake.js` → `serviceQuestions.js`) resolves — Vite maps a `.js`
+specifier onto a `.ts` file and Node does not. **Nothing in `api/` needs
+it**, so nothing was changed and `ids.ts` was not converted. This becomes
+a real decision when server-side code first has to generate an
+identifier.
+
+**The roadmap is wrong about how signup works, and it changes where this
+epic's code goes.** §13 lists `src/lib/auth.jsx` and `api/_lib/auth.js`
+for WP 02.04, which assumes the application creates users. It does not:
+`public.handle_new_user()` has been an `AFTER INSERT` trigger on
+`auth.users` since migration 0001, creating the profile inside the auth
+transaction. A client-side write can therefore never be transactional
+with it, two of the three signup paths finish through a redirect, and the
+client has no grants on the `identity` schema in any case. WP 02.04 put
+the dual-write in the trigger. **02.06's read-switch should be planned
+against the real mechanism rather than §13's description.** Raised in
+[WP 02.04](wp-02.04-dual-write.md) finding 1.
 
 **Staging has no profiles, so every backfill in this roadmap will be
 "verified" against an empty database.** `public.profiles` holds zero

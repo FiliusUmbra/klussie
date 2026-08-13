@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- context file intentionally exports the provider plus its hook */
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
+import { uuidv7 } from "./ids.js";
 
 const AuthContext = createContext(null);
 
@@ -60,11 +61,20 @@ export function AuthProvider({ children }) {
     };
   }, [refreshProfile]);
 
+  // `person_ref` is the platform's permanent reference for this person
+  // (SUPABASE_ARCHITECTURE.md §11.4), generated here because §3 puts identifier generation
+  // in the application. It travels in the signup metadata and is read by
+  // `public.handle_new_user()`, which writes the identity row in the same transaction as
+  // the auth user and the profile — the only placement where a failure cannot leave the
+  // three disagreeing. See migration 0027.
+  //
+  // Metadata is the only channel available: the client has no write access to the
+  // `identity` schema and must not have any.
   const signUp = async (email, password, fullName) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName || null } },
+      options: { data: { full_name: fullName || null, person_ref: uuidv7() } },
     });
     if (error) throw error;
     return { needsEmailConfirmation: !data.session };
@@ -79,10 +89,15 @@ export function AuthProvider({ children }) {
   // (minimize password usage). Password sign-in above stays available as a
   // fallback, both for users who prefer it and for the existing
   // password-only test accounts.
+  //
+  // Carries a `person_ref` for the same reason as signUp: a magic link to an unknown
+  // address creates the user, so this is a signup path too. Supabase applies `data` only
+  // when it creates a user, so an existing user signing in is unaffected — their identity
+  // already exists and keeps the reference it was given.
   const signInWithOtp = async (email) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: window.location.origin, data: { person_ref: uuidv7() } },
     });
     if (error) throw error;
   };
