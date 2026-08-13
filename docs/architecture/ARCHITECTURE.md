@@ -222,7 +222,21 @@ owns the real underlying capability ships it — see
   "no automated tests" while `MASTER_CONTEXT.md` §3 reported 404 — the
   kind of drift that made both untrustworthy. Corrected here rather than
   left.)*
-- **The platform schema foundation exists and is entirely unused**
+- **Identity is real, and is what profile display reads** (Epic 02).
+  `identity.identities` carries the person reference that survives
+  erasure, backfilled from every profile and written on signup **inside
+  the auth transaction** — by `handle_new_user()`, not by the client,
+  because no client-side write can be transactional with a trigger.
+  Display reads go through two `SECURITY DEFINER` resolvers in `public`;
+  the `identity` schema itself stays off the client API surface
+  ([ADR-0023](../adr/0023-identity-display-resolution-versus-row-visibility.md)).
+  Erasure redacts across three tables and deletes nothing.
+  **`public.profiles` and `public.profile_contacts` both remain**, still
+  written and still authoritative for application state and for bilateral
+  contact visibility — step 6 is not reachable while their policies
+  encode a confirmed-booking relationship no engine can evaluate yet.
+  Staging only.
+- **The platform schema foundation exists and is almost entirely unused**
   (Epic 01). Ten engine-tier schemas, twelve roles, `platform.events`,
   `platform.audit_records`, `platform.emit_event()` and consumer
   cursor/quarantine storage are applied to **staging only**. Nothing in
@@ -230,6 +244,13 @@ owns the real underlying capability ships it — see
   reach the `platform` schema, and `public.domain_events` with its five
   triggers remains the product's live event path. This is the gap Epics
   02 onward close, one aggregate at a time.
+- **`auth.users` deletion cascades into nine tables.** `public.profiles`
+  is the parent of nine `on delete cascade` foreign keys and cascades
+  from `auth.users` itself, so deleting one account destroys that
+  person's history and both sides of every conversation they were part
+  of. This violates `SUPABASE_ARCHITECTURE.md` §5 and §11.4 and has since
+  migration `0001`. Epic 02's erasure routes around it by never deleting;
+  the cascade remains.
 - **No application-code path into the `platform` schema**, deliberately.
   PostgREST does not expose that schema and must not — exposing it to
   reach `emit_event()` or a consumer cursor would expose the event stream

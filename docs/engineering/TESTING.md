@@ -83,7 +83,7 @@ acceptance criterion for the baseline is *"no flow is unlisted"*, and a
 promise to keep a list current is worth very little. That test makes the
 promise mechanical.
 
-### 3.1 · SQL diagnostics — added in Epic 01
+### 3.1 · SQL diagnostics — added in Epic 01, extended in Epic 02
 
 `npm test` runs no database. Epic 01 created schemas, partitioned tables,
 grants, an emission function and consumer storage, and **none of what
@@ -100,6 +100,12 @@ staging:
 | `VERIFY_AUDIT.sql` | Record shape, writable by nobody, both scopes in one table, immutability |
 | `VERIFY_EMISSION.sql` | An event in a rolled-back transaction does not exist; a committed one does |
 | `VERIFY_CONSUMERS.sql` | Cursors advance, nobody can delete one, open quarantines are surfaced |
+| `VERIFY_IDENTITY.sql` | The identity row's shape; **no table anywhere foreign-keys to it** |
+| `VERIFY_IDENTITY_BACKFILL.sql` | One identity per profile; re-running mints nothing |
+| `VERIFY_IDENTITY_DUAL_WRITE.sql` | Drives the **real signup trigger**: one signup, one identity, transactionally |
+| `VERIFY_IDENTITY_READ_PATH.sql` | Both sources agree for every person; contacts unreachable; `identity` off the API surface |
+| `VERIFY_IDENTITY_ERASURE.sql` | Personal data gone, reference still a key, **no cascade** |
+| `RECONCILE_IDENTITY.sql` | **A gate, not a report** — blocks the read switch, and refuses to pass on an empty database |
 
 ```bash
 psql -w -h <pooler-host> -p 5432 -U postgres.<project-ref> -d postgres -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_EVENTS.sql
@@ -115,6 +121,11 @@ occupied default partition means a time range was missing when a row was
 written, and an open quarantine means a consumer set an event aside and
 is waiting for a person.
 
+> **A gate's characteristic failure is passing.** `RECONCILE_IDENTITY.sql`
+> refuses to run against a database with no profiles, because zero
+> discrepancies over zero rows reads exactly like success and would clear
+> the one package that can regress the product.
+>
 > **The discipline that goes with them: prove a check can fail before
 > trusting it.** Every gate in Epic 01 was probed by deliberately breaking
 > what it asserts and confirming the failure, then reverting. That
@@ -124,11 +135,17 @@ is waiting for a person.
 > closed; the messages were wrong, on exactly the paths someone reads
 > under pressure. **A probe that exercises one branch of a check has
 > verified one branch.**
+>
+> In Epic 02 the same discipline found four defects no test run would
+> have surfaced: a read path that would have put erased people's names
+> back on screen, two `SECURITY DEFINER` functions callable anonymously,
+> a profile merge that dropped the onboarding flags, and a privacy check
+> of my own that passed while checking nothing.
 
 ## 4 · Automated coverage today
 
-497 tests across 34 files, plus the regression suite and the six SQL
-diagnostics above. Coverage is uneven, and the shape of it matters more
+561 tests across 42 files, plus the regression suite and the twelve SQL
+scripts above. Coverage is uneven, and the shape of it matters more
 than the number:
 
 | Area | Automated coverage |
@@ -136,7 +153,8 @@ than the number:
 | `src/lib/*` — rules, pricing, status, matching, i18n parity | **Strong.** Every module has unit tests |
 | Homepage, conversation home, onboarding, Property Memory panels | **Strong.** 111 render tests across three files |
 | Design system capture components | **Partial.** 19 tests |
-| Migration structure — schemas, grants, extensions, events, audit, emission, cursors | **Strong.** 51 tests reading the frozen documents and ADRs, so a migration diverging from them fails the build |
+| Migration structure — schemas, grants, extensions, events, audit, emission, cursors, identity, backfill, erasure | **Strong.** 76 tests reading the frozen documents and ADRs, so a migration diverging from them fails the build |
+| Identity read path and dual-write | **Strong.** 28 tests — the merged profile's shape, identity winning over profiles, erased people resolving to nothing |
 | Consumer scaffolding — resumption, redelivery window, quarantine | **Strong.** 13 tests |
 | Supabase client configuration | **Strong.** 9 tests; validation at startup and at first use |
 | **`src/customer` (11 components)** | **None** |
