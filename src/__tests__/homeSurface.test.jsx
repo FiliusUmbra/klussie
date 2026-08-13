@@ -1,9 +1,8 @@
 // The homepage as a whole: hero, section tabs, intent-first asking, the "today" card,
 // and the two Property Memory panels.
 //
-// Same mocking boundary as conversationHome.test.jsx — supabaseClient throws at import
-// without env vars, and the AI call, pro lookup and trust stats are exactly the edges a
-// test should control rather than reach across.
+// Same mocking boundary as conversationHome.test.jsx — the AI call, pro lookup and trust
+// stats are exactly the edges a test should control rather than reach across.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 
