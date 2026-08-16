@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { uuidv7 } from "./ids.js";
+import { loadWorkspaceMemberships, resolveActiveWorkspace } from "./workspaceContext.js";
 
 const AuthContext = createContext(null);
 
@@ -73,17 +74,23 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [proProfile, setProProfile] = useState(null);
+  const [workspaceMemberships, setWorkspaceMemberships] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = useCallback(async (userId) => {
     if (!userId) {
       setProfile(null);
       setProProfile(null);
+      setWorkspaceMemberships([]);
       return;
     }
     const { profile, proProfile } = await loadProfile(userId);
     setProfile(profile);
     setProProfile(proProfile);
+    // Epic 03 WP09 — resolved alongside the profile, not gating it: a person with no
+    // workspace yet (or an environment where the resolver isn't reachable) still signs in
+    // and sees their profile exactly as before. Nothing downstream reads this yet.
+    setWorkspaceMemberships(await loadWorkspaceMemberships());
   }, []);
 
   useEffect(() => {
@@ -202,6 +209,10 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     profile,
     proProfile,
+    // Epic 03 WP09 — resolved, unused. `activeWorkspace` is null for anyone with zero or
+    // more than one membership; nothing branches on either field yet (WP 03.11, WP 03.12).
+    workspaceMemberships,
+    activeWorkspace: resolveActiveWorkspace(workspaceMemberships),
     loading,
     signUp,
     signIn,

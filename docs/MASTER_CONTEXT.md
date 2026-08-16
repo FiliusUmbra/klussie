@@ -17,9 +17,9 @@ priorities, risks, debt, decisions. It does not own product philosophy
 - **What to build next:** [`IMPLEMENTATION_ROADMAP.md`](./IMPLEMENTATION_ROADMAP.md)
   is the only source of truth. How to build it:
   [`../ENGINEERING.md`](../ENGINEERING.md).
-- **Current milestone:** Epic 02 — Identity Engine, **complete**
-  2026-08-13. Next: Epic 03 — Workspace Engine, the pivot of the roadmap
-  and its highest-risk item. (§2)
+- **Current milestone:** Epic 03 — Workspace Engine, **in progress**
+  (9/12 packages, staging only) — the pivot of the roadmap and its
+  highest-risk item. Epic 02 — Identity Engine completed 2026-08-13. (§2)
 - **The architecture is frozen.** `PLATFORM_DOMAIN_MODEL`,
   `DATABASE_ARCHITECTURE`, `SYSTEM_ARCHITECTURE` and
   `SUPABASE_ARCHITECTURE` change only by ADR. Klussie is a **Property
@@ -134,31 +134,43 @@ professional who can solve it. Full vision: §5.
 ## 2. Current Milestone
 
 ```
-Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 02 — Identity Engine
-Status                COMPLETE (2026-08-13) — 7 of 7 work packages
-Current Objective     Done: identity separated from Supabase Auth. The person
-                       reference that survives erasure, backfilled from every
-                       profile, dual-written on signup inside the auth
-                       transaction, reconciled, read from, and erasable by
-                       redaction. The read switch is the first behaviour change
-                       in the implementation roadmap. Full record:
+Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 03 — Workspace Engine
+Status                IN PROGRESS — 9 of 12 work packages, staging only
+Current Objective     Workspace/membership tables, the STABLE membership helper,
+                       Personal + Professional workspace backfills, the workspace
+                       column and its backfill, and the workspace engine contract
+                       (resolve context, decide permission, ADR-0027's vocabulary)
+                       are built. WP 03.09 added the first real client-side
+                       caller (src/lib/workspaceContext.js), resolved but unused.
+                       ADR-0024 found there is no API Gateway and deferred it;
+                       ADR-0025 (Proposed) carves out marketplace visibility
+                       before WP 03.10 can reshape RLS. Remaining: 03.10 (RLS
+                       isolation backstop), 03.11 (the read switch — the epic's
+                       one behaviour-changing package), 03.12 (workspace
+                       switcher, hidden for single-workspace users).
+Previous Milestone    Epic 02 — Identity Engine (2026-08-13, complete): identity
+                       separated from Supabase Auth, backfilled, dual-written,
+                       reconciled, read from, erasable by redaction. Record:
                        implementation/epic-02/COMPLETION.md
-Previous Milestone    Epic 01 — Schema Foundation & Event Backbone
-                       (2026-08-13): ten engine-tier schemas, twelve roles,
-                       partitioned append-only events and audit tables, a
-                       transactional emission helper and consumer scaffolding.
-                       Record: implementation/epic-01/COMPLETION.md
-Current Branch        epic-02/wp-02.01-identity-table (stacked on epic-01/close,
-                       which carries the CI fix; neither merged to main)
-Next Deliverable      Epic 03 — Workspace Engine. THE PIVOT OF THE ROADMAP, and
-                       its highest-risk item. §14's twelve packages were written
-                       before Epic 01 and must be re-read first — Epic 02 found
-                       their file lists wrong five times out of seven
+Current Branch        main (Epic 03 WP01–WP09 merged via PR #1 and #2)
+Next Deliverable      WP 03.10 — reshape RLS policies to isolation and
+                       membership, narrowed by ADR-0025 to "adds, removes
+                       nothing." Then WP 03.11 (read switch, gated on 03.07's
+                       reconciliation) and WP 03.12 (switcher).
+Open from Epic 03     WP 03.09's client caller has not been seen rendering
+                       against a live environment — this session's available
+                       credentials authenticate against neither known account
+                       on whichever project .env.local targets; same class of
+                       gap as Epic 02's read switch, not a new one. ADR-0025 is
+                       still Proposed. Production has none of Epics 01–03 —
+                       see operations/PRODUCTION_MIGRATION_0018_0029.md, written
+                       for 0018–0029 only and not yet extended through 0036.
 Open from Epic 02     The read switch has never been seen rendering (.env.local
-                       points at production); ADR-0020/0021/0022 still Proposed;
-                       pro_profiles is not redacted by erasure, a legal question;
-                       auth.users deletion cascades into nine tables, violating
-                       §5 and §11.4; step 6 is unreachable, so profiles and
+                       does not point at a project this session can sign into);
+                       ADR-0020/0021/0022 still Proposed; pro_profiles is not
+                       redacted by erasure, a legal question; auth.users
+                       deletion cascades into nine tables, violating §5 and
+                       §11.4; step 6 is unreachable, so profiles and
                        profile_contacts both survive
 Open from Epic 01     The audit write path was unallocated — partially closed by
                        WP 02.07, which wrote the first audit row; no
@@ -170,7 +182,7 @@ Open from Epic 00     Branch protection not enabled on main (CI reports failure
                        (ADR-0017, Free plan constraint); 31 user-facing
                        components still have no render test; no CI run has ever
                        been observed from this machine
-Last Updated          2026-08-13
+Last Updated          2026-08-16
 ```
 
 Implemented in Phase 1 so far: authenticated + rate-limited AI Gateway
@@ -196,7 +208,7 @@ disagrees with this table, this table wins.
 | Repository structure | See [`README.md`](../README.md#repository-structure) for the canonical layout — not duplicated here. Current layout does **not** match the target described in §6 |
 | Platform schema | In Progress — Epic 01 created the ten engine-tier schemas, twelve roles, `platform.events`, `platform.audit_records`, `platform.emit_event()` and consumer cursor/quarantine storage. Still unused except by erasure, which wrote the first audit row (Epic 02 WP07). Applied to staging only — production is untouched |
 | Identity | In Progress — Epic 02. `identity.identities` holds the person reference and personal attributes, backfilled from every profile and dual-written on signup **inside the auth transaction** (a trigger, not the client). Profile display now reads from it through two resolvers; erasure redacts across all three tables and deletes nothing. `public.profiles` and `public.profile_contacts` both remain, written and authoritative for application state and bilateral contact visibility — step 6 is unreachable ([ADR-0023](adr/0023-identity-display-resolution-versus-row-visibility.md)). Staging only |
-| Testing | In Progress — Vitest + React Testing Library, **561 tests across 42 files**, plus a regression baseline (`engineering/TESTING.md`) and **twelve** SQL scripts run against staging (Epics 01–02). CI gates lint/type-check/test/build. 31 user-facing components still have no render test. Previously: 497 tests across 34 files. No E2E, no CI run ever observed |
+| Testing | In Progress — Vitest + React Testing Library, **643 tests across 51 files**, plus a regression baseline (`engineering/TESTING.md`) and SQL diagnostics run against staging (Epics 01–03, in progress). CI gates lint/type-check/test/build. 31 user-facing components still have no render test. Previously: 561 tests across 42 files. No E2E, no CI run ever observed |
 | Property Memory | In Progress — My Home V1 is derived entirely from existing rows (jobs, professionals, reviews, AI analyses, photos) via `src/lib/homeTimeline.js`, no new schema. My Items V1 is real storage (`household_items`, migration 0016) with manual entry and photos, and carries `source`/`ai_suggestion` so photo recognition can later propose values the owner confirms. Rooms, installations, documents and maintenance schedules remain Planned — no schema (ADR-0008) |
 | Localization | Implemented — 10 locales (`nl`, `fr`, `de`, `en`, `es`, `ar`, `fa`, `tr`, `ru`, `zh`), two right-to-left. UI copy lives in three tables under `src/lib`; catalog names live in the database. Parity across all three tables is derived from `LANGS` and enforced by `homeStrings.test.js` |
 | Core Platform | 3 of 11 layers Implemented (Auth, AI Gateway) or In Progress (Permissions). 8 layers Planned: Payments, Matching, Messaging, Notifications, Storage, Analytics, Marketplace Engine, API |
@@ -575,5 +587,7 @@ When someone needs professional help anywhere in the world, their first
 instinct should be: **"I'll open Klussie."**
 
 ---
+
+*Version 1.7 — 2026-08-16 (Epic 03 Workspace Engine in progress: milestone updated through WP 03.09, test count refreshed to 643/51)*
 
 *Version 1.6 — 2026-08-11 (Epic 03 implemented: milestone, testing/accessibility/design-system status, ADR index 0010–0012, technical debt refreshed against the real codebase)*

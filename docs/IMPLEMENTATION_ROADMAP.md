@@ -1057,8 +1057,53 @@ A session takes one of five shapes:
 | 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
 | 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
 | 02 — Identity Engine | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-02/COMPLETION.md) |
-| 03 — Workspace Engine | Not started |
+| 03 — Workspace Engine | **In progress** — 9/12 packages (03.01–03.09), staging only. WP 03.10–03.12 remain |
 | 04–26 | Not started; work packages decomposed at epic start |
+
+**Epic 03, in progress.** WP 03.01–03.08 are additive or read-only —
+workspace/membership tables, the `STABLE` membership helper, the
+Personal/Professional backfills, the workspace column and its backfill,
+and the workspace engine contract (`workspace.resolve_context()`,
+`workspace.decide_permission()`, delegated through `api`, ADR-0027's
+permission vocabulary). Nothing here has changed what any existing user
+sees. Two ADRs were required mid-epic and are **Accepted**, not
+deviations discovered after the fact:
+
+- **[ADR-0024](./adr/0024-request-context-resolved-in-the-database.md)**
+  found there is no API Gateway to put WP 03.09 in, and none is built in
+  this epic — the resolver lives in the database, called by RLS and by
+  `api`'s delegates, "once per request" becomes "once per statement," and
+  the gateway (if one is ever needed) is deferred to the first read that
+  genuinely requires capability or scope resolution — Epic 04 or Epic 06
+  at the earliest.
+- **[ADR-0025](./adr/0025-marketplace-visibility-survives-epic-03.md)**
+  (Proposed — required before WP 03.10) found two classes of existing
+  policy — the professional's pre-engagement request feed, and public
+  professional profiles — that WP 03.10 cannot reshape to membership
+  without deleting the mechanism that makes the marketplace work. WP
+  03.10 adds the isolation backstop and removes nothing; the six named
+  policies are Epic 12's removal trigger, not this epic's.
+
+**WP 03.09, as actually built** (redefined by ADR-0024, not as roadmap
+§14 originally worded it): `src/lib/workspaceContext.js` —
+`loadWorkspaceMemberships()`, the first real caller of
+`api.current_workspace_memberships()`, called from `auth.jsx`'s session
+bootstrap alongside `loadProfile`, following its exact fallback idiom.
+Resolves data; nothing reads it yet. 12 new tests
+(`workspaceContext.test.js`); full suite (643 tests, 51 files), lint,
+typecheck and build all pass. **Not yet seen rendering against a live
+environment** — the same gap Epic 02's read switch carries: the
+credentials available to this session do not authenticate against
+whichever project `.env.local` currently targets. Carried forward
+alongside that gap, not a new one.
+
+**Production has none of Epics 01–03.** See
+[`operations/PRODUCTION_MIGRATION_0018_0029.md`](./operations/PRODUCTION_MIGRATION_0018_0029.md)
+— written for `0018`–`0029` (Epics 01–02) and not yet extended to cover
+`0030`–`0036` (Epic 03 so far). Every read path in both epics falls back
+gracefully when its migrations are absent, which is why production has
+been safe to leave unmigrated — but the runbook needs a second pass
+before it is run, and running it is still not scheduled.
 
 **Carried out of Epic 00, and relevant when Epic 03 is planned:** the
 production backup path is verified but **has never been restored**
