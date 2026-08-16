@@ -37,11 +37,24 @@ function reshapeConversation(row, userId) {
   };
 }
 
-export async function fetchConversations(userId) {
+// Epic 03 WP11 — additive, not a switch: conversations are bilateral (both the customer
+// and the professional read this table), but the workspace_id column is the REQUESTING
+// (customer) workspace only (migration 0032 — "the crossing's home partition"). There is
+// no membership-bearing workspace for the professional's side yet (Epic 12's engagements),
+// so customer_id.eq and pro_id.eq stay exactly as they are for both callers; when
+// workspaceId is given (CustomerApp.jsx only — useAuth().activeWorkspace?.workspace_id,
+// WP 03.09) it is ADDED as a third OR-branch, never a replacement. Today it can only ever
+// match rows customer_id.eq already matches, since workspace_id was backfilled from the
+// same requesting customer (WP 03.06/03.07) — the same "redundant until household invites
+// exist" property WP 03.10's isolation policies have.
+export async function fetchConversations(userId, workspaceId) {
+  const filters = [`customer_id.eq.${userId}`, `pro_id.eq.${userId}`];
+  if (workspaceId) filters.push(`workspace_id.eq.${workspaceId}`);
+
   const { data, error } = await supabase
     .from("conversations")
     .select(CONVERSATION_SELECT)
-    .or(`customer_id.eq.${userId},pro_id.eq.${userId}`)
+    .or(filters.join(","))
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data.map((row) => reshapeConversation(row, userId));
@@ -96,9 +109,11 @@ export async function markConversationRead(conversationId, userId) {
   if (error) throw error;
 }
 
-// One channel, three listeners: new messages anywhere (small scale, same trade-off as
-// subscribeToProLeads), plus new conversations on either side of this user.
-export function subscribeToConversationsForUser(userId, onChange) {
+// One channel, three or four listeners: new messages anywhere (small scale, same
+// trade-off as subscribeToProLeads), new conversations on either side of this user, and —
+// additively, same reasoning as fetchConversations above — a fourth on workspace_id when
+// workspaceId is given.
+export function subscribeToConversationsForUser(userId, workspaceId, onChange) {
   const channel = supabase
     .channel(`conversations-${userId}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, onChange)
@@ -111,8 +126,15 @@ export function subscribeToConversationsForUser(userId, onChange) {
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "conversations", filter: `pro_id=eq.${userId}` },
       onChange
-    )
-    .subscribe();
+    );
+  if (workspaceId) {
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "conversations", filter: `workspace_id=eq.${workspaceId}` },
+      onChange
+    );
+  }
+  channel.subscribe();
   return () => supabase.removeChannel(channel);
 }
 

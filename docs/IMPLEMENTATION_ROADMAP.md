@@ -1057,7 +1057,7 @@ A session takes one of five shapes:
 | 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
 | 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
 | 02 — Identity Engine | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-02/COMPLETION.md) |
-| 03 — Workspace Engine | **In progress** — 10/12 packages complete, WP 03.11 partially done (2 of the identified read paths switched), not yet verified against a live database this session (see below). WP 03.12 remains |
+| 03 — Workspace Engine | **In progress** — 11/12 packages complete, not yet verified against a live database this session (see below). WP 03.12 remains |
 | 04–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03, in progress.** WP 03.01–03.08 are additive or read-only —
@@ -1138,21 +1138,57 @@ workspace — so a single-workspace person sees identical results
 whichever branch runs, proven by tests asserting the reshaped output is
 `toEqual` across both paths, not merely that neither throws.
 
-**Deliberately NOT switched, and why**, so the next session doesn't have
-to re-derive it: `fetchProLeads`/`fetchProJobs` (ADR-0025 Class 1 —
-pre-engagement discovery has no membership to scope by); the pro's own
-services/profile in `pros.js`, `portfolio.js`, `testimonials.js`
-(genuine candidates — the offering workspace — not yet done); `reports.js`
-(the reporting workspace, not yet done); `messages.js` (bilateral —
-customer and professional sides — the most judgment-dependent of what
-remains, since only the requesting-workspace side has anywhere to
-switch to until Epic 12's engagements exist); `fetchReviewsForPro`,
-`fetchPublicProInfo`, `fetchPlatformTrustStats`, the public
-`pro_services`/`pro_profiles` reads (ADR-0025 Class 2 — public, not
-owner-scoped, nothing to switch). A future session picking this up
-should re-read this list before assuming the remainder is uniform — it
-isn't; `messages.js` in particular needs its own judgment call, not a
-mechanical repeat of this package's pattern.
+**WP 03.11, completed in a second pass.** The remainder catalogued above
+turned out not to be what it looked like from the outside, and the
+corrected picture is worth recording precisely because the first pass
+would have shipped a real bug if followed mechanically:
+
+- **`fetchProServices`** (`pros.js`) — genuinely a candidate (the pro's
+  own offered-services list, for their own dashboard only) and now
+  switched, same pattern as WP 03.11's first slice: optional
+  `workspaceId`, falls back to `pro_id` when absent, tested for filter
+  selection and identical output either way.
+- **`fetchConversations` / `subscribeToConversationsForUser`**
+  (`messages.js`) — **additive, not a switch.** Conversations are
+  bilateral (customer and professional both read this table), but
+  `workspace_id` is the *requesting* (customer) workspace only
+  (migration 0032 — the crossing's home partition). There is no
+  membership-bearing workspace for the professional's side until Epic
+  12's engagements exist. `customer_id.eq` and `pro_id.eq` are
+  untouched; `workspace_id.eq` is *added* as a third `.or()` branch
+  (and a fourth Realtime listener) only when a `workspaceId` is given
+  — `CustomerApp.jsx` passes its own; `ProApp.jsx` deliberately passes
+  none, since a professional's own workspace id can never match this
+  column. Today the added branch can only ever match what `customer_id`
+  already matches, the same "redundant until household invites exist"
+  property WP 03.10's isolation policies have.
+- **`fetchPortfolioItems` / `fetchTestimonials`** (`portfolio.js`,
+  `testimonials.js`) — **correctly NOT switched**, reversing this
+  document's earlier "genuine candidates" note. Both functions are
+  called two ways: `ProProfile.jsx` reads the caller's own rows, but
+  `ProPublicProfileSheet.jsx` and `useConversation.js` read *someone
+  else's* — a customer viewing a professional's public profile. Scoping
+  either call by the *caller's* `activeWorkspace` would have been wrong
+  for the public case: a visitor has no membership in the profiled
+  professional's workspace, so the read would return nothing (or, had
+  the wrong id been threaded, someone else's items on the wrong
+  profile). This is exactly ADR-0025 Class 2's territory — visibility
+  to a non-member cannot be expressed by a membership predicate — and
+  the ADR itself defers resolving it to Epic 12 or Epic 18. Recorded
+  here so nobody "fixes" this later without rereading why.
+- **`reports.js`** — **nothing to switch.** The file has one function,
+  `submitReport`, a write. No list/read of a person's own reports
+  exists in the product today. The original catalogue implied one did;
+  it didn't.
+
+**Net result: every owner-scoped list/detail/dashboard read in the
+current product now either scopes by workspace (with a proven-identical
+fallback) or has a written reason it correctly doesn't.** 23 new tests
+across `requests.js`, `householdItems.js`, `pros.js` and the new
+`messages.test.js`. Full suite: 672 tests / 54 files pass, lint clean,
+typecheck clean, build succeeds, dev server HMR-reloaded every changed
+file with no console or server errors (still not seen signed in — same
+credential gap as the rest of this epic).
 
 **Production has none of Epics 01–03.** See
 [`operations/PRODUCTION_MIGRATION_0018_0029.md`](./operations/PRODUCTION_MIGRATION_0018_0029.md)

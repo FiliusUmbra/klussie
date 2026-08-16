@@ -65,7 +65,7 @@ export function CustomerApp({ showToast }) {
   // exactly one workspace; both helpers fall back to the pre-Epic-03 owner-id filter when it
   // is, so this reads identically either way for today's single-workspace customer.
   const refresh = () => fetchCustomerRequests(user.id, workspaceId).then(setRequests);
-  const refreshConversations = () => fetchConversations(user.id).then(setConversations);
+  const refreshConversations = () => fetchConversations(user.id, workspaceId).then(setConversations);
 
   useEffect(() => {
     refresh();
@@ -81,9 +81,9 @@ export function CustomerApp({ showToast }) {
 
   useEffect(() => {
     refreshConversations();
-    return subscribeToConversationsForUser(user.id, refreshConversations);
+    return subscribeToConversationsForUser(user.id, workspaceId, refreshConversations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id]);
+  }, [user.id, workspaceId]);
 
   if (!requests || !conversations) return <LoadingScreen />;
 

@@ -18,9 +18,9 @@ priorities, risks, debt, decisions. It does not own product philosophy
   is the only source of truth. How to build it:
   [`../ENGINEERING.md`](../ENGINEERING.md).
 - **Current milestone:** Epic 03 — Workspace Engine, **in progress**
-  (10/12 packages, WP 03.11 partially done, not yet verified against a
-  live database) — the pivot of the roadmap and its highest-risk item.
-  Epic 02 — Identity Engine completed 2026-08-13. (§2)
+  (11/12 packages, not yet verified against a live database) — the
+  pivot of the roadmap and its highest-risk item. Epic 02 — Identity
+  Engine completed 2026-08-13. (§2)
 - **The architecture is frozen.** `PLATFORM_DOMAIN_MODEL`,
   `DATABASE_ARCHITECTURE`, `SYSTEM_ARCHITECTURE` and
   `SUPABASE_ARCHITECTURE` change only by ADR. Klussie is a **Property
@@ -146,14 +146,17 @@ Current Objective     Workspace/membership tables, the STABLE membership helper,
                        WP 03.10 added a permissive, select-only isolation policy
                        to all thirteen workspace-scoped tables, deleting no
                        existing policy (ADR-0025's narrowing). WP 03.11 (the read
-                       switch) is partially done: fetchCustomerRequests and
-                       fetchHouseholdItems now scope by workspace_id when a
-                       workspace is resolved, falling back to the old owner-id
-                       filter otherwise; roughly six other owner-scoped reads
-                       (pro's own services/profile/portfolio/testimonials,
-                       reports, messages) are catalogued but not yet switched —
-                       see IMPLEMENTATION_ROADMAP.md §14 for exactly which and
-                       why each was deferred. Remaining: finish 03.11, then 03.12
+                       switch) is now complete: fetchCustomerRequests,
+                       fetchHouseholdItems and fetchProServices scope by
+                       workspace_id when one is resolved, falling back to the
+                       old owner-id filter otherwise; fetchConversations /
+                       subscribeToConversationsForUser add workspace_id as a
+                       third, additive branch (conversations are bilateral,
+                       and workspace_id is the requesting side only).
+                       fetchPortfolioItems / fetchTestimonials were examined
+                       and deliberately left unswitched — they're shared with
+                       public profile viewing, and scoping by the caller's own
+                       workspace would have broken that. Remaining: 03.12
                        (workspace switcher, hidden for single-workspace users).
 Previous Milestone    Epic 02 — Identity Engine (2026-08-13, complete): identity
                        separated from Supabase Auth, backfilled, dual-written,

@@ -69,8 +69,16 @@ export function initialsFrom(name) {
     .join("");
 }
 
-export async function fetchProServices(proId) {
-  const { data, error } = await supabase.from("pro_services").select("service_id").eq("pro_id", proId);
+// Epic 03 WP11 — the read switch. This is the pro's own offered-services list for their own
+// dashboard (ProApp.jsx), never a read of someone else's — unlike fetchPortfolioItems and
+// fetchTestimonials below in this epic's catalogue, which serve public profile viewing too
+// and are deliberately NOT switched (see IMPLEMENTATION_ROADMAP.md §14). workspaceId is
+// useAuth().activeWorkspace?.workspace_id (WP 03.09); falls back to the pre-Epic-03 pro_id
+// filter when absent, the same row set workspace_id was backfilled from (WP 03.06/03.07).
+export async function fetchProServices(proId, workspaceId) {
+  const query = supabase.from("pro_services").select("service_id");
+  const scoped = workspaceId ? query.eq("workspace_id", workspaceId) : query.eq("pro_id", proId);
+  const { data, error } = await scoped;
   if (error) throw error;
   return data.map((r) => r.service_id);
 }
