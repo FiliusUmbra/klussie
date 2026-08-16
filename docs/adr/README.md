@@ -82,11 +82,12 @@ pointing at whatever replaced it.
 | [0019](0019-canonical-platform-event-envelope.md) | The canonical platform Event Envelope | Accepted — completes Platform Architecture v1.0 |
 | [0020](0020-events-partitioning-parameters.md) | Eight hash partitions, yearly time ranges, and a default range partition | **Proposed** — implemented against an empty table; free to revise until the first event is written |
 | [0021](0021-one-audit-table-with-nullable-workspace.md) | One audit table with a nullable workspace, not two tables | **Proposed** — implemented against an empty table; free to revise until the first audit record is written |
-| [0022](0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) | Backfilled identifiers are UUIDv7 minted in SQL from the row's own creation time | **Proposed** — governs every backfill in the roadmap; identifiers are permanent once written |
+| [0022](0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) | Backfilled identifiers are UUIDv7 minted in SQL from the row's own creation time | **Accepted** — governs every backfill in the roadmap; already load-bearing on staging's identity rows before acceptance |
 | [0023](0023-identity-display-resolution-versus-row-visibility.md) | Cross-user profile reads resolve display information; they do not read the identity row | **Accepted** — implemented in WP 02.06 via resolvers in `public`; `identity` stays off the client API surface |
 | [0024](0024-request-context-resolved-in-the-database.md) | Request context is resolved in the database until a gateway exists | **Accepted** — removal trigger is the first read needing capability or scope |
 | [0025](0025-marketplace-visibility-survives-epic-03.md) | Pre-engagement marketplace visibility and public professional profiles survive Epic 03 unchanged | **Proposed** — required before WP 03.10; removal trigger is Epic 12 |
 | [0026](0026-membership-helper-lives-in-public.md) | The membership helper is a `SECURITY DEFINER` function in a dedicated `api` schema | **Accepted** — revised from an originally proposed placement in `public`; sets the pattern for every later engine's RLS helper |
+| [0027](0027-workspace-permission-vocabulary.md) | The Workspace Permission Vocabulary | **Accepted** — twelve permissions scoped to workspace lifecycle and membership management only, deliberately excluding every other engine's future permissions |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see

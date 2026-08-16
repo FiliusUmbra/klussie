@@ -1,6 +1,6 @@
 # Epic 03 — Workspace Engine
 
-**Status.** 2 of 13 packages done — epic not yet closed
+**Status.** 8 of 13 packages done — epic not yet closed
 **Purpose.** Introduce workspaces and memberships, and migrate every
 existing user onto them. The pivot of the entire roadmap.
 **Definition.** [`docs/IMPLEMENTATION_ROADMAP.md`](../../docs/IMPLEMENTATION_ROADMAP.md) §10
@@ -26,13 +26,13 @@ existing user onto them. The pivot of the entire roadmap.
 |---|---|---|---|
 | 03.01 | [Create workspace and membership tables (add)](wp-03.01-workspace-tables.md) | Medium | **Done** |
 | 03.02 | [Add the membership helper](wp-03.02-membership-helper.md) | High | **Done** — [ADR-0026](../../docs/adr/0026-membership-helper-lives-in-public.md), accepted and revised twice |
-| 03.03 | Backfill one Personal Workspace per existing identity | Medium | Not started — blocked on ADR-0022 acceptance (P2 in the epic plan) |
-| 03.04 | Backfill one Professional Workspace per existing pro profile | Medium | Not started |
-| 03.05 | Add the workspace column to existing tables (add) | Low | Not started |
-| 03.06 | Backfill workspace on existing rows | High | Not started |
-| 03.07 | Reconcile workspace assignment | Medium | Not started — hard gate on 03.09 |
-| 03.08 | Add the workspace engine contract | High | Not started |
-| 03.09 | Resolve request context once | High | Not started — reshaped by [ADR-0024](../../docs/adr/0024-request-context-resolved-in-the-database.md) |
+| 03.03 | [Backfill one Personal Workspace per existing identity](wp-03.03-backfill-personal-workspace.md) | Medium | **Done** — [ADR-0022](../../docs/adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) accepted as its prerequisite |
+| 03.04 | [Backfill one Professional Workspace per existing pro profile](wp-03.04-backfill-professional-workspace.md) | Medium | **Done** |
+| 03.05 | [Add the workspace column to existing tables (add)](wp-03.05-workspace-column.md) | Medium | **Done** — built out of numeric order; has no dependency on 03.03/03.04's backfill |
+| 03.06 | [Backfill workspace on existing rows](wp-03.06-backfill-workspace-ids.md) | High | **Done** |
+| 03.07 | [Reconcile workspace assignment](wp-03.07-reconcile-workspace.md) | Medium | **Done** — passed over 7 real rows; hard gate on 03.09 satisfied for this environment |
+| 03.08 | [Add the workspace engine contract](wp-03.08-workspace-engine-contract.md) | High | **Done** — [ADR-0027](../../docs/adr/0027-workspace-permission-vocabulary.md) accepted as its prerequisite |
+| 03.09 | Resolve request context once | High | Not started — reshaped by [ADR-0024](../../docs/adr/0024-request-context-resolved-in-the-database.md); first package that wires anything from 03.01–03.08 into the running application |
 | 03.10 | Add workspace isolation to RLS as a backstop | High | Not started — reshaped by [ADR-0025](../../docs/adr/0025-marketplace-visibility-survives-epic-03.md); adds policies, deletes none |
 | 03.11 | Add the workspace switcher, hidden for single-workspace users | Medium | Not started — **moved ahead of the read switch**; was 03.12 in the original roadmap §14 |
 | 03.12 | Switch reads to workspace scoping | High | Not started — **moved after the switcher**; the epic's only behaviour-changing package |
@@ -64,13 +64,18 @@ Read these sections before starting a package — not the whole documents:
 
 From roadmap §10, unchanged by the ADR revisions:
 
-- [ ] Every existing user has a Personal Workspace; every pro has a
-      Professional Workspace; both belong to one identity
+- [x] Every existing user has a Personal Workspace; every pro has a
+      Professional Workspace; both belong to one identity — WP 03.03/03.04,
+      reconciled by WP 03.07 over real data
 - [ ] A user with one workspace sees no workspace concept anywhere in the
-      UI
-- [ ] Every existing flow behaves identically
-- [ ] Every workspace-scoped row carries its workspace
-- [ ] Permission decisions are explainable
+      UI — WP 03.11, not started
+- [ ] Every existing flow behaves identically — not yet exercised; no
+      read path has switched (WP 03.12)
+- [x] Every workspace-scoped row carries its workspace — WP 03.05/03.06,
+      reconciled by WP 03.07
+- [x] Permission decisions are explainable — WP 03.08: every decision
+      names the membership and role that produced it, proven for
+      granted, denied, and no-membership cases on staging
 - [x] **The membership helper is `STABLE` and evaluated once per
       statement** — WP 03.02, with the qualification ADR-0024 states
       explicitly: once per *statement*, not once per *request*, because
@@ -81,21 +86,26 @@ From roadmap §10, unchanged by the ADR revisions:
       the build side of a hash semi join at `loops=1`, independent of the
       left-hand scan's size
 
-**Verified on staging by two scripts, both probed to prove they can fail
-before being trusted:**
+**Verified on staging by eight scripts** (one per package that touches
+the database — WP 03.07's reconciliation is itself the eighth), every
+one probed to prove it can fail before being trusted:
 
 ```bash
+for f in WORKSPACE MEMBERSHIP_HELPER WORKSPACE_COLUMN BACKFILL_PERSONAL_WORKSPACE \
+         BACKFILL_PROFESSIONAL_WORKSPACE BACKFILL_WORKSPACE_IDS WORKSPACE_PERMISSION_VOCABULARY; do
+  psql -w -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.<staging-ref> -d postgres \
+       -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_$f.sql
+done
 psql -w -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.<staging-ref> -d postgres \
-     -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_WORKSPACE.sql
-psql -w -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.<staging-ref> -d postgres \
-     -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_MEMBERSHIP_HELPER.sql
+     -v ON_ERROR_STOP=1 -f supabase/diagnostics/RECONCILE_WORKSPACE.sql
 ```
 
-Both pass, exit 0. Migrations `0030` and `0031` applied via
-`npx supabase db push --linked` after a dry run; `migration list --linked`
-confirms both as `remote` on `klussie-staging` (`mxcuxnvjfnktwjcmkqqk`).
+All pass, exit 0. Migrations `0030`–`0036` applied via
+`npx supabase db push --linked` after a dry run each time;
+`migration list --linked` confirms all seven as `remote` on
+`klussie-staging` (`mxcuxnvjfnktwjcmkqqk`).
 **Production remains untouched and unreconciled** — see the epic plan's
-P1, still undecided.
+P1, still undecided, now seven migrations further behind.
 
 ## Notes
 
@@ -132,6 +142,35 @@ current) and `workspace.membership_history` (append-only) are separate
 tables; nothing populates the history table yet, deliberately — that
 mechanism is a decision for whichever package first writes to
 `memberships` for real (03.03 or 03.08), not this one.
+
+## Two ADRs accepted mid-epic, both resolved
+
+**ADR-0022** was the blocker for 03.03/03.04. Its own stated premise
+("implemented against tables that are empty in every environment") was
+re-verified against staging before acceptance and found stale —
+`identity.identities` already held five real rows minted by this exact
+mechanism, meaning the decision was already load-bearing before it was
+formally accepted. Corrected as part of accepting it (see the ADR's
+Status line and Decision section), not treated as a reason to delay.
+Already flagged as a known blocker before this session
+(`docs/IMPLEMENTATION_ROADMAP.md`'s carried-forward note after Epic 02)
+— confirmed as the actual next gate, not merely a theoretical one, and
+closed the same session it was raised.
+
+**ADR-0027 (the Workspace Permission Vocabulary)** was the blocker for
+03.08, flagged by name when this section still described it as
+outstanding. Twelve permissions, scoped deliberately to what the
+Workspace engine itself owns — workspace lifecycle and membership
+management — with every other engine's business-action permissions
+named as explicitly out of scope rather than invented ahead of the
+engine that will own them. Went through a real design/critique/refine
+cycle before acceptance: an initial capability-vocabulary exercise had
+to be corrected onto the right layer first (capability answers "does
+this exist in the workspace"; permission answers "may this member do
+it" — ADR-0014's two-gate rule), then the permission vocabulary itself
+was drafted, reviewed, and its naming refined once (shorter, consistent
+`resource.qualifier.verb` grammar) before acceptance. Both the vocabulary
+and its implementation (WP 03.08) are done.
 
 ## Raised during the epic
 
