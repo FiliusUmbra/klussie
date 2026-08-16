@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { supabase } from "./supabaseClient";
 import { uuidv7 } from "./ids.js";
 import { loadWorkspaceMemberships, resolveActiveWorkspace } from "./workspaceContext.js";
+import { getPreferredWorkspaceId, setPreferredWorkspaceId } from "./workspacePreference.js";
 
 const AuthContext = createContext(null);
 
@@ -75,6 +76,10 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [proProfile, setProProfile] = useState(null);
   const [workspaceMemberships, setWorkspaceMemberships] = useState([]);
+  // Epic 03 WP12 — the switcher's own choice, loaded per-person from localStorage
+  // (workspacePreference.js) once their id is known, so a returning visitor lands back
+  // where they left off (PLATFORM_DOMAIN_MODEL.md §27: "switching ... preserves place").
+  const [preferredWorkspaceId, setPreferredWorkspaceIdState] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = useCallback(async (userId) => {
@@ -82,6 +87,7 @@ export function AuthProvider({ children }) {
       setProfile(null);
       setProProfile(null);
       setWorkspaceMemberships([]);
+      setPreferredWorkspaceIdState(null);
       return;
     }
     const { profile, proProfile } = await loadProfile(userId);
@@ -89,9 +95,18 @@ export function AuthProvider({ children }) {
     setProProfile(proProfile);
     // Epic 03 WP09 — resolved alongside the profile, not gating it: a person with no
     // workspace yet (or an environment where the resolver isn't reachable) still signs in
-    // and sees their profile exactly as before. Nothing downstream reads this yet.
+    // and sees their profile exactly as before.
     setWorkspaceMemberships(await loadWorkspaceMemberships());
+    setPreferredWorkspaceIdState(getPreferredWorkspaceId(userId));
   }, []);
+
+  // Epic 03 WP12 — the switcher calls this. Persists past this session (localStorage) and
+  // updates immediately (React state), matching §27's "switching is cheap": no round trip
+  // to the database is needed to change which workspace is active, only to act within it.
+  const setActiveWorkspaceId = useCallback((workspaceId) => {
+    setPreferredWorkspaceIdState(workspaceId);
+    if (session?.user?.id) setPreferredWorkspaceId(session.user.id, workspaceId);
+  }, [session]);
 
   useEffect(() => {
     let active = true;
@@ -209,10 +224,13 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     profile,
     proProfile,
-    // Epic 03 WP09 — resolved, unused. `activeWorkspace` is null for anyone with zero or
-    // more than one membership; nothing branches on either field yet (WP 03.11, WP 03.12).
+    // Epic 03 — workspaceMemberships (WP 03.09) feeds the read switch (WP 03.11) and the
+    // switcher (WP 03.12); activeWorkspace resolves to the switcher's own choice when one
+    // exists and is still live, the personal workspace otherwise (see
+    // resolveActiveWorkspace's own comment for why that default, not null).
     workspaceMemberships,
-    activeWorkspace: resolveActiveWorkspace(workspaceMemberships),
+    activeWorkspace: resolveActiveWorkspace(workspaceMemberships, preferredWorkspaceId),
+    setActiveWorkspaceId,
     loading,
     signUp,
     signIn,

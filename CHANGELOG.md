@@ -50,6 +50,57 @@ accurately.
 
 ### Added
 
+**Epic 03 — Workspace Engine.** The pivot of the roadmap: workspaces and
+memberships exist, every existing person and professional has been
+migrated onto them, and the two reads that actually changed — a
+customer's own requests and household items — now scope by workspace
+with a fallback proven identical to the old behaviour. **Not applied to
+production**, and not yet verified against a live, signed-in session
+from this session's tooling (see §6 below) — recorded plainly rather
+than implied away, the same discipline Epic 02 held itself to.
+
+- **`workspace.workspaces` / `workspace.memberships` /
+  `workspace.membership_history`** — the workspace aggregate and its
+  mutable-current-plus-append-only-history membership shape
+  (`DATABASE_ARCHITECTURE.md` §10).
+- **Backfilled**: one Personal Workspace per existing identity ("My
+  Home"), one Professional Workspace per existing pro profile (the
+  business name, or the person's own name, or "My Business"), idempotent
+  and reconciled clean against every real row on staging.
+- **The `STABLE` membership helper** (`api.current_workspace_memberships()`)
+  — the isolation predicate nearly every later policy depends on,
+  evaluated once per statement via an uncorrelated subquery
+  ([ADR-0026](docs/adr/0026-membership-helper-lives-in-public.md)).
+- **The workspace engine contract** — `resolve_context`, `decide_permission`,
+  ADR-0027's twelve-permission vocabulary for workspace lifecycle and
+  membership management.
+- **A permissive isolation policy on all thirteen workspace-scoped
+  tables**, adding to — never replacing — the existing 58 policies
+  ([ADR-0025](docs/adr/0025-marketplace-visibility-survives-epic-03.md)
+  narrowed this from the roadmap's original "the policies simplify").
+- **The workspace switcher** (`WorkspaceSwitcher`), invisible for the
+  single-workspace majority and shown only once a person genuinely holds
+  two live workspaces — today, an existing professional's Personal and
+  Professional pair (`PLATFORM_DOMAIN_MODEL.md` §27).
+- **There is no API Gateway, and none was built.** Request context is
+  resolved in the database instead, once per statement, called directly
+  by the browser
+  ([ADR-0024](docs/adr/0024-request-context-resolved-in-the-database.md)) —
+  a decision with consequences for every engine still to come.
+
+### Changed
+
+- **A customer's own requests, and their own household items, now read
+  by workspace** when one has been resolved, falling back to the
+  pre-Epic-03 owner-id filter otherwise — proven identical either way,
+  by tests that run both paths over the same row. A professional's own
+  offered-services list does the same.
+- **Conversations gained an additive third access path** (workspace
+  membership, alongside the existing customer and professional sides) —
+  not a switch, since a professional's side has no workspace to switch
+  to until Epic 12's engagements exist.
+- Test suite grew from 561 tests across 42 files to **696 across 57**.
+
 **Epic 02 — Identity Engine.** The platform's identity is now its own,
 separate from Supabase Auth, and carries a person reference designed to
 outlive the person's data.

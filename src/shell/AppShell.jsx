@@ -23,6 +23,8 @@ import { BecomeProSheet } from "../profile/BecomeProSheet.jsx";
 import { CustomerApp } from "../customer/CustomerApp.jsx";
 import { ProApp } from "../pro/ProApp.jsx";
 import { LoadingScreen } from "../ui/Loading.jsx";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher.jsx";
+import { deriveEffectiveRole } from "../lib/workspaceContext.js";
 
 // How long a toast stays up. Long enough to read a short confirmation, short enough that
 // it never sits over the thing the customer tapped next.
@@ -36,7 +38,16 @@ export function AppShell() {
   const [catalogError, setCatalogError] = useState(null);
   const [becomeProOpen, setBecomeProOpen] = useState(false);
   const toastTimer = useRef(null);
-  const { session, loading: authLoading, profile, proProfile } = useAuth();
+  const { session, loading: authLoading, profile, proProfile, workspaceMemberships = [], activeWorkspace } = useAuth();
+
+  // Epic 03 WP12 — only a person with two or more REAL, resolved workspaces (today: an
+  // existing pro's Personal + Professional pair, WP 03.03/03.04's backfill) gets the real
+  // switcher; everyone else — zero or one membership, or an environment without Epic 03's
+  // migrations, where this is always [] — keeps the exact pre-Epic-03 `role` toggle below,
+  // untouched. See workspaceContext.js's resolveActiveWorkspace for why the personal
+  // workspace is the default landing view rather than an unresolved choice.
+  const multiWorkspace = workspaceMemberships.length >= 2;
+  const effectiveRole = deriveEffectiveRole({ multiWorkspace, activeWorkspace, role });
 
   useEffect(() => {
     fetchCatalog().then(setCatalog).catch((err) => setCatalogError(err.message));
@@ -68,7 +79,7 @@ export function AppShell() {
     body = <WelcomeScreen />;
   } else if (profile && !profile.onboarding_role_selected) {
     body = <RoleSelectionScreen onProSelected={() => setRole("pro")} />;
-  } else if (role === "pro") {
+  } else if (effectiveRole === "pro") {
     body = proProfile ? (
       <ProApp showToast={showToast} />
     ) : (
@@ -84,7 +95,9 @@ export function AppShell() {
         <style>{APP_CSS + HOME_CSS}</style>
 
         <div className="topbar">
-          {session && (
+          {session && (multiWorkspace ? (
+            <WorkspaceSwitcher t={t} />
+          ) : (
             <div className="role-switch">
               <span className="role-switch-label">{t.previewingAs}</span>
               <div className="segmented">
@@ -92,7 +105,7 @@ export function AppShell() {
                 <button className={role === "pro" ? "seg-on" : ""} onClick={() => setRole("pro")}>{t.rolePro}</button>
               </div>
             </div>
-          )}
+          ))}
           <div className="lang-switch">
             <Globe size={13} color="#c9d6cd" />
             <select value={langCode} onChange={(e) => setLangCode(e.target.value)}>

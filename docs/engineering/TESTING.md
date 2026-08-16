@@ -281,6 +281,8 @@ something it depends on.
 | X6 | Modal focus trap and focus restoration work | `overlays.jsx` |
 | X7 | Touch targets stay at least 44px | All surfaces |
 | X8 | No console errors on any surface | All surfaces |
+| X9 | A single-workspace person sees the pre-Epic-03 "Previewing as" toggle and no other workspace chrome | `AppShell` |
+| X10 | A person with two live workspaces (Epic 03 WP12 — today, an existing pro's Personal + Professional pair) sees `WorkspaceSwitcher` instead, listing both by name; picking one switches which app renders and is remembered on reload | `WorkspaceSwitcher` |
 
 ## 6 · Known defects — preserved deliberately
 

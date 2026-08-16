@@ -1057,152 +1057,60 @@ A session takes one of five shapes:
 | 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
 | 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
 | 02 — Identity Engine | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-02/COMPLETION.md) |
-| 03 — Workspace Engine | **In progress** — 11/12 packages complete, not yet verified against a live database this session (see below). WP 03.12 remains |
+| 03 — Workspace Engine | **Complete** 2026-08-16 — 12/12 packages. Not yet verified against a live database (gate 10 open). [Completion record](../implementation/epic-03/COMPLETION.md) |
 | 04–26 | Not started; work packages decomposed at epic start |
 
-**Epic 03, in progress.** WP 03.01–03.08 are additive or read-only —
-workspace/membership tables, the `STABLE` membership helper, the
-Personal/Professional backfills, the workspace column and its backfill,
-and the workspace engine contract (`workspace.resolve_context()`,
-`workspace.decide_permission()`, delegated through `api`, ADR-0027's
-permission vocabulary). Nothing here has changed what any existing user
-sees. Two ADRs were required mid-epic and are **Accepted**, not
-deviations discovered after the fact:
-
-- **[ADR-0024](./adr/0024-request-context-resolved-in-the-database.md)**
-  found there is no API Gateway to put WP 03.09 in, and none is built in
-  this epic — the resolver lives in the database, called by RLS and by
-  `api`'s delegates, "once per request" becomes "once per statement," and
-  the gateway (if one is ever needed) is deferred to the first read that
-  genuinely requires capability or scope resolution — Epic 04 or Epic 06
-  at the earliest.
-- **[ADR-0025](./adr/0025-marketplace-visibility-survives-epic-03.md)**
-  (Proposed — required before WP 03.10) found two classes of existing
-  policy — the professional's pre-engagement request feed, and public
-  professional profiles — that WP 03.10 cannot reshape to membership
-  without deleting the mechanism that makes the marketplace work. WP
-  03.10 adds the isolation backstop and removes nothing; the six named
-  policies are Epic 12's removal trigger, not this epic's.
-
-**WP 03.09, as actually built** (redefined by ADR-0024, not as roadmap
-§14 originally worded it): `src/lib/workspaceContext.js` —
-`loadWorkspaceMemberships()`, the first real caller of
-`api.current_workspace_memberships()`, called from `auth.jsx`'s session
-bootstrap alongside `loadProfile`, following its exact fallback idiom.
-Resolves data; nothing reads it yet. 12 new tests
-(`workspaceContext.test.js`); full suite (643 tests, 51 files), lint,
-typecheck and build all pass. **Not yet seen rendering against a live
-environment** — the same gap Epic 02's read switch carries: the
-credentials available to this session do not authenticate against
-whichever project `.env.local` currently targets. Carried forward
-alongside that gap, not a new one.
-
-**WP 03.10, as actually built** (narrowed by ADR-0025):
-`0037_workspace_isolation_policies.sql` adds one permissive `for select`
-isolation policy — `workspace_id in (select workspace_id from
-api.current_workspace_memberships())` — to all thirteen tables WP 03.05
-gave a workspace_id column. Deletes nothing; every one of ADR-0025's
-named exceptions and every other pre-existing policy on those tables is
-unreferenced by any `drop`. Scoped to `select` only, not `insert` /
-`update` / `delete`: `SUPABASE_ARCHITECTURE.md` §7 puts writes on the
-gateway-mediated path, which does not exist yet (ADR-0024), so writes
-continue through the same bespoke business-action policies this
-migration does not touch. 7 new structural tests
-(`workspaceIsolationPolicies.test.js`) plus
-`VERIFY_WORKSPACE_ISOLATION_POLICIES.sql` (written, not yet run — see
-below). Full suite (650 tests, 52 files), lint, typecheck and build all
-pass. **Not applied to any database and not run against staging this
-session** — this session has the Supabase project URL and anon key
-(`.env.local`) but no direct Postgres connection (pooler host, database
-password) and no working Supabase CLI project link, both of which every
-prior `VERIFY_*.sql` run in this epic has required. This is a new,
-narrower gap than WP 03.09's — not "can't sign in as a test user," but
-"can't reach the database directly at all" — and blocks running this or
-any future `VERIFY_*.sql` from this session until resolved.
-
-**WP 03.11, as far as built this session — deliberately partial, and said
-so rather than reported as done.** "Every list, detail and dashboard
-query becomes workspace-scoped" turned out to name roughly eight owner-
-scoped reads across `requests.js`, `householdItems.js`, `pros.js`,
-`portfolio.js`, `testimonials.js`, `reports.js` and `messages.js`, of
-uneven risk and clarity. Switched, with tests: `fetchCustomerRequests` /
-`subscribeToCustomerRequests` (`service_requests`, the requesting
-workspace) and `fetchHouseholdItems` (`household_items`, the owner's
-Personal Workspace) — the two reads where "membership alone is the
-correct answer" is unambiguous and the existing filter is a single
-`.eq()`. Both take an optional `workspaceId` (`useAuth().activeWorkspace
-?.workspace_id`, WP 03.09) and fall back to the pre-Epic-03 owner-id
-filter when it is absent — null on any database without Epic 03's
-migrations, or for anyone the resolver could not place in exactly one
-workspace — so a single-workspace person sees identical results
-whichever branch runs, proven by tests asserting the reshaped output is
-`toEqual` across both paths, not merely that neither throws.
-
-**WP 03.11, completed in a second pass.** The remainder catalogued above
-turned out not to be what it looked like from the outside, and the
-corrected picture is worth recording precisely because the first pass
-would have shipped a real bug if followed mechanically:
-
-- **`fetchProServices`** (`pros.js`) — genuinely a candidate (the pro's
-  own offered-services list, for their own dashboard only) and now
-  switched, same pattern as WP 03.11's first slice: optional
-  `workspaceId`, falls back to `pro_id` when absent, tested for filter
-  selection and identical output either way.
-- **`fetchConversations` / `subscribeToConversationsForUser`**
-  (`messages.js`) — **additive, not a switch.** Conversations are
-  bilateral (customer and professional both read this table), but
-  `workspace_id` is the *requesting* (customer) workspace only
-  (migration 0032 — the crossing's home partition). There is no
-  membership-bearing workspace for the professional's side until Epic
-  12's engagements exist. `customer_id.eq` and `pro_id.eq` are
-  untouched; `workspace_id.eq` is *added* as a third `.or()` branch
-  (and a fourth Realtime listener) only when a `workspaceId` is given
-  — `CustomerApp.jsx` passes its own; `ProApp.jsx` deliberately passes
-  none, since a professional's own workspace id can never match this
-  column. Today the added branch can only ever match what `customer_id`
-  already matches, the same "redundant until household invites exist"
-  property WP 03.10's isolation policies have.
-- **`fetchPortfolioItems` / `fetchTestimonials`** (`portfolio.js`,
-  `testimonials.js`) — **correctly NOT switched**, reversing this
-  document's earlier "genuine candidates" note. Both functions are
-  called two ways: `ProProfile.jsx` reads the caller's own rows, but
-  `ProPublicProfileSheet.jsx` and `useConversation.js` read *someone
-  else's* — a customer viewing a professional's public profile. Scoping
-  either call by the *caller's* `activeWorkspace` would have been wrong
-  for the public case: a visitor has no membership in the profiled
-  professional's workspace, so the read would return nothing (or, had
-  the wrong id been threaded, someone else's items on the wrong
-  profile). This is exactly ADR-0025 Class 2's territory — visibility
-  to a non-member cannot be expressed by a membership predicate — and
-  the ADR itself defers resolving it to Epic 12 or Epic 18. Recorded
-  here so nobody "fixes" this later without rereading why.
-- **`reports.js`** — **nothing to switch.** The file has one function,
-  `submitReport`, a write. No list/read of a person's own reports
-  exists in the product today. The original catalogue implied one did;
-  it didn't.
-
-**Net result: every owner-scoped list/detail/dashboard read in the
-current product now either scopes by workspace (with a proven-identical
-fallback) or has a written reason it correctly doesn't.** 23 new tests
-across `requests.js`, `householdItems.js`, `pros.js` and the new
-`messages.test.js`. Full suite: 672 tests / 54 files pass, lint clean,
-typecheck clean, build succeeds, dev server HMR-reloaded every changed
-file with no console or server errors (still not seen signed in — same
-credential gap as the rest of this epic).
+**Epic 03 closed with four ADRs**, each accepted as part of building the
+package it gated rather than after the fact:
+[0024](./adr/0024-request-context-resolved-in-the-database.md) (no API
+Gateway exists or is built in this epic — the browser resolves context
+directly, in the database, once per statement),
+[0025](./adr/0025-marketplace-visibility-survives-epic-03.md) (two
+classes of existing policy — pre-engagement discovery, public
+professional profiles — survive WP 03.10 unchanged; it adds, it does not
+simplify), [0026](./adr/0026-membership-helper-lives-in-public.md) (the
+membership helper's `api`-schema placement, revised mid-package when the
+originally specified shape was found to defeat its own performance
+requirement) and [0027](./adr/0027-workspace-permission-vocabulary.md)
+(the twelve-permission vocabulary `decide_permission()` needs). Full
+account, including what §14's original wording got wrong for three of
+twelve packages and why: [completion
+record](../implementation/epic-03/COMPLETION.md).
 
 **Production has none of Epics 01–03.** See
 [`operations/PRODUCTION_MIGRATION_0018_0029.md`](./operations/PRODUCTION_MIGRATION_0018_0029.md)
 — written for `0018`–`0029` (Epics 01–02) and not yet extended to cover
-`0030`–`0036` (Epic 03 so far). Every read path in both epics falls back
-gracefully when its migrations are absent, which is why production has
-been safe to leave unmigrated — but the runbook needs a second pass
+`0030`–`0038` (Epic 03). Every read path across all three epics falls
+back gracefully when its migrations are absent, which is why production
+has been safe to leave unmigrated — but the runbook needs a second pass
 before it is run, and running it is still not scheduled.
 
-**Carried out of Epic 00, and relevant when Epic 03 is planned:** the
-production backup path is verified but **has never been restored**
-([ADR-0017](./adr/0017-free-tier-disaster-recovery-strategy.md)). Epic 03
-backfills a workspace onto every production row — the first change whose
-failure mode is unrecoverable data rather than a revertable read path.
+**Carried out of Epic 00, still true after Epic 03:** the production
+backup path is verified but **has never been restored**
+([ADR-0017](./adr/0017-free-tier-disaster-recovery-strategy.md)). Epic
+03's workspace backfill (WP 03.03/03.04/03.06) is the first change whose
+failure mode is unrecoverable data rather than a revertable read path —
+and it has not yet been run against production, so the risk is real but
+not yet realised.
+
+**Carried out of Epic 03**, and recorded in full in its [completion
+record](../implementation/epic-03/COMPLETION.md):
+
+- **This session had no direct Postgres connection**, unlike every
+  session before it in this epic. `VERIFY_WORKSPACE_ISOLATION_POLICIES.sql`
+  (WP 03.10) and `VERIFY_LIST_MY_WORKSPACES.sql` (WP 03.12) are written,
+  following the same probe discipline as every prior diagnostic in this
+  epic, and neither has been run. Nothing in WP 03.09–03.12 has been seen
+  rendering signed in either — no working credentials for either known
+  test account, and no new account created to work around that. Whoever
+  picks up Epic 04 should get this resolved first, not inherit it a third
+  time.
+- **`RoleSelectionScreen` asks the exact classification question
+  `PLATFORM_DOMAIN_MODEL.md` §27 forbids.** Predates this epic; not fixed
+  here — a product decision, not an implementation one. Recorded in
+  `MASTER_CONTEXT.md` §12.
+- **`docs/architecture/ARCHITECTURE.md` was not updated.** Owed before
+  Epic 04 starts (roadmap §9's documentation obligation).
 
 **Carried out of Epic 02**, and recorded in its
 [completion record](../implementation/epic-02/COMPLETION.md):
