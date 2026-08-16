@@ -18,9 +18,9 @@ priorities, risks, debt, decisions. It does not own product philosophy
   is the only source of truth. How to build it:
   [`../ENGINEERING.md`](../ENGINEERING.md).
 - **Current milestone:** Epic 03 — Workspace Engine, **in progress**
-  (10/12 packages, not yet verified against a live database) — the
-  pivot of the roadmap and its highest-risk item. Epic 02 — Identity
-  Engine completed 2026-08-13. (§2)
+  (10/12 packages, WP 03.11 partially done, not yet verified against a
+  live database) — the pivot of the roadmap and its highest-risk item.
+  Epic 02 — Identity Engine completed 2026-08-13. (§2)
 - **The architecture is frozen.** `PLATFORM_DOMAIN_MODEL`,
   `DATABASE_ARCHITECTURE`, `SYSTEM_ARCHITECTURE` and
   `SUPABASE_ARCHITECTURE` change only by ADR. Klussie is a **Property
@@ -145,21 +145,25 @@ Current Objective     Workspace/membership tables, the STABLE membership helper,
                        caller (src/lib/workspaceContext.js), resolved but unused.
                        WP 03.10 added a permissive, select-only isolation policy
                        to all thirteen workspace-scoped tables, deleting no
-                       existing policy (ADR-0025's narrowing). ADR-0024 found
-                       there is no API Gateway and deferred it. Remaining: 03.11
-                       (the read switch — the epic's one behaviour-changing
-                       package), 03.12 (workspace switcher, hidden for
-                       single-workspace users).
+                       existing policy (ADR-0025's narrowing). WP 03.11 (the read
+                       switch) is partially done: fetchCustomerRequests and
+                       fetchHouseholdItems now scope by workspace_id when a
+                       workspace is resolved, falling back to the old owner-id
+                       filter otherwise; roughly six other owner-scoped reads
+                       (pro's own services/profile/portfolio/testimonials,
+                       reports, messages) are catalogued but not yet switched —
+                       see IMPLEMENTATION_ROADMAP.md §14 for exactly which and
+                       why each was deferred. Remaining: finish 03.11, then 03.12
+                       (workspace switcher, hidden for single-workspace users).
 Previous Milestone    Epic 02 — Identity Engine (2026-08-13, complete): identity
                        separated from Supabase Auth, backfilled, dual-written,
                        reconciled, read from, erasable by redaction. Record:
                        implementation/epic-02/COMPLETION.md
-Current Branch        main (Epic 03 WP01–WP08 merged via PR #1 and #2); WP09
-                       and WP10 each on their own branch/PR, not yet merged
-Next Deliverable      WP 03.11 — the read switch, the epic's one
-                       behaviour-changing package, gated on WP 03.07's
-                       reconciliation (passed against staging's real data).
-                       Then WP 03.12 (switcher).
+Current Branch        main (Epic 03 WP01–WP08 merged via PR #1 and #2); WP09,
+                       WP10 and WP11's first slice are on one open branch/PR
+                       (#3), not yet merged
+Next Deliverable      Finish WP 03.11 — the remaining owner-scoped reads listed
+                       above — then WP 03.12 (switcher).
 Open from Epic 03     Neither WP 03.09's client caller nor WP 03.10's RLS
                        policies have been seen exercised against a live
                        database this session: no working psql connection

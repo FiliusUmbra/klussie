@@ -118,12 +118,20 @@ export async function createDirectedRequest({
   return reshapeRequest(data);
 }
 
-export async function fetchCustomerRequests(customerId) {
-  const { data, error } = await supabase
-    .from("service_requests")
-    .select(REQUEST_SELECT)
-    .eq("customer_id", customerId)
-    .order("created_at", { ascending: false });
+// Epic 03 WP11 — the read switch. `workspaceId` is `useAuth().activeWorkspace?.workspace_id`
+// (WP 03.09): resolved but null on a database without Epic 03's migrations (production,
+// today — docs/operations/PRODUCTION_MIGRATION_0018_0029.md), or for any person the
+// resolver could not place in exactly one workspace. Falling back to `customer_id` in
+// either case is not a hedge — it is the same row set `workspace_id` was backfilled from
+// (WP 03.06, reconciled clean by WP 03.07), so a single-workspace customer sees no
+// difference regardless of which filter actually runs. Once a workspace can hold more than
+// its one backfilled member (household invites — none exist yet), this is the query that
+// starts returning what the whole household can see rather than only what its own row says
+// — the entire reason WP 03.10 gave this table an isolation policy to land on.
+export async function fetchCustomerRequests(customerId, workspaceId) {
+  const query = supabase.from("service_requests").select(REQUEST_SELECT);
+  const scoped = workspaceId ? query.eq("workspace_id", workspaceId) : query.eq("customer_id", customerId);
+  const { data, error } = await scoped.order("created_at", { ascending: false });
   if (error) throw error;
   return data.map(reshapeRequest);
 }
@@ -194,12 +202,18 @@ export async function submitReview({ requestId, customerId, proId, stars, text }
 
 // Each subscribe* helper returns an unsubscribe function for a useEffect cleanup.
 
-export function subscribeToCustomerRequests(customerId, onChange) {
+// Same fallback as fetchCustomerRequests, applied to Realtime's server-side row filter
+// rather than to a query. A mismatch here is only ever staleness — the channel would miss
+// an INSERT/UPDATE it should have pushed — never a correctness or isolation issue, since
+// nothing about what a caller may read runs through this filter; it is an invalidation
+// signal that ends in a call to fetchCustomerRequests, which is where the real gate is.
+export function subscribeToCustomerRequests(customerId, workspaceId, onChange) {
+  const filter = workspaceId ? `workspace_id=eq.${workspaceId}` : `customer_id=eq.${customerId}`;
   const channel = supabase
-    .channel(`customer-requests-${customerId}`)
+    .channel(`customer-requests-${workspaceId || customerId}`)
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "service_requests", filter: `customer_id=eq.${customerId}` },
+      { event: "*", schema: "public", table: "service_requests", filter },
       onChange
     )
     .subscribe();

@@ -53,13 +53,16 @@ async function withSignedPhotos(items) {
   return items.map((item) => (item.photoPath ? { ...item, photoUrl: urlByPath.get(item.photoPath) ?? null } : item));
 }
 
+// Epic 03 WP11 — the read switch. `workspaceId` is `useAuth().activeWorkspace?.workspace_id`
+// (WP 03.09), null on a database without Epic 03's migrations or for anyone the resolver
+// could not place in exactly one workspace — both fall back to `owner_id`, the same row set
+// `workspace_id` was backfilled from (WP 03.06/03.07), so a single-workspace owner sees no
+// difference either way. See requests.js's fetchCustomerRequests for the identical reasoning.
 /** Everything this person has recorded, newest first. RLS scopes it to them. */
-export async function fetchHouseholdItems(ownerId) {
-  const { data, error } = await supabase
-    .from("household_items")
-    .select(ITEM_SELECT)
-    .eq("owner_id", ownerId)
-    .order("created_at", { ascending: false });
+export async function fetchHouseholdItems(ownerId, workspaceId) {
+  const query = supabase.from("household_items").select(ITEM_SELECT);
+  const scoped = workspaceId ? query.eq("workspace_id", workspaceId) : query.eq("owner_id", ownerId);
+  const { data, error } = await scoped.order("created_at", { ascending: false });
   if (error) throw error;
   return withSignedPhotos(data.map(reshapeItem));
 }

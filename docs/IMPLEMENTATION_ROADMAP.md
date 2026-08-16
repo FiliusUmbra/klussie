@@ -1057,7 +1057,7 @@ A session takes one of five shapes:
 | 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
 | 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
 | 02 — Identity Engine | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-02/COMPLETION.md) |
-| 03 — Workspace Engine | **In progress** — 10/12 packages (03.01–03.10), not yet verified against a live database this session (see below). WP 03.11–03.12 remain |
+| 03 — Workspace Engine | **In progress** — 10/12 packages complete, WP 03.11 partially done (2 of the identified read paths switched), not yet verified against a live database this session (see below). WP 03.12 remains |
 | 04–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03, in progress.** WP 03.01–03.08 are additive or read-only —
@@ -1119,6 +1119,40 @@ prior `VERIFY_*.sql` run in this epic has required. This is a new,
 narrower gap than WP 03.09's — not "can't sign in as a test user," but
 "can't reach the database directly at all" — and blocks running this or
 any future `VERIFY_*.sql` from this session until resolved.
+
+**WP 03.11, as far as built this session — deliberately partial, and said
+so rather than reported as done.** "Every list, detail and dashboard
+query becomes workspace-scoped" turned out to name roughly eight owner-
+scoped reads across `requests.js`, `householdItems.js`, `pros.js`,
+`portfolio.js`, `testimonials.js`, `reports.js` and `messages.js`, of
+uneven risk and clarity. Switched, with tests: `fetchCustomerRequests` /
+`subscribeToCustomerRequests` (`service_requests`, the requesting
+workspace) and `fetchHouseholdItems` (`household_items`, the owner's
+Personal Workspace) — the two reads where "membership alone is the
+correct answer" is unambiguous and the existing filter is a single
+`.eq()`. Both take an optional `workspaceId` (`useAuth().activeWorkspace
+?.workspace_id`, WP 03.09) and fall back to the pre-Epic-03 owner-id
+filter when it is absent — null on any database without Epic 03's
+migrations, or for anyone the resolver could not place in exactly one
+workspace — so a single-workspace person sees identical results
+whichever branch runs, proven by tests asserting the reshaped output is
+`toEqual` across both paths, not merely that neither throws.
+
+**Deliberately NOT switched, and why**, so the next session doesn't have
+to re-derive it: `fetchProLeads`/`fetchProJobs` (ADR-0025 Class 1 —
+pre-engagement discovery has no membership to scope by); the pro's own
+services/profile in `pros.js`, `portfolio.js`, `testimonials.js`
+(genuine candidates — the offering workspace — not yet done); `reports.js`
+(the reporting workspace, not yet done); `messages.js` (bilateral —
+customer and professional sides — the most judgment-dependent of what
+remains, since only the requesting-workspace side has anywhere to
+switch to until Epic 12's engagements exist); `fetchReviewsForPro`,
+`fetchPublicProInfo`, `fetchPlatformTrustStats`, the public
+`pro_services`/`pro_profiles` reads (ADR-0025 Class 2 — public, not
+owner-scoped, nothing to switch). A future session picking this up
+should re-read this list before assuming the remainder is uniform — it
+isn't; `messages.js` in particular needs its own judgment call, not a
+mechanical repeat of this package's pattern.
 
 **Production has none of Epics 01–03.** See
 [`operations/PRODUCTION_MIGRATION_0018_0029.md`](./operations/PRODUCTION_MIGRATION_0018_0029.md)
