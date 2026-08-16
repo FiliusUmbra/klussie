@@ -18,8 +18,9 @@ priorities, risks, debt, decisions. It does not own product philosophy
   is the only source of truth. How to build it:
   [`../ENGINEERING.md`](../ENGINEERING.md).
 - **Current milestone:** Epic 03 — Workspace Engine, **in progress**
-  (9/12 packages, staging only) — the pivot of the roadmap and its
-  highest-risk item. Epic 02 — Identity Engine completed 2026-08-13. (§2)
+  (10/12 packages, not yet verified against a live database) — the
+  pivot of the roadmap and its highest-risk item. Epic 02 — Identity
+  Engine completed 2026-08-13. (§2)
 - **The architecture is frozen.** `PLATFORM_DOMAIN_MODEL`,
   `DATABASE_ARCHITECTURE`, `SYSTEM_ARCHITECTURE` and
   `SUPABASE_ARCHITECTURE` change only by ADR. Klussie is a **Property
@@ -142,29 +143,34 @@ Current Objective     Workspace/membership tables, the STABLE membership helper,
                        (resolve context, decide permission, ADR-0027's vocabulary)
                        are built. WP 03.09 added the first real client-side
                        caller (src/lib/workspaceContext.js), resolved but unused.
-                       ADR-0024 found there is no API Gateway and deferred it;
-                       ADR-0025 (Proposed) carves out marketplace visibility
-                       before WP 03.10 can reshape RLS. Remaining: 03.10 (RLS
-                       isolation backstop), 03.11 (the read switch — the epic's
-                       one behaviour-changing package), 03.12 (workspace
-                       switcher, hidden for single-workspace users).
+                       WP 03.10 added a permissive, select-only isolation policy
+                       to all thirteen workspace-scoped tables, deleting no
+                       existing policy (ADR-0025's narrowing). ADR-0024 found
+                       there is no API Gateway and deferred it. Remaining: 03.11
+                       (the read switch — the epic's one behaviour-changing
+                       package), 03.12 (workspace switcher, hidden for
+                       single-workspace users).
 Previous Milestone    Epic 02 — Identity Engine (2026-08-13, complete): identity
                        separated from Supabase Auth, backfilled, dual-written,
                        reconciled, read from, erasable by redaction. Record:
                        implementation/epic-02/COMPLETION.md
-Current Branch        main (Epic 03 WP01–WP09 merged via PR #1 and #2)
-Next Deliverable      WP 03.10 — reshape RLS policies to isolation and
-                       membership, narrowed by ADR-0025 to "adds, removes
-                       nothing." Then WP 03.11 (read switch, gated on 03.07's
-                       reconciliation) and WP 03.12 (switcher).
-Open from Epic 03     WP 03.09's client caller has not been seen rendering
-                       against a live environment — this session's available
-                       credentials authenticate against neither known account
-                       on whichever project .env.local targets; same class of
-                       gap as Epic 02's read switch, not a new one. ADR-0025 is
-                       still Proposed. Production has none of Epics 01–03 —
-                       see operations/PRODUCTION_MIGRATION_0018_0029.md, written
-                       for 0018–0029 only and not yet extended through 0036.
+Current Branch        main (Epic 03 WP01–WP08 merged via PR #1 and #2); WP09
+                       and WP10 each on their own branch/PR, not yet merged
+Next Deliverable      WP 03.11 — the read switch, the epic's one
+                       behaviour-changing package, gated on WP 03.07's
+                       reconciliation (passed against staging's real data).
+                       Then WP 03.12 (switcher).
+Open from Epic 03     Neither WP 03.09's client caller nor WP 03.10's RLS
+                       policies have been seen exercised against a live
+                       database this session: no working psql connection
+                       (pooler host + password) and no linked Supabase CLI
+                       project, so VERIFY_WORKSPACE_ISOLATION_POLICIES.sql is
+                       written but unrun — a new, narrower gap than WP 03.09's
+                       (which at least reached PostgREST and failed on
+                       credentials; this can't reach the database at all).
+                       Production has none of Epics 01–03 — see
+                       operations/PRODUCTION_MIGRATION_0018_0029.md, written
+                       for 0018–0029 only and not yet extended through 0037.
 Open from Epic 02     The read switch has never been seen rendering (.env.local
                        does not point at a project this session can sign into);
                        ADR-0020/0021/0022 still Proposed; pro_profiles is not

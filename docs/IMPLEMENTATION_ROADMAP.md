@@ -1057,7 +1057,7 @@ A session takes one of five shapes:
 | 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
 | 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
 | 02 — Identity Engine | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-02/COMPLETION.md) |
-| 03 — Workspace Engine | **In progress** — 9/12 packages (03.01–03.09), staging only. WP 03.10–03.12 remain |
+| 03 — Workspace Engine | **In progress** — 10/12 packages (03.01–03.10), not yet verified against a live database this session (see below). WP 03.11–03.12 remain |
 | 04–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03, in progress.** WP 03.01–03.08 are additive or read-only —
@@ -1096,6 +1096,29 @@ environment** — the same gap Epic 02's read switch carries: the
 credentials available to this session do not authenticate against
 whichever project `.env.local` currently targets. Carried forward
 alongside that gap, not a new one.
+
+**WP 03.10, as actually built** (narrowed by ADR-0025):
+`0037_workspace_isolation_policies.sql` adds one permissive `for select`
+isolation policy — `workspace_id in (select workspace_id from
+api.current_workspace_memberships())` — to all thirteen tables WP 03.05
+gave a workspace_id column. Deletes nothing; every one of ADR-0025's
+named exceptions and every other pre-existing policy on those tables is
+unreferenced by any `drop`. Scoped to `select` only, not `insert` /
+`update` / `delete`: `SUPABASE_ARCHITECTURE.md` §7 puts writes on the
+gateway-mediated path, which does not exist yet (ADR-0024), so writes
+continue through the same bespoke business-action policies this
+migration does not touch. 7 new structural tests
+(`workspaceIsolationPolicies.test.js`) plus
+`VERIFY_WORKSPACE_ISOLATION_POLICIES.sql` (written, not yet run — see
+below). Full suite (650 tests, 52 files), lint, typecheck and build all
+pass. **Not applied to any database and not run against staging this
+session** — this session has the Supabase project URL and anon key
+(`.env.local`) but no direct Postgres connection (pooler host, database
+password) and no working Supabase CLI project link, both of which every
+prior `VERIFY_*.sql` run in this epic has required. This is a new,
+narrower gap than WP 03.09's — not "can't sign in as a test user," but
+"can't reach the database directly at all" — and blocks running this or
+any future `VERIFY_*.sql` from this session until resolved.
 
 **Production has none of Epics 01–03.** See
 [`operations/PRODUCTION_MIGRATION_0018_0029.md`](./operations/PRODUCTION_MIGRATION_0018_0029.md)
