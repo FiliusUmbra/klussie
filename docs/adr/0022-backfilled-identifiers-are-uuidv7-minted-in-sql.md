@@ -1,7 +1,8 @@
 # ADR-0022: Backfilled identifiers are UUIDv7 minted in SQL from the row's own creation time
 
-**Status:** Proposed — implemented in Epic 02 WP 02.02; applies to every
-backfill in the roadmap, of which this is the first
+**Status:** **Accepted** 2026-08-14 — implemented in Epic 02 WP 02.02;
+governs every backfill in the roadmap, of which WP 02.02 was the first
+and WP 03.03/03.04 (Epic 03) are the next
 **Date:** 2026-08-13
 **Related:** `../architecture/SUPABASE_ARCHITECTURE.md` §3 §11.4,
 `../architecture/DATABASE_ARCHITECTURE.md` §8,
@@ -99,10 +100,15 @@ Idempotency is separate and unaffected: the backfill inserts only where
 no identity exists for the source row, so re-running mints nothing and
 changes nothing. **Re-running is a no-op, not a re-mint.**
 
-**This ADR is `Proposed`.** It is implemented against tables that are
-empty in every environment. Identifiers are permanent once written (§8:
-"Its identifier is permanent and never reused"), so this is cheap to
-revise now and never again.
+**This ADR was `Proposed` while `identity.identities` was empty in every
+environment, which made revising it costless.** It no longer is: staging
+holds five real identity rows, each carrying a `person_ref` minted by
+this exact mechanism, and accepting this ADR retroactively formalises a
+decision that has already been load-bearing since WP 02.02 ran — not a
+decision still open for the taking. Identifiers are permanent once
+written (§8: "Its identifier is permanent and never reused"), which is
+precisely why this acceptance closes the window rather than merely
+noting one still existed.
 
 ## Consequences
 
