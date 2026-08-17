@@ -336,8 +336,8 @@ owns the real underlying capability ships it — see
   but the read switch must not reach real users before that diagnostic
   runs and passes. Staging only for what was built; nothing applied
   anywhere.
-- **The document engine exists, partially** (Epic 08, **in progress,
-  6/9 packages**) — `property.documents` holds the current version
+- **The document engine exists, mostly** (Epic 08, **in progress,
+  8/9 packages**) — `property.documents` holds the current version
   directly on the row, `property.document_versions` holds only
   superseded versions, append-only: ADR-0028's mutable-current-plus-
   closed-log shape, a third application, no new ADR needed.
@@ -352,17 +352,27 @@ owns the real underlying capability ships it — see
   independent of attachment** — `§15` calls that separation a principle
   that was "nearly lost," and the isolation policy and engine contract
   both hold the line in a real, reproducible scenario, not just by
-  omission (see `../../implementation/epic-08/COMPLETION.md` §2).
-  `portfolio_items` and `service_request_photos` are both backfilled;
-  **`profiles.avatar_url` is deliberately excluded** — checked against
-  §15's own definition of a document, found not to fit, corrected before
-  building it as the roadmap's own original scope note assumed (see
-  `../../implementation/epic-08/COMPLETION.md` §5). **Deliberately
-  stopped before WP 08.07–09** (dual-write, reconciliation, the read
-  switch): dual-write here means two separate live client code paths at
-  once (portfolio upload, request-photo upload), a materially larger
-  surface than Epic 07's single file, judged worth its own dedicated
-  pass. Staging only for what was built; nothing applied anywhere.
+  omission. `portfolio_items` and `service_request_photos` are both
+  backfilled and now kept in sync going forward by four database
+  triggers (insert/delete on each source table — neither needed an
+  update trigger); building the delete triggers caught a real bug before
+  it could ship — `document_attachments`/`document_shares` had no
+  `ON DELETE` clause on `document_id`, fixed with `CASCADE` in the same
+  migration. **`profiles.avatar_url` is deliberately excluded** —
+  checked against §15's own definition of a document, found not to fit,
+  corrected before building it as the roadmap's own original scope note
+  assumed. **WP 08.09, the read switch, is blocked, not deferred** —
+  designing it found `property.documents`' isolation model has no path
+  for public visibility, while `public.portfolio_items` is genuinely
+  public today (`for select to anon, authenticated using (true)`,
+  migration `0006`); switching as originally scoped would silently break
+  public portfolio viewing. Separately, `service_request_photos`-sourced
+  documents are deliberately unattached and cannot be discovered via
+  `my_documents(subject)` at all. Real alternatives are weighed, not
+  chosen, in `../../implementation/epic-08/COMPLETION.md` §5.5 — the
+  first work package in this roadmap stopped for a genuine architectural
+  decision rather than scope or database access. Staging only for what
+  was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's. Its migration
   ledger is still unreconciled (`../operations/ENVIRONMENTS.md` §9),

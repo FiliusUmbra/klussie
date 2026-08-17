@@ -1643,49 +1643,57 @@ data (after WP 07.05), and the first backfilling from two source tables
 into one target in a single package. **Rollback.** Delete backfilled
 rows; both source tables are unaffected either way.
 
-**Where this epic stops, and why — a complexity boundary, not a database-
-access one.** Per this session's own current standing discipline,
-lacking a database connection is not by itself a reason to stop short —
-WP 08.01–08.06 above are implemented in full, with structural tests and
-diagnostics, live verification marked Pending like every package since
-Epic 03. The reason to decompose but not build WP 08.07–08.09 this
-session is different and stated plainly: this epic already introduces
-four genuinely new structural patterns in one sitting — versioning, an
-independent sharing table, multi-subject attachment, and a declared type
-catalog that (unlike every prior declared catalog) had to ship
-non-empty. Dual-write for this epic means touching **two separate** live
-client code paths at once — portfolio-photo upload (pro profile editing)
-and request-photo upload (the AI intake flow) — a materially larger
-surface than Epic 07's single `src/lib/householdItems.js`. Layering that
-onto an already-large structural epic risks exactly the kind of rushed,
-under-considered work this session's own quality standard exists to
-prevent. Decomposed below so the next session (or this one, continued)
-has the full shape ready.
-
 **08.07 · Dual-write: `portfolio_items`/`service_request_photos` writes
-also write `property.documents`**
-*Decomposed, not built this session.* Following Epic 07's WP 07.06
-precedent exactly: a database trigger on each source table, not an
-application-level second write — the only place a mirror write is
-transactional with the primary one. **Complexity.** High. **Rollback.**
-Drop the triggers.
+also write `property.documents` (complete)**
+Following Epic 07's WP 07.06 precedent exactly: a database trigger on
+each source table, not an application-level second write. Read before
+design found both source tables simpler than assumed —
+`src/lib/portfolio.js` and `src/lib/requestPhotos.js` were read in full
+before writing this package, and neither has a client-mutable field the
+document model needs to track beyond creation (portfolio's own
+`caption` has no equivalent column on `property.documents` and is a
+stated, deliberate gap), so only INSERT and DELETE triggers were built
+per table — no UPDATE trigger on either. **Also found and fixed, before
+any live delete could hit it:** `document_attachments.document_id` and
+`document_shares.document_id` (0056/0057) had no `ON DELETE` clause —
+the same class of bug as Epic 07's `household_items_id`, caught this
+time by re-reading those two migrations before writing the delete
+triggers, fixed with `ON DELETE CASCADE` in the same migration rather
+than needing a follow-up one. **Complexity.** High. **Rollback.** Drop
+the four triggers and the two mirror functions; the FK fix stands
+regardless, since it was a defect independent of dual-write existing.
 
-**08.08 · Reconcile `property.documents` against both source tables**
-*Decomposed, not built this session.* One `RECONCILE_DOCUMENTS.sql`,
-following `RECONCILE_ASSETS.sql`'s own shape — real row counts,
-null-safe discrepancy checks re-deriving owning workspace and every
-mapped field fresh, the hard gate roadmap §3 requires before WP 08.09
-may be trusted. **Complexity.** Medium. **Rollback.** None — read-only.
+**08.08 · Reconcile `property.documents` against both source tables
+(complete, structurally)**
+`RECONCILE_DOCUMENTS.sql`, following `RECONCILE_ASSETS.sql`'s own shape
+— real row counts, null-safe discrepancy checks re-deriving owning
+workspace and every mapped field fresh for both source tables, plus an
+attachment-shape check specific to this epic (portfolio documents must
+be attached to their owning workspace; request-photo documents must
+stay unattached). Written and structurally tested; **has not run
+against a database this session** — live verification Pending.
+**Complexity.** Medium. **Rollback.** None — read-only.
 
-**08.09 · Switch reads to `property.documents`**
-*Decomposed, not built this session.* The epic's one behaviour-changing
-package — wherever portfolio images and request photos are currently
-read (pro profile display, request detail sheets) switches to
-`api.my_documents()`/`api.resolve_document()`, with the same
-proven-identical-fallback discipline every read switch since Epic 03
-WP 03.11 has used. **Complexity.** High. **Rollback.** Revert the read
-path; no data change. **Deploy gate:** do not ship without WP 08.08
-having actually run and passed.
+**08.09 · Switch reads to `property.documents` — blocked, not
+decomposed-and-deferred**
+Designing this package, rather than starting to build it, surfaced a
+genuine architectural gap: `service_request_photos` documents are
+deliberately unattached (0060/0061's own restraint), so
+`property.my_documents(subject)` cannot discover them at all — there is
+no clean subject to query by. Separately, and more significantly:
+`property.documents`' isolation model has exactly two visibility paths
+(owning workspace, explicit share), but `public.portfolio_items` is
+genuinely public today (`for select to anon, authenticated using
+(true)`, migration `0006`) — switching the portfolio read to the new
+model as designed would silently break public portfolio viewing on
+`ProPublicProfileSheet.jsx`. Both findings are recorded in full, with
+the real alternatives weighed, in
+`implementation/epic-08/COMPLETION.md` §5.5. **Not built.** This is the
+first work package in this roadmap stopped for a genuine architectural
+decision rather than for scope, complexity, or database access — the
+product owner's call, not this session's to make silently.
+**Complexity.** High, and undetermined until the decision is made.
+**Rollback.** N/A — nothing built yet.
 
 ## 19 · Risk Register
 
@@ -1738,7 +1746,7 @@ A session takes one of five shapes:
 | 05 — Property Engine | **Complete** 2026-08-16 — 6/6 packages. Not yet verified against a live database (gate 10 open, same as Epic 03). [Completion record](../implementation/epic-05/COMPLETION.md) |
 | 06 — Location Engine | **Complete** 2026-08-17 — 5/5 packages. Not yet verified against a live database (gate 10 open, fourth epic in a row). [Completion record](../implementation/epic-06/COMPLETION.md) |
 | 07 — Asset Engine | **Complete** — 8/8 packages. Dual-write is a database trigger (0053), not an application-level second write. Live verification (RECONCILE_ASSETS.sql, the six-step pattern's hard gate) is Pending — written and structurally tested, not yet run against a database. [Completion record](../implementation/epic-07/COMPLETION.md) |
-| 08 — Document Engine | **In progress** — 6/9 packages (08.01–08.06: types, versions, attachments, sharing, isolation, contract, and the backfill of `portfolio_items`/`service_request_photos`). WP 08.07–08.09 (dual-write, reconcile, switch) decomposed but deliberately deferred — see §18's own scope note. `avatar_url` deliberately excluded from this epic; see §18's Platform Discoveries |
+| 08 — Document Engine | **In progress** — 8/9 packages (08.01–08.08: types, versions, attachments, sharing, isolation, contract, backfill, dual-write, reconcile). WP 08.09 (the read switch) is **blocked on a genuine architectural decision** — `service_request_photos` documents have no discoverable subject, and `property.documents`' isolation model has no "public" visibility path, but `portfolio_items` is genuinely public today. See `implementation/epic-08/COMPLETION.md` §5.5. `avatar_url` deliberately excluded from this epic; see §18's Platform Discoveries |
 | 09–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03 closed with four ADRs**, each accepted as part of building the

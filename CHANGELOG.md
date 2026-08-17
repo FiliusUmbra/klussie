@@ -50,7 +50,7 @@ accurately.
 
 ### Added
 
-**Epic 08 — Document Engine (partial, 6 of 9 packages).** Nothing here
+**Epic 08 — Document Engine (partial, 8 of 9 packages).** Nothing here
 changes what a user sees yet — `portfolio_items` and
 `service_request_photos` are read, never written, by everything built
 this session.
@@ -89,14 +89,31 @@ this session.
   target at once. Sharing for request photos is backfilled as a
   point-in-time snapshot of the existing `pro_matches_request()`
   matching rule.
-- **Deliberately incomplete.** WP 08.07 (dual-write), 08.08
-  (reconciliation), 08.09 (the read switch) are decomposed but not
-  built — dual-write here touches two separate live client code paths
-  (portfolio upload, request-photo upload) at once, judged worth its
-  own dedicated pass rather than appending it to an already-large
-  structural epic.
+- **Dual-write: every `portfolio_items`/`service_request_photos` write
+  also writes `property.documents`, going forward** — four database
+  triggers (insert and delete on each source table), not an
+  application-level second write. Neither table needed an update
+  trigger — read before design found neither has a client-mutable field
+  the document model tracks.
+- **Fixed, before it could ship: a foreign key that would have broken
+  deleting a document.** `document_attachments.document_id` and
+  `document_shares.document_id` had no `ON DELETE` behaviour, which
+  would have made deleting a convenience-class document fail outright.
+  Fixed with `ON DELETE CASCADE` in the same migration that added the
+  delete triggers that would have hit it — caught this time before any
+  account could be affected, not after.
+- **Reconciled**: `RECONCILE_DOCUMENTS.sql`, written and structurally
+  tested, following `RECONCILE_ASSETS.sql`'s own shape.
+- **The read switch (WP 08.09) is blocked, not deferred.** Designing it
+  found `property.documents`' isolation model has no path for public
+  visibility, while `portfolio_items` is genuinely public today —
+  switching as scoped would silently break public portfolio viewing.
+  Separately, `service_request_photos`-sourced documents are
+  deliberately unattached and cannot be discovered by subject at all.
+  Real alternatives are weighed, none chosen — a product decision, not
+  an implementation one.
 
-- Test suite grew from 875 tests across 75 files to **922 across 81**.
+- Test suite grew from 875 tests across 75 files to **940 across 83**.
 
 **Epic 07 — Asset Engine (complete, 8 of 8 packages).** `household_items`
 is still what every write actually lands on. What changed is where "Mijn
