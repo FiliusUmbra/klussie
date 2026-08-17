@@ -53,13 +53,49 @@ async function withSignedPhotos(items) {
   return items.map((item) => (item.photoPath ? { ...item, photoUrl: urlByPath.get(item.photoPath) ?? null } : item));
 }
 
-// Epic 03 WP11 — the read switch. `workspaceId` is `useAuth().activeWorkspace?.workspace_id`
-// (WP 03.09), null on a database without Epic 03's migrations or for anyone the resolver
-// could not place in exactly one workspace — both fall back to `owner_id`, the same row set
-// `workspace_id` was backfilled from (WP 03.06/03.07), so a single-workspace owner sees no
-// difference either way. See requests.js's fetchCustomerRequests for the identical reasoning.
-/** Everything this person has recorded, newest first. RLS scopes it to them. */
-export async function fetchHouseholdItems(ownerId, workspaceId) {
+// Epic 07 WP08 — the second read switch. Same shape as household_items row → camelCase
+// item, but sourced from property.assets (0053's dual-write mirror) via api.my_assets()
+// (0054, active only) rather than household_items directly. Field names differ
+// (type/room_label/make/acquired_on vs category/room/brand/purchased_on — see 0052's own
+// mapping) but the reshaped output is identical to reshapeItem's, so nothing downstream can
+// tell which table actually answered.
+function reshapeAsset(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.type,
+    room: row.room_label,
+    brand: row.make,
+    model: row.model,
+    photoPath: row.photo_path,
+    photoUrl: null, // filled in by withSignedPhotos
+    purchasedOn: row.acquired_on,
+    notes: row.notes,
+    source: row.source,
+    aiSuggestion: row.ai_suggestion,
+    createdAt: new Date(row.created_at).getTime(),
+    updatedAt: new Date(row.updated_at).getTime(),
+  };
+}
+
+// Epic 03 WP11, then Epic 07 WP08 — two read switches stacked. `workspaceId` is
+// `useAuth().activeWorkspace?.workspace_id` (WP 03.09); `propertyId` is
+// `homeProfile.property?.id` (WP 05.06, `src/lib/homeInventory.js`'s `fetchHomeProfile()`).
+// Both are null until their own migrations exist and their own resolver can place the
+// caller unambiguously — three tiers, tried in the order the roadmap built them:
+// property.assets (newest, WP 07.08) -> workspace-scoped household_items (WP 03.11) ->
+// owner-scoped household_items (original, pre-Epic-03). A single-workspace owner whose
+// items have all been mirrored sees identical results at every tier — the same fallback
+// discipline requests.js's fetchCustomerRequests already established.
+/** Everything this person has recorded, newest first. RLS/the engine contract scopes it to them. */
+export async function fetchHouseholdItems(ownerId, workspaceId, propertyId) {
+  if (propertyId) {
+    const { data, error } = await supabase.schema("api").rpc("my_assets", { p_property_id: propertyId });
+    if (error) throw error;
+    const sorted = [...data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return withSignedPhotos(sorted.map(reshapeAsset));
+  }
+
   const query = supabase.from("household_items").select(ITEM_SELECT);
   const scoped = workspaceId ? query.eq("workspace_id", workspaceId) : query.eq("owner_id", ownerId);
   const { data, error } = await scoped.order("created_at", { ascending: false });

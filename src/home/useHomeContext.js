@@ -62,7 +62,10 @@ export function useHomeContext({ t, profile, requests }) {
   const [items, setItems] = useState(null);
   const [itemsError, setItemsError] = useState(null);
   const ownerId = profile?.id;
-  // Epic 03 WP11 — see fetchHouseholdItems for the fallback this depends on.
+  // Epic 03 WP11, then Epic 07 WP08 — see fetchHouseholdItems for the fallback this depends
+  // on. propertyId comes from homeProfile, resolved by the separate effect below; it is
+  // null on first render (homeProfile starts null) and non-null shortly after, which is why
+  // it is its own dependency below rather than something read once.
   const { activeWorkspace } = useAuth();
   const workspaceId = activeWorkspace?.workspace_id;
 
@@ -84,18 +87,22 @@ export function useHomeContext({ t, profile, requests }) {
   // another pass; it never sets item state itself.
   const [reloadToken, setReloadToken] = useState(0);
   const refreshItems = useCallback(() => setReloadToken((n) => n + 1), []);
+  const propertyId = homeProfile?.property?.id;
 
   useEffect(() => {
     if (!ownerId) return;
     let cancelled = false;
-    fetchHouseholdItems(ownerId, workspaceId)
+    fetchHouseholdItems(ownerId, workspaceId, propertyId)
       .then((rows) => { if (!cancelled) { setItems(rows); setItemsError(null); } })
       // Surfaced rather than swallowed: an inventory that silently shows nothing after a
       // failed read looks exactly like an inventory the customer never filled in, and
       // would invite them to enter everything a second time.
       .catch((err) => { if (!cancelled) setItemsError(err.message || String(err)); });
     return () => { cancelled = true; };
-  }, [ownerId, workspaceId, reloadToken]);
+    // propertyId resolves shortly after mount (a separate effect, above); this intentionally
+    // re-fetches once it does, the same way a resolved workspaceId already re-fetches under
+    // Epic 03 WP11 — both are "add without switching" until the value exists, then switch.
+  }, [ownerId, workspaceId, propertyId, reloadToken]);
 
   const today = useMemo(() => pickTodayItem(requests), [requests]);
   const active = useMemo(() => activeRequests(requests, today?.request?.id), [requests, today]);

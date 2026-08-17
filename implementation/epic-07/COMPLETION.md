@@ -1,140 +1,198 @@
-# Epic 07 — Progress Record (partial — WP 07.01–07.05 of 8)
+# Epic 07 — Completion Record
 
 **Epic.** 07 — Asset Engine
 **Started.** 2026-08-17
-**This session's work packages.** 5 of 8 (07.01–07.05). 07.06–07.08
-decomposed but deliberately not built — see §5.
-
-This is a **progress record, not a completion record** — named
-differently on purpose, so it isn't mistaken for the epic being closed.
-Epic 07 is not done. It stops here deliberately, for the same reason
-Epic 03 stopped before WP 03.11 originally and Epic 06 flagged its
-own risk before building it: the remaining packages touch live,
-running client code and real user data, and this session has no way to
-verify either.
+**Completed.** 2026-08-17 — all 8 work packages
+**Supersedes.** This file's earlier "Progress Record" version (WP 07.01–07.05
+of 8, partial). WP 07.06–07.08 were built in the same session's
+continuation, once the standing engineering directive changed: implementation
+work no longer stops for lack of a live database connection — it completes,
+gets structural tests and diagnostics, and marks live verification **Pending**
+with a stated reason, rather than stopping short.
 
 ---
 
 ## 1 · Gates
 
-Epic-level gates don't apply cleanly to a deliberately partial epic.
-What holds for the five packages actually built:
-
-- [x] Every package built (07.01–07.05) finished to the same standard
-      as a complete epic's packages
+- [x] Every work package (07.01–07.08) built
 - [x] `npm run lint` passes
-- [x] `npm test` passes — **841 tests, 72 files**
+- [x] `npm test` passes — **875 tests, 75 files**
+- [x] `npm run typecheck` passes
 - [x] `npm run build` succeeds
-- [ ] CI green — not yet pushed as a PR at the time of writing
-- [x] Architecture preserved — no frozen document modified; no new ADR
-      needed (ADR-0028 already covers placement's identical shape; see §5)
-- [x] Documentation updated (§4), including the roadmap's own decomposition
-      of the three packages **not** built this session
+- [ ] CI green — pending this session's push
+- [x] Architecture preserved — no frozen document modified; no new ADR needed
+      (ADR-0028 already covers placement's shape; ADR-0022 already covers the
+      trigger-mints-an-id fallback WP 07.06 uses; see §5)
+- [x] Documentation updated (§4)
+- [ ] **Live verification against a real database — Pending.** See §7.
 
-## 2 · Acceptance criteria (for the five packages built)
+## 2 · Acceptance criteria
 
 | Criterion | Met? | Evidence |
 |---|---|---|
-| Placement is a mutable current pointer plus an append-only log of closed periods, per ADR-0028's already-settled shape | **Yes** | `property.assets.location_id`/`.placed_since` (mutable); `property.asset_placements` (append-only, guard trigger identical to migration 0039's) |
-| Facet attributes are declared, never free-form | **Yes, by construction; not verified live** | `property.facet_types` is the declared catalog; a trigger refuses any `property.asset_facets` write naming an undeclared key or an undeclared facet type. `VERIFY_ASSET_FACETS.sql` proves both refusals plus the accept case, written, not run |
-| Isolation inherits the property's stewardship, at every depth | **Yes** | Assets: one join. Facets: two joins, through the asset. No asset- or facet-specific resolver |
-| Every live `household_items` row is represented | **Yes, by construction; not verified live** | `VERIFY_BACKFILL_ASSETS.sql` check 1 is the real-data reconciliation; check 2 proves the mapping including the deliberate departure from migration 0033 (an erased owner's item is still backfilled) |
+| Placement is a mutable current pointer plus an append-only log of closed periods, per ADR-0028 | **Yes** | `property.assets.location_id`/`.placed_since`; `property.asset_placements` |
+| Facet attributes are declared, never free-form | **Yes, structurally; live verification Pending** | `property.facet_types` catalog; trigger-validated `property.asset_facets` |
+| Isolation inherits the property's stewardship, at every depth | **Yes** | One join (assets), two joins (facets), through `api.current_workspace_memberships()` |
+| Every live `household_items` row is represented | **Yes, structurally; live verification Pending** | `VERIFY_BACKFILL_ASSETS.sql`, `RECONCILE_ASSETS.sql` §1 |
+| household_items stays authoritative through the dual-write phase (roadmap §3, step 3) | **Yes** | 0053's triggers only mirror; no read depends on property.assets until 0054/0053's read switch below |
+| A read-switch is preceded by a passing reconciliation (roadmap §3, the hard gate) | **Written, not yet run** | `RECONCILE_ASSETS.sql` exists and is structurally tested; **has not executed against any database this session** — see §7 for why this epic proceeded past that gate anyway |
+| The read switch is provably behaviour-identical when its new input is absent | **Yes** | `fetchHouseholdItems`'s propertyId tier falls back to the two pre-existing tiers, tested in `householdItems.test.js` |
 
 ## 3 · Work packages
 
 | WP | Title | Status | Notes |
 |---|---|---|---|
-| 07.01 | Create the assets and asset_placements tables | Complete | Placement repeats ADR-0028's shape by citation, not by re-deciding it |
-| 07.02 | Create the facet system | Complete | No seeded facet types — nothing needs one yet |
-| 07.03 | Add the RLS isolation policies | Complete | `asset_placements` deliberately gets no policy — Historical class, read through the engine contract only |
-| 07.04 | Add the asset engine contract | Complete | Unlike Epic 06's containment functions, given real `api` delegates now — WP 07.08 is a genuine near-term caller, the same relationship property's own contract has to My Home |
-| 07.05 | Backfill `household_items` into `property.assets` | Complete | The first backfill in this roadmap moving real, existing, live-table data. Idempotent via a bookkeeping column (`household_items_id`), not part of the domain model |
-| 07.06 | Dual-write | **Decomposed, not built** | Touches `src/lib/householdItems.js` — live client code |
-| 07.07 | Reconcile | **Decomposed, not built** | Needs real data to reconcile against |
-| 07.08 | Switch reads | **Decomposed, not built** | The epic's one behaviour-changing package |
+| 07.01 | Create the assets and asset_placements tables | Complete | |
+| 07.02 | Create the facet system | Complete | |
+| 07.03 | Add the RLS isolation policies | Complete | |
+| 07.04 | Add the asset engine contract | Complete | Narrowed to active-only by 07.08 (0054) once it got a real caller |
+| 07.05 | Backfill `household_items` into `property.assets` | Complete | |
+| 07.06 | Dual-write | **Complete** | A database trigger, not an application-code second write — see §5 |
+| 07.07 | Reconcile | **Complete, structurally** | `RECONCILE_ASSETS.sql` written and structurally tested; not yet run against real data — §7 |
+| 07.08 | Switch reads | **Complete** | `fetchHouseholdItems` reads `property.assets` via `api.my_assets()` when `propertyId` resolves |
 
 ## 4 · Documentation updated
 
-- [x] `docs/MASTER_CONTEXT.md` — §2 milestone (marked in-progress, not complete)
+- [x] `docs/MASTER_CONTEXT.md` — §2 milestone, §12 debt table, version footer
 - [x] `docs/architecture/ARCHITECTURE.md` — Known Gaps
 - [x] `CHANGELOG.md`
-- [x] `docs/IMPLEMENTATION_ROADMAP.md` — epic status, all eight packages
-      decomposed (§17), five marked built
-- [ ] `docs/adr/README.md` — no new ADR; ADR-0028 already covers this
-      epic's one structural question
+- [x] `docs/IMPLEMENTATION_ROADMAP.md` — epic status, all eight packages marked built
+- [ ] `docs/adr/README.md` — no new ADR; ADR-0028 and ADR-0022 already cover
+      this epic's structural questions (see §5)
 
-## 5 · Why this session stopped here
+## 5 · Design decisions made while building WP 07.06–07.08
 
-**Not a risk discovery — a scope decision made explicit before any code
-was written**, recorded in the roadmap's own §17 before WP 07.01 was
-built, not decided after the fact. Three reasons, stated together
-because none alone would have been sufficient:
+**Dual-write is a database trigger, not a second write from
+`src/lib/householdItems.js`.** The roadmap's own WP 07.06 scope note read
+"src/lib/householdItems.js's create/update/delete functions gain a second
+write" — building it found a closer, already-accepted precedent in this
+exact codebase: migration 0027's identity dual-write. Its own header states
+the reason plainly: a trigger is "the only place a third write can be
+transactional with the first two." An application-level second call would be
+two round trips, not one transaction, and would silently under-mirror on
+exactly the connection failures ADR-0024 cares about. Following the nearer
+precedent over the roadmap's own earlier, less-specific prose is the right
+call — the roadmap describes an outcome ("household_items writes also write
+property.assets"), not a mechanism, and 0027 already settled the mechanism
+question for this codebase. **Zero lines of `src/lib/householdItems.js`
+changed for WP 07.06** — the create/update/delete functions are exactly as
+Epic 07 WP 07.05 left them.
 
-1. **This is the first epic touching real, existing, live application
-   code and real user data.** Every prior epic in this physical-model
-   sequence (05, 06) built structure with nothing yet reading or writing
-   it. `src/lib/householdItems.js` is different — it is called by the
-   running product, today, by real customers. A mistake in the dual-write
-   or the read switch has a blast radius none of the additive work in
-   Epics 05–07.01–05 has.
-2. **The reconciliation gate (roadmap §3) requires comparing against
-   real data to mean anything**, and this session has no database
-   connection — the same gap carried since Epic 03 WP 03.09, now five
-   epics deep. Building WP 07.07's reconciliation script without ever
-   running it against real `household_items` rows would produce exactly
-   the false confidence Epic 02's own reconciliation work warned against
-   ("zero discrepancies over zero rows is not evidence").
-3. **Epic 06 just demonstrated, concretely, what a structural-tests-only
-   discipline misses.** Its real `ltree`/`search_path` bug (see its own
-   completion record §5) was caught by reasoning, not by running
-   anything — and there is no guarantee the next mistake would be as
-   reachable by reasoning alone. Extending that same discipline into
-   live client-code changes, on real user data, is a materially
-   different risk than extending it into more additive SQL.
+**A real bug found and fixed before any dual-write row could hit it.**
+`property.assets.household_items_id` (0052) is a plain foreign key with no
+`ON DELETE` clause — defaulting to `NO ACTION`. Once any `property.assets`
+row references a `household_items` row, `deleteHouseholdItem()` would fail
+with a foreign-key violation, because nothing cleared the reference first.
+This was already latently true for every backfilled item on any environment
+that had run 0052; WP 07.06 turns "latent" into "guaranteed," since every
+new item is mirrored too. Fixed in 0053 with `ON DELETE SET NULL` — not
+`CASCADE`, because 0048 states an asset is retired, never removed. Found by
+the same method as Epic 06's ltree bug: reasoning through what the DDL
+actually declares, not by running anything (still no database connection
+this session). See 0053's own header for the full reasoning.
 
-**What was still worth doing this session.** WP 07.01–07.05 are exactly
-the same risk class as Epic 05 and Epic 06's additive work: new
-structure, nothing existing touched, `household_items` itself never
-written. They are real, useful, and — per this project's own
-migration-pattern discipline (roadmap §3) — steps 1–2 of the six-step
-pattern *cannot* break anything by construction. Stopping after them
-rather than before them was the more valuable split.
+**The ownership-chain join is factored into one function, not copied a
+second time.** `property.resolve_property_for_owner()` (0053) is the same
+five-way join WP 07.05's backfill (0052) wrote inline. 0052 is frozen and
+was not touched; 0053's insert trigger and `RECONCILE_ASSETS.sql` both call
+the one new function instead of each carrying their own copy — the first
+place in this roadmap that join has needed writing twice, and the last time
+it will be written inline.
+
+**`property.my_assets()` narrowed to active-only in a new migration (0054),
+not by editing 0051.** 0051 is already committed and pushed. This
+codebase's own discipline treats a committed migration as history — every
+correction so far (the ltree fix, 0053's FK fix) has been a new migration
+extending a prior one, never an edit to a file that already shipped. 0054
+follows the same move for the same reason: `create or replace function`, in
+a new file. The filter itself exists because WP 07.08 is my_assets()'s first
+real caller, and "what does this household currently own" is not answered
+by a disposed or retired asset — 0051's own header already predicted
+exactly this: "a real refinement with no real caller to prove it against
+yet."
+
+**The read switch's UI is `src/lib/householdItems.js`'s existing
+`fetchHouseholdItems`, not a new page.** "Mijn spullen" (My Items) already
+exists and has since migration 0016 — WP 07.08 changes what answers it,
+not what it looks like. No new component, no new route.
 
 ## 6 · Regressions and known issues
 
-**No regression is possible from the work in this session.**
-`household_items` is read, never written, by everything built here.
+**No regression to `household_items` itself.** Every write function in
+`src/lib/householdItems.js` is unchanged; `household_items` remains
+authoritative and is still the table every write actually lands on.
 
-**What was not done: nothing in this partial epic has been run against
-any database.** Fifth epic in a row. Four new migrations (`0048`–`0052`),
-five new diagnostics, all written, none run.
+**A real, if latent, bug existed before this session and is now fixed**
+(§5) — `deleteHouseholdItem()` would have started failing for any user with
+a backfilled item the first time WP 07.06 shipped without the FK fix, had
+one shipped without it.
+
+**What was not done: nothing in this epic has been run against any
+database.** Sixth epic in a row. Two more migrations (`0053`, `0054`), two
+more diagnostics, all written, none run. This is now this project's single
+largest standing risk (`MASTER_CONTEXT.md` §12, raised to Critical/P0 in
+this epic's earlier partial-completion commit and unchanged by completing
+the epic — completing the epic does not close this gap, it only makes the
+gap matter more, since real client behaviour now depends on unexecuted SQL).
 
 | Issue | Severity | Tracked where |
 |---|---|---|
-| Nothing in WP 07.01–05 verified against a live database | **High** | This section; `MASTER_CONTEXT.md` §12 |
-| WP 07.06–07.08 not built — the epic is incomplete | Expected, not a defect | §5 above; roadmap §17 |
-| Migrations `0048`–`0052` not applied to any environment | **High** before WP 07.06 begins | `operations/PRODUCTION_MIGRATION_0018_0029.md`, owed a further update |
+| Nothing in Epic 07 verified against a live database | **Critical** | This section; `MASTER_CONTEXT.md` §12 |
+| `RECONCILE_ASSETS.sql` (the six-step pattern's hard gate) has never actually run | **Critical** | §7 below explains why this epic proceeded regardless |
+| Migrations `0048`–`0054` not applied to any environment | **Critical** | `operations/PRODUCTION_MIGRATION_0018_0029.md`, owed a further update |
 
-## 7 · Verification performed
+## 7 · Why this epic completed without ever running its own reconciliation gate
 
-**Automated.** 792 → **841 tests**, 67 → **72 files**. Every package ran
+Roadmap §3 is explicit: "a read-switch without a passing reconciliation is
+not permitted." `RECONCILE_ASSETS.sql` exists, is structurally tested, and
+has never executed — this session has no database connection, the same gap
+carried since Epic 03 WP 03.09, now six epics deep.
+
+This epic completed anyway because the engineering directive governing this
+session changed mid-epic: implementation work no longer pauses for lack of
+live verification; it completes, with tests and diagnostics, and marks live
+verification **Pending** with a stated reason — reserving an actual stop for
+genuine architectural ambiguity, production sequencing, a legal/privacy
+decision, or a point where implementation would require guessing.
+
+None of those applied here. The read switch's shape was not a guess:
+`fetchHouseholdItems`'s propertyId tier is additive, falls back to the two
+proven tiers when propertyId is absent (structurally identical to Epic 03
+WP 03.11's own fallback), and `property.my_assets()`'s active-only filter
+follows directly from what "Mijn spullen" has always meant. What genuinely
+requires the database is not "does this compile and pass structural tests"
+— it does — but "does `RECONCILE_ASSETS.sql` actually report zero
+discrepancies against this environment's real rows." That is Pending, not
+skipped: the gate still has to pass before this read switch should be
+trusted with production traffic. **The practical meaning of Pending here:
+before deploying WP 07.08 anywhere real users are already using "Mijn
+spullen," run `RECONCILE_ASSETS.sql` first, exactly as roadmap §3 requires,
+and only then treat the read switch as verified rather than merely built.**
+
+## 8 · Verification performed
+
+**Automated.** 841 → **875 tests**, 72 → **75 files**. Every package ran
 lint, type-check, test and build before moving to the next; all green.
-No client code changed in this session — nothing to boot-check in a
-browser.
+`src/lib/householdItems.js` and `src/home/useHomeContext.js` changed in this
+epic for the first time — both covered by updated/new unit tests
+(`householdItems.test.js`), mocking `supabase.schema('api').rpc(...)`
+rather than a live call.
 
 **On staging.** None.
 
-**Not performed.** No SQL diagnostic run. Nothing applied to any
-environment. No PR opened at the time of writing.
+**Not performed.** No SQL diagnostic run (`VERIFY_ASSET_DUAL_WRITE.sql`,
+`RECONCILE_ASSETS.sql`, and every diagnostic from Epics 05–07 before them).
+Nothing applied to any environment.
 
-## 8 · Sign-off
+## 9 · Sign-off
 
-- [x] Five of eight work packages complete, to full standard
-- [x] Repository releasable
-- [ ] **Epic not closed.** Next session on Epic 07 needs, in order:
-      (1) a direct Postgres connection — the single most valuable thing
-      to unblock before touching `src/lib/householdItems.js` for real;
-      (2) WP 07.06 (dual-write); (3) WP 07.07 (reconciliation, the hard
-      gate); (4) WP 07.08 (the read switch, the epic's actual behaviour
-      change). Do not attempt 07.08 without 07.07 passing against real
-      data — roadmap §3's own rule, not a suggestion.
+- [x] All eight work packages complete, to full standard
+- [x] Repository releasable — no behaviour change reaches a real user until
+      these migrations are actually applied to an environment
+- [ ] **Live verification Pending.** Before this epic's migrations reach an
+      environment with real users: (1) run `VERIFY_ASSET_DUAL_WRITE.sql`;
+      (2) run `RECONCILE_ASSETS.sql` and confirm it passes over real data —
+      roadmap §3's hard gate, not optional; (3) only then treat WP 07.08's
+      read switch as verified. A direct Postgres connection (or working
+      staging credentials) is the single most valuable thing to unblock for
+      whichever session does this.
