@@ -50,6 +50,54 @@ accurately.
 
 ### Added
 
+**Epic 08 — Document Engine (partial, 6 of 9 packages).** Nothing here
+changes what a user sees yet — `portfolio_items` and
+`service_request_photos` are read, never written, by everything built
+this session.
+
+- **A scope correction, before anything was built**: the roadmap's own
+  original note for this epic named `avatar_url` as a migration target.
+  Checked against `DATABASE_ARCHITECTURE.md` §15's actual definition of
+  a document — evidence, with a type, a validity period, an issuer — an
+  avatar fits none of that. Excluded, corrected rather than built as
+  originally scoped.
+- **`property.documents`** and **`property.document_versions`** —
+  versioning repeats [ADR-0028](docs/adr/0028-stewardship-current-pointer-and-closed-period-log.md)'s
+  mutable-current-pointer-plus-closed-log shape, a third time, matching
+  `DATABASE_ARCHITECTURE.md` §15's own wording ("metadata mutable,
+  content immutable... version history is retained") rather than the
+  domain model's own softer "how it evolves" phrasing — the more
+  specific document won.
+- **`property.document_types`** — a declared catalog, matching
+  `property.facet_types`' own shape (Epic 07), but seeded from the
+  start: unlike facets, this epic's backfill needed real values.
+  `retention_class` (`evidence`/`convenience`) gates deletion via a
+  conditional trigger, never a grant alone.
+- **`property.document_attachments`** — scoped to the four subjects
+  with a real table today (property, location, asset, workspace);
+  maintenance record and marketplace engagement, both named in the
+  architecture, are not included since neither table exists yet.
+- **`property.document_shares`, fully independent of attachment** —
+  `DATABASE_ARCHITECTURE.md` §15 calls "attachment is not a visibility
+  grant" a principle that was nearly lost; the isolation policy and
+  engine contract both hold that line, proven in a real scenario (a
+  property steward who can see an asset but not a document attached to
+  it), not just by an absent join.
+- **Backfilled: `portfolio_items` and `service_request_photos` into
+  `property.documents`** — the second backfill in this roadmap moving
+  real, existing data, and the first from two source tables into one
+  target at once. Sharing for request photos is backfilled as a
+  point-in-time snapshot of the existing `pro_matches_request()`
+  matching rule.
+- **Deliberately incomplete.** WP 08.07 (dual-write), 08.08
+  (reconciliation), 08.09 (the read switch) are decomposed but not
+  built — dual-write here touches two separate live client code paths
+  (portfolio upload, request-photo upload) at once, judged worth its
+  own dedicated pass rather than appending it to an already-large
+  structural epic.
+
+- Test suite grew from 875 tests across 75 files to **922 across 81**.
+
 **Epic 07 — Asset Engine (complete, 8 of 8 packages).** `household_items`
 is still what every write actually lands on. What changed is where "Mijn
 spullen" reads from — see Changed, below, for that part stated plainly.

@@ -24,6 +24,7 @@ Status uses the same vocabulary as the rest of the doc set:
 | [`COMPONENT_LIBRARY.md`](./COMPONENT_LIBRARY.md) | The real components — API, states, variants, accessibility, tokens used | 3 | Implemented |
 | [`ICONOGRAPHY.md`](./ICONOGRAPHY.md) | Icon library, sizing, color, custom-icon process | 3 | Implemented |
 | [`UX_PATTERNS.md`](./UX_PATTERNS.md) | Flows composed from components — onboarding, states, AI, authentication | 4 | Implemented |
+| [`GUIDANCE_SYSTEM.md`](./GUIDANCE_SYSTEM.md) | Klussie's permanent guidance system — the signal/relevance/delivery/memory loop, plus the full bootstrap-tour redesign (philosophy, step-by-step flow, copy, accessibility) as its first instance | 4 | **Planned** |
 | [`COPY_GUIDELINES.md`](./COPY_GUIDELINES.md) | Voice, tone, microcopy, terminology glossary | 4 | Implemented |
 | [`LAYOUT_SYSTEM.md`](./LAYOUT_SYSTEM.md) | Grid, spacing composition, page templates, z-index | 4 | Implemented |
 | [`ANIMATION_GUIDELINES.md`](./ANIMATION_GUIDELINES.md) | Easing, duration, choreography, reduced-motion | 5 | Implemented |
