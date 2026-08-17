@@ -49,8 +49,9 @@ this one, this one wins.
 12. [Work Packages — Epic 01](#12--work-packages--epic-01)
 13. [Work Packages — Epic 02](#13--work-packages--epic-02)
 14. [Work Packages — Epic 03](#14--work-packages--epic-03)
-15. [Risk Register](#15--risk-register)
-16. [How Implementation Sessions Work](#16--how-implementation-sessions-work)
+15. [Work Packages — Epic 05](#15--work-packages--epic-05)
+16. [Risk Register](#16--risk-register)
+17. [How Implementation Sessions Work](#17--how-implementation-sessions-work)
 
 ---
 
@@ -1011,7 +1012,134 @@ notifications remain unified across workspaces
 (`PLATFORM_DOMAIN_MODEL.md` §20, §27).
 **Complexity.** Medium. **Rollback.** Hide the component.
 
-## 15 · Risk Register
+## 15 · Work Packages — Epic 05
+
+Decomposed 2026-08-16, at epic start, per §1's rule. Architecture read
+first: `PLATFORM_DOMAIN_MODEL.md` §9 (Property and the Digital Twin),
+`SYSTEM_ARCHITECTURE.md` §7.1 (Property Engine), `DATABASE_ARCHITECTURE.md`
+§12 (Property and Stewardship — "the single most subtle thing in this
+document") and §25 (Timeline). The `property` schema and its role
+(`klussie_engine_property`) already exist, empty, since Epic 01
+(`0018_schemas.sql`, `0019_grants.sql`) — this epic is what populates
+them.
+
+**The one thing every package here answers to.** Stewardship is a
+*period*, not a column: a property's tenancy is `workspace_id` **as of
+the current open stewardship period**, not a static stamp. Every
+isolation decision in this epic is dynamic in a way nothing in Epic 03
+was — DATABASE_ARCHITECTURE.md §12 names this explicitly as the hardest
+thing in the whole document, and it is required by the frozen domain
+model, not a choice this epic could simplify away.
+
+**Scope, stated plainly so it isn't mistaken for more than it is.**
+Epic 05 creates the Property aggregate and stewardship — nothing else.
+Locations, assets, documents, maintenance and the real event-sourced
+Timeline are Epics 06–08 and later; `SYSTEM_ARCHITECTURE.md` §7.1 lists
+the Timeline projection under this engine's ownership, but a timeline
+has nothing to show until property-scoped events exist to consume, and
+nothing emits one yet. Building a Timeline this epic would be building
+against an empty event stream — deferred, with the removal trigger
+being "the first later epic whose events the timeline would show."
+`src/lib/homeInventory.js`'s `fetchHomeProfile()` stub (rooms,
+installations, documents — all empty, deliberately, since ADR-0008) is
+untouched by this epic for the same reason: it starts having something
+to return once Location and Asset exist, not before.
+
+**A contradiction found and resolved before WP 05.01 was written, not
+during it.** §12's own sentence ("stewardship is a period… those
+periods are append-only") reads as one table; §4's Storage Classes table
+puts *"property"* under Transactional and *"stewardship periods"* under
+Historical ("write-once, never updated") **separately**. A single
+`stewardship_periods` table with a nullable `ended_at` set once to close
+it violates "never updated" in terms.
+[ADR-0028](./adr/0028-stewardship-current-pointer-and-closed-period-log.md)
+(Accepted) resolves it the same way Epic 03 resolved membership: a
+**mutable current pointer** (`property.properties.steward_workspace_id`
+— Transactional) plus a **genuinely append-only log of closed periods**
+(`property.stewardship_periods` — Historical, rows written complete,
+never touched again). One consequence worth stating up front: this
+removes a dedicated property resolver from the decomposition entirely.
+The isolation predicate is a plain column check against
+`api.current_workspace_memberships()` — the current pointer *is* a
+`workspace_id`-shaped column, so nothing new needs resolving. Six
+packages, not seven.
+
+**05.01 · Create the property and stewardship-period tables (add)**
+Two tables in the pre-existing `property` schema: `property.properties`
+(identity, `steward_workspace_id` + `steward_since` — the current
+pointer, mutable — jurisdiction, mutable only by correction per §12) and
+`property.stewardship_periods` (closed periods only, `began_at` and
+`ended_at` both set at insert, guarded append-only by the same trigger
+shape `workspace.membership_history` uses, migration 0030). RLS enabled
+on `properties`, no policy yet — WP 05.05. Nothing reads or writes
+either table. **Complexity.** Medium. **Rollback.** Drop both tables.
+
+**05.02 · Backfill one property per Personal Workspace**
+"My Home" becomes real: one `property.properties` row per Personal
+Workspace (matching `workspace.workspaces` naming precedent from
+migration 0033), `steward_workspace_id` set to that workspace,
+`steward_since` = the workspace's own `created_at`.
+`property.stewardship_periods` stays empty — nothing has ever
+transferred, so there is nothing closed to log. Idempotent via existence
+guards, re-runnable. Professional and Business workspaces are **not**
+backfilled a property — nothing in the current product represents a
+business's premises, and inventing a placeholder would be a guess
+dressed as data, the exact thing ADR-0022's precedent warns against.
+**Acceptance.** Every Personal Workspace has exactly one property,
+correctly pointed; re-running changes nothing. **Complexity.** Medium.
+**Rollback.** Delete backfilled rows — symmetric, since nothing yet
+references a property by id.
+
+**05.03 · Reconcile the backfill**
+Read-only, and — unlike Epic 03's `RECONCILE_WORKSPACE.sql` — not a
+separate script. Epic 03's reconciliation existed because WP 03.06
+populated a `workspace_id` column on thirteen *existing* tables, each
+against its own stated rule, which genuinely needed independent
+re-derivation and comparison. Epic 05's backfill touches no existing
+table — it only creates `property.properties` rows, one rule, one
+source (`workspace.workspaces` where `type = 'personal'`) — so
+`VERIFY_BACKFILL_PROPERTY.sql`'s check 1 already *is* the
+reconciliation: it re-derives "every live Personal Workspace stewards
+exactly one property" from real data and fails loudly if not. Building
+a second script to duplicate that check would be structure with nothing
+new to prove. This package's job is running it and gating WP 05.05/05.06
+on the result — roadmap §3: "a read-switch without a passing
+reconciliation is not permitted." **Complexity.** Low. **Rollback.**
+None — read-only.
+
+**05.04 · Add the property engine contract**
+`property.resolve_property(property_id)` / `api.resolve_property(...)` —
+state plus the current steward, mirroring `workspace.resolve_context()`'s
+shape. No `decide_permission` analog yet: nothing in this epic has a
+gated action to decide (no stewardship transfer, no attribute edit
+through the engine) — building one now would repeat ADR-0027's own
+restraint in reverse, a permission vocabulary with nothing to authorize.
+Added when Epic 06 or a stewardship-transfer feature first needs it.
+**Complexity.** Medium. **Rollback.** Drop the functions.
+
+**05.05 · Add the RLS isolation policy for `property.properties`**
+One permissive `for select` policy: `steward_workspace_id in (select
+workspace_id from api.current_workspace_memberships())` — Epic 03's
+existing membership helper, unchanged, per ADR-0028. This is the *first*
+policy on this table, so there is no "adds, does not remove" tension to
+narrate the way Epic 03 WP 03.10 had to; it simply exists where nothing
+did. **Complexity.** Low–medium. **Rollback.** Drop the policy.
+
+**05.06 · Resolve property context client-side, wire into My Home**
+The Epic 03 WP 03.09 pattern, repeated: no gateway exists (ADR-0024 is
+epic-agnostic — its removal trigger still hasn't fired), so the browser
+resolves its own property context, once, the same way it already
+resolves workspace context. `src/lib/homeInventory.js`'s
+`fetchHomeProfile()` gains the property's id and name to its otherwise-
+still-empty return shape (rooms/installations/documents stay empty —
+see this section's scope note) — additive to a stub that currently
+returns a frozen constant, so there is no existing behaviour to preserve
+by omission. **Acceptance.** A signed-in person's own property resolves
+correctly; nothing renders differently, since nothing downstream reads
+the new fields yet. **Complexity.** Medium. **Rollback.** Revert the
+client change; no data change.
+
+## 16 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -1025,7 +1153,7 @@ notifications remain unified across workspaces
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 16 · How Implementation Sessions Work
+## 17 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
@@ -1058,7 +1186,9 @@ A session takes one of five shapes:
 | 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
 | 02 — Identity Engine | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-02/COMPLETION.md) |
 | 03 — Workspace Engine | **Complete** 2026-08-16 — 12/12 packages. Not yet verified against a live database (gate 10 open). [Completion record](../implementation/epic-03/COMPLETION.md) |
-| 04–26 | Not started; work packages decomposed at epic start |
+| 04 — Capability Engine | Not started. Not blocking Epic 05 — the dependency graph (§5) branches Property directly off Workspace |
+| 05 — Property Engine | **Complete** 2026-08-16 — 6/6 packages. Not yet verified against a live database (gate 10 open, same as Epic 03). [Completion record](../implementation/epic-05/COMPLETION.md) |
+| 06–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03 closed with four ADRs**, each accepted as part of building the
 package it gated rather than after the fact:
@@ -1102,15 +1232,32 @@ record](../implementation/epic-03/COMPLETION.md):
   following the same probe discipline as every prior diagnostic in this
   epic, and neither has been run. Nothing in WP 03.09–03.12 has been seen
   rendering signed in either — no working credentials for either known
-  test account, and no new account created to work around that. Whoever
-  picks up Epic 04 should get this resolved first, not inherit it a third
-  time.
+  test account, and no new account created to work around that. **Not
+  resolved before Epic 05 started** (it names the same gap below, now
+  extended through four more migrations) — whoever picks up Epic 06
+  should get this fixed rather than inherit it a fourth time.
 - **`RoleSelectionScreen` asks the exact classification question
   `PLATFORM_DOMAIN_MODEL.md` §27 forbids.** Predates this epic; not fixed
   here — a product decision, not an implementation one. Recorded in
   `MASTER_CONTEXT.md` §12.
-- **`docs/architecture/ARCHITECTURE.md` was not updated.** Owed before
-  Epic 04 starts (roadmap §9's documentation obligation).
+- **`docs/architecture/ARCHITECTURE.md` was not updated in Epic 03.**
+  Closed in Epic 05 — both epics added to Known Gaps in the same pass.
+
+**Carried out of Epic 05**, and recorded in full in its [completion
+record](../implementation/epic-05/COMPLETION.md):
+
+- **The same unverified-database gap, now four migrations deeper**
+  (`0039`–`0042`, on top of Epic 03's `0037`–`0038`). Five new
+  diagnostics written, none run. This is the third epic in a row to
+  carry this gap forward rather than close it.
+- **ADR-0028** resolved a genuine contradiction between
+  `DATABASE_ARCHITECTURE.md` §4 and §12 — see the ADR and the completion
+  record for the full reasoning. Worth a second read by whoever plans
+  Epic 06 (Location) or Epic 07 (Asset): both epics will hit the same
+  "is this Historical class object really append-only, or does it have
+  a current-state half" question, since assets have placements described
+  the same way properties have stewardship (`DATABASE_ARCHITECTURE.md`
+  §14: "Placement is a period, not a field. As with stewardship...").
 
 **Carried out of Epic 02**, and recorded in its
 [completion record](../implementation/epic-02/COMPLETION.md):

@@ -88,6 +88,7 @@ pointing at whatever replaced it.
 | [0025](0025-marketplace-visibility-survives-epic-03.md) | Pre-engagement marketplace visibility and public professional profiles survive Epic 03 unchanged | **Accepted** — WP 03.10 built against it exactly as written; removal trigger is Epic 12 |
 | [0026](0026-membership-helper-lives-in-public.md) | The membership helper is a `SECURITY DEFINER` function in a dedicated `api` schema | **Accepted** — revised from an originally proposed placement in `public`; sets the pattern for every later engine's RLS helper |
 | [0027](0027-workspace-permission-vocabulary.md) | The Workspace Permission Vocabulary | **Accepted** — twelve permissions scoped to workspace lifecycle and membership management only, deliberately excluding every other engine's future permissions |
+| [0028](0028-stewardship-current-pointer-and-closed-period-log.md) | Stewardship is a mutable current pointer plus an append-only log of closed periods | **Accepted** — resolves a contradiction between `DATABASE_ARCHITECTURE.md` §4 and §12's literal wording; the isolation predicate reuses Epic 03's membership helper directly, no new resolver |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see
