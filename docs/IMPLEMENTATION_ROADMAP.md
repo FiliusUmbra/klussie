@@ -50,8 +50,9 @@ this one, this one wins.
 13. [Work Packages — Epic 02](#13--work-packages--epic-02)
 14. [Work Packages — Epic 03](#14--work-packages--epic-03)
 15. [Work Packages — Epic 05](#15--work-packages--epic-05)
-16. [Risk Register](#16--risk-register)
-17. [How Implementation Sessions Work](#17--how-implementation-sessions-work)
+16. [Work Packages — Epic 06](#16--work-packages--epic-06)
+17. [Risk Register](#17--risk-register)
+18. [How Implementation Sessions Work](#18--how-implementation-sessions-work)
 
 ---
 
@@ -1139,7 +1140,139 @@ correctly; nothing renders differently, since nothing downstream reads
 the new fields yet. **Complexity.** Medium. **Rollback.** Revert the
 client change; no data change.
 
-## 16 · Risk Register
+## 16 · Work Packages — Epic 06
+
+Decomposed 2026-08-17, at epic start, per §1's rule. Architecture read
+first: `PLATFORM_DOMAIN_MODEL.md` §10 (Location), `SYSTEM_ARCHITECTURE.md`
+§7.2 (Location Engine), `DATABASE_ARCHITECTURE.md` §13 (Location) and
+`SUPABASE_ARCHITECTURE.md` §11.2 (The Location Tree). §5's own sequencing
+table names this epic's risk item explicitly: **"the highest correctness
+risk in the physical tier"** — §21's finding, restated in §11.2, is that
+re-parenting without its event **"is the single easiest place to
+implement a correct architecture incorrectly."**
+
+**Locations live in the `property` schema, not a new one.** Migration
+0018 (Epic 01): *"Property, Location, Asset and Document share one
+schema... §2 chose tier-level grouping precisely so those joins stay
+inside a schema."* `property.locations`, owned by the same
+`klussie_engine_property` role as `property.properties`. Migration 0020
+(Epic 01, `ltree`) left an explicit note for this epic: *"Epic 06 grants
+`usage on schema extensions` to `klussie_engine_property` when it
+creates the first `ltree` column"* — followed literally in WP 06.01.
+
+**Isolation is inherited, not owned.** `DATABASE_ARCHITECTURE.md` §13:
+*"Workspace-scoped, inheriting the property's stewardship."* A location
+carries `property_id`, never its own `workspace_id` or
+`steward_workspace_id` column — duplicating the property's current
+steward onto every location would create the exact two-answers problem
+ADR-0028 avoided for property itself. The isolation policy joins through
+`property.properties.steward_workspace_id`, an uncorrelated subquery
+(`property_id in (select id from property.properties where
+steward_workspace_id in (select workspace_id from
+api.current_workspace_memberships()))`) — no location-specific resolver,
+the third epic in a row where ADR-0026/0028's pattern needs no new
+predicate.
+
+**No backfill.** Unlike every prior epic, there is no clean, stated
+mapping from existing data to a location row. `household_items.room` is
+a free-text field — "kelder", "keuken" — not a structured location
+reference, and inventing location rows from those strings would be
+exactly the "guess dressed as data" ADR-0022's precedent rules out.
+Locations are created empty, the same way `property.properties` was
+created for zero rows before its backfill populated it — except nothing
+populates this one in this epic. The first real location rows arrive
+with a UI to create them (a later epic) or, possibly, an Epic 07 backfill
+deriving distinct `household_items.room` values — that epic's decision,
+not this one's.
+
+**No client wiring.** `src/lib/homeInventory.js`'s `rooms: []` stays
+empty — nothing in the current product reads a real location, so there
+is no read to switch, unlike Epic 05's `fetchHomeProfile()`. This epic
+is infrastructure with no user-visible surface at all, a fact worth
+stating rather than discovering by its absence: **Property → Location →
+Asset only becomes visible once Asset (Epic 07) gives `household_items`
+a place to migrate to.**
+
+**Containment stays engine-to-engine, not client-facing.** The "public
+contract" `SYSTEM_ARCHITECTURE.md` §7.2 describes — tree read,
+containment, ancestors/descendants — is consumed by *other engines*
+(Workspace's scope resolution, Search), neither of which exists or is
+wired yet (`ADR-0024`: *"there is no location tree until Epic 06, and no
+consumer workspace uses scope"*). No `api`-schema delegate is built in
+this epic for the same reason WP 05.04 built no `decide_permission`
+analog: a contract with no real caller is dead code wrapped as
+architecture. Built when Epic 04 (scoped capability grants) or Epic 20
+(Search) first needs to call it.
+
+**06.01 · Create the locations table (add)**
+`property.locations` — `id`, `property_id` (references
+`property.properties`), `parent_id` (self-referencing, nullable —
+top-level under the property), `name`, `type` (configurable taxonomy,
+no `check` constraint — domain model §10: "never hardcoded"), `path
+extensions.ltree not null` (materialised path, GiST-indexed),
+`retired_at` (soft-retire — "a room that no longer exists still hosted
+work that happened," §13). `grant usage on schema extensions to
+klussie_engine_property` — migration 0020's own instruction, executed
+here. RLS enabled, no policy — WP 06.03, gated by nothing new (the
+predicate already exists). **Complexity.** Medium. **Rollback.** Drop
+the table; revoke the `extensions` grant.
+
+**06.02 · Maintain the path alongside the parent pointer**
+The parent pointer is authoritative (§11.2: *"the path is a maintained
+denormalisation of it, and can be recomputed if it ever disagrees"*); a
+trigger computes `path` from the parent's own path plus this location's
+own label (`replace(id::text, '-', '_')`) on insert, so no caller ever
+sets `path` directly and it can never silently drift on creation.
+Top-level: `path = <property's own label>.<own label>` — the property
+is the tree's root in every path, which is what lets containment be
+checked without a second join to confirm which property a location
+belongs to. **Complexity.** Medium — the first genuinely new mechanism
+in this epic. **Rollback.** Drop the trigger; `path` stops being
+maintained, nothing else breaks (still additive, still unread).
+
+**06.03 · Add the RLS isolation policy for `property.locations`**
+One permissive `for select` policy, the join described above. First
+policy on this table, same posture as Epic 05 WP 05.05 — nothing to add
+alongside. **Complexity.** Low–medium. **Rollback.** Drop the policy.
+
+**06.04 · Add subtree containment as a first-class operation**
+`property.location_within(location_id, subtree_root_id)` — `x.path <@
+y.path`, ltree's own descendant-or-self operator, GiST-indexed, no
+per-row recursive walk regardless of depth (§13's own requirement).
+Plus `property.location_ancestors(location_id)` and
+`property.location_descendants(location_id)`, same operator family.
+Engine-schema logic only, per this section's own scope note — no `api`
+delegate yet. **Tests.** Structural, plus a synthetic multi-level tree
+in the staging diagnostic proving containment holds at real depth, not
+just one level. **Complexity.** Medium. **Rollback.** Drop the
+functions.
+
+**06.05 · Add re-parenting, with the path rewrite and `LocationTreeChanged`
+in one transaction**
+The epic's actual risk. `property.reparent_location(location_id,
+new_parent_id)`: rewrites `path` for the moved location **and every
+descendant** (an `ltree` prefix replace — `new_path ||
+subpath(old_path, nlevel(old_path))` — is the whole subtree's
+transformation, per §11.2's "rewrites the moved subtree only"), then
+calls `platform.emit_event()` (migration 0023) with
+`LocationTreeChanged` **inside the same function, the same
+transaction**. No consumer reacts yet — Workspace's scope cache doesn't
+exist (ADR-0024) and Search doesn't exist (Epic 20) — so this emits into
+an event stream nothing reads, the same "infrastructure ahead of its
+consumer" posture Epic 01's own outbox has held since it was built.
+Refuses a re-parent that would create a cycle (`new_parent_id`'s own
+path must not already be within the location's current subtree).
+**Tests.** Structural, plus the staging diagnostic's the most important
+one this epic: re-parent a subtree three levels deep, confirm every
+descendant's path updated correctly, confirm exactly one event row
+exists, confirm a cycle attempt is rejected. **Complexity.** High — the
+one package in this epic that deserves the most scrutiny before it is
+ever run against real data, given this session's standing gap (§15,
+"Carried out of Epic 05") in the ability to run any of it live.
+**Rollback.** Drop the function; no data written by re-parenting a
+location that was never re-parented.
+
+## 17 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -1153,7 +1286,7 @@ client change; no data change.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 17 · How Implementation Sessions Work
+## 18 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
@@ -1188,7 +1321,8 @@ A session takes one of five shapes:
 | 03 — Workspace Engine | **Complete** 2026-08-16 — 12/12 packages. Not yet verified against a live database (gate 10 open). [Completion record](../implementation/epic-03/COMPLETION.md) |
 | 04 — Capability Engine | Not started. Not blocking Epic 05 — the dependency graph (§5) branches Property directly off Workspace |
 | 05 — Property Engine | **Complete** 2026-08-16 — 6/6 packages. Not yet verified against a live database (gate 10 open, same as Epic 03). [Completion record](../implementation/epic-05/COMPLETION.md) |
-| 06–26 | Not started; work packages decomposed at epic start |
+| 06 — Location Engine | **Complete** 2026-08-17 — 5/5 packages. Not yet verified against a live database (gate 10 open, fourth epic in a row). [Completion record](../implementation/epic-06/COMPLETION.md) |
+| 07–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03 closed with four ADRs**, each accepted as part of building the
 package it gated rather than after the fact:
@@ -1258,6 +1392,31 @@ record](../implementation/epic-05/COMPLETION.md):
   a current-state half" question, since assets have placements described
   the same way properties have stewardship (`DATABASE_ARCHITECTURE.md`
   §14: "Placement is a period, not a field. As with stewardship...").
+
+**Carried out of Epic 06**, and recorded in full in its [completion
+record](../implementation/epic-06/COMPLETION.md):
+
+- **The same unverified-database gap, now four epics deep** —
+  migrations `0043`–`0047`, five more diagnostics written, none run.
+  Worth escalating rather than repeating a fifth time.
+- **A real bug found and fixed by reasoning, not by running anything:**
+  every `ltree` operator (`<@`, `@>`, `||`) and function (`nlevel`,
+  `subpath`) lives in the `extensions` schema, not `pg_catalog`, and
+  under this codebase's own `set search_path = ''` discipline none of
+  them would have resolved — every containment check and the entire
+  re-parenting rewrite would have failed at the first real call.
+  `OPERATOR(extensions.<op>)` syntax and explicit `extensions.`
+  qualification fix it; migration tests now assert no bare occurrence of
+  either appears in the affected function bodies. **Worth a second read
+  by whoever builds Epic 07 or 08** — both touch geometry or facets that
+  may reach for other extensions, and this is the first place that trap
+  was actually hit rather than merely documented.
+- **No structural guard stops a direct `UPDATE ... SET parent_id` on
+  `property.locations` from bypassing `reparent_location()` and leaving
+  descendant paths stale.** A stated convention, not enforced — nothing
+  reaches this table yet to violate it. Migration 0044's own header
+  names this as a hardening item for Epic 07 or whichever epic first
+  gives the table a real write path.
 
 **Carried out of Epic 02**, and recorded in its
 [completion record](../implementation/epic-02/COMPLETION.md):
