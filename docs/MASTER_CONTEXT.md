@@ -17,12 +17,13 @@ priorities, risks, debt, decisions. It does not own product philosophy
 - **What to build next:** [`IMPLEMENTATION_ROADMAP.md`](./IMPLEMENTATION_ROADMAP.md)
   is the only source of truth. How to build it:
   [`../ENGINEERING.md`](../ENGINEERING.md).
-- **Current milestone:** Epic 06 — Location Engine, **complete**
-  2026-08-17 (5/5 packages) — the roadmap's own highest correctness-risk
-  item in the physical tier. Epics 03 and 05 also complete. None
-  verified against a live database (gate 10 open on all three — see
-  §12). Next: Epic 07 — Asset Engine, or Epic 04 — Capability Engine.
-  (§2)
+- **Current milestone:** Epic 07 — Asset Engine, **in progress**
+  (5/8 packages) — deliberately incomplete: WP 07.06–07.08 (dual-write,
+  reconciliation, the read switch) touch live client code and real user
+  data for the first time in this sequence, and are decomposed but not
+  built without a database connection to verify against. Epics 03, 05
+  and 06 complete. None of Epics 03/05/06/07 verified against a live
+  database (gate 10 open on all — see §12). (§2)
 - **The architecture is frozen.** `PLATFORM_DOMAIN_MODEL`,
   `DATABASE_ARCHITECTURE`, `SYSTEM_ARCHITECTURE` and
   `SUPABASE_ARCHITECTURE` change only by ADR. Klussie is a **Property
@@ -137,46 +138,58 @@ professional who can solve it. Full vision: §5.
 ## 2. Current Milestone
 
 ```
-Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 06 — Location Engine
-Status                COMPLETE (2026-08-17) — 5 of 5 work packages. Gate 10
-                       (staging verification) open — see Open from Epic 06
-                       below. Full record: implementation/epic-06/COMPLETION.md
-Current Objective     Done: property.locations exists — a recursive tree via
-                       an ltree materialised path, GiST-indexed, isolated by
-                       inheriting the property's current stewardship (no
-                       location-level workspace column). Subtree containment
-                       (location_within/_ancestors/_descendants) answers as a
-                       single indexed operation at any depth, engine-to-engine
-                       only (no client-facing delegate — nothing consumes it
-                       yet). Re-parenting (reparent_location()) rewrites a
-                       moved subtree's paths and emits LocationTreeChanged in
-                       one transaction — the epic's own highest-risk item. A
-                       real bug was found and fixed before any of this
-                       shipped: every ltree operator/function lives in the
-                       extensions schema, not pg_catalog, and needed explicit
-                       qualification to resolve under this codebase's
-                       search_path = '' discipline — see the completion
-                       record §5. No backfill, no client wiring: nothing in
-                       the product creates a real location yet.
-Previous Milestone    Epic 05 — Property Engine (2026-08-16, complete, 6/6
-                       packages). Record: implementation/epic-05/COMPLETION.md
+Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 07 — Asset Engine
+Status                IN PROGRESS — 5 of 8 work packages (07.01–07.05).
+                       Deliberately incomplete — see Current Objective and
+                       the progress record: implementation/epic-07/COMPLETION.md
+Current Objective     Done: property.assets and .asset_placements exist —
+                       placement repeats ADR-0028's mutable-pointer-plus-
+                       closed-log shape by citation, no new ADR needed. The
+                       facet system (property.facet_types, .asset_facets)
+                       validates declared attribute keys by trigger, no
+                       facet type seeded. Isolation inherits the property's
+                       stewardship at every depth, no asset-specific
+                       resolver. The asset engine contract (my_assets,
+                       resolve_asset) has real api delegates, unlike Epic
+                       06's engine-only containment functions — WP 07.08 is
+                       a genuine near-term caller. household_items (real,
+                       live, existing production data) is backfilled into
+                       property.assets, idempotently, via a bookkeeping-only
+                       household_items_id column — the first backfill in
+                       this roadmap moving real existing data rather than
+                       deriving from a table the same epic just created.
+                       STOPPED HERE, DELIBERATELY: WP 07.06 (dual-write),
+                       07.07 (reconcile) and 07.08 (the read switch) are
+                       decomposed but not built. They touch
+                       src/lib/householdItems.js — live client code, real
+                       users — and the reconciliation gate (roadmap §3)
+                       needs real data to mean anything, which this session
+                       cannot reach.
+Previous Milestone    Epic 06 — Location Engine (2026-08-17, complete, 5/5
+                       packages) — the roadmap's own highest correctness-risk
+                       item in the physical tier. Record:
+                       implementation/epic-06/COMPLETION.md
 Current Branch        main (Epic 03 WP01–WP08 merged via PR #1 and #2); Epic
                        03 WP09–WP12 on branch/PR #3; Epic 05 on branch/PR #4
-                       (stacked on #3); Epic 06 not yet committed to a branch
-Next Deliverable      Epic 07 — Asset Engine (depends on Epic 06, now
-                       satisfied) or Epic 04 — Capability Engine (depends only
-                       on Epic 03). Get a direct Postgres connection to
-                       whichever session starts it — four epics' worth of
-                       diagnostics are now unverified, and Epic 06's own
-                       findings are the strongest argument yet that this
-                       needs fixing rather than carried a fifth time.
-Open from Epic 06     Nothing in this epic run against any database — new
-                       migrations 0043–0047, five new SQL diagnostics, all
-                       written, none run. No structural guard stops a direct
-                       UPDATE bypassing reparent_location() and leaving
-                       descendant paths stale — a stated convention, not
-                       enforced, flagged as a hardening item for whichever
-                       epic first gives this table a real write path.
+                       (stacked on #3); Epic 06 on branch/PR #5 (stacked on
+                       #4); Epic 07 not yet committed to a branch
+Next Deliverable      Finish Epic 07: WP 07.06 (dual-write), 07.07
+                       (reconcile — the hard gate), 07.08 (the read switch).
+                       **Needs a direct Postgres connection before any of
+                       the three should be attempted** — this is the first
+                       epic where that gap blocks real client-code work,
+                       not just SQL verification.
+Open from Epic 07     The epic is not closed — WP 07.06–07.08 remain,
+                       deliberately deferred (see Current Objective). Nothing
+                       in WP 07.01–07.05 run against any database — five new
+                       diagnostics written, none run. household_items_id
+                       (bookkeeping only) should retire alongside
+                       household_items itself, whenever that happens.
+Open from Epic 06     No structural guard stops a direct UPDATE bypassing
+                       reparent_location() and leaving descendant paths
+                       stale — a stated convention, not enforced. The same
+                       gap now also exists for property.assets.location_id
+                       (Epic 07's own carry-forward note).
 Open from Epic 05     Nothing in this epic has been run against any database —
                        migrations 0039–0042, four SQL diagnostics, all
                        written, none run, same connection gap as Epic 03.
@@ -239,7 +252,7 @@ disagrees with this table, this table wins.
 | Repository structure | See [`README.md`](../README.md#repository-structure) for the canonical layout — not duplicated here. Current layout does **not** match the target described in §6 |
 | Platform schema | In Progress — Epic 01 created the ten engine-tier schemas, twelve roles, `platform.events`, `platform.audit_records`, `platform.emit_event()` and consumer cursor/quarantine storage. Still unused except by erasure, which wrote the first audit row (Epic 02 WP07). Applied to staging only — production is untouched |
 | Identity | In Progress — Epic 02. `identity.identities` holds the person reference and personal attributes, backfilled from every profile and dual-written on signup **inside the auth transaction** (a trigger, not the client). Profile display now reads from it through two resolvers; erasure redacts across all three tables and deletes nothing. `public.profiles` and `public.profile_contacts` both remain, written and authoritative for application state and bilateral contact visibility — step 6 is unreachable ([ADR-0023](adr/0023-identity-display-resolution-versus-row-visibility.md)). Staging only |
-| Testing | In Progress — Vitest + React Testing Library, **792 tests across 67 files**, plus a regression baseline (`engineering/TESTING.md`) and SQL diagnostics — through Epic 03 WP08 run against staging; WP 03.09 onward, and all of Epics 05–06, written but unrun (no DB connection this session, `MASTER_CONTEXT.md` §2). CI gates lint/type-check/test/build, and — for the first time — **actually observed passing** on Epic 03's PR #3. 31 user-facing components still have no render test. Previously: 561 tests across 42 files. No E2E |
+| Testing | In Progress — Vitest + React Testing Library, **841 tests across 72 files**, plus a regression baseline (`engineering/TESTING.md`) and SQL diagnostics — through Epic 03 WP08 run against staging; WP 03.09 onward, and all of Epics 05–07 (partial), written but unrun (no DB connection this session, `MASTER_CONTEXT.md` §2). CI gates lint/type-check/test/build, and — for the first time — **actually observed passing** on Epic 03's PR #3. 31 user-facing components still have no render test. Previously: 561 tests across 42 files. No E2E |
 | Property Memory | In Progress — My Home V1 is derived entirely from existing rows (jobs, professionals, reviews, AI analyses, photos) via `src/lib/homeTimeline.js`, no new schema. My Items V1 is real storage (`household_items`, migration 0016) with manual entry and photos, and carries `source`/`ai_suggestion` so photo recognition can later propose values the owner confirms. Rooms, installations, documents and maintenance schedules remain Planned — no schema (ADR-0008) |
 | Localization | Implemented — 10 locales (`nl`, `fr`, `de`, `en`, `es`, `ar`, `fa`, `tr`, `ru`, `zh`), two right-to-left. UI copy lives in three tables under `src/lib`; catalog names live in the database. Parity across all three tables is derived from `LANGS` and enforced by `homeStrings.test.js` |
 | Core Platform | 3 of 11 layers Implemented (Auth, AI Gateway) or In Progress (Permissions). 8 layers Planned: Payments, Matching, Messaging, Notifications, Storage, Analytics, Marketplace Engine, API |
@@ -261,7 +274,7 @@ disagrees with this table, this table wins.
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | In Progress — `design/ACCESSIBILITY.md` audit done; Epic 03 added a global focus ring, a real focus trap + focus restoration on `Modal`, live regions, ARIA tablist semantics, and 44px touch targets on new surfaces. Older screens not re-audited | Constitution Rule 6 formally verified | Improving | Unassigned |
-| Testing | In Progress — **792 tests, 67 files**; all `src/lib` business logic, the homepage, both Property Memory surfaces, and Epics 01–06's schema/emission/consumer/workspace/property/location layers covered. SQL diagnostics verify the database posture against staging through Epic 03 WP08; WP 03.09 onward, and all of Epics 05–06, unrun (no DB connection this session). Every gate in Epics 01-06 was proven able to fail before being trusted — a discipline that found real defects in Epic 02, a near-miss in Epic 03 (WP 03.11's public-profile reads), and a real `search_path`/extension-schema bug in Epic 06 (found by reasoning, not by running anything — see `implementation/epic-06/COMPLETION.md` §5). The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is mostly not (WorkspaceSwitcher is the one exception, Epic 03) | Defined in Phase 2 | Improving | Unassigned |
+| Testing | In Progress — **841 tests, 72 files**; all `src/lib` business logic, the homepage, both Property Memory surfaces, and Epics 01–07's schema/emission/consumer/workspace/property/location/asset layers covered. SQL diagnostics verify the database posture against staging through Epic 03 WP08; WP 03.09 onward, and all of Epics 05–07 (partial), unrun (no DB connection this session). Every gate in Epics 01-07 was proven able to fail before being trusted — a discipline that found real defects in Epic 02, a near-miss in Epic 03 (WP 03.11's public-profile reads), and a real `search_path`/extension-schema bug in Epic 06 (found by reasoning, not by running anything — see `implementation/epic-06/COMPLETION.md` §5). The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is mostly not (WorkspaceSwitcher is the one exception, Epic 03) | Defined in Phase 2 | Improving | Unassigned |
 | Design System | In Progress — 21 components implemented (Epic 03 added TrustStrip, UnfoldPanel/UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, SegmentedTabs/TabPanel); most of `App.jsx` still unmigrated | Full adoption, dark mode, white-label tokens | Improving | Unassigned |
 | AI | In Progress — AI Gateway, intake, translation implemented | Full capability routing + eval automation | New baseline | Unassigned |
 | Marketplace Engine | In Progress — SQL-function matching implemented, no ranking/geo | Real Marketplace Engine implemented | New baseline | Unassigned |
@@ -460,7 +473,7 @@ Principles and KPIs are not alternatives. A feature needs a reason
 | 🟠 High | **Three ADRs are `Proposed`, not accepted** — [0020](adr/0020-events-partitioning-parameters.md), [0021](adr/0021-one-audit-table-with-nullable-workspace.md) and [0022](adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) | All three were forced by questions the frozen documents left open, and all three are implemented. While `platform.events` and `platform.audit_records` are empty, changing either costs a `drop table` and a re-run; after the first written row it costs rewriting every partition of a table designed never to be rewritten | Accept, revise, or supersede — the decision is cheap now and expensive later. **The window closes when something starts writing rows**, which is not yet scheduled | Epic 01 | P1 |
 | 🟡 Medium | **The audit write path is unallocated** | Epic 01's definition lists it under Backend alongside the emission helper and consumer scaffolding, and no work package built it. `SUPABASE_ARCHITECTURE.md` §8 correctly makes `platform.audit_records` writable by no application role, so as things stand nothing can write an audit record at all. Nothing needs to yet | A `SECURITY DEFINER` function owned by a role that can write, callable by engines that cannot — the same shape as `platform.emit_event()`. A WP 01.08, or folded into the epic that first needs it | Epic 01 | P2 |
 | 🟠 High | **`RoleSelectionScreen` asks the exact question `PLATFORM_DOMAIN_MODEL.md` §27 forbids** | Principle 3 / §27: "The platform never asks a person to classify themselves... It is the wrong question because it is a question about *context*, asked as though it were a question about *identity*." `src/auth/RoleSelectionScreen.jsx` shows every new signup a one-time "how will you use klussie" choice (customer vs. professional) before anything else. Predates the Platform Domain Model freeze (ADR-0013); not introduced or worsened by Epic 03, and Epic 03's WP 03.12 (the workspace switcher) deliberately left it alone rather than redesigning onboarding in a work package scoped to add a switcher — see `IMPLEMENTATION_ROADMAP.md` §14 | A product decision, not an implementation one: replace the forced choice with "create an account, get a Personal Workspace, become a pro later when there's something real to put in it" (§27's own framing) — likely the same session that relocates the "Become a pro" entry point out of the topbar's `role` toggle for single-workspace users, which Epic 03 also left alone | Legacy, found during Epic 03 | P1 |
-| 🟠 High | **Epics 03, 05 and 06 — nothing from WP 03.09 onward has been exercised against a live database** | Same class of gap as the Epic 02 row above, now **four epics deep**: no working credentials for either known test account, and no direct Postgres connection (pooler host/password, no linked Supabase CLI project) to run any of the ~15 `VERIFY_*.sql` diagnostics written since. Epic 06's own findings (`implementation/epic-06/COMPLETION.md` §5 — a real `ltree`/`search_path` bug found by reasoning alone) are the strongest argument yet that this needs fixing, not carrying further | Get a working `.env.local` (pointed at staging, with valid seeded-account credentials) and a direct Postgres connection to whichever session continues Epic 07 — this has now compounded across four epics | Epic 03, 05, 06 | P1 |
+| 🔴 Critical | **Epics 03, 05, 06 and 07 — nothing from WP 03.09 onward has been exercised against a live database, and it now blocks live client-code work, not just SQL** | Same class of gap as the Epic 02 row above, now **five epics deep** and upgraded from High to Critical: Epic 07's remaining work (dual-write, reconciliation, the read switch in `src/lib/householdItems.js`) cannot responsibly proceed without it — the reconciliation gate (roadmap §3) needs real data, and this is the first epic where the risk is live, running client code rather than additive SQL. No working credentials for either known test account, and no direct Postgres connection (pooler host/password, no linked Supabase CLI project) to run any of the ~20 `VERIFY_*.sql` diagnostics written since | Get a working `.env.local` (pointed at staging, with valid seeded-account credentials) and a direct Postgres connection to whichever session finishes Epic 07 — required, not merely helpful, before WP 07.06 begins | Epic 03, 05, 06, 07 | **P0** |
 | 🟠 High | No payment system | No real revenue path | Stripe Connect integration | Phase 4 | P1 |
 | 🟡 Medium | No render tests on the extracted feature components | The Engineering Health sprint moved ~2,150 lines of JSX into `src/customer`, `src/pro`, `src/auth`, `src/profile` and `src/messaging` with their rules unit-tested but their markup unverified by any test. The move was checked by line-level diff, build, lint and manual smoke — not by assertions that survive the next change | Add render tests per feature folder, starting with the surfaces that spend money: `RequestDetailSheet`, `InvoiceSheet`, `ProProfile` | Phase 2 | P2 |
 | 🟡 Medium | Literal `\uXXXX` escape text rendered in 12 places | JSX text content doesn't interpret backslash escapes, so customers see `€` where a euro sign belongs — in the invoice totals, the budget fields, the flexi tracker and the boost price. Preserved verbatim through the Engineering Health sprint because fixing it changes what a customer reads, which that sprint promised not to do | Replace each with the real character. Sites are commented in `ServiceSheet.jsx`, `QuoteFormSheet.jsx`, `AiIntakeSheet.jsx`, `InvoiceSheet.jsx`, `SendQuoteSheet.jsx`, `ProProfile.jsx`, `AppShell.jsx` | Phase 1 | P2 |
@@ -620,6 +633,8 @@ When someone needs professional help anywhere in the world, their first
 instinct should be: **"I'll open Klussie."**
 
 ---
+
+*Version 2.1 — 2026-08-17 (Epic 07 Asset Engine, in progress, 5/8 packages: milestone, test count (841/72), the first backfill moving real existing data, debt row extended to five epics and raised to P0 — WP 07.06–08 need database access before they can be built)*
 
 *Version 2.0 — 2026-08-17 (Epic 06 Location Engine complete, 5/5 packages: milestone, test count (792/67), a real ltree/search_path bug found and fixed, debt row extended to four epics)*
 

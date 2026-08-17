@@ -50,6 +50,42 @@ accurately.
 
 ### Added
 
+**Epic 07 — Asset Engine (partial, 5 of 8 packages).** Nothing here
+changes what a user sees — `household_items` is read, never written, by
+everything built this session, and no client code changed.
+
+- **`property.assets`** and **`property.asset_placements`** — placement
+  repeats [ADR-0028](docs/adr/0028-stewardship-current-pointer-and-closed-period-log.md)'s
+  mutable-current-pointer-plus-closed-log shape by citation, matching
+  `DATABASE_ARCHITECTURE.md` §14's near-verbatim wording; no new ADR
+  needed.
+- **Declared facets** — `property.facet_types` (a catalog an attribute
+  set must be declared in) and `property.asset_facets`, validated by
+  trigger against the declared key set. No facet type seeded yet;
+  nothing needs one.
+- **Isolation inherits the property's current stewardship**, same
+  pattern as locations — no asset- or facet-specific resolver.
+  `asset_placements` deliberately gets no policy: Historical class, read
+  through the engine contract only.
+- **The asset engine contract** — `my_assets()`/`resolve_asset()`, with
+  real `api` delegates this time (unlike Epic 06's engine-only
+  containment functions) — the near-term read switch is a genuine
+  caller.
+- **Backfilled: every live `household_items` row into `property.assets`**
+  — the first backfill in this roadmap moving real, existing data rather
+  than deriving from a table the same epic just created. Idempotent via
+  a bookkeeping-only `household_items_id` column. Deliberately does
+  **not** exclude erased identities, departing from migration 0033's
+  pattern, because this moves existing possession data rather than
+  creating new structure.
+- **Deliberately incomplete.** WP 07.06 (dual-write), 07.07
+  (reconciliation), 07.08 (the read switch) are decomposed but not
+  built — they touch `src/lib/householdItems.js`, live client code
+  serving real users, and this session has no database connection to
+  verify the reconciliation gate (roadmap §3) against.
+
+- Test suite grew from 792 tests across 67 files to **841 across 72**.
+
 **Epic 06 — Location Engine.** The roadmap's own highest correctness-risk
 item in the physical tier. Nothing here changes what a user sees —
 nothing in the product creates a real location yet, so there is nothing

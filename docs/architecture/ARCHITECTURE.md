@@ -306,11 +306,32 @@ owns the real underlying capability ships it — see
   `../../implementation/epic-06/COMPLETION.md` §5. No backfill, no client
   wiring — nothing in the product creates a real location yet. Staging
   only, same unverified-live-database gap as Epics 03 and 05.
+- **The asset engine exists, partially** (Epic 07, **in progress, 5/8
+  packages**) — `property.assets` and `property.asset_placements` repeat
+  ADR-0028's mutable-pointer-plus-closed-log shape by citation, no new
+  ADR needed. Declared facets (`property.facet_types`,
+  `property.asset_facets`) are validated by trigger, key presence only,
+  no facet type seeded yet. Isolation inherits the property's
+  stewardship, same as locations — no asset-specific resolver. **The
+  first backfill in this roadmap moving real, existing, live-table data**:
+  every `household_items` row (the live inventory feature) now has a
+  corresponding `property.assets` row, linked by a bookkeeping-only
+  `household_items_id` column, matched by real reconciliation once a
+  database connection exists. This backfill deliberately does **not**
+  exclude erased identities, unlike migration 0033's pattern — it moves
+  existing possession data rather than creating new structure, so an
+  erased owner's item is still backfilled (see
+  `../../implementation/epic-07/COMPLETION.md` §5). **Deliberately
+  stopped before WP 07.06–08** (dual-write, reconciliation, the read
+  switch): those touch `src/lib/householdItems.js` — live client code,
+  real users — and this session has no database connection to verify
+  against. Staging only for what was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
-  Epic 05's, nor Epic 06's. Its migration ledger is still unreconciled
-  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
-  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0047`.
+  Epic 05's, nor Epic 06's, nor Epic 07's. Its migration ledger is still
+  unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
+  prerequisite for any push to it — see
+  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering
+  only `0018`–`0029` and owed an update through `0052`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

@@ -51,8 +51,9 @@ this one, this one wins.
 14. [Work Packages — Epic 03](#14--work-packages--epic-03)
 15. [Work Packages — Epic 05](#15--work-packages--epic-05)
 16. [Work Packages — Epic 06](#16--work-packages--epic-06)
-17. [Risk Register](#17--risk-register)
-18. [How Implementation Sessions Work](#18--how-implementation-sessions-work)
+17. [Work Packages — Epic 07](#17--work-packages--epic-07)
+18. [Risk Register](#18--risk-register)
+19. [How Implementation Sessions Work](#19--how-implementation-sessions-work)
 
 ---
 
@@ -1272,7 +1273,158 @@ ever run against real data, given this session's standing gap (§15,
 **Rollback.** Drop the function; no data written by re-parenting a
 location that was never re-parented.
 
-## 17 · Risk Register
+## 17 · Work Packages — Epic 07
+
+Decomposed 2026-08-17, at epic start, per §1's rule. Architecture read
+first: `PLATFORM_DOMAIN_MODEL.md` §11 (Asset), `SYSTEM_ARCHITECTURE.md`
+§7.3 (Asset Engine), `DATABASE_ARCHITECTURE.md` §14 (Asset and Facets).
+
+**This is the first epic in the physical-model sequence with real,
+existing, live data to migrate.** `public.household_items` (migration
+0016) is already in production, already written by real customers,
+unlike Property or Location, which started from nothing. That changes
+what "migration" means here: Epic 07 is the first epic since Epic 03 to
+need the full six-step pattern (§3) — add, backfill, **dual-write**,
+reconcile, **switch reads**, retire — rather than the additive-only
+shape Epics 05 and 06 got away with.
+
+**Placement repeats stewardship's exact shape, on purpose.**
+`DATABASE_ARCHITECTURE.md` §14: *"Placement is a period, not a field. As
+with stewardship: an asset's relationship to a location is a
+time-bounded placement, appended rather than overwritten."* Epic 06's
+own completion record flagged this in advance. ADR-0028's decision
+applies unchanged, cited rather than re-litigated: a mutable current
+pointer (`property.assets.location_id` / `.placed_since`) plus a
+genuinely append-only log of *closed* placements
+(`property.asset_placements`) — no new ADR needed, because the frozen
+documents already describe the identical shape and ADR-0028 already
+settled how this codebase builds it.
+
+**No real location to place a backfilled asset in.** Epic 06 built no
+location backfill (§16's own scope note: nothing creates a real
+location yet). Every asset this epic backfills is therefore created
+**unplaced** — `location_id null` — with `household_items.room`'s free
+text carried onto a plain `room_label` column, the exact bridge migration
+0016 already promised in its own comment: *"When rooms become real, this
+column is what gets backfilled from."* That backfill is a future epic's
+job, not this one's.
+
+**Facets are new structure, not a repeat of an existing pattern.**
+`DATABASE_ARCHITECTURE.md` §14 rule 6: *"A facet's attributes are
+declared, not free-form... held as platform-scoped configuration."*
+Built, deliberately minimal: the catalog table and the instance table,
+no seeded facet types — nothing in the current product needs one yet
+(no vehicle, no HVAC unit, no compliance-gated asset), and inventing a
+first facet type with no real requirement behind it would be exactly the
+speculative structure ADR-0010 rules out.
+
+**Where this epic stops, and why.** WP 07.01–07.05 are additive or
+read-only, the same risk class as Epics 05 and 06. WP 07.06 onward
+touches `src/lib/householdItems.js` — live, running client code with
+real users — and needs the reconciliation gate (§3: *"a read-switch
+without a passing reconciliation is not permitted"*) to mean something,
+which requires comparing against real data. **Given this session's own
+standing gap** (no direct Postgres connection, four epics running; see
+§16's carried-forward notes), WP 07.06–07.08 are decomposed here for
+whenever a session has database access, but this session stops after
+WP 07.05 rather than writing a dual-write and read-switch it cannot
+verify — the same judgement that paused before Epic 03's WP 03.11 and
+before Epic 06's actual risk package, applied here to an epic that, for
+the first time, would touch real user data if it went wrong.
+
+**07.01 · Create the assets and asset_placements tables (add)**
+`property.assets` — core identity, type (unconstrained taxonomy, per
+`type` here matching `property.locations.type`'s own restraint — not
+`household_items.category`'s hardcoded six-value check, which this
+schema does not repeat), make/model/serial, acquired/installed dates,
+expected service life, warranty expiry, **current placement**
+(`location_id`/`placed_since`, mutable — ADR-0028's shape), `room_label`
+(the free-text bridge), condition, lifecycle state (constrained:
+active/retired/disposed — a state machine, not a taxonomy, the same
+distinction `workspace.memberships.state` vs `.role` already draws),
+nesting (`parent_asset_id`, plain self-reference — no `ltree`; nothing
+in the frozen documents states an asset-nesting depth requirement the
+way §13 states one for locations, so a materialised path would be
+structure with nothing demanding it), and the AI-provenance pair
+`source`/`ai_suggestion`, matching `household_items`' own two-value
+`source` check exactly (`manual`, `ai_confirmed` — no `bulk_import` or
+`inferred` value yet; nothing produces one). `property.asset_placements`
+— closed placements only, identical shape to `property.stewardship_periods`.
+**Complexity.** Medium. **Rollback.** Drop both tables.
+
+**07.02 · Create the facet system (add)**
+`property.facet_types` — the declared catalog (facet type name, declared
+attribute schema as `jsonb`, e.g. `{"registration": "text", "odometer":
+"integer"}` — a schema *description*, not the data itself). No seeded
+rows — deliberately, per this section's scope note. `property.asset_facets`
+— one row per asset per facet type it carries, `attributes jsonb`
+validated against the facet type's declared schema by a trigger, not a
+`CHECK` constraint (`jsonb` key validation against another table's
+row cannot be expressed as a `CHECK`). **Complexity.** Medium-high — the
+first genuinely new validation mechanism since the append-only guard
+triggers. **Rollback.** Drop both tables.
+
+**07.03 · Add the RLS isolation policies for assets, placements and facets**
+Assets: `property_id in (select id from property.properties where
+steward_workspace_id in (select workspace_id from
+api.current_workspace_memberships()))` — identical shape to Epic 06's
+location policy. Facets: one join deeper, through `asset_id ->
+property.assets.property_id`. `asset_placements` gets **no** policy —
+closed placement history is read through the asset engine's own contract
+(WP 07.04), the same restraint Historical-class objects get elsewhere in
+this schema, never a direct table grant. **Complexity.** Medium.
+**Rollback.** Drop the policies.
+
+**07.04 · Add the asset engine contract**
+`property.resolve_asset(asset_id)` (state, current placement, facets) and
+`property.my_assets(property_id)` (every asset a property currently
+holds, mirroring `property.my_properties()`'s discovery shape). No
+`decide_permission` analog — the now-familiar restraint from WP 05.04 and
+Epic 06, unchanged for the identical reason. **Complexity.** Medium.
+**Rollback.** Drop the functions.
+
+**07.05 · Backfill: migrate existing `household_items` rows into `property.assets`**
+One `property.assets` row per live `household_items` row, `property_id`
+resolved from the owner's Personal Workspace's property (Epic 05's own
+backfill — one property per Personal Workspace already guarantees this
+join has an answer for every existing owner). `category` → `type` as
+plain text (the six existing values fit an unconstrained taxonomy
+without translation). `room` → `room_label` verbatim. `photo_path`,
+`purchased_on` → `acquired_on`, `notes`, `source`, `ai_suggestion`
+carried across unchanged. Idempotent — a `household_items_id` column (not
+part of the domain model, added here purely as the backfill's own
+bookkeeping, the same role a foreign-key-shaped join column plays in
+every other backfill in this roadmap) makes re-running a no-op.
+`household_items` itself is untouched — still authoritative, still
+written by the running application. **Complexity.** High — the first
+backfill in this roadmap moving real, existing, unstaged production
+data rather than deriving from a table this same epic just created.
+**Rollback.** Delete backfilled rows; `household_items` is unaffected
+either way.
+
+**07.06 · Dual-write: `household_items` writes also write `property.assets`**
+*Decomposed, not built this session — see this section's own "where
+this epic stops" note.* `src/lib/householdItems.js`'s create/update/
+delete functions gain a second write, `household_items` remaining
+authoritative throughout (roadmap §3, step 3: "old remains
+authoritative"). **Complexity.** High. **Rollback.** Remove the second
+write.
+
+**07.07 · Reconcile `household_items` against `property.assets`**
+*Decomposed, not built this session.* Every live `household_items` row's
+mapped `property.assets` row matches the stated rule, over real data —
+the hard gate roadmap §3 requires before WP 07.08 may proceed.
+**Complexity.** Medium. **Rollback.** None — read-only.
+
+**07.08 · Switch reads to `property.assets`**
+*Decomposed, not built this session.* The epic's one behaviour-changing
+package (roadmap §3, step 5) — `src/lib/householdItems.js`'s
+`fetchHouseholdItems` and friends read from `property.assets` instead of
+`household_items`, with the same proven-identical-fallback discipline
+every read switch since Epic 03 WP 03.11 has used. **Complexity.** High.
+**Rollback.** Revert the read path; no data change.
+
+## 18 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -1286,7 +1438,7 @@ location that was never re-parented.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 18 · How Implementation Sessions Work
+## 19 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
@@ -1322,7 +1474,8 @@ A session takes one of five shapes:
 | 04 — Capability Engine | Not started. Not blocking Epic 05 — the dependency graph (§5) branches Property directly off Workspace |
 | 05 — Property Engine | **Complete** 2026-08-16 — 6/6 packages. Not yet verified against a live database (gate 10 open, same as Epic 03). [Completion record](../implementation/epic-05/COMPLETION.md) |
 | 06 — Location Engine | **Complete** 2026-08-17 — 5/5 packages. Not yet verified against a live database (gate 10 open, fourth epic in a row). [Completion record](../implementation/epic-06/COMPLETION.md) |
-| 07–26 | Not started; work packages decomposed at epic start |
+| 07 — Asset Engine | **In progress** — 5/8 packages complete (07.01–07.05). WP 07.06–07.08 (dual-write, reconcile, read switch) decomposed but deliberately deferred to a session with database access — first epic touching real, live client code and existing user data. [Progress record](../implementation/epic-07/COMPLETION.md) |
+| 08–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03 closed with four ADRs**, each accepted as part of building the
 package it gated rather than after the fact:
@@ -1417,6 +1570,30 @@ record](../implementation/epic-06/COMPLETION.md):
   reaches this table yet to violate it. Migration 0044's own header
   names this as a hardening item for Epic 07 or whichever epic first
   gives the table a real write path.
+
+**Carried out of Epic 07 (partial — WP 07.01–07.05)**, and recorded in
+full in its [progress record](../implementation/epic-07/COMPLETION.md):
+
+- **The epic is deliberately incomplete.** WP 07.06–07.08 (dual-write,
+  reconciliation, the read switch) are decomposed in §17 but not built —
+  the first epic in this sequence to touch live, running client code
+  (`src/lib/householdItems.js`) and real, existing user data. The
+  reconciliation gate (§3) needs real data to mean anything, and this
+  session cannot reach any. Do not build WP 07.08 without WP 07.07
+  passing against real data first — that rule is not a suggestion.
+- **The same unverified-database gap, now five epics deep** —
+  migrations `0048`–`0052`, five more diagnostics written, none run.
+- **household_items_id was added as a bookkeeping column with no
+  domain-model justification**, purely so the backfill is idempotent.
+  Whoever eventually retires `household_items` (a future epic — this one
+  does not reach step 6) should retire this column alongside it, since
+  nothing else will ever read it.
+- **Migration 0044's parent_id-bypass hardening item (Epic 06) is now
+  repeated for assets**: nothing stops a direct `UPDATE ... SET
+  location_id` on `property.assets` from bypassing whatever placement
+  operation Epic 08 or later eventually builds. Same convention-not-
+  structure posture, same reason (nothing reaches this table's write
+  path yet).
 
 **Carried out of Epic 02**, and recorded in its
 [completion record](../implementation/epic-02/COMPLETION.md):
