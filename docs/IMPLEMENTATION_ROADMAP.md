@@ -63,8 +63,9 @@ this one, this one wins.
 26. [Work Packages — Epic 15](#26--work-packages--epic-15)
 27. [Work Packages — Epic 16](#27--work-packages--epic-16)
 28. [Work Packages — Epic 17](#28--work-packages--epic-17)
-29. [Risk Register](#29--risk-register)
-30. [How Implementation Sessions Work](#30--how-implementation-sessions-work)
+29. [Work Packages — Epic 19](#29--work-packages--epic-19)
+30. [Risk Register](#30--risk-register)
+31. [How Implementation Sessions Work](#31--how-implementation-sessions-work)
 
 ---
 
@@ -693,7 +694,10 @@ authority with no elevated role.
 **Epic 18 — Provider Intelligence Engine.** Selection across all supply
 sources; decisions and overrides recorded append-only; explainability
 captured *with* the recommendation. Makes the marketplace one strategy
-among several rather than the default.
+among several rather than the default. **Skipped, on explicit
+instruction, in favour of proceeding directly to Epic 19** — not built,
+not silently dropped; still owed whenever the session returns to it (see
+`implementation/epic-19/COMPLETION.md`'s own header).
 
 ---
 
@@ -2434,7 +2438,59 @@ and four event-only actions with no dedicated table —
 to do so. No `api.*` delegate — the twelfth occurrence.
 **Complexity.** High. **Rollback.** Drop all six functions.
 
-## 29 · Risk Register
+## 29 · Work Packages — Epic 19
+
+**Epic 18 (Provider Intelligence Engine) is deliberately skipped here**,
+on explicit instruction, in favour of proceeding directly to Epic 19.
+Not silently dropped — recorded in `MASTER_CONTEXT.md` §2 and in
+`implementation/epic-19/COMPLETION.md`'s own header as a real,
+out-of-order gap the roadmap still expects filled.
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §32 (Notifications).
+`SYSTEM_ARCHITECTURE.md` §10.1. `PLATFORM_DOMAIN_MODEL.md` §20. Epic 03
+(`workspace.memberships`, `workspace.current_memberships()`).
+
+**Read before design.** No schema, no engine role exists for Notification
+anywhere in the frozen documents — `SUPABASE_ARCHITECTURE.md` §7's own
+schema table names none, and no `klussie_engine_notification` role
+exists. Resolved by precedent, not invention: Audit is the nearest
+structural analogue (a cross-cutting concern with a genuine aggregate,
+grouped with Notification as "Platform Services"), and Audit already
+lives in `platform`, owned by `klussie_engine_platform` — this epic
+follows that placement rather than adding an eleventh schema. No
+backfill — greenfield, the same shape Epic 09 held.
+
+**19.01 · Notification records and delivery receipts (add)**
+`platform.notifications` (workspace-scoped, fully immutable) and
+`platform.notification_deliveries` (one per recipient per channel,
+immutable except its three one-way timestamps — delivered/seen/acted) —
+two tables, not one, matching §32's own split between a workspace-scoped
+record and a per-person delivery fact. **Complexity.** Medium.
+**Rollback.** Drop both tables and the deliveries guard trigger.
+
+**19.02 · Preferences per membership (add)**
+`platform.notification_preferences` — a real foreign key into
+`workspace.memberships`, one row each, genuinely mutable in place. The
+one aggregate this session has built that is deliberately not
+append-only or immutable-except-guarded, since a preference toggle has
+no governance value worth a permanent trail. **Complexity.** Low.
+**Rollback.** Drop the table.
+
+**19.03 · The notification engine contract (add)**
+Eight functions. `raise_notification()` takes its recipients as a
+caller-supplied `jsonb` array — fanning out to an unbounded,
+transaction-time-resolved set means the caller mints every delivery id,
+never this function (ADR-0022). `mark_notification_acted()` emits a
+named extension beyond §10.1's own event list (`platform.notification.
+acted_on`) the third time this session has needed one. `my_inbox()`
+composes the identity-scoped inbox at read time across live membership,
+joining `platform`, `identity` and `workspace` in one query — never
+materialised, so revoking a membership removes its items with no
+separate invalidation step. `event_type` minted correctly from the
+start, the third epic in a row. No `api.*` delegate — the thirteenth
+occurrence. **Complexity.** High. **Rollback.** Drop all eight functions.
+
+## 30 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2450,7 +2506,7 @@ to do so. No `api.*` delegate — the twelfth occurrence.
 | 10 | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format~~ (found and fixed in Epic 15, `implementation/epic-15/COMPLETION.md` §6) | ✅ Closed | 34 values across 7 epics violated `platform.events`' own `CHECK` constraint; ADR-0019 stayed authoritative, every call site conformed to it across all 7 branches |
 | 11 | ~~`klussie_engine_work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`~~ (found and fixed in Epic 16, `implementation/epic-16/COMPLETION.md` §5.1) | ✅ Closed | Six already-shipped `emit_event()` call sites across five epics would have failed with "permission denied for schema platform"; fixed forward in one migration, no rebase required |
 
-## 30 · How Implementation Sessions Work
+## 31 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
