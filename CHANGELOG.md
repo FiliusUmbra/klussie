@@ -50,10 +50,10 @@ accurately.
 
 ### Added
 
-**Epic 08 — Document Engine (partial, 8 of 9 packages).** Nothing here
-changes what a user sees yet — `portfolio_items` and
-`service_request_photos` are read, never written, by everything built
-this session.
+**Epic 08 — Document Engine (complete, 9 of 9 packages).**
+`portfolio_items` and `service_request_photos` remain fully
+authoritative and unmodified — see Changed, below, for what actually
+changed for a user.
 
 - **A scope correction, before anything was built**: the roadmap's own
   original note for this epic named `avatar_url` as a migration target.
@@ -114,20 +114,34 @@ this session.
   `service_request_photos`-sourced documents, deliberately unattached
   and undiscoverable by subject, get a dedicated lookup
   (`property.documents_for_service_request()`) instead.
+- **`property.documents.caption`** — building the client read switch
+  found `fetchPortfolioItems()` returns `caption`, a real field
+  (`updatePortfolioCaption()`) with no equivalent on `property.documents`
+  until now. Backfilled onto already-mirrored rows; `portfolio_items`
+  gained its first-ever UPDATE mirror trigger to keep it in sync going
+  forward.
+- **`workspace.resolve_public_professional_workspace()`** — the first
+  "resolve someone else's public workspace" lookup in this roadmap,
+  needed to switch the portfolio read (every prior resolver only
+  answered "what are *my own* workspaces"). Public, matching
+  `portfolio_items`' own real grant — a workspace id isn't sensitive by
+  itself, and visibility of anything real stays gated separately.
 
-- Test suite grew from 875 tests across 75 files to **959 across 86**.
+- Test suite grew from 875 tests across 75 files to **978 across 89**.
 
 ### Changed
 
-- **`fetchRequestPhotos` now reads `property.documents` via the document
-  engine, not `service_request_photos` directly**, whenever the new
-  migrations are applied — falling back to the exact prior behaviour
-  otherwise, the same fallback discipline every read switch since Epic
-  03 WP 03.11 has used. Signed URLs, ordering, and every field shown are
-  unchanged by design. `fetchPortfolioItems` is **not** switched — it
-  returns `caption`, a real field with no equivalent on
-  `property.documents` yet — a decision named plainly rather than
-  silently dropping data.
+- **`fetchRequestPhotos` and `fetchPortfolioItems` now read
+  `property.documents` via the document engine**, not their legacy
+  tables directly, whenever the new migrations are applied — both
+  falling back to the exact prior behaviour otherwise, the same fallback
+  discipline every read switch since Epic 03 WP 03.11 has used. Every
+  field either function returned before, including portfolio's
+  `caption`, is still returned. **Live verification of both switches is
+  Pending**: `RECONCILE_DOCUMENTS.sql` has been written and structurally
+  tested but has not run against a real database this session — do not
+  treat either switch as verified in an environment with real users
+  until it has.
 
 **Epic 07 — Asset Engine (complete, 8 of 8 packages).** `household_items`
 is still what every write actually lands on. What changed is where "Mijn

@@ -336,7 +336,7 @@ owns the real underlying capability ships it — see
   but the read switch must not reach real users before that diagnostic
   runs and passes. Staging only for what was built; nothing applied
   anywhere.
-- **The document engine exists, nearly complete** (Epic 08) —
+- **The document engine exists, complete** (Epic 08, 9/9 packages) —
   `property.documents` holds the current version
   directly on the row, `property.document_versions` holds only
   superseded versions, append-only: ADR-0028's mutable-current-plus-
@@ -370,13 +370,18 @@ owns the real underlying capability ships it — see
   `auth.uid() is not null`. `property.documents_for_service_request()`
   (`0063`) resolves the discoverability half (request-photo documents
   are deliberately unattached) with a dedicated lookup, same visibility
-  rule, no public branch. **The client read switch is live for request
-  photos** (`src/lib/requestPhotos.js`, proven fallback) — **not yet
-  built for portfolio photos**: `caption`, a real client-mutable field,
-  has no equivalent on `property.documents`, a narrower finding than the
-  resolved architectural gap
-  (`../../implementation/epic-08/COMPLETION.md` §5.6). Staging only for
-  what was built; nothing applied anywhere.
+  rule, no public branch. Building the client switch found one more,
+  narrower gap — `caption` had no equivalent on `property.documents` —
+  resolved directly (`property.documents.caption`, `0064`;
+  `portfolio_items`' first-ever UPDATE mirror trigger) rather than
+  re-asked, since it carried no visibility trade-off. One more piece,
+  `workspace.resolve_public_professional_workspace()` (`0065`), the
+  first "resolve someone else's public workspace" lookup in this
+  roadmap, granted to `anon` for the same reason `is_public` exists.
+  **Both read switches are now live** — `src/lib/requestPhotos.js` and
+  `src/lib/portfolio.js`, each with a proven fallback
+  (`../../implementation/epic-08/COMPLETION.md`). Staging only for what
+  was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's. Its migration
   ledger is still unreconciled (`../operations/ENVIRONMENTS.md` §9),

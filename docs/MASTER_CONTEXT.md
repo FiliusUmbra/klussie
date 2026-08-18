@@ -143,38 +143,33 @@ professional who can solve it. Full vision: §5.
 
 ```
 Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 08 — Document Engine
-Status                NEARLY COMPLETE. WP 08.01–08.08 done. WP 08.09 (the
-                       read switch) resolved for service_request_photos
-                       (live); split off for portfolio_items — a new,
-                       narrower finding, not the original blocker. See
-                       implementation/epic-08/COMPLETION.md §5.5–§5.6
-Current Objective     The product owner's decision on WP 08.09's
-                       architectural gap: add explicit public-visibility
-                       support to the isolation model. Built as
-                       property.document_types.is_public (0062) — carried
+Status                COMPLETE — 9 of 9 work packages. Both read switches
+                       live. Live verification Pending. Record:
+                       implementation/epic-08/COMPLETION.md
+Current Objective     Done: the full document model (types, versioning
+                       via ADR-0028's shape a third time, multi-subject
+                       attachment, sharing fully independent of
+                       attachment), backfilled, dual-written, and
+                       reconciled (structurally). WP 08.09's architectural
+                       gap resolved per the product owner: property.
+                       document_types.is_public carries public visibility
                        by type, the same reasoning DATABASE_ARCHITECTURE.md
-                       §15 already gives retention_class — with
-                       portfolio_photo the only public type; the isolation
-                       policy and both contract functions gained a third
-                       visibility branch, guarded on auth.uid() is not
-                       null so an anonymous caller falls through cleanly;
-                       api delegates now granted to anon, matching
-                       portfolio_items' own real grant. The
-                       discoverability half of the same finding
-                       (service_request_photos documents cannot be found
-                       by subject) was resolved directly, not re-asked —
-                       property.documents_for_service_request() (0063), a
-                       dedicated lookup via the existing bookkeeping join.
-                       src/lib/requestPhotos.js's fetchRequestPhotos is
-                       switched and live, with a proven fallback — its
-                       old shape maps cleanly onto property.documents.
-                       src/lib/portfolio.js's fetchPortfolioItems is NOT
-                       switched: building it found caption, a real
-                       client-mutable field, has no equivalent on
-                       property.documents — switching would silently drop
-                       it from the UI. A narrower, lower-stakes finding
-                       than the public-visibility one, not decided here
-                       (COMPLETION.md §5.6).
+                       §15 already gives retention_class; portfolio_photo
+                       is the only public type. service_request_photos'
+                       discoverability gap resolved directly — property.
+                       documents_for_service_request(), a dedicated
+                       lookup. Building the client switch found one more,
+                       narrower gap: fetchPortfolioItems() returns
+                       caption, with no equivalent on property.documents
+                       — resolved directly (property.documents.caption,
+                       0064; portfolio_items' first-ever UPDATE mirror
+                       trigger) rather than re-asked, since it carried no
+                       user-facing visibility trade-off. One more piece
+                       was needed: workspace.resolve_public_professional_
+                       workspace() (0065), the first "resolve someone
+                       else's public workspace" lookup in this roadmap.
+                       Both fetchRequestPhotos and fetchPortfolioItems are
+                       now switched and live, each with a proven fallback.
 Previous Milestone    Epic 07 — Asset Engine (2026-08-17, complete, 8/8
                        packages) — dual-write built as a database trigger,
                        not an application write; a real household_items_id
@@ -185,19 +180,15 @@ Current Branch        main (Epic 03 WP01–WP08 merged via PR #1 and #2); Epic
                        (stacked on #3); Epic 06 on branch/PR #5 (stacked on
                        #4); Epic 07 on branch/PR #6 (stacked on #5); Epic 08
                        on branch/PR #7 (stacked on #6)
-Next Deliverable      A decision on §5.6 (portfolio's caption gap): add a
-                       caption column to property.documents, keep
-                       portfolio reads on the legacy table indefinitely,
-                       or something else. Then run every Pending
-                       diagnostic across Epics 03–08 against a real
-                       database — the single highest-priority item in
-                       §12's debt table (P0) — before this epic's live
-                       change (or a future portfolio switch) reaches an
-                       environment with real users. Once clear, continue
-                       to Epic 09 (Workflow Engine) per the roadmap.
-Open from Epic 08     §5.6's portfolio caption gap, undecided. Nothing in
-                       this epic run against any database — seven
-                       diagnostics written, none run.
+Next Deliverable      Run every Pending diagnostic across Epics 03–08
+                       against a real database — the single highest-
+                       priority item in §12's debt table (P0) — before
+                       either of Epic 08's live read switches reaches an
+                       environment with real users. Then continue to
+                       Epic 09 (Workflow Engine) per the roadmap.
+Open from Epic 08     Live verification Pending. Nothing in this epic run
+                       against any database — eight diagnostics written
+                       across eleven migrations, none run.
 Open from Epic 07     Live verification Pending: RECONCILE_ASSETS.sql and
                        VERIFY_ASSET_DUAL_WRITE.sql written, structurally
                        tested, never run — seven diagnostics across this
@@ -272,7 +263,7 @@ disagrees with this table, this table wins.
 | Repository structure | See [`README.md`](../README.md#repository-structure) for the canonical layout — not duplicated here. Current layout does **not** match the target described in §6 |
 | Platform schema | In Progress — Epic 01 created the ten engine-tier schemas, twelve roles, `platform.events`, `platform.audit_records`, `platform.emit_event()` and consumer cursor/quarantine storage. Still unused except by erasure, which wrote the first audit row (Epic 02 WP07). Applied to staging only — production is untouched |
 | Identity | In Progress — Epic 02. `identity.identities` holds the person reference and personal attributes, backfilled from every profile and dual-written on signup **inside the auth transaction** (a trigger, not the client). Profile display now reads from it through two resolvers; erasure redacts across all three tables and deletes nothing. `public.profiles` and `public.profile_contacts` both remain, written and authoritative for application state and bilateral contact visibility — step 6 is unreachable ([ADR-0023](adr/0023-identity-display-resolution-versus-row-visibility.md)). Staging only |
-| Testing | In Progress — Vitest + React Testing Library, **959 tests across 86 files**, plus a regression baseline (`engineering/TESTING.md`) and SQL diagnostics — through Epic 03 WP08 run against staging; WP 03.09 onward, and all of Epics 05–08 (08 nearly complete), written but unrun (no DB connection this session, `MASTER_CONTEXT.md` §2). CI gates lint/type-check/test/build, and — for the first time — **actually observed passing** on Epic 03's PR #3. 31 user-facing components still have no render test. Previously: 561 tests across 42 files. No E2E |
+| Testing | In Progress — Vitest + React Testing Library, **978 tests across 89 files**, plus a regression baseline (`engineering/TESTING.md`) and SQL diagnostics — through Epic 03 WP08 run against staging; WP 03.09 onward, and all of Epics 05–08 (08 complete), written but unrun (no DB connection this session, `MASTER_CONTEXT.md` §2). CI gates lint/type-check/test/build, and — for the first time — **actually observed passing** on Epic 03's PR #3. 31 user-facing components still have no render test. Previously: 561 tests across 42 files. No E2E |
 | Property Memory | In Progress — My Home V1 is derived entirely from existing rows (jobs, professionals, reviews, AI analyses, photos) via `src/lib/homeTimeline.js`, no new schema. My Items V1 is real storage (`household_items`, migration 0016) with manual entry and photos, and carries `source`/`ai_suggestion` so photo recognition can later propose values the owner confirms. Rooms, installations, documents and maintenance schedules remain Planned — no schema (ADR-0008) |
 | Localization | Implemented — 10 locales (`nl`, `fr`, `de`, `en`, `es`, `ar`, `fa`, `tr`, `ru`, `zh`), two right-to-left. UI copy lives in three tables under `src/lib`; catalog names live in the database. Parity across all three tables is derived from `LANGS` and enforced by `homeStrings.test.js` |
 | Core Platform | 3 of 11 layers Implemented (Auth, AI Gateway) or In Progress (Permissions). 8 layers Planned: Payments, Matching, Messaging, Notifications, Storage, Analytics, Marketplace Engine, API |
@@ -294,7 +285,7 @@ disagrees with this table, this table wins.
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | In Progress — `design/ACCESSIBILITY.md` audit done; Epic 03 added a global focus ring, a real focus trap + focus restoration on `Modal`, live regions, ARIA tablist semantics, and 44px touch targets on new surfaces. Older screens not re-audited | Constitution Rule 6 formally verified | Improving | Unassigned |
-| Testing | In Progress — **959 tests, 86 files**; all `src/lib` business logic, the homepage, both Property Memory surfaces, and Epics 01–08's (08 nearly complete) schema/emission/consumer/workspace/property/location/asset/document layers covered. SQL diagnostics verify the database posture against staging through Epic 03 WP08; WP 03.09 onward, and all of Epics 05–08, unrun (no DB connection this session). Every gate in Epics 01-08 was proven able to fail before being trusted — a discipline that found real defects in Epic 02, a near-miss in Epic 03 (WP 03.11's public-profile reads), a real `search_path`/extension-schema bug in Epic 06, a real foreign-key bug in Epic 07 that would have broken `deleteHouseholdItem()`, and a real scoping mistake in Epic 08's own roadmap one-liner (`avatar_url` did not belong, corrected before building it) — see `implementation/epic-06/COMPLETION.md` §5, `implementation/epic-07/COMPLETION.md` §5, and `implementation/epic-08/COMPLETION.md` §5. The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is mostly not (WorkspaceSwitcher is the one exception, Epic 03) | Defined in Phase 2 | Improving | Unassigned |
+| Testing | In Progress — **978 tests, 89 files**; all `src/lib` business logic, the homepage, both Property Memory surfaces, and Epics 01–08's (08 complete) schema/emission/consumer/workspace/property/location/asset/document layers covered. SQL diagnostics verify the database posture against staging through Epic 03 WP08; WP 03.09 onward, and all of Epics 05–08, unrun (no DB connection this session). Every gate in Epics 01-08 was proven able to fail before being trusted — a discipline that found real defects in Epic 02, a near-miss in Epic 03 (WP 03.11's public-profile reads), a real `search_path`/extension-schema bug in Epic 06, a real foreign-key bug in Epic 07 that would have broken `deleteHouseholdItem()`, and a real scoping mistake in Epic 08's own roadmap one-liner (`avatar_url` did not belong, corrected before building it) — see `implementation/epic-06/COMPLETION.md` §5, `implementation/epic-07/COMPLETION.md` §5, and `implementation/epic-08/COMPLETION.md` §5. The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is mostly not (WorkspaceSwitcher is the one exception, Epic 03) | Defined in Phase 2 | Improving | Unassigned |
 | Design System | In Progress — 21 components implemented (Epic 03 added TrustStrip, UnfoldPanel/UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, SegmentedTabs/TabPanel); most of `App.jsx` still unmigrated | Full adoption, dark mode, white-label tokens | Improving | Unassigned |
 | AI | In Progress — AI Gateway, intake, translation implemented | Full capability routing + eval automation | New baseline | Unassigned |
 | Marketplace Engine | In Progress — SQL-function matching implemented, no ranking/geo | Real Marketplace Engine implemented | New baseline | Unassigned |
@@ -493,8 +484,7 @@ Principles and KPIs are not alternatives. A feature needs a reason
 | 🟠 High | **Three ADRs are `Proposed`, not accepted** — [0020](adr/0020-events-partitioning-parameters.md), [0021](adr/0021-one-audit-table-with-nullable-workspace.md) and [0022](adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) | All three were forced by questions the frozen documents left open, and all three are implemented. While `platform.events` and `platform.audit_records` are empty, changing either costs a `drop table` and a re-run; after the first written row it costs rewriting every partition of a table designed never to be rewritten | Accept, revise, or supersede — the decision is cheap now and expensive later. **The window closes when something starts writing rows**, which is not yet scheduled | Epic 01 | P1 |
 | 🟡 Medium | **The audit write path is unallocated** | Epic 01's definition lists it under Backend alongside the emission helper and consumer scaffolding, and no work package built it. `SUPABASE_ARCHITECTURE.md` §8 correctly makes `platform.audit_records` writable by no application role, so as things stand nothing can write an audit record at all. Nothing needs to yet | A `SECURITY DEFINER` function owned by a role that can write, callable by engines that cannot — the same shape as `platform.emit_event()`. A WP 01.08, or folded into the epic that first needs it | Epic 01 | P2 |
 | 🟠 High | **`RoleSelectionScreen` asks the exact question `PLATFORM_DOMAIN_MODEL.md` §27 forbids** | Principle 3 / §27: "The platform never asks a person to classify themselves... It is the wrong question because it is a question about *context*, asked as though it were a question about *identity*." `src/auth/RoleSelectionScreen.jsx` shows every new signup a one-time "how will you use klussie" choice (customer vs. professional) before anything else. Predates the Platform Domain Model freeze (ADR-0013); not introduced or worsened by Epic 03, and Epic 03's WP 03.12 (the workspace switcher) deliberately left it alone rather than redesigning onboarding in a work package scoped to add a switcher — see `IMPLEMENTATION_ROADMAP.md` §14 | A product decision, not an implementation one: replace the forced choice with "create an account, get a Personal Workspace, become a pro later when there's something real to put in it" (§27's own framing) — likely the same session that relocates the "Become a pro" entry point out of the topbar's `role` toggle for single-workspace users, which Epic 03 also left alone | Legacy, found during Epic 03 | P1 |
-| 🔴 Critical | **Epics 03, 05, 06, 07 and 08 — nothing from WP 03.09 onward has been exercised against a live database, and Epic 07's own reconciliation gate (roadmap §3's hard gate) has never actually run** | Same class of gap as the Epic 02 row above, now **seven epics deep**: Epic 07 is complete (8/8 packages) and its read switch (WP 07.08, `fetchHouseholdItems` reading `property.assets`) is live in the codebase, but `RECONCILE_ASSETS.sql` — the check roadmap §3 requires before a read-switch may be trusted — has never executed. Epic 08 is 8/9 packages (dual-write and reconcile complete), adding five more unrun diagnostics on top — its own read switch (WP 08.09) is separately blocked on a product decision (§12 row below), not on this gap. Completing epics does not close this gap; it makes the gap matter more, since real client behaviour now depends on unexecuted SQL rather than only additive structure. No working credentials for either known test account, and no direct Postgres connection (pooler host/password, no linked Supabase CLI project) to run any of the ~27 `VERIFY_*.sql`/`RECONCILE_*.sql` diagnostics written since | Get a working `.env.local` (pointed at staging, with valid seeded-account credentials) and a direct Postgres connection. **Before WP 07.08 or any future WP 08.09 reaches an environment with real users**, run `RECONCILE_ASSETS.sql`, `VERIFY_ASSET_DUAL_WRITE.sql`, `RECONCILE_DOCUMENTS.sql`, and every other Epic 08 diagnostic, and confirm all pass — this is the single highest-priority item in this table | Epic 03, 05, 06, 07, 08 | **P0** |
-| 🟡 Medium | **Epic 08's portfolio read switch is not built — `caption` isn't mirrored to `property.documents`** | Building the read switch found `src/lib/portfolio.js`'s `fetchPortfolioItems()` returns `caption` (real, client-mutable, via `updatePortfolioCaption()`) with no equivalent column on `property.documents` — switching would silently drop every caption from the UI. Narrower than the (now resolved) public-visibility gap: no user-facing visibility trade-off, a schema-completeness question. `implementation/epic-08/COMPLETION.md` §5.6 | Decide: add a `caption` column to `property.documents`, keep portfolio reads on the legacy table indefinitely, or something else. `fetchRequestPhotos` has no equivalent problem and is already switched and live | Epic 08 | **P2** |
+| 🔴 Critical | **Epics 03, 05, 06, 07 and 08 — nothing from WP 03.09 onward has been exercised against a live database, and neither Epic 07's nor Epic 08's reconciliation gate (roadmap §3's hard gate) has ever actually run** | Same class of gap as the Epic 02 row above, now **seven epics deep**: Epic 07 is complete (8/8) with a live read switch (`fetchHouseholdItems`); Epic 08 is now also complete (9/9) with **two** live read switches (`fetchRequestPhotos`, `fetchPortfolioItems`) — but `RECONCILE_ASSETS.sql` and `RECONCILE_DOCUMENTS.sql`, the checks roadmap §3 requires before any read-switch may be trusted, have never executed. Completing epics does not close this gap; it makes the gap matter more, since real client behaviour now depends on unexecuted SQL rather than only additive structure. No working credentials for either known test account, and no direct Postgres connection (pooler host/password, no linked Supabase CLI project) to run any of the ~30 `VERIFY_*.sql`/`RECONCILE_*.sql` diagnostics written since | Get a working `.env.local` (pointed at staging, with valid seeded-account credentials) and a direct Postgres connection. **Before any of Epic 07's or Epic 08's read switches reach an environment with real users**, run `RECONCILE_ASSETS.sql`, `VERIFY_ASSET_DUAL_WRITE.sql`, `RECONCILE_DOCUMENTS.sql`, and every other Epic 07/08 diagnostic, and confirm all pass — this is the single highest-priority item in this table | Epic 03, 05, 06, 07, 08 | **P0** |
 | 🟠 High | No payment system | No real revenue path | Stripe Connect integration | Phase 4 | P1 |
 | 🟡 Medium | No render tests on the extracted feature components | The Engineering Health sprint moved ~2,150 lines of JSX into `src/customer`, `src/pro`, `src/auth`, `src/profile` and `src/messaging` with their rules unit-tested but their markup unverified by any test. The move was checked by line-level diff, build, lint and manual smoke — not by assertions that survive the next change | Add render tests per feature folder, starting with the surfaces that spend money: `RequestDetailSheet`, `InvoiceSheet`, `ProProfile` | Phase 2 | P2 |
 | 🟡 Medium | Literal `\uXXXX` escape text rendered in 12 places | JSX text content doesn't interpret backslash escapes, so customers see `€` where a euro sign belongs — in the invoice totals, the budget fields, the flexi tracker and the boost price. Preserved verbatim through the Engineering Health sprint because fixing it changes what a customer reads, which that sprint promised not to do | Replace each with the real character. Sites are commented in `ServiceSheet.jsx`, `QuoteFormSheet.jsx`, `AiIntakeSheet.jsx`, `InvoiceSheet.jsx`, `SendQuoteSheet.jsx`, `ProProfile.jsx`, `AppShell.jsx` | Phase 1 | P2 |
@@ -654,6 +644,8 @@ When someone needs professional help anywhere in the world, their first
 instinct should be: **"I'll open Klussie."**
 
 ---
+
+*Version 2.6 — 2026-08-17 (Epic 08 Document Engine complete, 9/9 packages: both read switches live — fetchRequestPhotos and fetchPortfolioItems, each with a proven fallback; the public-visibility architectural gap resolved by the product owner (is_public carried by document type); the caption-mirroring gap resolved directly, without re-asking; a new public-workspace resolver built for the portfolio switch; test count (978/89), P1 and P2 debt rows both closed)*
 
 *Version 2.5 — 2026-08-17 (Epic 08 Document Engine, nearly complete: product owner resolved the public-visibility architectural gap — is_public carried by document type, matching retention_class's own precedent; service_request_photos got a dedicated discoverability lookup; fetchRequestPhotos switched and live with a proven fallback; fetchPortfolioItems deliberately not switched — a new, narrower caption-mirroring gap found building it — test count (959/86), P1 debt row resolved and replaced with a P2 for the caption gap)*
 

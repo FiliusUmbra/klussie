@@ -1674,8 +1674,7 @@ stay unattached). Written and structurally tested; **has not run
 against a database this session** — live verification Pending.
 **Complexity.** Medium. **Rollback.** None — read-only.
 
-**08.09 · Switch reads to `property.documents` (resolved, split in two
-halves)**
+**08.09 · Switch reads to `property.documents` (complete)**
 Designing this package surfaced a genuine architectural gap, recorded in
 full in `implementation/epic-08/COMPLETION.md` §5.5 (public visibility)
 and the product owner's decision: **add explicit public-visibility
@@ -1690,16 +1689,27 @@ half of the same finding (`service_request_photos` documents cannot be
 found by subject) was resolved directly as ordinary implementation work,
 not re-asked — a dedicated lookup, `property.documents_for_service_
 request()` (`0063`), via the existing bookkeeping join, same visibility
-rule as `resolve_document()` minus the public branch. **The actual
-client read switch split further, building it**: `fetchRequestPhotos`
-(`src/lib/requestPhotos.js`) is switched and live, with a proven
-fallback — its old shape maps cleanly onto `property.documents`, nothing
-dropped. `fetchPortfolioItems` (`src/lib/portfolio.js`) is **not**
-switched — a third, narrower finding (`implementation/epic-08/
-COMPLETION.md` §5.6): it returns `caption`, a real client-mutable field
-with no equivalent on `property.documents`, and switching would silently
-drop it from the UI. **Complexity.** High. **Rollback.** Revert
-`fetchRequestPhotos`'s read path; no data change.
+rule as `resolve_document()` minus the public branch.
+
+Building the client switch surfaced a third, narrower finding
+(`implementation/epic-08/COMPLETION.md` §5.6): `fetchPortfolioItems()`
+returns `caption`, a real client-mutable field with no equivalent on
+`property.documents` — switching would have silently dropped it. Resolved
+directly (lower-stakes than §5.5, no visibility trade-off): `property.
+documents.caption` (`0064`), backfilled onto already-mirrored rows,
+added to every contract function's return shape, and `portfolio_items`
+gained its first-ever UPDATE mirror trigger. One more piece was needed to
+finish the switch: `workspace.resolve_public_professional_workspace()`
+(`0065`), the first "resolve *another* person's public workspace" lookup
+in this roadmap (every prior resolver only answers "what are *my own*
+workspaces"), granted to `anon` for the same reason `is_public` exists.
+
+Both source tables are now switched and live: `fetchRequestPhotos`
+(`src/lib/requestPhotos.js`) and `fetchPortfolioItems`
+(`src/lib/portfolio.js`), each with a proven fallback to identical prior
+behaviour. **Complexity.** High. **Rollback.** Revert either read path;
+no data change. **Deploy gate:** do not ship without `RECONCILE_
+DOCUMENTS.sql` having actually run and passed.
 
 ## 19 · Risk Register
 
@@ -1752,7 +1762,7 @@ A session takes one of five shapes:
 | 05 — Property Engine | **Complete** 2026-08-16 — 6/6 packages. Not yet verified against a live database (gate 10 open, same as Epic 03). [Completion record](../implementation/epic-05/COMPLETION.md) |
 | 06 — Location Engine | **Complete** 2026-08-17 — 5/5 packages. Not yet verified against a live database (gate 10 open, fourth epic in a row). [Completion record](../implementation/epic-06/COMPLETION.md) |
 | 07 — Asset Engine | **Complete** — 8/8 packages. Dual-write is a database trigger (0053), not an application-level second write. Live verification (RECONCILE_ASSETS.sql, the six-step pattern's hard gate) is Pending — written and structurally tested, not yet run against a database. [Completion record](../implementation/epic-07/COMPLETION.md) |
-| 08 — Document Engine | **Nearly complete** — WP 08.01–08.08 done; WP 08.09 (the read switch) resolved for `service_request_photos` (live) and split off for `portfolio_items` — a narrower finding (`caption` isn't mirrored) means that half is deliberately not built. See `implementation/epic-08/COMPLETION.md` §5.5–§5.6. `avatar_url` deliberately excluded from this epic; see §18's Platform Discoveries |
+| 08 — Document Engine | **Complete** — 9/9 packages. Both read switches live (`fetchRequestPhotos`, `fetchPortfolioItems`), each with a proven fallback. Two real findings surfaced building the read switch and resolved in the same session — public visibility (a product decision) and a caption-mirroring gap (resolved directly). Live verification Pending — written and structurally tested, not yet run against a database. [Completion record](../implementation/epic-08/COMPLETION.md) |
 | 09–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03 closed with four ADRs**, each accepted as part of building the
