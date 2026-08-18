@@ -50,6 +50,58 @@ accurately.
 
 ### Added
 
+**Epic 09 — Workflow Engine (complete, 5 of 5 packages).** No client
+caller exists yet — pure addition, no Changed entry below it. Does not
+retire any of the five legacy triggers still driving booking today; see
+the scope note first.
+
+- **A scope determination, before anything was built**: the roadmap's own
+  one-line summary for this epic reads "ends the trigger-based state
+  machine." Checked against `DATABASE_ARCHITECTURE.md` §18 (a workflow
+  instance is "one workspace-scoped run of a definition") against what
+  the five legacy triggers actually key off
+  (`public.service_requests`/`public.quotes`, keyed by a profile, not a
+  workspace) — a workflow instance needs a workspace-scoped subject
+  those tables don't have until Epic 12's own migration gives them one.
+  This epic builds the real, generic engine and a real published
+  definition; it does not touch `service_requests`, `quotes`, or retire
+  any trigger. Recorded explicitly, not silently narrowed.
+- **`work.workflow_definitions`** — versioned per `definition_key`,
+  immutable once published except `deprecated_at`, never deleted.
+  `work.workflow_stages` / `work.workflow_transition_rules` — the
+  reachability graph, unconditionally append-only once published.
+- **`work.workflow_instances`** and **`work.workflow_transitions`** —
+  [ADR-0028](docs/adr/0028-stewardship-current-pointer-and-closed-period-log.md)'s
+  mutable-current-pointer-plus-append-only-log shape, a fourth
+  application. `subject_type`/`subject_id` is a polymorphic pair with no
+  foreign key, reusing `platform.emit_event()`'s own shape (migration
+  0023) rather than a new one — nothing in this schema has a real
+  workspace-scoped subject to point at yet.
+- **The workflow engine contract** —
+  `work.start_workflow_instance()`/`work.transition_workflow_instance()`,
+  the first write contract in this roadmap with no predecessor data to
+  mirror, every identifier a required parameter, none minted
+  server-side. No `api.*` delegate for any of its five functions —
+  `property.reparent_location()`'s own precedent (migration 0047), not
+  `property.my_documents()`'s.
+- **`booking_request_lifecycle` v1** — the real rules `on_request_created`
+  / `on_quote_sent` / `on_quote_accepted` / `on_job_completed` /
+  `on_review_created` carry today, reproduced as published
+  configuration, reusing their own stage and event names. Includes a
+  deliberate `quotes_ready -> quotes_ready` self-loop reproducing
+  `handle_quote_sent()`'s own `where status = 'collecting'` no-op for a
+  second quote — caught by re-reading the trigger's own guard clause
+  before writing the rule set, not assumed. The decline-other-quotes and
+  open-conversation side effects of quote acceptance are a named,
+  deliberately undone gap — no action/effect mechanism exists yet;
+  Epic 12 designs it against a real instance.
+- **`VERIFY_WORKFLOW_CONTRACT.sql`** — the shadow verification: walks a
+  synthetic instance through all five legacy events plus the multi-quote
+  no-op and the impossible-transition refusal, proving the definition
+  reproduces the trigger chain's decisions exactly.
+
+- Test suite grew from 978 tests across 89 files to **1023 across 94**.
+
 **Epic 08 — Document Engine (complete, 9 of 9 packages).**
 `portfolio_items` and `service_request_photos` remain fully
 authoritative and unmodified — see Changed, below, for what actually

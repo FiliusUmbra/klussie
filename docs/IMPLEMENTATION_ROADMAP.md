@@ -53,8 +53,9 @@ this one, this one wins.
 16. [Work Packages — Epic 06](#16--work-packages--epic-06)
 17. [Work Packages — Epic 07](#17--work-packages--epic-07)
 18. [Work Packages — Epic 08](#18--work-packages--epic-08)
-19. [Risk Register](#19--risk-register)
-20. [How Implementation Sessions Work](#20--how-implementation-sessions-work)
+19. [Work Packages — Epic 09](#19--work-packages--epic-09)
+20. [Risk Register](#20--risk-register)
+21. [How Implementation Sessions Work](#21--how-implementation-sessions-work)
 
 ---
 
@@ -1711,7 +1712,96 @@ behaviour. **Complexity.** High. **Rollback.** Revert either read path;
 no data change. **Deploy gate:** do not ship without `RECONCILE_
 DOCUMENTS.sql` having actually run and passed.
 
-## 19 · Risk Register
+## 19 · Work Packages — Epic 09
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §18 (Workflow),
+`SUPABASE_ARCHITECTURE.md` §23 Conflict 3 and §24 constraint 15 (the five
+legacy triggers named as migration targets). Lives in `work`, owned by
+`klussie_engine_work` — migration 0019's own grouping comment names this
+role for "Maintenance, Service Record, Workflow, Marketplace and
+Conversation engines," so Workflow is the first of five future engines to
+land in this schema.
+
+**Read before design — what this epic does not do, and why.** The
+roadmap's own one-line summary (§10) reads "this epic ends the
+trigger-based state machine." Checked against §18 itself ("Workflow
+Instance — one workspace-scoped run of a definition") and against what
+the five legacy triggers actually key off
+(`public.service_requests`/`public.quotes`, keyed by `profiles.id`, not a
+workspace): a workflow instance needs a real workspace-scoped subject,
+and requests/quotes do not have one until Epic 12's own migration gives
+them one — Epic 12's own line is explicit that this is *its* job.
+**This epic builds the real, generic engine and authors the actual
+booking-lifecycle rules as a genuine published definition. It does not
+touch `public.service_requests`, `public.quotes`, or retire any of the
+five legacy triggers** — recorded here and in
+`implementation/epic-09/COMPLETION.md` §5.1, not silently dropped. Full
+detail, including three further read-before-design findings (no backfill
+step exists because there is no predecessor data; `subject_type`/
+`subject_id` reuses `platform.emit_event()`'s own polymorphic-pair
+precedent rather than inventing one; "who may perform," "evidence
+required," "timing expectations" and "notifications" are all named in
+§18 but not built, because none corresponds to something real yet), is
+in the completion record.
+
+**09.01 · The Workflow Definition aggregate (add)**
+`work.workflow_definitions` — versioned per `definition_key`, immutable
+once published except `deprecated_at`, never deleted.
+`work.workflow_stages` and `work.workflow_transition_rules` — the
+reachability graph, unconditionally append-only once their definition is
+published. **Complexity.** Medium. **Rollback.** Drop all three tables.
+
+**09.02 · The Workflow Instance aggregate (add)**
+`work.workflow_instances` — a mutable `current_stage` pointer, ADR-0028's
+shape a fourth time. `work.workflow_transitions` — the append-only
+transition log, the truth per §18; `definition_id` denormalised from the
+owning instance so both stage columns can be composite foreign keys into
+`workflow_stages`. No foreign key from `subject_type`/`subject_id` to
+anything — see the epic header. **Complexity.** Medium. **Rollback.**
+Drop both tables.
+
+**09.03 · RLS isolation (add)**
+Ordinary workspace-scoped isolation for instances and transitions;
+catalog visibility (`workspace_id is null`, or membership) for
+definitions, stages and transition rules, one join deep for the latter
+two. **Complexity.** Low. **Rollback.** Drop the five policies.
+
+**09.04 · The workflow engine contract (add)**
+`work.start_workflow_instance()` and `work.transition_workflow_instance()`
+— the first write contract in this roadmap with no predecessor data to
+mirror, so every identifier (instance, transition, event, correlation) is
+a required parameter, none minted server-side (ADR-0022).
+`work.transition_workflow_instance()` is Conflict 3's own distinguishing
+test enforced in code: an event this stage's rules do not name is
+refused, never guessed. Plus three read functions. No `api.*` delegate
+for any of the five — `property.reparent_location()`'s own precedent
+(migration 0047: a real write contract, no client caller yet, granted to
+the engine role only), not `property.my_documents()`'s. **Complexity.**
+High. **Rollback.** Drop all five functions.
+
+**09.05 · The real booking-lifecycle definition, and its shadow
+verification (add)**
+`booking_request_lifecycle` v1 — the actual rules `on_request_created`,
+`on_quote_sent`, `on_quote_accepted`, `on_job_completed` and
+`on_review_created` carry today, reusing their own stage names
+(`public.service_requests.status`'s five values) and event names
+(migration 0012's own domain event vocabulary) rather than inventing new
+ones. Includes a deliberate `quotes_ready -> quotes_ready` self-loop on a
+second `QuoteSubmitted`, reproducing `handle_quote_sent()`'s own
+`where status = 'collecting'` no-op exactly — missed on a first reading,
+caught by re-reading the trigger's own guard clause before writing the
+rule set. Declines-other-quotes and open-conversation, the legacy
+trigger's cascading side effects, are a named, undone gap — no
+action/effect mechanism exists yet, and building one with no real
+consumer would be inventing structure ahead of Epic 12.
+`VERIFY_WORKFLOW_CONTRACT.sql` is the shadow verification itself: walks a
+synthetic instance through every one of the five events plus the
+multi-quote no-op and the impossible-transition refusal, proving the
+definition reproduces the trigger chain's decisions exactly.
+**Complexity.** Medium. **Rollback.** Delete the twelve seeded rows across
+all three tables (no instance can reference them yet).
+
+## 20 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -1725,7 +1815,7 @@ DOCUMENTS.sql` having actually run and passed.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 20 · How Implementation Sessions Work
+## 21 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
