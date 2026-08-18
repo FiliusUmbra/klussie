@@ -50,6 +50,38 @@ accurately.
 
 ### Added
 
+**Epic 17 — Intelligence Engine (complete, 4 of 4 packages).** No client
+caller exists yet — pure addition, no Changed entry below it. No new
+schema, no new engine role — shares Epic 16's own `knowledge` schema and
+`klussie_engine_knowledge` role.
+
+- **`knowledge.memory_versions`** — the one structural correction the
+  Rebuild Test forced on Property Memory: permanent, append-only, no
+  `workspace_id` column since memory follows the property, live,
+  surviving a change of steward.
+- **`knowledge.propose_rule()`/`confirm_proposed_rule()`/
+  `reject_proposed_rule()`** — close the gap Epic 16's own contract
+  deliberately deferred. Rejection composes `retire_rule()` rather than
+  duplicating it.
+- **`knowledge.publish_memory_version()`** — resolves its event's
+  `workspace_id` from the property's current steward, live.
+  Deliberately uses `subject_type = 'property'`, so a published version
+  appears in Epic 15's own Timeline with no changes needed there.
+- **Four event-only actions with no dedicated table** —
+  `record_recommendation()`, `propose_prediction()`, `propose_asset()`,
+  `generate_summary()` — since nothing yet needs to query one back out.
+- **Read-before-design finding**: "migrates the existing AI intake and
+  translation onto the engine contract" turned out to be substantially
+  already done by other epics — translation is already Conversation's
+  own event (Epic 13); AI intake's result lives entirely in a request's
+  own jsonb column with no SQL-side equivalent to migrate. What this
+  epic actually builds is the durable half neither had anywhere to
+  write.
+- **`event_type` minted correctly from the start** — the second epic in
+  a row to do so, the direct benefit of Epic 15's own fix landing first.
+
+- Test suite grew from 1346 tests across 135 files to **1368 across 138**.
+
 **Epic 16 — Knowledge Engine (complete, 6 of 6 packages).** No client
 caller exists yet — pure addition, no Changed entry below it.
 `PLATFORM_DOMAIN_MODEL.md` §19.2 calls the Knowledge Graph "the most
@@ -97,8 +129,12 @@ slice of it.
 - Derived workspace-graph edges, inferred world-graph edges, and
   `asset_class` rule-scope resolution are deliberately not built — named
   gaps, not silently narrowed scope.
+- **A real bug caught in this epic's own work, before Epic 17 branched
+  off it**: `rules_in_force()`/`declare_rule()` never checked
+  `confirmed_at`, so an unconfirmed proposal would have been treated as
+  already binding — fixed on this branch.
 
-- Test suite grew from 1293 tests across 128 files to **1345 across 135**.
+- Test suite grew from 1293 tests across 128 files to **1346 across 135**.
 
 **Epic 15 — Timeline & Digital Twin (complete, 3 of 3 packages).** No
 client caller exists yet — pure addition, no Changed entry below it.
