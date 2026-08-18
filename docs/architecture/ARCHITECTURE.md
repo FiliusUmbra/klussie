@@ -564,13 +564,44 @@ owns the real underlying capability ships it — see
   §15; recorded as candidates for a future ADR. No `api.*` delegate —
   the same posture, now a seven-time pattern. Staging only for what was
   built; nothing applied anywhere.
+- **The billing engine exists, complete** (Epic 14, 5/5 packages) — the
+  first real revenue path. `src/lib/billing.js`'s
+  `PLATFORM_COMMISSION_RATE`/`platformFee()`/`netPayout()` are pure
+  client-side display math with no persisted record anywhere
+  ("commission is currently a display-only constant," roadmap §10);
+  `commerce.invoices` formalises this as a real, immutable ledger.
+  **Subscription (§11.1) is deliberately not this epic** —
+  `SYSTEM_ARCHITECTURE.md` names it as a separate engine sharing the
+  same `commerce` schema, and the roadmap already sequences it six
+  epics later as Epic 22; nothing here invents a subscription concept
+  ahead of it. Immutable except `status` (`issued` → `paid` → `credited`,
+  `credited` a true terminal) — corrections are `commerce.credits`,
+  append-only, never an edit. `commerce.payments` is **one table for
+  both payments and payouts**, a `direction` column rather than two
+  duplicated shapes, matching `work.maintenance_obligations`' own
+  `source`-column idiom (Epic 10). `commerce.
+  issue_marketplace_commission_invoice()` resolves a real engagement's
+  price and **composes** `commerce.issue_invoice()` rather than
+  duplicating its insert — the third occurrence of the pattern `work.
+  generate_due_obligation()` established (Epic 10) — with the commission
+  rate a required parameter, never a hardcoded constant. `commerce.
+  settle_payment()` marks a linked invoice paid in the same transaction
+  as settling an inbound payment against it. **A named gap in the frozen
+  event vocabulary**: §11.2 has no `PayoutFailed` event even though
+  `commerce.payments.status` structurally permits a failed outbound
+  payment — emitted anyway, a minimal, consistent extension of the
+  pattern the frozen list already establishes. No `api.*` delegate — the
+  same posture, now an eight-time pattern. No new bug class this epic —
+  every emitted event's `workspace_id` is a real, directly-available
+  column, never a polymorphic subject needing Epic 13's own resolver.
+  Staging only for what was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
-  Epic 13's. Its migration ledger is still unreconciled
+  Epic 13's, nor Epic 14's. Its migration ledger is still unreconciled
   (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
   push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0096`.
+  itself covering only `0018`–`0029` and owed an update through `0101`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

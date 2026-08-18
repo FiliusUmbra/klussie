@@ -59,8 +59,9 @@ this one, this one wins.
 22. [Work Packages — Epic 11](#22--work-packages--epic-11)
 23. [Work Packages — Epic 12](#23--work-packages--epic-12)
 24. [Work Packages — Epic 13](#24--work-packages--epic-13)
-25. [Risk Register](#25--risk-register)
-26. [How Implementation Sessions Work](#26--how-implementation-sessions-work)
+25. [Work Packages — Epic 14](#25--work-packages--epic-14)
+26. [Risk Register](#26--risk-register)
+27. [How Implementation Sessions Work](#27--how-implementation-sessions-work)
 
 ---
 
@@ -2183,7 +2184,65 @@ No `api.*` delegate for any of the eleven functions — the seventh
 occurrence of that restraint. **Complexity.** Very High. **Rollback.**
 Drop all eleven functions.
 
-## 25 · Risk Register
+## 25 · Work Packages — Epic 14
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §22, `SYSTEM_ARCHITECTURE.md`
+§11.2 (Billing — note §11.1, Subscription, is a *different* engine
+sharing the same `commerce` schema, built six epics later as Epic 22).
+`PLATFORM_DOMAIN_MODEL.md` §24. Epic 12 (a real engagement to bill).
+
+**Read before design.** No legacy financial data exists anywhere —
+`src/lib/billing.js` is pure client-side display math with no persisted
+record ("commission is currently a display-only constant"). This epic
+is greenfield, the same shape Epic 09 held for the identical reason —
+no backfill work package.
+
+**14.01 · The Invoice aggregate (add)**
+`commerce.invoices` — immutable except `status` (issued -> paid ->
+credited, credited a true terminal). `kind = 'marketplace_commission'`
+is the only real revenue source this epic produces; "commission record"
+(§11.2) is interpreted as this kind of invoice, not a fourth table with
+no stated shape to build against. `payer_workspace_id` is a real,
+unpopulated forward-compatible column. **Complexity.** High.
+**Rollback.** Drop the table and its guard trigger.
+
+**14.02 · Credits (add)**
+`commerce.credits` — append-only, the only correction mechanism ("credit
+-and-reissue, never edit," §11.2). **Complexity.** Low. **Rollback.**
+Drop the table.
+
+**14.03 · Payments (add)**
+`commerce.payments` — one table for both payments and payouts, a
+`direction` column rather than two duplicated shapes, matching `work.
+maintenance_obligations`' own `source`-column idiom (Epic 10).
+Immutable except one guarded transition out of `pending`, into either
+`settled` or `failed`. **Complexity.** Medium. **Rollback.** Drop the
+table and its guard trigger.
+
+**14.04 · RLS isolation (add)**
+Invoices: workspace OR its distinct payer (§22's own isolation rule).
+Credits: one join deep, through the parent invoice. Payments: ordinary
+direct membership. **Complexity.** Medium. **Rollback.** Drop all three
+policies.
+
+**14.05 · The billing engine contract (add)**
+Ten functions. `issue_marketplace_commission_invoice()` resolves a real
+engagement's `agreed_price`/`performing_workspace_id` and composes
+`issue_invoice()` rather than duplicating its insert — the third
+occurrence of the compose-don't-duplicate pattern `work.generate_due_
+obligation()` established (Epic 10). The commission rate is a required
+parameter, never a hardcoded constant — pricing is product
+configuration (§24), not an engine-baked number. `settle_payment()`
+marks a linked invoice paid in the same transaction as settling an
+inbound payment against it. **A named gap in the frozen event
+vocabulary**: §11.2 has no `PayoutFailed` event, even though `commerce.
+payments.status` structurally permits a failed outbound payment —
+`fail_payment()` emits it anyway, a minimal, consistent extension of the
+pattern the frozen list already establishes. No `api.*` delegate for any
+of the ten functions — the eighth occurrence of that restraint.
+**Complexity.** High. **Rollback.** Drop all ten functions.
+
+## 26 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2197,7 +2256,7 @@ Drop all eleven functions.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 26 · How Implementation Sessions Work
+## 27 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
