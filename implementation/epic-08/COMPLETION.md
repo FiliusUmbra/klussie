@@ -1,59 +1,64 @@
-# Epic 08 — Progress Record (partial — WP 08.01–08.08 of 9)
+# Epic 08 — Progress Record (nearly complete — WP 08.01–08.09, one split remaining)
 
 **Epic.** 08 — Document Engine
 **Started.** 2026-08-17
-**This session's work packages.** 8 of 9 (08.01–08.08). 08.09 (the read
-switch) is **blocked on a genuine architectural decision**, not merely
-deferred — see §5.5. This is the first work package in this roadmap
-stopped for that reason rather than for scope or database access.
+**This session's work packages.** All nine decomposed packages have been
+built. WP 08.09 (the read switch) split in two once the product owner's
+decision arrived: the **request-photo read switch is complete and live**;
+the **portfolio read switch is deliberately not made** — a new, narrower
+finding surfaced while building it (§5.6), not the original architectural
+gap, which is now resolved.
 
-This is a **progress record, not a completion record** — named
-differently on purpose, matching Epic 07's own precedent.
+This is a **progress record, not a completion record** — Epic 08 is not
+formally closed until the portfolio question in §5.6 is settled.
 
 ---
 
 ## 1 · Gates
 
-- [x] Every package built (08.01–08.08) finished to the same standard as
-      a complete epic's packages
+- [x] Every package built finished to the same standard as a complete
+      epic's packages
 - [x] `npm run lint` passes
-- [x] `npm test` passes — **940 tests, 83 files**
+- [x] `npm test` passes — **959 tests, 86 files**
 - [x] `npm run typecheck` passes
 - [x] `npm run build` succeeds
 - [x] CI green — PR #7
 - [x] Architecture preserved — no frozen document modified; no new ADR
-      needed (ADR-0026 and ADR-0028 already cover this epic's structural
-      questions; see §5)
+      needed
 - [x] Documentation updated (§4)
 - [ ] Live verification — Pending. Written and structurally tested, not
       run against a database.
 
-## 2 · Acceptance criteria (for the eight packages built)
+## 2 · Acceptance criteria
 
 | Criterion | Met? | Evidence |
 |---|---|---|
-| Documents attach to any number of real subjects | **Yes** | `property.document_attachments`, scoped to property/location/asset/workspace |
-| Attachment is never a visibility grant | **Yes, proven in a real scenario** | `VERIFY_DOCUMENT_ISOLATION_POLICIES.sql`; `documentIsolationPolicies.test.js` asserts the isolation policy's SQL never references `document_attachments` |
-| Sharing is independent of attachment | **Yes** | `property.document_shares`, no attachment reference anywhere |
-| Document type carries retention behaviour | **Yes** | `property.document_types.retention_class` gates deletion via a conditional trigger, not a grant |
-| Versioning follows ADR-0028's shape | **Yes** | Current version on the row; `property.document_versions` holds only closed versions |
-| Every live source row is represented | **Yes, structurally; not verified live** | `VERIFY_BACKFILL_DOCUMENTS.sql` |
-| household_items/source tables stay authoritative through dual-write (roadmap §3, step 3) | **Yes** | 0061's triggers only mirror; no read depends on `property.documents` yet |
-| A real bug is caught *before* it could ship, not after | **Yes — the first time in this roadmap** | `document_attachments.document_id`/`document_shares.document_id` had no `ON DELETE` clause (the same class of bug as Epic 07's `household_items_id`); found by re-reading 0056/0057 before writing 0061's delete triggers, fixed with `ON DELETE CASCADE` in the same migration, never shipped broken |
+| Documents attach to any number of real subjects | **Yes** | `property.document_attachments` |
+| Attachment is never a visibility grant | **Yes, proven in a real scenario** | `VERIFY_DOCUMENT_ISOLATION_POLICIES.sql` |
+| Sharing is independent of attachment | **Yes** | `property.document_shares` |
+| Document type carries retention behaviour | **Yes** | `documents_guard_deletion()` |
+| Versioning follows ADR-0028's shape | **Yes** | `property.document_versions` |
+| Every live source row is represented | **Yes, structurally** | `VERIFY_BACKFILL_DOCUMENTS.sql` |
+| Two real bugs caught *before* they could ship, not after | **Yes — first time this has happened twice in one epic** | `document_attachments`/`document_shares` FK fix (§6) |
+| Public visibility is carried by type, per §15's own retention-class precedent | **Yes** | `property.document_types.is_public`, `documentPublicVisibility.test.js` |
+| A read switch is genuinely live for at least one source table | **Yes** | `src/lib/requestPhotos.js`'s `fetchRequestPhotos` now reads `property.documents` via `api.documents_for_service_request()`, with a proven fallback |
 
 ## 3 · Work packages
 
 | WP | Title | Status | Notes |
 |---|---|---|---|
-| 08.01 | Document types, the document aggregate, and version history | Complete | Versioning is ADR-0028's shape, a third time |
-| 08.02 | Attachment, scoped to real subjects | Complete | Maintenance record and marketplace engagement deliberately excluded |
-| 08.03 | Sharing, independent of attachment | Complete | Formalises a pattern already informally real in `service_request_photos`' RLS |
-| 08.04 | RLS isolation | Complete | Negative structural test as its central assertion |
-| 08.05 | The document engine contract | Complete | Real `api` delegates from the start |
-| 08.06 | Backfill `portfolio_items` and `service_request_photos` | Complete | Second backfill moving real data; first from two source tables at once |
-| 08.07 | Dual-write | **Complete** | Two database triggers per source table (insert, delete); no update trigger needed on either — read before design found neither table has a client-mutable field the document model maps |
-| 08.08 | Reconcile | **Complete, structurally** | `RECONCILE_DOCUMENTS.sql`; not yet run against real data |
-| 08.09 | Switch reads | **Blocked** — see §5.5 | A genuine architectural gap, found while designing this package, not before |
+| 08.01 | Document types, the document aggregate, and version history | Complete | |
+| 08.02 | Attachment, scoped to real subjects | Complete | |
+| 08.03 | Sharing, independent of attachment | Complete | |
+| 08.04 | RLS isolation | Complete | |
+| 08.05 | The document engine contract | Complete | |
+| 08.06 | Backfill `portfolio_items` and `service_request_photos` | Complete | |
+| 08.07 | Dual-write | Complete | |
+| 08.08 | Reconcile | Complete, structurally | |
+| 08.09a | Resolve the architectural gap: public visibility | **Complete** | Product decision: carry it by document type (0062), matching `retention_class`'s own precedent |
+| 08.09b | Resolve the architectural gap: request-photo discoverability | **Complete** | A dedicated lookup (0063) — judged as ordinary implementation work once 08.09a settled the harder question |
+| 08.09c | Switch reads: request photos | **Complete, live** | `src/lib/requestPhotos.js` |
+| 08.09d | Switch reads: portfolio photos | **Not built — see §5.6** | A new, narrower finding: `caption` isn't mirrored to `property.documents` |
 
 ## 4 · Documentation updated
 
@@ -61,77 +66,81 @@ differently on purpose, matching Epic 07's own precedent.
 - [x] `docs/MASTER_CONTEXT.md` — §2 milestone, §12 debt table, version footer, test counts
 - [x] `docs/architecture/ARCHITECTURE.md` — Known Gaps
 - [x] `CHANGELOG.md`
-- [ ] `docs/adr/README.md` — no new ADR yet; §5.5's open question may produce one
+- [ ] `docs/adr/README.md` — no new ADR; the public-visibility decision follows §15's own precedent closely enough not to need one
 
 ## 5 · Read before design — findings that changed what got built
 
-Sections 5.1–5.4 are unchanged from this epic's first commit (WP
-08.01–08.06) and are not repeated verbatim here — see that commit's own
-message and `IMPLEMENTATION_ROADMAP.md` §18 for the full text: `avatar_url`
-excluded (checked against `DATABASE_ARCHITECTURE.md` §15's actual
-definition); versioning is §15's stated model, not a deferred one, and
-reuses ADR-0028's shape a third time; `property.document_types` could not
-ship empty, unlike `facet_types`; "attachment is not a visibility grant"
-is verified in a real scenario, not just asserted.
+### 5.1–5.4 (unchanged from the epic's first commit)
 
-### 5.5 · The architectural gap found while designing WP 08.09, and why it stopped the read switch
+`avatar_url` excluded; versioning is §15's stated model (ADR-0028's shape,
+a third time); `property.document_types` could not ship empty; "attachment
+is not a visibility grant" is verified in a real scenario. See
+`IMPLEMENTATION_ROADMAP.md` §18 for the full text.
 
-Designing the read switch surfaced two problems neither earlier package
-had reason to find, because neither reading nor visibility-at-scale had
-been exercised yet:
+### 5.5 · The architectural gap found designing WP 08.09 — resolved
 
-**First — `service_request_photos` documents are deliberately
-unattached (0060/0061's own stated restraint), which means
-`property.my_documents(subject)` cannot find them at all.** The contract
-discovers documents by subject (property/location/asset/workspace).
-A request photo has no real subject to attach to today (no
-`service_requests`-to-`property` link exists until Epic 12) — which was
-the right call for *storage*, but its consequence for *reading* was not
-worked through until this package: there is no clean way to list "every
-document for this service request" through the existing contract. The
-only linkage is `service_request_photo_id`, explicitly built as
-"bookkeeping only... read by nothing except the backfill/dual-write's
-own idempotency guard" (0060's own header) — repurposing it as a general
-read path would contradict the restraint that column was built under.
+Two problems, both real: `service_request_photos` documents cannot be
+discovered by subject (deliberately unattached), and `property.documents`'
+isolation model had no path for `portfolio_items`' genuine public
+visibility (checked against its real RLS, migration `0006`: `for select
+to anon, authenticated using (true)`). Full original reasoning preserved
+in this file's git history (the prior revision of this section). **The
+product owner's decision:** add explicit public-visibility support to the
+isolation model.
 
-**Second, and more significant — `property.documents`' isolation model
-has no concept of "publicly visible," but `portfolio_items` is public
-today.** Checked against the actual RLS on `public.portfolio_items`
-(migration 0006) rather than assumed: `for select to anon, authenticated
-using (true)` — anyone, including a signed-out visitor, can see a pro's
-portfolio, by design (it's marketing content on a public profile,
-`ProPublicProfileSheet.jsx`). `property.documents`' own isolation policy
-(0058) has exactly two visibility paths: owning-workspace membership, or
-an explicit share. Neither covers "anyone." Switching the portfolio read
-to the new model as designed would **silently break public portfolio
-viewing** — a real user-facing regression this session caught before
-writing it, not after.
+**What was built, in response.** `property.document_types.is_public`
+(migration `0062`) — carried by type, not a per-row flag, mirroring
+`retention_class`'s own placement and the identical reasoning §15 already
+gives for it: "the distinction is carried by document type, so it is
+decided by configuration rather than by a user's judgement in the
+moment." `portfolio_photo` is the only type marked public;
+`request_photo` stays private. The isolation policy and both contract
+functions (`my_documents`/`resolve_document`) gained a third visibility
+branch, checked before the membership/share branches, which are now
+explicitly guarded on `auth.uid() is not null` so an anonymous caller
+falls through cleanly rather than evaluating a membership check against
+no identity. The `api` delegates are now granted to `anon`, matching
+`portfolio_items`' own real grant.
 
-**Why this is a stop, not a judgment call to make alone.** Both problems
-have more than one honest resolution, each with real trade-offs:
+**The second half — request-photo discoverability — was resolved as
+ordinary implementation work, not re-asked.** The product owner's
+instruction was specifically about public visibility; the discoverability
+gap has no comparable user-facing trade-off between its own alternatives,
+so it was built directly: `property.documents_for_service_request()`
+(migration `0063`), a dedicated lookup via the existing bookkeeping join
+(`service_request_photo_id`), applying the identical owning-workspace-
+or-share rule as `resolve_document()`, with no public branch — a request
+photo was never meant to be public, and this doesn't change that. This
+judgment call is recorded here explicitly so it's visible, not silently
+assumed.
 
-- Add an explicit `is_public boolean` to `property.documents` and a
-  third isolation branch for it — closest to today's behaviour, but
-  widens the isolation policy this epic went out of its way to keep
-  narrow (0058's own header), and raises a real question `§15` doesn't
-  answer: should *any* document type be able to opt into public
-  visibility, or only `portfolio_photo` specifically?
-- Give `service_request_photos`-sourced documents a dedicated lookup
-  function keyed on the request, bypassing subject-based discovery
-  entirely — solves the read, but is a second discovery mechanism
-  alongside `my_documents()`, worth weighing against "one source of
-  truth" (Product Constitution Rule 8).
-- Reconsider whether `portfolio_items` and `service_request_photos`
-  belong in the Document model at all, given how differently they
-  behave from the private, evidentiary documents `§15` was written
-  around — the more disruptive option, since it would mean unwinding
-  work already committed and pushed (0055–0061).
+### 5.6 · A new, narrower finding — the portfolio read switch is not made
 
-None of these is obviously correct, and picking one silently would be
-exactly the kind of "guess when the code can answer the question"
-this session's own standing discipline rules out — the code answered
-clearly that a gap exists; it does not by itself say which fix is
-right. Flagged for the product owner's decision rather than built.
+Building the actual client-side read switch (not just the database side)
+found a third problem, smaller than §5.5's two: `src/lib/portfolio.js`'s
+`fetchPortfolioItems()` returns `caption` (via `updatePortfolioCaption()`,
+a real, client-mutable field) and a precomputed `image_url`. Neither has
+an equivalent on `property.documents` — `caption` was already a stated,
+deliberate gap in the dual-write (WP 08.07's own header: "there is
+nothing for an UPDATE trigger to mirror"), but its consequence for
+*reading* was not worked through until this point: switching the read
+would silently drop every portfolio caption from the UI, a real
+regression this session caught before writing it, matching the same
+discipline that caught §5.5's two problems.
+
+**`fetchRequestPhotos` has no equivalent problem** — its old shape
+(`id`, `storagePath`, `url`) maps cleanly onto `property.documents`
+(`storage_bucket` + `storage_path`, signed client-side), with nothing
+dropped in translation. That read switch is built and live (§3, WP
+08.09c).
+
+**Not built, and not decided here**: whether to add a `caption` column
+to `property.documents` (widening its shape for a field only one of two
+current document types uses), keep portfolio reads on the legacy table
+indefinitely, or something else. Lower-stakes than §5.5's two problems —
+no user-facing visibility trade-off, purely a schema-completeness
+question — but real enough not to guess at silently a third time in one
+epic.
 
 ## 6 · Platform Discoveries
 
@@ -144,56 +153,59 @@ right. Flagged for the product owner's decision rather than built.
 - **The AI intake's existing `brandDetected`/`ocrText` extraction is a
   second, later connection point** for the domain model's own named
   future "extraction" capability.
-- **A second real bug caught before shipping, not after** (§2's own
-  table): `document_attachments`/`document_shares`' missing `ON DELETE`
-  clauses, found and fixed in the same migration that would have needed
-  them, rather than across two sessions the way Epic 07's equivalent
-  bug was.
+- **Two real bugs caught before shipping, not after, in one epic** — a
+  first for this roadmap: `document_attachments`/`document_shares`'
+  missing `ON DELETE` clauses (found re-reading 0056/0057 before writing
+  0061's delete triggers); and the portfolio-caption gap (§5.6, found
+  building the read switch, before it could drop data in production).
 - **`portfolio_items`' public visibility is itself a discovery**,
   surfaced only by actually designing the read switch rather than
-  stopping at the write side — the kind of gap that structural tests and
-  even live-data reconciliation would never have caught, since neither
-  exercises "can a signed-out visitor see this."
+  stopping at the write side.
 
 ## 7 · Regressions and known issues
 
-**No regression is possible from the work in this session.**
-`portfolio_items` and `service_request_photos` are read, never written,
-by everything built here — WP 08.09 (the read switch) is exactly the
-package that was not built, specifically because building it as
-originally scoped would have been the regression.
+**No regression is possible from the work in this session.** The one
+live behaviour change — `fetchRequestPhotos` now reading
+`property.documents` — is additive with a proven fallback
+(`requestPhotos.test.js`), and `portfolio_items`/`service_request_photos`
+remain fully authoritative and unmodified either way.
 
 **What was not done: nothing in this epic has been run against any
-database.** Seventh epic in a row. Seven new migrations (`0055`–`0061`),
-five diagnostics, all written, none run.
+database.** Nine new migrations (`0055`–`0063`), seven diagnostics, all
+written, none run.
 
 | Issue | Severity | Tracked where |
 |---|---|---|
-| Nothing in WP 08.01–08 verified against a live database | **Critical** | This section; `MASTER_CONTEXT.md` §12 |
-| WP 08.09 blocked on an architectural decision, not built | Expected, not a defect | §5.5 |
-| Migrations `0055`–`0061` not applied to any environment | **Critical** before WP 08.09 begins | `operations/PRODUCTION_MIGRATION_0018_0029.md`, owed a further update |
-| Only four of seven migrations have a dedicated diagnostic | Low | `document_attachments`/`document_shares` (linking tables) and the dual-write triggers are exercised inside other diagnostics — stated economy |
+| Nothing in this epic verified against a live database | **Critical** | This section; `MASTER_CONTEXT.md` §12 |
+| The portfolio read switch is not built (§5.6) | Medium — a scoping question, not a defect | §5.6 |
+| Migrations `0055`–`0063` not applied to any environment | **Critical** before this read switch reaches real users | `operations/PRODUCTION_MIGRATION_0018_0029.md`, owed a further update |
+| Only five of nine migrations have a dedicated diagnostic | Low | Linking tables and dual-write triggers exercised inside other diagnostics — stated economy |
 
 ## 8 · Verification performed
 
-**Automated.** 922 → **940 tests**, 81 → **83 files**. Every package ran
+**Automated.** 940 → **959 tests**, 83 → **86 files**. Every package ran
 lint, type-check, test and build before moving to the next; all green.
-No client code changed in this session — nothing to boot-check in a
-browser.
+`src/lib/requestPhotos.js` changed for the first time in this epic;
+covered by a new unit test file (`requestPhotos.test.js`) mocking
+`supabase.schema('api').rpc(...)` and the storage-signing path, including
+the fallback case.
 
-**On staging.** None.
+**On staging.** None. `fetchRequestPhotos`'s new code path was not
+exercised in a browser this session — no working test credentials, no
+database connection, and a fallback-based change has nothing new to
+observe in a browser without real data behind the RPC.
 
 **Not performed.** No SQL diagnostic run. Nothing applied to any
 environment.
 
 ## 9 · Sign-off
 
-- [x] Eight of nine work packages complete, to full standard
-- [x] Repository releasable — no behaviour change reaches a real user
-      until these migrations are applied and WP 08.09 is actually built
-- [ ] **Epic not closed. WP 08.09 needs a product decision before it can
-      be built** (§5.5) — not a database connection, not more time. Once
-      decided: (1) a direct Postgres connection to run the five
-      diagnostics written across this epic; (2) build WP 08.09 per
-      whichever resolution is chosen; (3) do not deploy it without
-      `RECONCILE_DOCUMENTS.sql` passing against real data.
+- [x] The architectural blocker from §5.5 is resolved
+- [x] Repository releasable — the one live change degrades gracefully to
+      identical prior behaviour if the new migrations aren't applied
+- [ ] **Epic not formally closed.** Two things remain: (1) a direct
+      Postgres connection to run the seven diagnostics written across
+      this epic — the same standing gap as every epic since Epic 03; (2)
+      a decision on §5.6 (the portfolio caption gap) before the portfolio
+      read switch can be built. Neither blocks real users today — nothing
+      in this epic has reached an environment they use.

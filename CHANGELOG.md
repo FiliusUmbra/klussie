@@ -104,16 +104,30 @@ this session.
   account could be affected, not after.
 - **Reconciled**: `RECONCILE_DOCUMENTS.sql`, written and structurally
   tested, following `RECONCILE_ASSETS.sql`'s own shape.
-- **The read switch (WP 08.09) is blocked, not deferred.** Designing it
-  found `property.documents`' isolation model has no path for public
-  visibility, while `portfolio_items` is genuinely public today —
-  switching as scoped would silently break public portfolio viewing.
-  Separately, `service_request_photos`-sourced documents are
-  deliberately unattached and cannot be discovered by subject at all.
-  Real alternatives are weighed, none chosen — a product decision, not
-  an implementation one.
+- **The read switch's architectural gap is resolved.** Designing it
+  found `property.documents`' isolation model had no path for public
+  visibility, while `portfolio_items` is genuinely public today — the
+  product owner decided to add explicit public-visibility support to the
+  isolation model. `property.document_types.is_public` carries it by
+  type — the same reasoning `DATABASE_ARCHITECTURE.md` §15 already gives
+  `retention_class` — with `portfolio_photo` the only public type.
+  `service_request_photos`-sourced documents, deliberately unattached
+  and undiscoverable by subject, get a dedicated lookup
+  (`property.documents_for_service_request()`) instead.
 
-- Test suite grew from 875 tests across 75 files to **940 across 83**.
+- Test suite grew from 875 tests across 75 files to **959 across 86**.
+
+### Changed
+
+- **`fetchRequestPhotos` now reads `property.documents` via the document
+  engine, not `service_request_photos` directly**, whenever the new
+  migrations are applied — falling back to the exact prior behaviour
+  otherwise, the same fallback discipline every read switch since Epic
+  03 WP 03.11 has used. Signed URLs, ordering, and every field shown are
+  unchanged by design. `fetchPortfolioItems` is **not** switched — it
+  returns `caption`, a real field with no equivalent on
+  `property.documents` yet — a decision named plainly rather than
+  silently dropping data.
 
 **Epic 07 — Asset Engine (complete, 8 of 8 packages).** `household_items`
 is still what every write actually lands on. What changed is where "Mijn

@@ -1674,26 +1674,32 @@ stay unattached). Written and structurally tested; **has not run
 against a database this session** — live verification Pending.
 **Complexity.** Medium. **Rollback.** None — read-only.
 
-**08.09 · Switch reads to `property.documents` — blocked, not
-decomposed-and-deferred**
-Designing this package, rather than starting to build it, surfaced a
-genuine architectural gap: `service_request_photos` documents are
-deliberately unattached (0060/0061's own restraint), so
-`property.my_documents(subject)` cannot discover them at all — there is
-no clean subject to query by. Separately, and more significantly:
-`property.documents`' isolation model has exactly two visibility paths
-(owning workspace, explicit share), but `public.portfolio_items` is
-genuinely public today (`for select to anon, authenticated using
-(true)`, migration `0006`) — switching the portfolio read to the new
-model as designed would silently break public portfolio viewing on
-`ProPublicProfileSheet.jsx`. Both findings are recorded in full, with
-the real alternatives weighed, in
-`implementation/epic-08/COMPLETION.md` §5.5. **Not built.** This is the
-first work package in this roadmap stopped for a genuine architectural
-decision rather than for scope, complexity, or database access — the
-product owner's call, not this session's to make silently.
-**Complexity.** High, and undetermined until the decision is made.
-**Rollback.** N/A — nothing built yet.
+**08.09 · Switch reads to `property.documents` (resolved, split in two
+halves)**
+Designing this package surfaced a genuine architectural gap, recorded in
+full in `implementation/epic-08/COMPLETION.md` §5.5 (public visibility)
+and the product owner's decision: **add explicit public-visibility
+support to the isolation model.** Built as `property.document_types.
+is_public` (`0062`) — carried by type, the same reasoning §15 already
+gives `retention_class` — with `portfolio_photo` the only public type;
+the isolation policy and both contract functions gained a third
+visibility branch, guarded on `auth.uid() is not null` so an anonymous
+caller falls through cleanly; the `api` delegates are now granted to
+`anon`, matching `portfolio_items`' own real grant. The discoverability
+half of the same finding (`service_request_photos` documents cannot be
+found by subject) was resolved directly as ordinary implementation work,
+not re-asked — a dedicated lookup, `property.documents_for_service_
+request()` (`0063`), via the existing bookkeeping join, same visibility
+rule as `resolve_document()` minus the public branch. **The actual
+client read switch split further, building it**: `fetchRequestPhotos`
+(`src/lib/requestPhotos.js`) is switched and live, with a proven
+fallback — its old shape maps cleanly onto `property.documents`, nothing
+dropped. `fetchPortfolioItems` (`src/lib/portfolio.js`) is **not**
+switched — a third, narrower finding (`implementation/epic-08/
+COMPLETION.md` §5.6): it returns `caption`, a real client-mutable field
+with no equivalent on `property.documents`, and switching would silently
+drop it from the UI. **Complexity.** High. **Rollback.** Revert
+`fetchRequestPhotos`'s read path; no data change.
 
 ## 19 · Risk Register
 
@@ -1746,7 +1752,7 @@ A session takes one of five shapes:
 | 05 — Property Engine | **Complete** 2026-08-16 — 6/6 packages. Not yet verified against a live database (gate 10 open, same as Epic 03). [Completion record](../implementation/epic-05/COMPLETION.md) |
 | 06 — Location Engine | **Complete** 2026-08-17 — 5/5 packages. Not yet verified against a live database (gate 10 open, fourth epic in a row). [Completion record](../implementation/epic-06/COMPLETION.md) |
 | 07 — Asset Engine | **Complete** — 8/8 packages. Dual-write is a database trigger (0053), not an application-level second write. Live verification (RECONCILE_ASSETS.sql, the six-step pattern's hard gate) is Pending — written and structurally tested, not yet run against a database. [Completion record](../implementation/epic-07/COMPLETION.md) |
-| 08 — Document Engine | **In progress** — 8/9 packages (08.01–08.08: types, versions, attachments, sharing, isolation, contract, backfill, dual-write, reconcile). WP 08.09 (the read switch) is **blocked on a genuine architectural decision** — `service_request_photos` documents have no discoverable subject, and `property.documents`' isolation model has no "public" visibility path, but `portfolio_items` is genuinely public today. See `implementation/epic-08/COMPLETION.md` §5.5. `avatar_url` deliberately excluded from this epic; see §18's Platform Discoveries |
+| 08 — Document Engine | **Nearly complete** — WP 08.01–08.08 done; WP 08.09 (the read switch) resolved for `service_request_photos` (live) and split off for `portfolio_items` — a narrower finding (`caption` isn't mirrored) means that half is deliberately not built. See `implementation/epic-08/COMPLETION.md` §5.5–§5.6. `avatar_url` deliberately excluded from this epic; see §18's Platform Discoveries |
 | 09–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03 closed with four ADRs**, each accepted as part of building the
