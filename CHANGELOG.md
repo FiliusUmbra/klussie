@@ -50,11 +50,39 @@ accurately.
 
 ### Added
 
+**Epic 18 — Provider Intelligence Engine (complete, 3 of 3 packages).**
+No client caller exists yet — pure addition, no Changed entry below it.
+**Built retroactively, on explicit instruction, after Epic 19** —
+branched off Epic 19's own tip rather than its chronological position,
+the same shape Epic 04 held earlier this session.
+
+- **No schema, no engine role named for Provider Intelligence** anywhere
+  in the frozen documents — the same class of gap Epic 19 found for
+  Notification, resolved differently here: `SYSTEM_ARCHITECTURE.md`
+  §9.3's own "Dependencies" line names Marketplace directly, so
+  `work.provider_decisions` lives in `work`, owned by
+  `klussie_engine_work`, by join locality rather than Notification's
+  cross-cutting-concern precedent.
+- **`work.provider_decisions`** — one row per decision.
+  `recommended_providers` required non-empty, captured with the
+  recommendation rather than after it. `selected_provider`/`decided_at`
+  and `overridden_provider`/`override_reason`/`overridden_at` each a
+  paired one-way outcome, structurally mutually exclusive.
+- **`select_provider()`** verifies the chosen provider actually appears
+  in `recommended_providers`, refusing otherwise and directing the
+  caller to `override_recommendation()` instead.
+- **`override_recommendation()`** deliberately performs no such check —
+  disagreeing with the recommendation is the entire point of an override
+  — but requires a non-blank reason.
+- **Needs zero new cross-schema grants** — the first epic since 15 that
+  doesn't, a direct benefit of the schema-placement choice.
+- **`event_type` minted correctly from the start** — the fourth epic in
+  a row to do so.
+
+- Test suite grew from 1393 tests across 141 files to **1414 across 144**.
+
 **Epic 19 — Notification Engine (complete, 3 of 3 packages).** No client
-caller exists yet — pure addition, no Changed entry below it. **Epic 18
-(Provider Intelligence Engine) was deliberately skipped**, on explicit
-instruction, in favour of proceeding directly to this epic — not built,
-not silently dropped, still owed.
+caller exists yet — pure addition, no Changed entry below it.
 
 - **No schema, no engine role exists for Notification** anywhere in the
   frozen documents — resolved by precedent, following Audit's own

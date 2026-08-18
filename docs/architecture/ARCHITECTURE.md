@@ -691,11 +691,6 @@ owns the real underlying capability ships it — see
   a row to do so. No `api.*` delegate — the same posture, now a
   twelve-time pattern. Staging only for what was built; nothing applied
   anywhere.
-- **Epic 18 (Provider Intelligence Engine) is deliberately skipped**, on
-  explicit instruction, in favour of proceeding directly to Epic 19. Not
-  built, not silently dropped — recorded in `MASTER_CONTEXT.md` §2 and
-  `implementation/epic-19/COMPLETION.md`'s own header as a real,
-  out-of-order gap the roadmap still expects filled.
 - **The notification engine exists, complete** (Epic 19, 3/3 packages) —
   no schema, no engine role exists for Notification anywhere in the
   frozen documents (`SUPABASE_ARCHITECTURE.md` §7's own schema table
@@ -727,14 +722,43 @@ owns the real underlying capability ships it — see
   start, the third epic in a row. No `api.*` delegate — the same
   posture, now a thirteen-time pattern. Staging only for what was built;
   nothing applied anywhere.
+- **The provider intelligence engine exists, complete** (Epic 18, 3/3
+  packages) — **built retroactively, on explicit instruction, after Epic
+  19**, branched off Epic 19's own tip rather than its chronological
+  position, the same shape Epic 04 held earlier. The same class of gap
+  Epic 19 found for Notification — no schema, no engine role named
+  anywhere in the frozen documents — resolved differently here,
+  deliberately: `SYSTEM_ARCHITECTURE.md` §9.3's own "Dependencies" line
+  names Marketplace directly, so `work.provider_decisions` lives in
+  `work`, owned by `klussie_engine_work`, by join locality rather than
+  Notification's cross-cutting-concern precedent. `recommended_providers`
+  required non-empty, captured with the recommendation rather than after
+  it (§9.3: "explainability is structural"). `selected_provider`/
+  `decided_at` and `overridden_provider`/`override_reason`/
+  `overridden_at` each a paired one-way outcome, structurally mutually
+  exclusive — a decision is never both selected and overridden.
+  `select_provider()` verifies the chosen provider actually appears in
+  `recommended_providers`, refusing otherwise and directing the caller to
+  `override_recommendation()` instead, which deliberately performs no
+  such check but requires a non-blank reason (`PLATFORM_DOMAIN_MODEL.md`
+  §14.4: "a decision, not a signal to be weighed") — the asymmetry is the
+  whole point of having both functions. **The first epic since 15
+  needing zero new cross-schema grants** — `klussie_engine_work` already
+  reaches everything this contract touches, a direct, structural benefit
+  of the schema-placement choice. Provider scores (the projection half of
+  the same Rebuild Test finding, §36 finding 2) deliberately not built —
+  requires real reasoning no future engine has been built to perform yet.
+  `event_type` minted correctly from the start, the fourth epic in a row.
+  No `api.*` delegate — the same posture, now a fourteen-time pattern.
+  Staging only for what was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
   Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's, nor Epic 17's,
-  nor Epic 19's. Its migration ledger is still unreconciled
+  nor Epic 19's, nor Epic 18's. Its migration ledger is still unreconciled
   (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
   push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0117`.
+  itself covering only `0018`–`0029` and owed an update through `0120`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
