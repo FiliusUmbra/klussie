@@ -58,8 +58,9 @@ this one, this one wins.
 21. [Work Packages — Epic 04](#21--work-packages--epic-04)
 22. [Work Packages — Epic 11](#22--work-packages--epic-11)
 23. [Work Packages — Epic 12](#23--work-packages--epic-12)
-24. [Risk Register](#24--risk-register)
-25. [How Implementation Sessions Work](#25--how-implementation-sessions-work)
+24. [Work Packages — Epic 13](#24--work-packages--epic-13)
+25. [Risk Register](#25--risk-register)
+26. [How Implementation Sessions Work](#26--how-implementation-sessions-work)
 
 ---
 
@@ -647,9 +648,20 @@ triggers. Engagements create scoped expiring memberships. **Provider
 selection is not in this epic** — Marketplace executes; Provider
 Intelligence chooses (`SYSTEM_ARCHITECTURE.md` §21 finding 3).
 
-**Epic 13 — Conversation Engine.** Conversations bound to subjects;
-messages immutable; originals permanent; translations derived. Migrates
-existing messages and the `translations` cache.
+**Epic 13 — Conversation Engine.** Conversations bound to one of five
+real subjects — engagement, asset, maintenance obligation, property, or
+the workspace itself — all five real aggregates for the first time now
+that Epics 05–12 exist. **Reviewed against every completed engine before
+implementation** (`implementation/epic-13/DESIGN_REVIEW.md`): binds to
+`work.engagements`, not a legacy request id, correcting an assumption
+the original one-liner made before engagements were real; participation
+is its own explicit table, not inferred from workspace membership;
+messages carry an optional, typed reference to a structured moment (a
+quote, a transition, an approval) rather than free text. Messages
+immutable; originals permanent; translations derived, reusing the
+existing AI Gateway `translate()` mechanism rather than waiting on
+Intelligence (Epic 17, not yet built). Migrates existing messages and
+the `translations` cache.
 
 **Epic 14 — Billing Engine.** Immutable financial records, multi-currency
 and multi-jurisdiction from the first row. **The first real revenue
@@ -2096,7 +2108,82 @@ consumed. `EngagementAccepted`"). No `api.*` delegate for any of the
 thirteen functions — the sixth occurrence of that same restraint.
 **Complexity.** Very High. **Rollback.** Drop all thirteen functions.
 
-## 24 · Risk Register
+## 24 · Work Packages — Epic 13
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §20 (Conversation),
+`PLATFORM_DOMAIN_MODEL.md` §15, `SYSTEM_ARCHITECTURE.md` §8.5. Epics 03,
+05, 07, 10, 12 (all five real subjects a conversation may bind to).
+
+**Reviewed against every completed engine before implementation, on
+explicit request** — `implementation/epic-13/DESIGN_REVIEW.md` is that
+review, produced and read before WP 13.01 began. Its headline finding:
+all five subjects §15 names for a conversation (engagement, asset,
+maintenance obligation, property, workspace) are real aggregates for the
+first time only now, after Epics 05–12. The original one-liner for this
+epic ("migrates existing messages and the `translations` cache") was
+written before any of them existed and undersold what is now possible.
+
+**13.01 · The Conversation aggregate (add)**
+`work.conversations` — five nullable subject columns, exactly one
+required. **Binds to `work.engagements`, not a request** — the single
+largest correction the review made: §15 names the subject as "a
+marketplace engagement," and legacy only bound to a request because no
+engagement existed as a real row before Epic 12. Immutable except
+`closed_at`, one-way. **Complexity.** Medium. **Rollback.** Drop the
+table and its guard trigger.
+
+**13.02 · Conversation Participants (add)**
+`work.conversation_participants` — an explicit, managed roster keyed by
+`person_ref` (no foreign key, matching every durable person-reference in
+this schema), not derived from workspace membership. The review checked
+the naive "either workspace" isolation shape (this epic's own nearest
+precedent, Marketplace's engagement policy) against §20's own text and
+found it would over-grant. `last_read_at` lives here, per participant —
+legacy's single `messages.read_at` assumed exactly two parties, which
+participation is no longer fixed at. **Complexity.** Medium.
+**Rollback.** Drop the table.
+
+**13.03 · Messages (add)**
+`work.messages` — immutable except `translations` (jsonb, reusing the
+exact existing mechanism, not waiting on Intelligence/Epic 17, not yet
+built). `reference_type`/`reference_id` give a message an optional,
+typed link to a structured moment (a quote, a transition, an approval —
+§15's own words), reusing `platform.emit_event()`'s own polymorphic-
+subject shape. **Complexity.** Medium. **Rollback.** Drop the table and
+its guard trigger.
+
+**13.04 · RLS isolation (add)**
+All three policies check `work.conversation_participants`, never
+`api.current_workspace_memberships()` — the first isolation policy
+family in this schema to deliberately not reuse that resolver, because
+this is the first table where workspace membership is genuinely the
+wrong boundary. Reuses `public.current_identity()` (Epic 02) for "which
+real person is asking." **Complexity.** High. **Rollback.** Drop all
+three policies.
+
+**13.05 · Backfill: every real conversation and message (add)**
+Every legacy conversation already has a real engagement to bind to —
+`handle_quote_accepted()` only ever created one at acceptance, which is
+exactly the condition Epic 12's own engagement backfill used.
+**Complexity.** High. **Rollback.** Delete every row carrying a
+`legacy_conversation_id`/`legacy_message_id`.
+
+**13.06 · The conversation engine contract (add)**
+Eleven functions. **Two real bugs caught before shipping**:
+`platform.events.workspace_id` is `not null` and is the table's own
+partition key; the first draft of `close_conversation()` passed a
+literal `null`, and `open_conversation()`'s first draft would have
+silently recorded an asset or property id *as* a workspace id whenever a
+conversation opened on one of the three subjects with no workspace
+column of its own. Both fixed by `work.resolve_conversation_home_
+workspace()`, a real resolver walking all five subjects to their actual
+owning workspace — a genuinely new bug class for this roadmap, not a
+repeat of the `gen_random_uuid()` pattern Epics 04/11 already caught.
+No `api.*` delegate for any of the eleven functions — the seventh
+occurrence of that restraint. **Complexity.** Very High. **Rollback.**
+Drop all eleven functions.
+
+## 25 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2110,7 +2197,7 @@ thirteen functions — the sixth occurrence of that same restraint.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 25 · How Implementation Sessions Work
+## 26 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 

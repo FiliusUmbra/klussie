@@ -50,6 +50,50 @@ accurately.
 
 ### Added
 
+**Epic 13 — Conversation Engine (complete, 6 of 6 packages, reviewed
+against every completed engine before implementation).** No client
+caller exists yet — pure addition, no Changed entry below it. Review
+itself: `implementation/epic-13/DESIGN_REVIEW.md`, produced and read
+before any table was created, on explicit request.
+
+- **The review's own largest finding**: `PLATFORM_DOMAIN_MODEL.md` §15's
+  five real conversation subjects (engagement, asset, maintenance
+  obligation, property, workspace) are all real aggregates for the first
+  time only now, after Epics 05–12. The original scope note for this
+  epic was written before any of them existed.
+- **`work.conversations`** — binds to `work.engagements`, not a request
+  — the single largest correction: legacy only bound to a request
+  because no engagement existed as a real row before Epic 12.
+- **`work.conversation_participants`** — an explicit, managed roster
+  keyed by `person_ref`, not derived from workspace membership. The
+  naive "either workspace" isolation shape (this epic's own nearest
+  precedent) was checked against §20's own text and found to over-grant.
+  Read state (`last_read_at`) lives here, per participant, replacing
+  legacy's single `messages.read_at`, which assumed exactly two parties.
+- **`work.messages`** — immutable except `translations` (reusing the
+  exact existing AI Gateway mechanism, not waiting on Intelligence,
+  Epic 17). `reference_type`/`reference_id` give a message an optional
+  link to a structured moment (a quote, a transition), reusing
+  `platform.emit_event()`'s own polymorphic-subject shape.
+- **Backfilled: every real conversation and message**, bound to their
+  real engagement rather than a request.
+- **The conversation engine contract** — eleven functions, no `api.*`
+  delegate for any of them.
+- **Two real bugs caught before shipping — a new class of mistake for
+  this session**: `platform.events.workspace_id` is `not null` and is
+  the table's own hash-partition key. The first draft of
+  `close_conversation()` passed a literal `null`; the first draft of
+  `open_conversation()` would have silently recorded an asset or
+  property id *as* a workspace id whenever a conversation opened on a
+  subject with no workspace column of its own. Both fixed by
+  `work.resolve_conversation_home_workspace()`, a real resolver walking
+  all five subjects to their actual owning workspace.
+- **Location and Service Record considered and not added** as
+  conversation subjects — both real, plausible connections; neither is
+  named in §15. Recorded as candidates for a future ADR.
+
+- Test suite grew from 1183 tests across 114 files to **1228 across 120**.
+
 **Epic 12 — Marketplace Engine (complete, 6 of 6 packages, deliberately
 narrowed scope).** No client caller exists yet — pure addition, no
 Changed entry below it. Does not retire any of the five legacy triggers

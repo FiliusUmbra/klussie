@@ -528,13 +528,49 @@ owns the real underlying capability ships it — see
   projection deferred — no `work.reviews` aggregate exists anywhere in
   the frozen architecture to compute it from. Staging only for what was
   built; nothing applied anywhere.
+- **The conversation engine exists, reviewed against every completed
+  engine before implementation** (Epic 13, 6/6 packages) — the review
+  itself is `../../implementation/epic-13/DESIGN_REVIEW.md`, produced
+  and read before any table was created, on explicit request. Its own
+  largest finding: `PLATFORM_DOMAIN_MODEL.md` §15's five real subjects
+  (engagement, asset, maintenance obligation, property, workspace) are
+  all real aggregates for the first time only now, after Epics 05–12.
+  `work.conversations` **binds to `work.engagements`, not a request** —
+  legacy only bound to a request because no engagement existed as a real
+  row before Epic 12. `work.conversation_participants` is an explicit,
+  managed roster keyed by `person_ref` (no foreign key) — **not derived
+  from workspace membership**: the naive "either workspace" isolation
+  shape this epic's own nearest precedent (Marketplace's engagement
+  policy) would have produced was checked against §20's own text
+  ("participants see the thread... not each other's workspaces") and
+  found to over-grant. Read state moved from a single legacy
+  `messages.read_at` to per-participant `last_read_at`, since
+  participation is no longer fixed at two people. Messages carry an
+  optional, typed `reference_type`/`reference_id` to a structured moment
+  (a quote, a transition), reusing `platform.emit_event()`'s own
+  polymorphic-subject shape. Translations stay a `jsonb` column, reusing
+  the existing AI Gateway mechanism rather than waiting on Intelligence
+  (Epic 17, not built). **Two real bugs caught before shipping — a new
+  class for this session, not a repeat of the `gen_random_uuid()`
+  pattern**: `platform.events.workspace_id` is `not null` and is the
+  table's own hash-partition key; `close_conversation()`'s first draft
+  passed a literal `null`, and `open_conversation()`'s first draft would
+  have silently recorded an asset or property id *as* a workspace id
+  whenever a conversation opened on a subject with no workspace column
+  of its own. Both fixed by `work.resolve_conversation_home_workspace()`,
+  a real resolver walking all five subjects to their actual owning
+  workspace. Location and Service Record are real, plausible conversation
+  subjects the review considered and did not add — neither is named in
+  §15; recorded as candidates for a future ADR. No `api.*` delegate —
+  the same posture, now a seven-time pattern. Staging only for what was
+  built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
-  nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's. Its
-  migration ledger is still unreconciled
+  nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
+  Epic 13's. Its migration ledger is still unreconciled
   (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
   push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0090`.
+  itself covering only `0018`–`0029` and owed an update through `0096`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
