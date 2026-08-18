@@ -66,8 +66,9 @@ this one, this one wins.
 29. [Work Packages — Epic 19](#29--work-packages--epic-19)
 30. [Work Packages — Epic 18](#30--work-packages--epic-18)
 31. [Work Packages — Epic 20](#31--work-packages--epic-20)
-32. [Risk Register](#32--risk-register)
-33. [How Implementation Sessions Work](#33--how-implementation-sessions-work)
+32. [Work Packages — Epic 21](#32--work-packages--epic-21)
+33. [Risk Register](#33--risk-register)
+34. [How Implementation Sessions Work](#34--how-implementation-sessions-work)
 
 ---
 
@@ -717,7 +718,8 @@ events. Replaces the current client-side catalogue filter. **Complete**
 
 **Epic 21 — Analytics Engine.** Two physically separate schemas, two role
 grants. First instrumentation of the KPIs in `MASTER_CONTEXT.md` §14,
-none of which is currently measured.
+none of which is currently measured. **Complete** — see
+`implementation/epic-21/COMPLETION.md`.
 
 **Epic 22 — Subscription Engine.** Plans as capability bundles; the six
 tiers from `PLATFORM_DOMAIN_MODEL.md` §24. Separate from Billing so a
@@ -2610,7 +2612,65 @@ correctly from the start, the fifth epic in a row. No `api.*` delegate —
 the fifteenth occurrence. **Complexity.** High. **Rollback.** Drop all
 five functions.
 
-## 32 · Risk Register
+## 32 · Work Packages — Epic 21
+
+Built immediately after Epic 20, on the roadmap's own forward
+sequencing, continuing the stacked-branch chain from
+`epic-20/search-engine`'s own tip.
+
+**Dependencies.** `SYSTEM_ARCHITECTURE.md` §10.3/§16.
+`SUPABASE_ARCHITECTURE.md` §2/§14/§17. `DATABASE_ARCHITECTURE.md` §3/§31.
+`PLATFORM_DOMAIN_MODEL.md` §18/§22. `docs/operations/ROLES.md` §2.2.
+Epic 16 (`platform.write_audit_record()`).
+
+**Read before design.** A genuine inconsistency between the two frozen
+documents, resolved by keeping both rather than picking a side:
+`DATABASE_ARCHITECTURE.md` §31 names six domains ending in **Property**;
+`SYSTEM_ARCHITECTURE.md` §16 also names six, ending in **Platform**
+instead — two real, different concepts ("asset and building behaviour
+over time" versus "growth, retention, health," confirmed distinct by
+`MASTER_CONTEXT.md` §14's own KPI table), not the same one renamed. This
+epic keeps **seven** domains. Like Epic 20, both the schema (`analytics_ws`/
+`analytics_pf`) and the role (`klussie_consumer_analytics`, created
+since Epic 01) are already named — nothing to resolve by precedent
+there. No backfill — greenfield, `MASTER_CONTEXT.md` §14: "None of
+these are instrumented in production yet."
+
+**21.01 · The two analytics stores (add)**
+`analytics_ws.workspace_metrics` (Business, Property, Enterprise — one
+polymorphic table, mirroring `platform.events`' and `derived.
+search_index`'s own shape) and `analytics_pf.platform_metrics`
+(Operational, Marketplace, AI, Platform). The platform-scoped table
+carries **no `workspace_id` column at all**, structurally — the same
+guarantee Epic 16's own world graph tables hold. Both Projection class:
+hard-delete permitted, no guard trigger, the second table pair this
+session has built with that posture, after Epic 20's own search index.
+**Complexity.** Medium. **Rollback.** Drop both tables.
+
+**21.02 · RLS isolation (add)**
+One policy, on `analytics_ws.workspace_metrics` only — ordinary direct
+`workspace_id` membership. `analytics_pf.platform_metrics` has RLS
+enabled with no policy, matching `platform.events`' own posture: it has
+no workspace to scope a policy by in the first place. **Complexity.**
+Low. **Rollback.** Drop the policy.
+
+**21.03 · The analytics engine contract (add)**
+Four functions, split across `analytics_ws`/`analytics_pf` — there is no
+eleventh schema named `analytics`. `record_workspace_metric()` upserts
+and emits `analytics.metric.refreshed` with a real workspace.
+`promote_platform_metric()` has **no `p_workspace_id` parameter at
+all** — structurally unable to emit a `platform.events` row, unlike
+Epic 20's `mark_index_rebuilt()`, which merely refuses one at runtime.
+Its only durable trail is an audited `platform.write_audit_record()`
+call with `p_workspace_id => null` (ADR-0021), the same discipline
+`knowledge.promote_fact()` established for world-graph promotion, called
+directly rather than through that function (a different aggregate).
+**The first role this session grants both `platform.emit_event()` and
+`platform.write_audit_record()`.** `event_type` minted correctly from
+the start, the sixth epic in a row. No `api.*` delegate — the sixteenth
+occurrence. **Complexity.** High. **Rollback.** Drop all four functions.
+
+## 33 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2626,7 +2686,7 @@ five functions.
 | 10 | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format~~ (found and fixed in Epic 15, `implementation/epic-15/COMPLETION.md` §6) | ✅ Closed | 34 values across 7 epics violated `platform.events`' own `CHECK` constraint; ADR-0019 stayed authoritative, every call site conformed to it across all 7 branches |
 | 11 | ~~`klussie_engine_work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`~~ (found and fixed in Epic 16, `implementation/epic-16/COMPLETION.md` §5.1) | ✅ Closed | Six already-shipped `emit_event()` call sites across five epics would have failed with "permission denied for schema platform"; fixed forward in one migration, no rebase required |
 
-## 33 · How Implementation Sessions Work
+## 34 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 

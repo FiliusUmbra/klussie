@@ -50,6 +50,32 @@ accurately.
 
 ### Added
 
+**Epic 21 — Analytics Engine (complete, 3 of 3 packages).** No client
+caller exists yet — pure addition, no Changed entry below it. Built
+immediately after Epic 20, on the roadmap's own forward sequencing.
+
+- **A genuine inconsistency between the two frozen documents, resolved
+  by keeping both, not by picking a side** — `DATABASE_ARCHITECTURE.md`
+  §31 names six analytics domains ending in Property;
+  `SYSTEM_ARCHITECTURE.md` §16 also names six, ending in Platform
+  instead. This release keeps **seven** domains, not six.
+- **`analytics_ws.workspace_metrics`** (Business, Property, Enterprise)
+  and **`analytics_pf.platform_metrics`** (Operational, Marketplace, AI,
+  Platform) — the platform-scoped table carries no `workspace_id`
+  column at all, structurally.
+- **The second Projection-class, hard-delete-permitted table pair this
+  session has built**, after Epic 20's own search index.
+- **`promote_platform_metric()`** has no `p_workspace_id` parameter at
+  all — structurally unable to emit a `platform.events` row. Its only
+  durable trail is an audited `platform.write_audit_record()` call with
+  a null workspace (ADR-0021).
+- **The first role this session grants both `platform.emit_event()` and
+  `platform.write_audit_record()`.**
+- **`event_type` minted correctly from the start** — the sixth epic in
+  a row to do so.
+
+- Test suite grew from 1439 tests across 147 files to **1461 across 150**.
+
 **Epic 20 — Search Engine (complete, 3 of 3 packages).** No client
 caller exists yet — pure addition, no Changed entry below it. Built
 immediately after Epic 18, on the roadmap's own forward sequencing.
