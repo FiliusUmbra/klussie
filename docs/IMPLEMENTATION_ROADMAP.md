@@ -54,8 +54,9 @@ this one, this one wins.
 17. [Work Packages — Epic 07](#17--work-packages--epic-07)
 18. [Work Packages — Epic 08](#18--work-packages--epic-08)
 19. [Work Packages — Epic 09](#19--work-packages--epic-09)
-20. [Risk Register](#20--risk-register)
-21. [How Implementation Sessions Work](#21--how-implementation-sessions-work)
+20. [Work Packages — Epic 10](#20--work-packages--epic-10)
+21. [Risk Register](#21--risk-register)
+22. [How Implementation Sessions Work](#22--how-implementation-sessions-work)
 
 ---
 
@@ -1801,7 +1802,63 @@ definition reproduces the trigger chain's decisions exactly.
 **Complexity.** Medium. **Rollback.** Delete the twelve seeded rows across
 all three tables (no instance can reference them yet).
 
-## 20 · Risk Register
+## 20 · Work Packages — Epic 10
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §16 (Maintenance),
+`SYSTEM_ARCHITECTURE.md` §8.1 (the Maintenance Engine). Lives in `work`,
+alongside Epic 09's Workflow Engine — migration 0019's own grouping names
+both, plus Service Record, Marketplace and Conversation, for this schema.
+
+**Read before design — what this epic does not do, and why.** Three
+relationships §16/§8.1 name are not wired here, each because its real
+counterpart does not exist yet, the same restraint Epic 09 held: "due"
+and "overdue" are computed at read time from `due_on`, not stored or
+emitted as events, since firing `ObligationDue`/`ObligationOverdue` needs
+a scheduled job with no consumer (Notification, Epic 19, is unbuilt).
+"Produces workflow instances" is not wired — no maintenance-specific
+workflow definition exists (Epic 09's own `booking_request_lifecycle`
+describes a marketplace request, not this). "Resolved by service
+records" is not wired — `ServiceRecordCompleted` is Epic 11's own event,
+which does not exist yet; `work.complete_maintenance_obligation()` is a
+direct call for now. Full detail in
+`implementation/epic-10/COMPLETION.md` §5.
+
+**10.01 · The Maintenance Schedule aggregate (add)**
+`work.maintenance_schedules` — anchored to exactly one of an asset or a
+location (narrower than `property.document_attachments`' four-subject
+menu, matching what §16 actually names), `recurrence` a native
+`interval`, ordinary mutable Transactional data, no version history.
+**Complexity.** Low. **Rollback.** Drop the table.
+
+**10.02 · The Maintenance Obligation aggregate (add)**
+`work.maintenance_obligations` — authoritative once created (§16: not
+conflated with a prediction), immutable once `status` reaches
+`completed` or `cancelled`, enforced by a conditional guard trigger
+reusing `property.documents_guard_deletion()`'s own shape (Epic 08).
+Cancellation always carries a reason, enforced by both a table check and
+the contract function. **Complexity.** Medium. **Rollback.** Drop the
+table and its guard trigger.
+
+**10.03 · RLS isolation (add)**
+Ordinary workspace-scoped isolation for both tables, no sharing concept
+— the same shape `work.workflow_instances` holds (migration 0068).
+**Complexity.** Low. **Rollback.** Drop the two policies.
+
+**10.04 · The maintenance engine contract (add)**
+Create/cancel a schedule, create/complete/cancel an obligation, plus two
+read functions. `work.generate_due_obligation()` handles exactly one
+schedule, one obligation, per call — never a loop minting several ids
+itself, since `platform.uuid_v7_at()` is documented backfill-only
+(ADR-0022) and generating new obligations on an ongoing basis is runtime
+generation, which belongs in the application. A schedule several periods
+behind is caught up by calling it once per missed period, proven in
+`VERIFY_MAINTENANCE_CONTRACT.sql` catching up three missed monthly
+periods with three separate calls. No `api.*` delegate for any of the
+eight functions — `property.reparent_location()`'s own precedent, now a
+three-time pattern. **Complexity.** High. **Rollback.** Drop all eight
+functions.
+
+## 21 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -1815,7 +1872,7 @@ all three tables (no instance can reference them yet).
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 21 · How Implementation Sessions Work
+## 22 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 

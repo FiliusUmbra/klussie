@@ -405,12 +405,39 @@ owns the real underlying capability ships it — see
   polymorphic pair with no foreign key, reusing `platform.emit_event()`'s
   own shape (migration 0023) rather than inventing a new one. Staging
   only for what was built; nothing applied anywhere.
+- **The maintenance engine exists, complete** (Epic 10, 4/4 packages) —
+  `work.maintenance_schedules` (a recurring rule, `recurrence` a native
+  `interval`, ordinary mutable data, no version history) and
+  `work.maintenance_obligations` (authoritative once created — §16's own
+  distinction from a prediction, which this epic does not build, since
+  Intelligence/Epic 17 owns predictions — immutable once `status` reaches
+  `completed` or `cancelled`, via a conditional guard trigger reusing
+  `property.documents_guard_deletion()`'s own shape from Epic 08). Both
+  anchored to exactly one of an asset or a location, narrower than
+  `property.document_attachments`' four-subject menu, matching what §16
+  actually names. **`work.generate_due_obligation()` handles exactly one
+  schedule, one obligation, per call** — not a loop minting several ids
+  itself, since `platform.uuid_v7_at()` is documented backfill-only
+  (ADR-0022) and generating new obligations on an ongoing basis is
+  runtime generation, which the architecture puts in the application; a
+  schedule several periods behind is caught up by calling it once per
+  missed period, proven in `VERIFY_MAINTENANCE_CONTRACT.sql` catching up
+  three missed monthly periods with three separate calls. **Three
+  relationships §16/`SYSTEM_ARCHITECTURE.md` §8.1 name are deliberately
+  not wired**: due/overdue is computed at read time from `due_on`, not a
+  stored event (no Notification engine exists yet); "produces workflow
+  instances" and "resolved by service records" both wait on engines that
+  do not exist yet (a real maintenance-specific workflow definition, and
+  Epic 11) — `../../implementation/epic-10/COMPLETION.md` §5. No `api.*`
+  delegate for any of its eight functions — `property.reparent_location()`'s
+  posture, now a three-time pattern. Staging only for what was built;
+  nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
-  Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's, nor Epic 09's.
-  Its migration ledger is still unreconciled
+  Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's, nor Epic 09's,
+  nor Epic 10's. Its migration ledger is still unreconciled
   (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
   push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0070`.
+  itself covering only `0018`–`0029` and owed an update through `0074`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
