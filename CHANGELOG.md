@@ -50,6 +50,35 @@ accurately.
 
 ### Added
 
+**Epic 20 — Search Engine (complete, 3 of 3 packages).** No client
+caller exists yet — pure addition, no Changed entry below it. Built
+immediately after Epic 18, on the roadmap's own forward sequencing.
+Unlike every epic since 18, both the schema (`derived`) and the engine
+role (`klussie_consumer_search`) were already named in the frozen
+documents — nothing to resolve by precedent.
+
+- **`derived.search_index`** — one polymorphic table, all eight domains
+  via a `domain` discriminator, mirroring `platform.events`' own shape.
+- **`search_index_global_has_no_workspace`** and
+  **`search_index_published_only_public`** make two of the frozen
+  architecture's search rules structural rather than merely policed.
+- **The first Derived-class, hard-delete-permitted table this session
+  has built** — no guard trigger, the opposite mutability posture from
+  every prior table.
+- **`derived.search()`** applies scope and the text match in the same
+  `where` clause — "scope is indexed, never post-filtered" as a
+  structural property.
+- **`mark_index_rebuilt()`** (canonical) and **`mark_index_lag_detected()`**
+  (`p_is_derived => true`, the first event this session marks that way)
+  both refuse a null workspace — global-domain rebuild event tracking is
+  a named, deliberate gap.
+- **The first background-consumer role this session has granted
+  `platform.emit_event()` to**, rather than an engine role.
+- **`event_type` minted correctly from the start** — the fifth epic in
+  a row to do so.
+
+- Test suite grew from 1414 tests across 144 files to **1439 across 147**.
+
 **Epic 18 — Provider Intelligence Engine (complete, 3 of 3 packages).**
 No client caller exists yet — pure addition, no Changed entry below it.
 **Built retroactively, on explicit instruction, after Epic 19** —

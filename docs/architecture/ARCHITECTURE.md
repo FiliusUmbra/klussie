@@ -751,14 +751,50 @@ owns the real underlying capability ships it — see
   `event_type` minted correctly from the start, the fourth epic in a row.
   No `api.*` delegate — the same posture, now a fourteen-time pattern.
   Staging only for what was built; nothing applied anywhere.
+- **The search engine exists, complete** (Epic 20, 3/3 packages) — built
+  immediately after Epic 18, on the roadmap's own forward sequencing.
+  **Unlike every epic since 18, both the schema and the role were
+  already named** in the frozen documents: `SUPABASE_ARCHITECTURE.md`
+  §2's own schema table names `derived` explicitly ("search support"),
+  and `../operations/ROLES.md` §2.2 names `klussie_consumer_search` by
+  name, created since Epic 01, waiting for a real caller. `derived.
+  search_index` — **one polymorphic table, all eight domains** via a
+  `domain` discriminator, mirroring `platform.events`' own shape rather
+  than inventing eight near-identical tables.
+  `search_index_global_has_no_workspace` requires `workspace_id is null`
+  if and only if `domain = 'global'`; `search_index_published_only_public`
+  forbids `is_published = true` anywhere outside `provider`/`global` —
+  making two of §15's rules structural rather than merely policed.
+  **The first Derived-class, hard-delete-permitted table this session
+  has built** — no guard trigger, the opposite mutability posture from
+  every prior aggregate this session has shipped. `derived.search()`'s
+  scope predicate and text predicate sit in one `where` clause of one
+  statement — "scope is indexed, never post-filtered" as a structural
+  property, not a convention. `mark_index_rebuilt()` (canonical) and
+  `mark_index_lag_detected()` (`p_is_derived => true`, the first event
+  this session marks that way) both refuse a null workspace —
+  global-domain rebuild event tracking has no owning workspace to
+  attribute to, a named, deliberate gap. **The first background-consumer
+  role this session has granted `platform.emit_event()` to**, rather
+  than an engine role — fulfilling the exact case `0023_emit_event.sql`'s
+  own header predicted and left ungranted at Epic 01. `'simple'` text
+  search configuration, deliberately, not `'english'` — the first
+  full-text search this codebase has implemented, and the platform is
+  multi-locale. `event_type` minted correctly from the start, the fifth
+  epic in a row. No `api.*` delegate — the same posture, now a
+  fifteen-time pattern. `authenticated`/`anon` hold no direct `SELECT`
+  grant yet — `ROLES.md` §2.4's own "Not yet" bucket, opened by whichever
+  epic ships the live client read path. Staging only for what was built;
+  nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
   Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's, nor Epic 17's,
-  nor Epic 19's, nor Epic 18's. Its migration ledger is still unreconciled
-  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
-  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0120`.
+  nor Epic 19's, nor Epic 18's, nor Epic 20's. Its migration ledger is
+  still unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
+  prerequisite for any push to it — see
+  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
+  `0018`–`0029` and owed an update through `0123`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
