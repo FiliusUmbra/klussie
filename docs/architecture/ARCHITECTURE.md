@@ -595,13 +595,46 @@ owns the real underlying capability ships it — see
   every emitted event's `workspace_id` is a real, directly-available
   column, never a polymorphic subject needing Epic 13's own resolver.
   Staging only for what was built; nothing applied anywhere.
+- **Timeline and the Digital Twin exist, complete** (Epic 15, 3/3
+  packages) — **not a new engine**. §3's own aggregate/projection
+  ownership table assigns both to **Property** (Epic 05), already built;
+  this epic is two read functions added to that existing contract, no new
+  schema, no new engine role. `property.timeline_segment()` reads
+  `platform.events` directly and lives — §25's "derived from events,
+  never maintained separately" rules out any cache — scoped to the
+  caller's own current-or-past stewardship windows, resolved across six
+  subject branches (property, asset, location, service_record,
+  conversation, message). `property.assemble_twin()` is only the "narrow
+  summary projections" §28 permits to be materialised — five live counts,
+  the twin itself staying unmaterialised. **A pre-existing bug found and
+  fixed in the same work package**: `platform.events` has had RLS enabled
+  with no policy since Epic 01 — `klussie_consumer_delivery`'s own
+  `SELECT` grant has been dead code the entire time, since a table-level
+  grant does not bypass RLS; one policy, naming both roles, fixes it.
+  Document resolution and asset/location lifecycle events are deliberately
+  absent from Timeline v1 — Document and Asset engines (Epics 07/08) have
+  never emitted a single event, so those branches would be correct but
+  currently vacuous (Maintenance's own events already populate the
+  asset/location branches today). **The largest finding of this session**,
+  found while writing this epic's own diagnostic and fixed across all
+  seven affected branches before this epic closed: every `emit_event()`
+  call since Epic 06 used a bare PascalCase `event_type` instead of
+  ADR-0019's own dotted format — 34 values across 7 epics, none matching
+  `platform.events`' own `CHECK` constraint. ADR-0019 stayed authoritative
+  and unmodified; every call site (and its test assertions) was conformed
+  to it instead, verified against `SYSTEM_ARCHITECTURE.md`'s own
+  per-engine event lists rather than mechanically transformed — see
+  `implementation/epic-15/COMPLETION.md` §6. No `api.*` delegate — the
+  same posture, now a ten-time pattern. Staging only for what was built;
+  nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
-  Epic 13's, nor Epic 14's. Its migration ledger is still unreconciled
-  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
-  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0101`.
+  Epic 13's, nor Epic 14's, nor Epic 15's. Its migration ledger is still
+  unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
+  prerequisite for any push to it — see
+  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
+  `0018`–`0029` and owed an update through `0104`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

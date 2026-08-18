@@ -50,6 +50,46 @@ accurately.
 
 ### Added
 
+**Epic 15 — Timeline & Digital Twin (complete, 3 of 3 packages).** No
+client caller exists yet — pure addition, no Changed entry below it.
+**Not a new engine** — extends Property's (Epic 05) own contract with two
+read functions, per `SYSTEM_ARCHITECTURE.md` §3's own ownership table.
+
+- **`property.timeline_segment()`** — §25's own words taken literally: "a
+  workspace may read the segment of a property's timeline that falls
+  within its own stewardship period." Unions the current stewardship
+  window with every closed one the caller's own workspace held, resolved
+  across six subject branches (property, asset, location, service_record,
+  conversation, message) joined directly against `platform.events` — §25
+  rules out any separately-maintained cache.
+- **`property.assemble_twin()`** — the twin itself stays unmaterialised
+  (§28); this is only the "narrow summary projections" §28 explicitly
+  permits: five live counts, current-steward-only, deliberately not
+  stewardship-window-scoped like the timeline.
+- **A pre-existing bug found and fixed while opening the same access
+  Timeline needs**: `platform.events` has had RLS enabled with no policy
+  since Epic 01 — `klussie_consumer_delivery`'s own `SELECT` grant has
+  been dead code the entire time, since a table-level grant does not
+  bypass RLS. One policy, naming both roles, fixes it.
+- **Document resolution, and asset/location lifecycle events, deliberately
+  excluded from v1** — Document and Asset engines (Epics 07/08) have never
+  emitted a single event, so those branches would be correct but currently
+  vacuous; Maintenance's own events already populate the asset/location
+  branches today, so Timeline is thinner than its eventual shape, not
+  empty.
+- **The largest finding of this session, found and fixed**: every
+  `emit_event()` call since Epic 06 used a bare PascalCase `event_type`
+  instead of ADR-0019's own dotted format — 34 values across 7 epics,
+  none matching `platform.events`' own `CHECK` constraint. ADR-0019 stayed
+  authoritative and unmodified; every call site, its test assertions, and
+  affected `comment on function` prose were conformed to it instead,
+  across all 7 affected branches, each verified against
+  `SYSTEM_ARCHITECTURE.md`'s own per-engine event lists rather than
+  mechanically transformed — see `implementation/epic-15/COMPLETION.md`
+  §6 for the full mapping.
+
+- Test suite grew from 1269 tests across 125 files to **1293 across 128**.
+
 **Epic 14 — Billing Engine (complete, 5 of 5 packages).** No client
 caller exists yet — pure addition, no Changed entry below it. The first
 real revenue path: `src/lib/billing.js`'s `PLATFORM_COMMISSION_RATE` was
