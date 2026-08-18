@@ -55,8 +55,9 @@ this one, this one wins.
 18. [Work Packages — Epic 08](#18--work-packages--epic-08)
 19. [Work Packages — Epic 09](#19--work-packages--epic-09)
 20. [Work Packages — Epic 10](#20--work-packages--epic-10)
-21. [Risk Register](#21--risk-register)
-22. [How Implementation Sessions Work](#22--how-implementation-sessions-work)
+21. [Work Packages — Epic 04](#21--work-packages--epic-04)
+22. [Risk Register](#22--risk-register)
+23. [How Implementation Sessions Work](#23--how-implementation-sessions-work)
 
 ---
 
@@ -1858,7 +1859,92 @@ eight functions — `property.reparent_location()`'s own precedent, now a
 three-time pattern. **Complexity.** High. **Rollback.** Drop all eight
 functions.
 
-## 21 · Risk Register
+## 21 · Work Packages — Epic 04
+
+**Built out of chronological order — read this before the migration
+numbers below look wrong.** Epic 04 is Tier 1 in §5's own sequencing
+diagram: Identity, Workspace, Capability, before any physical-model
+epic. It was skipped when this roadmap was originally executed — no
+branch, PR, or completion record for it ever existed, and no documented
+reason was found anywhere in this document, `MASTER_CONTEXT.md`, or the
+Decision Log. Found and confirmed empty while reporting Epic 10's
+completion; built now, on request, rather than left open. Migrations
+`0039`–`0074` already belong to Epics 05–10, each on its own open,
+stacked PR — renumbering six PRs to give Epic 04 its "correct"
+chronological position would be a far larger change than building the
+epic itself. This epic's migrations are numbered `0075` onward,
+continuing after Epic 10, and its branch is stacked on `epic-10`'s tip.
+Nothing built in Epics 05–10 depends on Capability — each epic that
+touched a capability-shaped concept said so explicitly and left it as a
+named gap. Full detail in `implementation/epic-04/COMPLETION.md` §5.1.
+
+**Dependencies.** `PLATFORM_DOMAIN_MODEL.md` §6 (whole chapter),
+Principle 1; `DATABASE_ARCHITECTURE.md` §11 (Capability Grant), §34 (The
+Capability Engine in Data). Epic 03 (workspaces must exist to grant
+anything to).
+
+**04.01 · The capability catalogue and dependency graph (add)**
+`platform.capabilities` — the real 26-capability catalogue from §6.7,
+seeded verbatim. `platform.capability_dependencies` — only the five
+edges §6.2 itself states (its own diagram, plus one sentence of prose);
+a plausible-but-unstated edge is not invented. **Complexity.** Medium.
+**Rollback.** Drop both tables.
+
+**04.02 · Capability presets (add)**
+`platform.capability_presets`/`capability_preset_grants` — exactly three
+presets (Personal, Professional, Business), transcribed from §6.8's own
+table. Not four: this epic's own acceptance criterion names three, and
+`workspace.workspaces.type` has no `'enterprise'` value to apply a
+fourth to. Verified dependency-consistent against 0075's own graph, not
+merely assumed. **Complexity.** Low. **Rollback.** Drop both tables.
+
+**04.03 · The Capability Grant aggregate (add)**
+`workspace.capability_grants`/`capability_grant_history` — shaped like
+`workspace.memberships`/`membership_history` (Epic 03), not ADR-0028: a
+capability grant is a set a workspace holds, not a single current value.
+No unique constraint on (workspace_id, capability_key), the same reason
+memberships has none on (person_ref, workspace_id). **Complexity.**
+Medium. **Rollback.** Drop both tables and the guard trigger.
+
+**04.04 · RLS isolation (add)**
+Ordinary workspace-scoped isolation for the grant aggregate; unrestricted
+authenticated-only read for the catalogue, matching `property.
+document_types`/`facet_types`' own posture. **Complexity.** Low.
+**Rollback.** Drop the six policies.
+
+**04.05 · The capability engine contract (add)**
+`grant_capability()`/`withdraw_capability()`, plus two reads. Grant does
+not auto-cascade its dependencies — it refuses their absence, Conflict
+3's own distinguishing test applied a third time (after Workflow's
+transition rules and Maintenance's schedule generation), because
+auto-cascading would mean minting several ids per call with no caller
+supplying them, exactly what `work.generate_due_obligation()` (Epic 10)
+already ruled out. Withdraw enforces the mirror rule: refuses while a
+held capability still depends on the one being withdrawn. No `api.*`
+delegate — `property.reparent_location()`'s posture, now a four-time
+pattern. **A real bug caught before shipping**: the first draft of
+`grant_capability()` minted its history row's id via `gen_random_uuid()`
+internally, contradicting its own header — found by re-reading the
+function against its own stated rule before running the tests.
+**Complexity.** High. **Rollback.** Drop all four functions.
+
+**04.06 · Backfill: apply the matching preset to every existing
+workspace (add)**
+`workspace.workspaces.type` maps directly onto `preset_key` — no lookup
+table. Backdated to each workspace's own `created_at`, the same
+reasoning every prior backfill's minted ids already used
+(`platform.uuid_v7_at(source.created_at)`), extended here to the grant's
+own recorded timestamp: the capabilities were always the workspace's
+effective starting bundle, this migration is only the first thing to say
+so structurally. Inserts directly, not through the contract function —
+the same reason every other backfill in this roadmap does (0052, 0060):
+the contract function protects a live write path from an inconsistent
+request; a backfill already knows the full, correct picture. Idempotent
+via `where not exists`, since the target table deliberately has no
+unique constraint to conflict against. **Complexity.** Medium.
+**Rollback.** Delete every row where `source = 'preset'`.
+
+## 22 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -1872,7 +1958,7 @@ functions.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 22 · How Implementation Sessions Work
+## 23 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 

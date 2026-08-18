@@ -50,6 +50,52 @@ accurately.
 
 ### Added
 
+**Epic 04 — Capability Engine (complete, 6 of 6 packages) — built
+retroactively.** Epic 04 is Tier 1 in the roadmap's own sequencing
+(Identity, Workspace, Capability, before any physical-model epic) but was
+skipped when the roadmap was originally executed — no branch, PR, or
+completion record ever existed, and no documented reason was found. Found
+and built after Epic 10, on request. Its migrations are numbered `0075`
+onward rather than renumbering Epics 05–10's six already-open PRs — see
+`implementation/epic-04/COMPLETION.md` §5.1. No client caller exists yet
+— pure addition, no Changed entry below it.
+
+- **`platform.capabilities`** — the real 26-capability catalogue
+  (`PLATFORM_DOMAIN_MODEL.md` §6.7), seeded verbatim. **`platform.
+  capability_dependencies`** — only the five edges §6.2 itself states; a
+  plausible-but-unstated edge (Fleet Management on Asset Management, say)
+  is not invented.
+- **`platform.capability_presets`/`capability_preset_grants`** — exactly
+  three presets (Personal, Professional, Business), transcribed from
+  §6.8's own table. Not four: this epic's own roadmap acceptance
+  criterion names three, and `workspace.workspaces.type` has no
+  `'enterprise'` value to apply a fourth to. Verified dependency-consistent
+  against the dependency graph, not merely assumed.
+- **`workspace.capability_grants`/`capability_grant_history`** — shaped
+  like `workspace.memberships`/`membership_history` (Epic 03), not
+  ADR-0028: a capability grant is a set a workspace holds, not a single
+  current value. No unique constraint on (workspace_id, capability_key),
+  the same reason memberships has none on (person_ref, workspace_id).
+- **The capability engine contract** — `grant_capability()` refuses
+  (never auto-grants) a missing dependency; `withdraw_capability()`
+  refuses while a dependent is still held. No `api.*` delegate for any of
+  the four functions — `property.reparent_location()`'s posture, now a
+  four-time pattern.
+- **A real identifier-generation bug caught before it shipped**: the
+  first draft of `grant_capability()` minted its history row's id via
+  `gen_random_uuid()` internally, directly contradicting its own header's
+  explanation of why every identifier must be a caller-supplied
+  parameter. Found by re-reading the function against its own stated rule
+  before running the tests.
+- **Backfilled: every existing workspace's matching preset**, applied
+  directly (not through the contract function, the same reason every
+  other backfill in this roadmap inserts directly) and backdated to the
+  workspace's own `created_at` — the capabilities were always its
+  effective starting bundle; this migration is only the first thing to
+  say so structurally.
+
+- Test suite grew from 1053 tests across 98 files to **1096 across 104**.
+
 **Epic 10 — Maintenance Engine (complete, 4 of 4 packages).** No client
 caller exists yet — pure addition, no Changed entry below it.
 
