@@ -50,6 +50,56 @@ accurately.
 
 ### Added
 
+**Epic 16 — Knowledge Engine (complete, 6 of 6 packages).** No client
+caller exists yet — pure addition, no Changed entry below it.
+`PLATFORM_DOMAIN_MODEL.md` §19.2 calls the Knowledge Graph "the most
+demanding thing in this document"; this epic builds the smallest correct
+slice of it.
+
+- **`knowledge.rules`** — declared, binding Workspace Knowledge (§18.2).
+  Four scope levels (workspace/property/location/asset_class); two
+  origins (`declared`/`proposed`) — "observed but unconfirmed" is
+  deliberately not stored, since it can never become policy by its own
+  definition. Supersession by new row, never an in-place edit.
+- **Conflicts are surfaced, never resolved silently** —
+  `knowledge.rules_in_force()` returns every rule tied at the most
+  specific applicable scope; `knowledge.declare_rule()` records the
+  moment a conflict comes into existence, once, at declaration, rather
+  than re-detecting it on every read.
+- **`knowledge.workspace_edges`** — asserted graph facts a human stated
+  that no aggregate implies. No node table needed — workspace-side nodes
+  already exist as real aggregates elsewhere in the platform.
+- **`knowledge.world_nodes`/`world_edges`** — the world graph. Real
+  foreign keys between nodes; no workspace reference anywhere,
+  structurally, per §19.2's own privacy guarantee. Writable only through
+  `knowledge.promote_fact()`.
+- **`knowledge.promote_fact()`** — promotion as an explicit, one-way,
+  irreversible, audited operation (§6/§33): upserts both world nodes and
+  the edge between them atomically, writes the required audit record
+  naming what was promoted and from which population, and emits exactly
+  one event attributed to the origin workspace.
+- **Closed a debt row unallocated since Epic 01**: `platform.
+  write_audit_record()`, the privileged write path `0022_audit.sql`'s own
+  header named as deliberately out of scope, built because promotion is
+  the first real caller that structurally needs it — mirrors
+  `platform.emit_event()`'s own shape exactly.
+- **A second, independent session-spanning defect, found and fixed
+  forward**: `klussie_engine_work`/`klussie_engine_commerce` never held
+  `USAGE` on schema `platform`, despite holding `EXECUTE` on
+  `platform.emit_event()` since Epic 01 — six already-shipped contract
+  functions across five epics would have failed with "permission denied
+  for schema platform." Fixed in one new migration; unlike `event_type`,
+  no rebase of the six affected branches was needed, since a missing
+  `GRANT` only needs to exist in the final cumulative migration state.
+- **Every `event_type` this epic mints was correct from the start** —
+  `<engine>.<aggregate>.<past-participle>`, the direct benefit of
+  Epic 15's own finding being fixed before this epic began.
+- Derived workspace-graph edges, inferred world-graph edges, and
+  `asset_class` rule-scope resolution are deliberately not built — named
+  gaps, not silently narrowed scope.
+
+- Test suite grew from 1293 tests across 128 files to **1345 across 135**.
+
 **Epic 15 — Timeline & Digital Twin (complete, 3 of 3 packages).** No
 client caller exists yet — pure addition, no Changed entry below it.
 **Not a new engine** — extends Property's (Epic 05) own contract with two

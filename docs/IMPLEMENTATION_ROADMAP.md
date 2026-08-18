@@ -61,8 +61,9 @@ this one, this one wins.
 24. [Work Packages — Epic 13](#24--work-packages--epic-13)
 25. [Work Packages — Epic 14](#25--work-packages--epic-14)
 26. [Work Packages — Epic 15](#26--work-packages--epic-15)
-27. [Risk Register](#27--risk-register)
-28. [How Implementation Sessions Work](#28--how-implementation-sessions-work)
+27. [Work Packages — Epic 16](#27--work-packages--epic-16)
+28. [Risk Register](#28--risk-register)
+29. [How Implementation Sessions Work](#29--how-implementation-sessions-work)
 
 ---
 
@@ -2301,7 +2302,84 @@ and unmodified, and every call site was conformed to it, verified against
 mechanically transformed — see `implementation/epic-15/COMPLETION.md` §6
 for the full mapping.
 
-## 27 · Risk Register
+## 27 · Work Packages — Epic 16
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §6 (the Crossing Registry and
+the promotion rule), §27 (Knowledge Graph and World Graph), §33 (Audit).
+`SYSTEM_ARCHITECTURE.md` §9.1. `PLATFORM_DOMAIN_MODEL.md` §18.2
+(Workspace Knowledge), §19.2 (the Knowledge Graph). Epic 06 (location
+containment, for rule-scope resolution).
+
+**Read before design.** §19.2 calls the Knowledge Graph "the most
+demanding thing in this document" for the data architecture to satisfy.
+This epic builds the smallest correct slice: declared, binding Workspace
+Knowledge; asserted workspace-graph edges; a real world graph; and
+promotion as an audited operation — deliberately not the derived/inferred
+projection halves of either graph (§27's own classification), which need
+real cross-workspace aggregation this epic does not build. No backfill —
+nothing in the legacy schema resembles a rule, an edge, or a world fact.
+
+**16.01 · The privileged audit write path (add)**
+`platform.write_audit_record()` — closes the debt row `0022_audit.sql`'s
+own header named as deliberately unallocated since Epic 01, mirroring
+`platform.emit_event()`'s own shape exactly. The first real caller this
+epic has that structurally requires it (promotion). **Complexity.**
+Medium. **Rollback.** Drop the function.
+
+**16.02 · Workspace Knowledge rules (add)**
+`knowledge.rules` — declared, binding policy (§18.2). Four scope levels,
+two origins (`declared`/`proposed` — "observed but unconfirmed" is
+deliberately not stored, since it can never become policy by its own
+definition). Supersession by new row, never an in-place edit.
+**Complexity.** High. **Rollback.** Drop the table and its guard trigger.
+
+**16.03 · Graph asserted edges (add)**
+`knowledge.workspace_edges` — a human-stated relationship no aggregate
+implies (§27). No node table — every workspace-side node already exists
+as a real aggregate elsewhere. Retraction, not deletion.
+**Complexity.** Medium. **Rollback.** Drop the table and its guard
+trigger.
+
+**16.04 · World graph (add)**
+`knowledge.world_nodes`/`knowledge.world_edges` — manufacturers, models,
+parts and their relationships, platform-scoped, curated, no workspace
+reference anywhere structurally (§19.2's own privacy guarantee).
+Writable only through promotion — no direct create-node/create-edge
+function exists. **Complexity.** Medium. **Rollback.** Drop both tables.
+
+**16.05 · RLS isolation (add)**
+Rules and workspace_edges: ordinary direct workspace membership, the
+ADR-0025 backstop shape. World graph: enabled, no policy — the same
+deny-all-by-default shape `platform.events` held until Epic 15, since no
+client caller or read contract exists yet. **Complexity.** Low.
+**Rollback.** Drop both policies.
+
+**16.06 · The knowledge engine contract (add)**
+Eight functions. `event_type` minted correctly from the start — the
+direct benefit of Epic 15's own finding being fixed first. Conflict
+detection happens once, at declaration, never on every read of
+`rules_in_force()`. `promote_fact()` upserts both world nodes and the
+edge atomically, writes the required audit record, and emits exactly one
+event — `knowledge.promotion.executed` — despite §9.1 naming two
+(`FactPromoted`/`WorldFactPublished`) for what reads as the same moment,
+recorded as a frozen-document discrepancy rather than resolved by
+inventing a workspace-less emission. No `api.*` delegate — the eleventh
+occurrence of that restraint. **Complexity.** High. **Rollback.** Drop
+all eight functions.
+
+**A second session-spanning finding, found and fixed forward.** Building
+WP 16.01 surfaced that calling any schema-qualified function needs
+`USAGE` on its containing schema, not just `EXECUTE` on the function —
+and `klussie_engine_work`/`klussie_engine_commerce` never held it despite
+both holding `EXECUTE` on `platform.emit_event()` since Epic 01. Six
+already-shipped contract functions across five epics would have failed
+with "permission denied for schema platform" against a real database.
+Unlike `event_type`, a missing grant is fixable forward — added once, in
+this epic's own migration sequence, with no rebase of Epics 09–14
+required (`0106_platform_schema_access_backfill.sql`; full reasoning in
+`implementation/epic-16/COMPLETION.md` §5.1).
+
+## 28 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2315,8 +2393,9 @@ for the full mapping.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 | 10 | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format~~ (found and fixed in Epic 15, `implementation/epic-15/COMPLETION.md` §6) | ✅ Closed | 34 values across 7 epics violated `platform.events`' own `CHECK` constraint; ADR-0019 stayed authoritative, every call site conformed to it across all 7 branches |
+| 11 | ~~`klussie_engine_work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`~~ (found and fixed in Epic 16, `implementation/epic-16/COMPLETION.md` §5.1) | ✅ Closed | Six already-shipped `emit_event()` call sites across five epics would have failed with "permission denied for schema platform"; fixed forward in one migration, no rebase required |
 
-## 28 · How Implementation Sessions Work
+## 29 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
