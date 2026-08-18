@@ -50,6 +50,48 @@ accurately.
 
 ### Added
 
+**Epic 11 — Service Record Engine (complete, 4 of 4 packages).**
+`DATABASE_ARCHITECTURE.md` §17 names this "the most consequential
+aggregate in the document" and "the highest-risk surface in the
+architecture." No client caller exists yet — pure addition, no Changed
+entry below it.
+
+- **`work.service_records`** (the shared core) — no `owning_workspace_id`;
+  it "follows the property" (§17), resolved live through `property_id ->
+  property.properties.steward_workspace_id`, the same shape
+  `property.assets`/`locations` already use, the opposite of `property.
+  documents`' frozen-owner shape. `performing_workspace_id` **is** the
+  permanent, non-revocable grant itself — a plain column, not a separate
+  grants table; no withdraw path exists for it anywhere in this schema.
+  Rich, variable content (diagnosis, parts, measurements) lives in
+  `content jsonb`, not fifteen nullable columns. Immutable except
+  `customer_approved`/`customer_approved_at`, which may move false →
+  true exactly once.
+- **`work.service_record_performing_annexes`** — no workspace column of
+  its own (the core already has one). **`work.
+  service_record_property_annexes`** — freezes its workspace at write
+  time, §17's own transfer table's exact opposite of the core, proven in
+  a real steward-transfer scenario. **`work.service_record_amendments`**
+  — append-only, either party may author one.
+- **RLS combines two independent visibility paths for the first time in
+  this schema** — direct performing-workspace membership OR the
+  property's current steward. `VERIFY_SERVICE_RECORD_ISOLATION.sql`
+  inspects the actual policy text on both annexes to prove structurally
+  that neither can ever reference the other side's relationship, not
+  only that one test scenario happens to pass.
+- **The service record engine contract** — ten functions, none generic,
+  matching the authorship split exactly. `write_property_annex()`
+  resolves the current steward itself, via a live join, rather than
+  trusting a caller-supplied workspace id.
+- **A real identifier-generation bug caught before it shipped, for the
+  third time this session**: the first draft of `create_service_record()`
+  minted its conditional `WarrantyArising` event's id via
+  `gen_random_uuid()` — the identical mistake Epic 04's
+  `grant_capability()` made, caught faster this time because the pattern
+  was already named.
+
+- Test suite grew from 1096 tests across 104 files to **1136 across 108**.
+
 **Epic 04 — Capability Engine (complete, 6 of 6 packages) — built
 retroactively.** Epic 04 is Tier 1 in the roadmap's own sequencing
 (Identity, Workspace, Capability, before any physical-model epic) but was

@@ -466,13 +466,47 @@ owns the real underlying capability ships it — see
   directly (not through the contract function) and backdated to the
   workspace's own `created_at`. Staging only for what was built; nothing
   applied anywhere.
+- **The service record engine exists, complete** (Epic 11, 4/4
+  packages) — `DATABASE_ARCHITECTURE.md` §17's own "highest-risk surface
+  in the architecture," read in full, twice, before any SQL was written
+  (`../../implementation/epic-11/COMPLETION.md` §5). `work.
+  service_records` (the shared core) has **no `owning_workspace_id`** —
+  it "follows the property" (§17), resolved live through `property_id ->
+  property.properties.steward_workspace_id`, the same shape
+  `property.assets`/`locations` already use, the opposite of `property.
+  documents`' frozen-owner shape. `performing_workspace_id` **is** the
+  permanent, non-revocable grant (§17) — a plain column, not a separate
+  grants table; no withdraw path exists anywhere in this schema for it.
+  Rich, variable content lives in `content jsonb`, not fifteen nullable
+  columns. Immutable except `customer_approved`/`customer_approved_at`,
+  which may move false → true exactly once. Two private annexes:
+  `service_record_performing_annexes` has no workspace column of its own
+  (the core already has one); `service_record_property_annexes`
+  **freezes its workspace at write time** — §17's own transfer table's
+  exact opposite of the core, proven in a real steward-transfer scenario,
+  not merely asserted. RLS combines two independent visibility paths for
+  the first time in this schema (direct performing-workspace membership
+  OR the property's current steward); `VERIFY_SERVICE_RECORD_ISOLATION.sql`
+  inspects the actual `pg_policies` text on both annexes to prove
+  structurally that neither can ever reference the other side's
+  relationship. A ten-function contract, none generic, matches the
+  authorship split exactly (`create_service_record()` for the performing
+  workspace's work content, `record_service_record_approval()` for the
+  property side's approval, one writer per annex). **A real bug caught
+  before shipping, for the third time this session**: the first draft of
+  `create_service_record()` minted its conditional `WarrantyArising`
+  event's id via `gen_random_uuid()` — the identical mistake Epic 04's
+  `grant_capability()` made, caught faster this time because the pattern
+  was already named. No `api.*` delegate — the same posture, now a
+  five-time pattern. Staging only for what was built; nothing applied
+  anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
-  nor Epic 09's, nor Epic 10's. Its migration ledger is still
-  unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
+  nor Epic 09's, nor Epic 10's, nor Epic 11's. Its migration ledger is
+  still unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
   prerequisite for any push to it — see
   `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
-  `0018`–`0029` and owed an update through `0080`.
+  `0018`–`0029` and owed an update through `0084`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
