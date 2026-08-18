@@ -57,8 +57,9 @@ this one, this one wins.
 20. [Work Packages — Epic 10](#20--work-packages--epic-10)
 21. [Work Packages — Epic 04](#21--work-packages--epic-04)
 22. [Work Packages — Epic 11](#22--work-packages--epic-11)
-23. [Risk Register](#23--risk-register)
-24. [How Implementation Sessions Work](#24--how-implementation-sessions-work)
+23. [Work Packages — Epic 12](#23--work-packages--epic-12)
+24. [Risk Register](#24--risk-register)
+25. [How Implementation Sessions Work](#25--how-implementation-sessions-work)
 
 ---
 
@@ -2014,12 +2015,93 @@ a parameter on every call. No `api.*` delegate for any of the ten
 functions — `property.reparent_location()`'s posture, now a five-time
 pattern. **Complexity.** Very High. **Rollback.** Drop all ten functions.
 
-## 23 · Risk Register
+## 23 · Work Packages — Epic 12
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §19 (Marketplace),
+`PLATFORM_DOMAIN_MODEL.md` §14.3, `SYSTEM_ARCHITECTURE.md` §8.4. Epic 03
+(workspace), Epic 09 (Workflow — the engine this epic connects to but
+does not yet switch onto), Epic 11 (Service Record — the completion
+target this epic connects to but does not yet wire).
+
+**This epic's own scope boundary — read before design, held across
+every migration in it.** Epic 09's own header named the actual trigger
+retirement "the single largest behavioural risk in the roadmap," and
+this roadmap's own risk register (§24 row 2) requires the regression
+baseline (WP 00.08) as "the reference" before that switch happens. This
+epic builds the complete new schema, backfills every real request/quote/
+booked-engagement, and ships a full contract proven to reproduce the
+five legacy triggers' exact decisions — all additive, all reversible,
+none of it live. It does **not** dual-write a real scoped access grant,
+retire any legacy trigger, or switch the live booking flow onto
+workflow-instance-driven logic. Full reasoning in
+`implementation/epic-12/COMPLETION.md` §5.1.
+
+**12.01 · The Request aggregate (add)**
+`work.requests` — reuses `public.categories`/`services` directly rather
+than migrating marketplace taxonomy (its own separate, low-priority debt
+item, `MASTER_CONTEXT.md` §12). `workflow_instance_id` is a real,
+unpopulated forward-connection to Epic 09. One-tap booking's
+directed-quote window (ADR-0012) is deliberately not modelled — nothing
+reads this schema yet to need it. **Complexity.** Medium. **Rollback.**
+Drop the table.
+
+**12.02 · The Quote aggregate (add)**
+`work.quotes` — mirrors `public.quotes`' own shape, owned by the
+offering workspace. **Complexity.** Low. **Rollback.** Drop the table.
+
+**12.03 · The Engagement aggregate (add)**
+`work.engagements` — a bilateral object, both parties denormalised
+directly. `service_record_id` and `maintenance_obligation_id` are real,
+unpopulated forward-connections to Epics 11 and 10. Immutable once
+completed or cancelled, the same conditional-guard shape Epic 10's
+obligations already use. No delete grant, ever — "permanent" (§19), no
+exception. **Complexity.** Medium. **Rollback.** Drop the table and its
+guard trigger.
+
+**12.04 · RLS isolation (add)**
+Requests: ordinary direct membership. Quotes: visible to either party —
+the offeror directly, or the requester via a join through the request,
+the second occurrence of the combined-OR shape Epic 11 first established.
+Engagements: both parties direct, no join needed for either half.
+**Complexity.** Medium. **Rollback.** Drop all three policies.
+
+**12.05 · Backfill: requests, quotes, booked engagements (add)**
+Reuses Epic 03's own already-resolved `service_requests.workspace_id`/
+`quotes.workspace_id` columns rather than re-deriving the identity →
+membership → workspace chain a third time — the same answer two already-
+live read switches already depend on, not a second, independently-
+computed one. Engagements backfilled only for `booked`/`completed`/
+`reviewed` requests with a real accepted quote; `cancelled` is excluded
+(no writer of that status exists anywhere in the current product).
+**Complexity.** High. **Rollback.** Delete every row carrying a
+`service_request_id`/`legacy_quote_id`, and every engagement referencing
+one.
+
+**12.06 · The marketplace engine contract (add)**
+Thirteen functions reproducing the five legacy triggers exactly —
+`submit_quote()`'s guarded first-quote transition, `accept_quote()`'s
+bulk decline of every other open quote in one statement,
+`complete_engagement()`'s request-completion side effect,
+`mark_request_reviewed()`'s state-machine closure. `accept_quote()`'s
+bulk decline emits one consolidated `QuoteDeclined` event rather than
+one per declined row — the fourth occurrence of the "single, required,
+conditionally-used event id" shape this roadmap has now needed.
+**A real cross-schema privilege violation caught before shipping**: the
+first draft built `work.grant_engagement_access()`, inserting directly
+into `workspace.memberships` from `work` — a table `klussie_engine_work`
+holds no privilege on at all. Removed entirely; the grant belongs to a
+future Workspace-owned consumer of this epic's own `EngagementCreated`
+event, per `SYSTEM_ARCHITECTURE.md`'s own Workspace section ("Events
+consumed. `EngagementAccepted`"). No `api.*` delegate for any of the
+thirteen functions — the sixth occurrence of that same restraint.
+**Complexity.** Very High. **Rollback.** Drop all thirteen functions.
+
+## 24 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
 | 1 | **Epic 03 backfill assigns rows to the wrong workspace** | Critical | 03.07 reconciliation is a hard gate on 03.09; backfills idempotent and re-runnable |
-| 2 | **Epic 09 changes booking behaviour while replacing triggers** | Critical | Workflow definitions must reproduce current trigger behaviour exactly before the switch; regression baseline from 00.08 is the reference |
+| 2 | **Epics 09/12 change booking behaviour while replacing triggers** | Critical | Workflow definitions (Epic 09) and the marketplace contract (Epic 12) both proven, structurally, to reproduce current trigger behaviour exactly (`VERIFY_WORKFLOW_CONTRACT.sql`, `VERIFY_MARKETPLACE_CONTRACT.sql`) — but the actual switch (dual-write the scoped grant, retire the five legacy triggers, cut the live booking flow over) remains undone, deliberately, per Epic 12's own §5.1. Regression baseline from 00.08 is still the reference for whenever that switch happens |
 | 3 | **Service Record visibility misclassification** (Epic 11) | Critical | Classification is structural, not policy-based; dedicated security review before the read-switch |
 | 4 | **Location re-parenting leaves stale scopes and indexes** (Epic 06) | High | Path rewrite and `LocationTreeChanged` in one transaction; named consumers tested |
 | 5 | **RLS predicate cost degrades at scale** | High | 03.02's helper is `STABLE` and security-definer; performance test in its acceptance |
@@ -2028,7 +2110,7 @@ pattern. **Complexity.** Very High. **Rollback.** Drop all ten functions.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 24 · How Implementation Sessions Work
+## 25 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
