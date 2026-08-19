@@ -253,14 +253,18 @@ one slice.*
   triggers (§3); `homeTimeline.js`'s client-side derivation, once
   `platform.events` reads are wired for the Timeline.
 
-### Slice 2 — Marketplace Transaction Activation — **Scoping**
+### Slice 2 — Marketplace Transaction Activation — **Scoping, WP 2.0 done**
 
 Full work-package breakdown and findings:
-`SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md`. Nothing implemented
-yet — that document names two structural differences from Slice 1's own
-sequence worth reading before starting: the engine schema Epic 12 built
-has never been applied to any database, and this slice's own end state
-requires retiring a live system, not only adding beside one.
+`SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md`. WP 2.0 applied and
+verified the foundation Epic 12 built (`0085`-`0090`, both existing
+diagnostics passing against real staging for the first time) — that
+document's own §1.1 has the full finding, including the one honest gap
+left open (the backfill's real per-row logic is unexercised, staging
+holding zero legacy marketplace rows). Nothing past WP 2.0 is
+implemented yet. This slice's own end state requires retiring a live
+system, not only adding beside one — still its defining structural
+difference from Slice 1.
 
 *The single riskiest slice in the programme — worked in full in §2's
 example above. Not compressed or parallelized; the two sides of a live

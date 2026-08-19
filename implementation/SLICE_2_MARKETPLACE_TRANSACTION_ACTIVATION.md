@@ -7,22 +7,23 @@ full as that document's own §2 example. It does not own the Programme's
 cross-cutting reasoning, which this document applies rather than
 restates.
 
-**Status.** Scoping. Nothing below is implemented. Slice 1
+**Status.** Scoping, WP 2.0 done. Slice 1
 (`SLICE_1_PROPERTY_ASSET_ACTIVATION.md`) is the nearest precedent in
 shape — real engine logic built ahead of a caller, needing
 authorization checks and `api.*` delegates before any client can reach
 it — but Slice 2 starts from a **materially different position**, named
 in full in §1 below, and is not simply "Slice 1's pattern, five more
-functions." The two structural differences that actually matter:
-Slice 2's foundation has never been applied to any database at all, and
-this slice's own end state requires *retiring* a live, currently-used
-system, not merely adding beside it.
+functions." The two structural differences that actually matter: this
+slice's foundation sat unapplied and unverified against any real
+database until WP 2.0 (§1.1 below), and this slice's own end state
+requires *retiring* a live, currently-used system, not merely adding
+beside it.
 
 ---
 
 ## 1 · What was found before scoping this
 
-### 1.1 · The foundation exists, in full, and has never touched a real database
+### 1.1 · The foundation exists, in full, and — as of WP 2.0 — has now been verified against a real database
 
 Epic 12 (`implementation/epic-12/COMPLETION.md`) already built the
 complete engine: `work.requests`/`work.quotes`/`work.engagements`
@@ -37,14 +38,42 @@ request → two quotes → acceptance → completion → review walkthrough,
 proving equivalence to the five legacy triggers) and
 `VERIFY_MARKETPLACE_ISOLATION.sql`.
 
-**None of it has ever run.** Epic 12's own completion record states
-this in its own words: *"Nothing in this epic has been run against any
-database... including the backfill, which has real, structural
-implications for a large volume of existing data."* Every engine Slice
-1 built contracts on top of (Property, Asset, Location, Document,
-Maintenance) was already live on staging before Slice 1 started. This
-one is not. **WP 2.0 exists because of this fact alone** — it has no
-equivalent in Slice 1's own sequence.
+**As scoped, none of it had ever run.** Epic 12's own completion record
+stated this in its own words: *"Nothing in this epic has been run
+against any database... including the backfill, which has real,
+structural implications for a large volume of existing data."* Every
+engine Slice 1 built contracts on top of (Property, Asset, Location,
+Document, Maintenance) was already live on staging before Slice 1
+started. This one was not. **WP 2.0 existed because of this fact
+alone** — it has no equivalent in Slice 1's own sequence.
+
+**WP 2.0 finding, corrected from the above.** Checking staging directly
+found migrations `0085`–`0090` already recorded as applied — most
+likely a side effect of a `supabase db push --linked` run during an
+earlier Slice 1 work package, since a push applies every migration not
+yet in the ledger, in order, not only the newest one. Both diagnostics
+were then run for the first time, against real staging, inside a rolled
+back transaction: `VERIFY_MARKETPLACE_CONTRACT.sql` (7 checks — the
+full request → two quotes → acceptance → completion → review
+walkthrough, and confirms `workspace.memberships` is never touched
+across it) and `VERIFY_MARKETPLACE_ISOLATION.sql` (3 checks — real
+two-sided isolation, the quotes policy's OR predicate, every backfilled
+row resolving to a real workspace) — both passed in full, with zero
+debris.
+
+**The backfill itself remains genuinely unexercised, honestly.**
+`public.service_requests` and `public.quotes` both hold zero rows on
+staging — there is no real legacy marketplace activity there yet, the
+same "zero discrepancies is true and worthless" gap
+`staging_test_accounts.sql`'s own header names for identity
+reconciliation. `0089`'s `insert ... where not exists` ran without
+error against an empty source, which proves the statement is
+syntactically sound and idempotent, not that its actual per-row mapping
+logic is correct — that can only be proven once staging holds real
+`service_requests`/`quotes` rows, which it does not yet. Carried forward
+as a real, open verification gap for whichever work package first
+creates marketplace activity through the real client (WP 2.6, most
+likely), not closed here by asserting more than the evidence supports.
 
 ### 1.2 · Two-sided authorization — a real, different shape from every Slice 1 engine
 
@@ -224,7 +253,7 @@ anywhere in Slice 1.
 
 ### Tier 0 — Foundation
 
-**WP 2.0 — Apply the foundation; prove it, for the first time, against a real database**
+**WP 2.0 — Apply the foundation; prove it, for the first time, against a real database — Done, see §1.1**
 
 Apply migrations `0085`–`0090` to staging. Run
 `VERIFY_MARKETPLACE_CONTRACT.sql` and `VERIFY_MARKETPLACE_ISOLATION.sql`
