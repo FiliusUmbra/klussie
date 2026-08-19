@@ -16,7 +16,7 @@ import { Search } from "lucide-react";
 import { Card, Badge } from "../design-system";
 import { fetchAuditRecords, AUDIT_PAGE_SIZE } from "../lib/auditRecords";
 
-const EMPTY_FILTERS = { actorRef: "", actionPrefix: "", occurredFrom: "", occurredTo: "" };
+const EMPTY_FILTERS = { workspaceId: "", actorRef: "", actionPrefix: "", occurredFrom: "", occurredTo: "" };
 
 function OutcomeBadge({ outcome }) {
   return <Badge tone={outcome === "denied" ? "amber" : "sage"}>{outcome}</Badge>;
@@ -29,9 +29,14 @@ function truncateRef(ref) {
   return ref.length > 24 ? `${ref.slice(0, 8)}…${ref.slice(-8)}` : ref;
 }
 
-export function AuditLog() {
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+// initialWorkspaceId: WorkspaceLookup's "View audit trail" hands this in. AuditLog is
+// unmounted/remounted on every OperatorApp tab switch (its tab content is conditionally
+// rendered, not hidden), so a fresh prop value on each mount is enough to seed the
+// filter — no effect watching for prop changes across re-renders is needed.
+export function AuditLog({ initialWorkspaceId } = {}) {
+  const initialFilters = initialWorkspaceId ? { ...EMPTY_FILTERS, workspaceId: initialWorkspaceId } : EMPTY_FILTERS;
+  const [filters, setFilters] = useState(initialFilters);
+  const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   // Keyed by the exact `appliedFilters` reference the fetch was made for, the same
   // identity-comparison shape AppShell.jsx's own operator check uses — the alternative
   // (a `loading` flag set synchronously to true at the top of the effect, then false in
@@ -77,6 +82,13 @@ export function AuditLog() {
   return (
     <div>
       <form onSubmit={applyFilters} style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        <input
+          type="text"
+          placeholder="Workspace id"
+          value={filters.workspaceId}
+          onChange={(e) => setFilters((f) => ({ ...f, workspaceId: e.target.value }))}
+          aria-label="Filter by workspace id"
+        />
         <input
           type="text"
           placeholder="Actor (person or system reference)"

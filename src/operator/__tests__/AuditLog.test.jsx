@@ -104,4 +104,42 @@ describe("AuditLog", () => {
     await waitFor(() => expect(screen.getByText("workspace.membership.granted")).toBeTruthy());
     expect(screen.queryByRole("button", { name: /load more/i })).toBeNull();
   });
+
+  // Platform Activation Slice 1, WP 1.1a — WorkspaceLookup's "View audit trail" hands a
+  // workspace id in through this prop.
+  it("seeds the workspace-id filter from initialWorkspaceId and fetches with it on mount", async () => {
+    apiRpc.mockResolvedValue({ data: [PERMITTED], error: null });
+
+    render(<AuditLog initialWorkspaceId={PERMITTED.workspace_id} />);
+
+    await waitFor(() => expect(apiRpc).toHaveBeenCalledWith(
+      "api", "list_audit_records", expect.objectContaining({ p_workspace_id: PERMITTED.workspace_id })
+    ));
+    expect(screen.getByLabelText("Filter by workspace id").value).toBe(PERMITTED.workspace_id);
+  });
+
+  it("fetches with no workspace filter when initialWorkspaceId is not given", async () => {
+    apiRpc.mockResolvedValue({ data: [], error: null });
+
+    render(<AuditLog />);
+
+    await waitFor(() => expect(apiRpc).toHaveBeenCalledWith(
+      "api", "list_audit_records", expect.objectContaining({ p_workspace_id: null })
+    ));
+  });
+
+  it("typing a workspace id and searching refetches scoped to it", async () => {
+    apiRpc.mockResolvedValue({ data: [PERMITTED], error: null });
+    render(<AuditLog />);
+    await waitFor(() => expect(apiRpc).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText("Filter by workspace id"), { target: { value: PERMITTED.workspace_id } });
+    fireEvent.click(screen.getByRole("button", { name: /search/i }));
+
+    await waitFor(() => expect(apiRpc).toHaveBeenCalledTimes(2));
+    expect(apiRpc).toHaveBeenLastCalledWith("api", "list_audit_records", expect.objectContaining({
+      p_workspace_id: PERMITTED.workspace_id,
+      p_offset: 0,
+    }));
+  });
 });
