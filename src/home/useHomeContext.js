@@ -5,6 +5,7 @@
 // are testable without rendering anything (ENGINEERING_STANDARDS.md, "no business
 // logic in UI").
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../lib/auth.jsx";
 import { fetchPlatformTrustStats } from "../lib/pros";
 import { fetchHomeProfile, knownFactsFrom } from "../lib/homeInventory.js";
 import { fetchHouseholdItems } from "../lib/householdItems.js";
@@ -61,6 +62,9 @@ export function useHomeContext({ t, profile, requests }) {
   const [items, setItems] = useState(null);
   const [itemsError, setItemsError] = useState(null);
   const ownerId = profile?.id;
+  // Epic 03 WP11 — see fetchHouseholdItems for the fallback this depends on.
+  const { activeWorkspace } = useAuth();
+  const workspaceId = activeWorkspace?.workspace_id;
 
   useEffect(() => {
     let cancelled = false;
@@ -84,14 +88,14 @@ export function useHomeContext({ t, profile, requests }) {
   useEffect(() => {
     if (!ownerId) return;
     let cancelled = false;
-    fetchHouseholdItems(ownerId)
+    fetchHouseholdItems(ownerId, workspaceId)
       .then((rows) => { if (!cancelled) { setItems(rows); setItemsError(null); } })
       // Surfaced rather than swallowed: an inventory that silently shows nothing after a
       // failed read looks exactly like an inventory the customer never filled in, and
       // would invite them to enter everything a second time.
       .catch((err) => { if (!cancelled) setItemsError(err.message || String(err)); });
     return () => { cancelled = true; };
-  }, [ownerId, reloadToken]);
+  }, [ownerId, workspaceId, reloadToken]);
 
   const today = useMemo(() => pickTodayItem(requests), [requests]);
   const active = useMemo(() => activeRequests(requests, today?.request?.id), [requests, today]);

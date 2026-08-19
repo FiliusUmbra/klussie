@@ -1057,14 +1057,60 @@ A session takes one of five shapes:
 | 00 — Engineering Foundations | **Complete** 2026-08-12 — 8/8 packages. [Completion record](../implementation/epic-00/COMPLETION.md) |
 | 01 — Schema Foundation & Event Backbone | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-01/COMPLETION.md) |
 | 02 — Identity Engine | **Complete** 2026-08-13 — 7/7 packages. [Completion record](../implementation/epic-02/COMPLETION.md) |
-| 03 — Workspace Engine | Not started |
+| 03 — Workspace Engine | **Complete** 2026-08-16 — 12/12 packages. Not yet verified against a live database (gate 10 open). [Completion record](../implementation/epic-03/COMPLETION.md) |
 | 04–26 | Not started; work packages decomposed at epic start |
 
-**Carried out of Epic 00, and relevant when Epic 03 is planned:** the
-production backup path is verified but **has never been restored**
-([ADR-0017](./adr/0017-free-tier-disaster-recovery-strategy.md)). Epic 03
-backfills a workspace onto every production row — the first change whose
-failure mode is unrecoverable data rather than a revertable read path.
+**Epic 03 closed with four ADRs**, each accepted as part of building the
+package it gated rather than after the fact:
+[0024](./adr/0024-request-context-resolved-in-the-database.md) (no API
+Gateway exists or is built in this epic — the browser resolves context
+directly, in the database, once per statement),
+[0025](./adr/0025-marketplace-visibility-survives-epic-03.md) (two
+classes of existing policy — pre-engagement discovery, public
+professional profiles — survive WP 03.10 unchanged; it adds, it does not
+simplify), [0026](./adr/0026-membership-helper-lives-in-public.md) (the
+membership helper's `api`-schema placement, revised mid-package when the
+originally specified shape was found to defeat its own performance
+requirement) and [0027](./adr/0027-workspace-permission-vocabulary.md)
+(the twelve-permission vocabulary `decide_permission()` needs). Full
+account, including what §14's original wording got wrong for three of
+twelve packages and why: [completion
+record](../implementation/epic-03/COMPLETION.md).
+
+**Production has none of Epics 01–03.** See
+[`operations/PRODUCTION_MIGRATION_0018_0029.md`](./operations/PRODUCTION_MIGRATION_0018_0029.md)
+— written for `0018`–`0029` (Epics 01–02) and not yet extended to cover
+`0030`–`0038` (Epic 03). Every read path across all three epics falls
+back gracefully when its migrations are absent, which is why production
+has been safe to leave unmigrated — but the runbook needs a second pass
+before it is run, and running it is still not scheduled.
+
+**Carried out of Epic 00, still true after Epic 03:** the production
+backup path is verified but **has never been restored**
+([ADR-0017](./adr/0017-free-tier-disaster-recovery-strategy.md)). Epic
+03's workspace backfill (WP 03.03/03.04/03.06) is the first change whose
+failure mode is unrecoverable data rather than a revertable read path —
+and it has not yet been run against production, so the risk is real but
+not yet realised.
+
+**Carried out of Epic 03**, and recorded in full in its [completion
+record](../implementation/epic-03/COMPLETION.md):
+
+- **This session had no direct Postgres connection**, unlike every
+  session before it in this epic. `VERIFY_WORKSPACE_ISOLATION_POLICIES.sql`
+  (WP 03.10) and `VERIFY_LIST_MY_WORKSPACES.sql` (WP 03.12) are written,
+  following the same probe discipline as every prior diagnostic in this
+  epic, and neither has been run. Nothing in WP 03.09–03.12 has been seen
+  rendering signed in either — no working credentials for either known
+  test account, and no new account created to work around that. Whoever
+  picks up Epic 04 should get this resolved first, not inherit it a third
+  time.
+- **`RoleSelectionScreen` asks the exact classification question
+  `PLATFORM_DOMAIN_MODEL.md` §27 forbids.** Predates this epic; not fixed
+  here — a product decision, not an implementation one. Recorded in
+  `MASTER_CONTEXT.md` §12.
+- **`docs/architecture/ARCHITECTURE.md` was not updated.** Owed before
+  Epic 04 starts (roadmap §9's documentation obligation).
 
 **Carried out of Epic 02**, and recorded in its
 [completion record](../implementation/epic-02/COMPLETION.md):

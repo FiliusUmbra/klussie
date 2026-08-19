@@ -32,7 +32,12 @@ import { unreadTotal } from "../lib/conversationSelectors.js";
 
 export function ProApp({ showToast }) {
   const { t, BASE_SERVICES } = useLang();
-  const { user } = useAuth();
+  const { user, activeWorkspace } = useAuth();
+  // Epic 03 WP11 — a pro's own Professional Workspace, threaded into fetchProServices only.
+  // Not threaded into fetchConversations/subscribeToConversationsForUser: those match on
+  // the REQUESTING (customer) workspace, which a pro's own workspace id never equals — see
+  // messages.js for the reasoning.
+  const workspaceId = activeWorkspace?.workspace_id;
   const [tab, setTab] = useState("dashboard");
   const [quoteLead, setQuoteLead] = useState(null);
   const [leads, setLeads] = useState(null);
@@ -51,12 +56,12 @@ export function ProApp({ showToast }) {
   const refreshProInfo = () => fetchPublicProInfo([user.id]).then((m) => setProInfo(m[user.id]));
 
   useEffect(() => {
-    fetchProServices(user.id).then(setOfferedServiceIds);
+    fetchProServices(user.id, workspaceId).then(setOfferedServiceIds);
     fetchPublicProInfo([user.id]).then((m) => setProInfo(m[user.id]));
     refreshLeads();
     refreshJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id]);
+  }, [user.id, workspaceId]);
 
   useEffect(() => subscribeToProQuoteUpdates(user.id, refreshJobs), [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -67,7 +72,8 @@ export function ProApp({ showToast }) {
 
   useEffect(() => {
     refreshConversations();
-    return subscribeToConversationsForUser(user.id, refreshConversations);
+    // No workspaceId: see the note above this component's workspaceId declaration.
+    return subscribeToConversationsForUser(user.id, undefined, refreshConversations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
 

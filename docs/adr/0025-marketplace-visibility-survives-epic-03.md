@@ -1,6 +1,7 @@
 # ADR-0025: Pre-engagement marketplace visibility and public professional profiles survive Epic 03 unchanged
 
-**Status:** **Proposed** — required before Work Package 03.10
+**Status:** **Accepted** 2026-08-16 — WP 03.10 was built against this
+decision exactly as written; the removal trigger (Epic 12) is unchanged
 **Date:** 2026-08-13
 **Related:** `../architecture/SUPABASE_ARCHITECTURE.md` §6 §7 §8 §23
 (conflict 1), `../architecture/PLATFORM_DOMAIN_MODEL.md` §7 §8 Rule 11,

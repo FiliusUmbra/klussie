@@ -17,6 +17,7 @@ import {
   trustScore,
   findBestProForService,
   fetchPlatformTrustStats,
+  fetchProServices,
   initialsFrom,
   MIN_REVIEWS_FOR_PLATFORM_RATING,
 } from "../pros";
@@ -291,6 +292,48 @@ describe("findBestProForService", () => {
     await findBestProForService({ serviceId: "svc-42" });
     expect(supabase.from).toHaveBeenCalledWith("pro_services");
     expect(builder.eq).toHaveBeenCalledWith("service_id", "svc-42");
+  });
+});
+
+// Epic 03 WP11 — the read switch. This is the pro's own dashboard list, never a read of
+// someone else's — the reason it can switch cleanly where fetchPortfolioItems and
+// fetchTestimonials (shared with public profile viewing) deliberately do not.
+describe("fetchProServices", () => {
+  it("filters by pro_id when no workspace has been resolved", async () => {
+    const builder = createQueryBuilder({ data: [], error: null });
+    supabase.from.mockReturnValue(builder);
+
+    await fetchProServices("pro-1");
+
+    expect(supabase.from).toHaveBeenCalledWith("pro_services");
+    expect(builder.eq).toHaveBeenCalledWith("pro_id", "pro-1");
+    expect(builder.eq).not.toHaveBeenCalledWith("workspace_id", expect.anything());
+  });
+
+  it("filters by workspace_id once a workspace is resolved, not pro_id", async () => {
+    const builder = createQueryBuilder({ data: [], error: null });
+    supabase.from.mockReturnValue(builder);
+
+    await fetchProServices("pro-1", "ws-1");
+
+    expect(builder.eq).toHaveBeenCalledWith("workspace_id", "ws-1");
+    expect(builder.eq).not.toHaveBeenCalledWith("pro_id", expect.anything());
+  });
+
+  it("returns the same service ids identically whichever filter ran", async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ data: [{ service_id: "svc-1" }, { service_id: "svc-2" }], error: null }));
+    const withoutWorkspace = await fetchProServices("pro-1");
+
+    supabase.from.mockReturnValue(createQueryBuilder({ data: [{ service_id: "svc-1" }, { service_id: "svc-2" }], error: null }));
+    const withWorkspace = await fetchProServices("pro-1", "ws-1");
+
+    expect(withoutWorkspace).toEqual(["svc-1", "svc-2"]);
+    expect(withWorkspace).toEqual(withoutWorkspace);
+  });
+
+  it("throws the real Supabase error instead of swallowing it", async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ data: null, error: { message: "denied" } }));
+    await expect(fetchProServices("pro-1")).rejects.toMatchObject({ message: "denied" });
   });
 });
 

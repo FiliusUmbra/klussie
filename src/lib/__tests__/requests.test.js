@@ -6,21 +6,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../supabaseClient", () => ({
-  supabase: { from: vi.fn() },
+  supabase: { from: vi.fn(), channel: vi.fn(), removeChannel: vi.fn() },
 }));
 
 import { supabase } from "../supabaseClient";
-import { createServiceRequest, createDirectedRequest, sendQuote, acceptQuote } from "../requests";
+import {
+  createServiceRequest,
+  createDirectedRequest,
+  sendQuote,
+  acceptQuote,
+  fetchCustomerRequests,
+  subscribeToCustomerRequests,
+} from "../requests";
 
 // A minimal stand-in for supabase-js's chainable, thenable query builder —
 // supports the exact chains src/lib/requests.js actually uses
-// (.insert().select().single(), .insert() awaited directly, .update().eq()).
+// (.insert().select().single(), .insert() awaited directly, .update().eq(),
+// .select().eq().order()).
 function createQueryBuilder(result) {
   const builder = {
     insert: vi.fn(() => builder),
     update: vi.fn(() => builder),
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    order: vi.fn(() => builder),
     single: vi.fn(() => Promise.resolve(result)),
     then: (onFulfilled, onRejected) => Promise.resolve(result).then(onFulfilled, onRejected),
   };
@@ -29,6 +38,8 @@ function createQueryBuilder(result) {
 
 beforeEach(() => {
   vi.mocked(supabase.from).mockReset();
+  vi.mocked(supabase.channel).mockReset();
+  vi.mocked(supabase.removeChannel).mockReset();
 });
 
 describe("createServiceRequest", () => {
@@ -223,6 +234,98 @@ describe("createDirectedRequest", () => {
   it("throws on a failed insert rather than reporting a request that does not exist", async () => {
     vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: null, error: { message: "denied" } }));
     await expect(createDirectedRequest(args)).rejects.toMatchObject({ message: "denied" });
+  });
+});
+
+// Epic 03 WP11 — the read switch. workspaceId is undefined until WP 03.09's resolver
+// places a caller in exactly one workspace; the acceptance bar for this package is that a
+// single-workspace customer's request list is unaffected by which branch actually runs.
+describe("fetchCustomerRequests", () => {
+  it("filters by customer_id when no workspace has been resolved", async () => {
+    const builder = createQueryBuilder({ data: [], error: null });
+    vi.mocked(supabase.from).mockReturnValue(builder);
+
+    await fetchCustomerRequests("cust-1");
+
+    expect(supabase.from).toHaveBeenCalledWith("service_requests");
+    expect(builder.eq).toHaveBeenCalledWith("customer_id", "cust-1");
+    expect(builder.eq).not.toHaveBeenCalledWith("workspace_id", expect.anything());
+  });
+
+  it("filters by workspace_id once a workspace is resolved, not customer_id", async () => {
+    // The actual switch this package makes. Both filters landing would be a stricter,
+    // wrong query — service_requests has no row where both columns are simultaneously
+    // satisfied by an AND, since eq() calls chain onto the same builder.
+    const builder = createQueryBuilder({ data: [], error: null });
+    vi.mocked(supabase.from).mockReturnValue(builder);
+
+    await fetchCustomerRequests("cust-1", "ws-1");
+
+    expect(builder.eq).toHaveBeenCalledWith("workspace_id", "ws-1");
+    expect(builder.eq).not.toHaveBeenCalledWith("customer_id", expect.anything());
+  });
+
+  it("reshapes the same rows identically whichever filter ran", async () => {
+    const row = {
+      id: "req-1", customer_id: "cust-1", category_id: "cleaning", service_id: "svc-1",
+      details: "leak", details_json: null, ai_analysis: null, when_pref: "flexible",
+      budget: null, city: "Brussels", status: "collecting", booked_pro_id: null,
+      directed_pro_id: null, directed_until: null, auto_accept_max: null,
+      created_at: "2026-08-06T00:00:00Z", updated_at: "2026-08-06T00:00:00Z",
+      quotes: [], reviews: [],
+    };
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row], error: null }));
+    const withoutWorkspace = await fetchCustomerRequests("cust-1");
+
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row], error: null }));
+    const withWorkspace = await fetchCustomerRequests("cust-1", "ws-1");
+
+    expect(withoutWorkspace).toEqual(withWorkspace);
+  });
+
+  it("throws the real Supabase error instead of swallowing it", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: null, error: new Error("denied") }));
+    await expect(fetchCustomerRequests("cust-1")).rejects.toThrow("denied");
+  });
+});
+
+describe("subscribeToCustomerRequests", () => {
+  function createChannel() {
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) };
+    return channel;
+  }
+
+  it("subscribes on customer_id when no workspace has been resolved", () => {
+    const channel = createChannel();
+    vi.mocked(supabase.channel).mockReturnValue(channel);
+
+    subscribeToCustomerRequests("cust-1", undefined, vi.fn());
+
+    const [, options] = channel.on.mock.calls[0];
+    expect(options.filter).toBe("customer_id=eq.cust-1");
+  });
+
+  it("subscribes on workspace_id once a workspace is resolved", () => {
+    // The positional-argument regression this test exists to catch: workspaceId sits
+    // between customerId and onChange, and a caller passing the old two-argument form
+    // would silently install onChange as the filter's workspace id instead.
+    const channel = createChannel();
+    vi.mocked(supabase.channel).mockReturnValue(channel);
+
+    subscribeToCustomerRequests("cust-1", "ws-1", vi.fn());
+
+    const [, options] = channel.on.mock.calls[0];
+    expect(options.filter).toBe("workspace_id=eq.ws-1");
+  });
+
+  it("returns an unsubscribe function that removes the channel", () => {
+    const channel = createChannel();
+    vi.mocked(supabase.channel).mockReturnValue(channel);
+
+    const unsubscribe = subscribeToCustomerRequests("cust-1", "ws-1", vi.fn());
+    unsubscribe();
+
+    expect(supabase.removeChannel).toHaveBeenCalledWith(channel);
   });
 });
 

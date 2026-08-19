@@ -44,7 +44,8 @@ const numericBudget = (budget) => (budget === "" || budget == null ? null : Numb
 
 export function CustomerApp({ showToast }) {
   const { t } = useLang();
-  const { user } = useAuth();
+  const { user, activeWorkspace } = useAuth();
+  const workspaceId = activeWorkspace?.workspace_id;
   const [tab, setTab] = useState("discover");
   const [activeService, setActiveService] = useState(null);
   const [quoteForm, setQuoteForm] = useState(null);
@@ -60,14 +61,17 @@ export function CustomerApp({ showToast }) {
   const [homeSection, setHomeSection] = useState("klussie");
   const tour = useHomeTour();
 
-  const refresh = () => fetchCustomerRequests(user.id).then(setRequests);
-  const refreshConversations = () => fetchConversations(user.id).then(setConversations);
+  // Epic 03 WP11 — workspaceId is undefined until WP 03.09's resolver places this person in
+  // exactly one workspace; both helpers fall back to the pre-Epic-03 owner-id filter when it
+  // is, so this reads identically either way for today's single-workspace customer.
+  const refresh = () => fetchCustomerRequests(user.id, workspaceId).then(setRequests);
+  const refreshConversations = () => fetchConversations(user.id, workspaceId).then(setConversations);
 
   useEffect(() => {
     refresh();
-    return subscribeToCustomerRequests(user.id, refresh);
+    return subscribeToCustomerRequests(user.id, workspaceId, refresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id]);
+  }, [user.id, workspaceId]);
 
   useEffect(() => {
     if (!openRequest) return;
@@ -77,9 +81,9 @@ export function CustomerApp({ showToast }) {
 
   useEffect(() => {
     refreshConversations();
-    return subscribeToConversationsForUser(user.id, refreshConversations);
+    return subscribeToConversationsForUser(user.id, workspaceId, refreshConversations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id]);
+  }, [user.id, workspaceId]);
 
   if (!requests || !conversations) return <LoadingScreen />;
 

@@ -11,7 +11,7 @@
 // to nl but forgotten in ar fails in CI rather than rendering `undefined` to a customer.
 export const APP_STRINGS = {
   nl: {
-    previewingAs:"Bekijken als", roleCustomer:"Klant", rolePro:"Vakman",
+    previewingAs:"Bekijken als", roleCustomer:"Klant", rolePro:"Vakman", workspaceSwitchLabel:"Werkruimte",
     greeting:"Goedemiddag", heroTitle:"Wat wil je laten doen?", searchPlaceholder:"Zoek een dienst...",
     catAll:"Alles", trendingTitle:"Populair deze week", prosSuffix:"vakmensen",
     noServicesFound:"Geen diensten gevonden.", typicalPrice:"Typische prijs:",
@@ -108,7 +108,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Beschrijf je klus", convProgressLabel:"Voortgang van je aanvraag", convSendLabel:"Versturen", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
   },
   fr: {
-    previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro",
+    previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro", workspaceSwitchLabel:"Espace de travail",
     greeting:"Bonjour", heroTitle:"De quoi as-tu besoin ?", searchPlaceholder:"Rechercher un service...",
     catAll:"Tout", trendingTitle:"Tendance cette semaine", prosSuffix:"professionnels",
     noServicesFound:"Aucun service ne correspond.", typicalPrice:"Prix habituel :",
@@ -205,7 +205,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Décris ton chantier", convProgressLabel:"Avancement de ta demande", convSendLabel:"Envoyer", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
   },
   de: {
-    previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi",
+    previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi", workspaceSwitchLabel:"Arbeitsbereich",
     greeting:"Guten Tag", heroTitle:"Was möchtest du erledigen lassen?", searchPlaceholder:"Dienstleistung suchen...",
     catAll:"Alle", trendingTitle:"Beliebt diese Woche", prosSuffix:"Profis",
     noServicesFound:"Keine passenden Dienstleistungen gefunden.", typicalPrice:"Üblicher Preis:",
@@ -302,7 +302,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Beschreibe deinen Auftrag", convProgressLabel:"Fortschritt deiner Anfrage", convSendLabel:"Senden", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
   },
   en: {
-    previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro",
+    previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro", workspaceSwitchLabel:"Workspace",
     greeting:"Good afternoon", heroTitle:"What do you need done?", searchPlaceholder:"Search a service...",
     catAll:"All", trendingTitle:"Trending this week", prosSuffix:"pros",
     noServicesFound:"No services match that search.", typicalPrice:"Typical price:",
@@ -399,7 +399,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Describe your job", convProgressLabel:"Progress of your request", convSendLabel:"Send", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
   },
   es: {
-    previewingAs:"Vista previa como", roleCustomer:"Cliente", rolePro:"Profesional",
+    previewingAs:"Vista previa como", roleCustomer:"Cliente", rolePro:"Profesional", workspaceSwitchLabel:"Espacio de trabajo",
     greeting:"Buenas tardes", heroTitle:"¿Qué necesitas hacer?", searchPlaceholder:"Buscar un servicio...",
     catAll:"Todo", trendingTitle:"Tendencia esta semana", prosSuffix:"profesionales",
     noServicesFound:"Ningún servicio coincide con esa búsqueda.", typicalPrice:"Precio habitual:",
@@ -496,7 +496,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Describe tu trabajo", convProgressLabel:"Progreso de tu solicitud", convSendLabel:"Enviar", convEstimateLabel:"Precio orientativo", convNoProYet:"Todavía no hay ningún profesional disponible para esto cerca de ti.",
   },
   ar: {
-    previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف",
+    previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف", workspaceSwitchLabel:"مساحة العمل",
     greeting:"مساء الخير", heroTitle:"ما الذي تحتاج إنجازه؟", searchPlaceholder:"ابحث عن خدمة...",
     catAll:"الكل", trendingTitle:"الأكثر طلبًا هذا الأسبوع", prosSuffix:"محترف",
     noServicesFound:"لا توجد خدمات مطابقة.", typicalPrice:"السعر المعتاد:",
@@ -593,7 +593,7 @@ export const APP_STRINGS = {
     convComposerLabel:"صف العمل المطلوب", convProgressLabel:"تقدّم طلبك", convSendLabel:"إرسال", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
   },
   fa: {
-    previewingAs:"پیش‌نمایش به‌عنوان", roleCustomer:"مشتری", rolePro:"متخصص",
+    previewingAs:"پیش‌نمایش به‌عنوان", roleCustomer:"مشتری", rolePro:"متخصص", workspaceSwitchLabel:"فضای کاری",
     greeting:"ظهر بخیر", heroTitle:"چه کاری می‌خواهید انجام شود؟", searchPlaceholder:"جست‌وجوی خدمت...",
     catAll:"همه", trendingTitle:"پرطرفدار این هفته", prosSuffix:"متخصص",
     noServicesFound:"خدمتی با این جست‌وجو پیدا نشد.", typicalPrice:"قیمت معمول:",
@@ -690,7 +690,7 @@ export const APP_STRINGS = {
     convComposerLabel:"کارتان را توضیح دهید", convProgressLabel:"روند درخواست شما", convSendLabel:"ارسال", convEstimateLabel:"قیمت تقریبی", convNoProYet:"فعلاً متخصص در دسترسی برای این کار نزدیک شما نیست.",
   },
   tr: {
-    previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel",
+    previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel", workspaceSwitchLabel:"Çalışma alanı",
     greeting:"İyi günler", heroTitle:"Ne yaptırmak istiyorsun?", searchPlaceholder:"Bir hizmet ara...",
     catAll:"Tümü", trendingTitle:"Bu hafta trend olanlar", prosSuffix:"profesyonel",
     noServicesFound:"Bu aramayla eşleşen hizmet yok.", typicalPrice:"Ortalama fiyat:",
@@ -787,7 +787,7 @@ export const APP_STRINGS = {
     convComposerLabel:"İşini anlat", convProgressLabel:"Talebinin ilerlemesi", convSendLabel:"Gönder", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
   },
   ru: {
-    previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи",
+    previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи", workspaceSwitchLabel:"Рабочее пространство",
     greeting:"Добрый день", heroTitle:"Что нужно сделать?", searchPlaceholder:"Поиск услуги...",
     catAll:"Все", trendingTitle:"Популярно на этой неделе", prosSuffix:"специалистов",
     noServicesFound:"Услуги не найдены.", typicalPrice:"Обычная цена:",
@@ -884,7 +884,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Опишите задачу", convProgressLabel:"Ход вашей заявки", convSendLabel:"Отправить", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
   },
   zh: {
-    previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士",
+    previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士", workspaceSwitchLabel:"工作区",
     greeting:"下午好", heroTitle:"你需要什么服务？", searchPlaceholder:"搜索服务...",
     catAll:"全部", trendingTitle:"本周热门", prosSuffix:"位专业人士",
     noServicesFound:"没有找到匹配的服务。", typicalPrice:"参考价格：",
