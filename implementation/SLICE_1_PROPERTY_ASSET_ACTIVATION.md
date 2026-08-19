@@ -19,8 +19,13 @@ write contract — create/update/retire/dispose, backend only, no client
 caller yet) is merged (#39). WP 1.5 (location write contract —
 create_location() only, deliberately narrower than WP 1.4's own scope;
 update/retire/reparent-permission all named as deferred, not built) is
-merged (#40). WP 1.6–1.9 and WP 1.10 (My Business reuse) have
-not started. This slice is substantially larger
+merged (#40). WP 1.6 (document write contract — create_document() plus
+the 'documents' Storage bucket and its workspace-membership policies,
+the open question §5 flagged answered: no such policy existed before
+this; four new customer-facing document_types seeded; property-level
+attachment only, matching WP 1.3's own read scope) is merged
+(#41). WP 1.7–1.9 and WP 1.10 (My Business reuse) have not
+started. This slice is substantially larger
 than Slice 0 — five engines, two client experiences, and (per §1 below)
 genuinely missing write contracts, not merely unwired read paths — and
 is broken into a longer work-package sequence for exactly that reason,
