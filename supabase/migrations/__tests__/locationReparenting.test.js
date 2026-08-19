@@ -67,11 +67,23 @@ describe("0047_location_reparenting migration", () => {
   });
 
   it("uses ltree's own || operator for the subtree rewrite, not text concatenation", () => {
-    // The one place text-and-dot would be wrong: a descendant's remaining suffix after
-    // stripping the old prefix is legitimately empty for the moved location itself.
     const body = fnBody();
     expect(body).toMatch(
-      /path\s*=\s*v_new_path OPERATOR\(extensions\.\|\|\) extensions\.subpath\(path, extensions\.nlevel\(v_old_path\)\)/i
+      /path\s*=\s*case[\s\S]*?v_new_path OPERATOR\(extensions\.\|\|\) extensions\.subpath\(path, extensions\.nlevel\(v_old_path\)\)/i
+    );
+  });
+
+  it("guards the moved location itself with an explicit CASE, never calling subpath() at the boundary", () => {
+    // ltree's subpath(path, offset) raises "invalid positions" (SQLSTATE 22023) when offset
+    // equals the path's own nlevel — exactly the case for the moved row itself, whose path
+    // equals v_old_path. Caught only by running this migration against real data (staging,
+    // 2026-08-19): reparent_location() failed on every single call, unconditionally, since
+    // the moved row always satisfies this boundary and is always included in `where path <@
+    // v_old_path`. The fix is an explicit CASE that assigns v_new_path directly for the
+    // moved row, never reaching subpath() for it at all.
+    const body = fnBody();
+    expect(body).toMatch(
+      /case\s*\n\s*when extensions\.nlevel\(path\) = extensions\.nlevel\(v_old_path\) then v_new_path/i
     );
   });
 

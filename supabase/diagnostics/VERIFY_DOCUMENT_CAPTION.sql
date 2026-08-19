@@ -26,6 +26,13 @@ begin
   insert into workspace.memberships (id, workspace_id, person_ref, role, state)
     values (gen_random_uuid(), v_ws, v_person_ref, 'owner', 'active');
 
+  -- portfolio_items.pro_id -> public.pro_profiles(profile_id) — missing here originally,
+  -- caught only by running this diagnostic against real data (staging, 2026-08-19), where
+  -- the FK violation surfaced on the very first insert below.
+  insert into public.profiles (id, full_name) values (v_auth_id, 'Caption Pro') on conflict (id) do nothing;
+  insert into public.pro_profiles (profile_id, pro_type, paused) values (v_auth_id, 'flexi', false)
+    on conflict (profile_id) do update set paused = false;
+
   -- =========================================================================
   -- 1 · A new portfolio item's caption is mirrored on insert
 

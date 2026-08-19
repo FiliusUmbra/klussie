@@ -12,7 +12,7 @@ declare
   v_customer_auth uuid := gen_random_uuid();
   v_customer_ref  uuid := gen_random_uuid();
   v_customer_ws   uuid := gen_random_uuid();
-  v_category_id   uuid := gen_random_uuid();
+  v_category_id   text := 'diagnostic-' || gen_random_uuid()::text;
   v_service_id    uuid := gen_random_uuid();
   v_request_id    uuid := gen_random_uuid();
   v_photo_id      uuid := gen_random_uuid();
@@ -27,15 +27,31 @@ begin
   insert into workspace.memberships (id, workspace_id, person_ref, role, state)
     values (gen_random_uuid(), v_customer_ws, v_customer_ref, 'owner', 'active');
 
-  insert into public.categories (id, name) values (v_category_id, 'Lookup Category') on conflict do nothing;
-  insert into public.services (id, category_id, name, certified_only)
-    values (v_service_id, v_category_id, 'Lookup Service', false) on conflict do nothing;
-  insert into public.service_requests (id, customer_id, service_id, category_id, details, status)
-    values (v_request_id, v_customer_auth, v_service_id, v_category_id, 'Lookup test job', 'collecting');
+  -- public.categories has no name column (that lives in category_translations) and its id
+  -- is text, not uuid — caught running this diagnostic against real data (staging,
+  -- 2026-08-19).
+  insert into public.categories (id, icon) values (v_category_id, 'wrench') on conflict do nothing;
+  -- public.services has no name column (that lives in service_translations) and requires
+  -- mode and base_price, neither with a default — caught running this diagnostic against
+  -- real data (staging, 2026-08-19).
+  insert into public.services (id, category_id, mode, base_price, certified_only)
+    values (v_service_id, v_category_id, 'quote', 50.00, false) on conflict do nothing;
+  -- when_pref is required, no default — caught running this diagnostic against real data
+  -- (staging, 2026-08-19).
+  insert into public.service_requests (id, customer_id, service_id, category_id, details, when_pref, status, directed_until)
+    values (v_request_id, v_customer_auth, v_service_id, v_category_id, 'Lookup test job', 'flexible', 'collecting', null);
   insert into public.service_request_photos (id, request_id, storage_path)
     values (v_photo_id, v_request_id, 'req/lookup.jpg');
-  insert into property.documents (id, owning_workspace_id, type_key, storage_bucket, storage_path, service_request_photo_id)
-    values (v_doc_id, v_customer_ws, 'request_photo', 'request-photos', 'req/lookup.jpg', v_photo_id);
+
+  -- 0061_document_dual_write.sql (which post-dates this diagnostic) mirrors this insert
+  -- into property.documents automatically — a manual insert here collides with it on
+  -- documents_service_request_photo_id_uidx. Read the mirrored row back instead of
+  -- creating a second one, caught running this diagnostic against real data (staging,
+  -- 2026-08-19).
+  select id into v_doc_id from property.documents where service_request_photo_id = v_photo_id;
+  if v_doc_id is null then
+    raise exception 'setup · the dual-write trigger did not mirror the request photo';
+  end if;
 
   -- =========================================================================
   -- 1 · The document is found by request id, via the bookkeeping join, unattached

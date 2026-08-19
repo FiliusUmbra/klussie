@@ -54,16 +54,54 @@ end;
 $$;
 
 -- =========================================================================
--- 2 · Each engine role reaches its own schema and no other
+-- 2 · Each engine role reaches its own schema, and every OTHER schema it reaches is one of
+-- the real, named, documented cross-schema grants this roadmap has actually made
 --
--- This is the property SUPABASE_ARCHITECTURE.md §24 item 2 asks for, stated as a query:
--- an engine that tries to work in another engine's schema fails on privileges.
+-- This is the property SUPABASE_ARCHITECTURE.md §24 item 2 asks for, stated as a query: an
+-- engine that tries to work in a schema it was never granted fails on privileges. §9's own
+-- rule was never "an engine reaches only its own schema forever" — it is "read-only access
+-- to other schemas, the narrowest grant that lets a REAL query work, granted by the epic
+-- that needs it" (ROLES.md §3 rule 1). This check originally (Epic 01) asserted the
+-- stricter, temporary truth of a database with no cross-schema reads yet; by Epic 22 seven
+-- such grants exist, each with its own migration header explaining why. Caught running
+-- this diagnostic against real data (staging, 2026-08-19), where the check had gone stale
+-- relative to eight epics of real, deliberate, already-documented decisions — an allowlist
+-- of exactly what exists today, not a loosening of the check, which still fails loudly on
+-- anything not on this list.
+--
+-- klussie_engine_commerce  -> platform (0106, emit_event), work (0097, invoices
+--                             referencing work.engagements), workspace (0130, the first
+--                             true cross-engine contract call this session made — Epic 22
+--                             calling Capability's own grant_capability()/
+--                             withdraw_capability() directly)
+-- klussie_engine_knowledge -> platform (0105, the audit write path), property (0111,
+--                             resolving a property's current steward live for
+--                             promote_fact()/declare_rule())
+-- klussie_engine_platform  -> identity, workspace (0117, platform.my_inbox() joining
+--                             identity.identities and workspace.memberships)
+-- klussie_engine_property  -> platform (0102, Timeline reading platform.events), work
+--                             (0102, Timeline reading work.conversations/messages/
+--                             engagements/requests)
+-- klussie_engine_work      -> platform (0106, the second engine role that migration fixed)
+-- klussie_engine_workspace -> platform (0075, Capability reading its own platform-scoped
+--                             catalogue and dependency tables)
+-- klussie_engine_identity  -> (none — the only engine role with no cross-schema grant at all)
 
 do $$
 declare
   pair record;
   wrong text[] := '{}';
   other text;
+  allowed text[];
+  allowlist jsonb := '{
+    "klussie_engine_identity":  [],
+    "klussie_engine_workspace": ["platform"],
+    "klussie_engine_property":  ["platform", "work"],
+    "klussie_engine_work":      ["platform"],
+    "klussie_engine_knowledge": ["platform", "property"],
+    "klussie_engine_commerce":  ["platform", "work", "workspace"],
+    "klussie_engine_platform":  ["identity", "workspace"]
+  }'::jsonb;
 begin
   for pair in select * from (values
     ('klussie_engine_identity',  'identity'),
@@ -84,13 +122,24 @@ begin
       wrong := wrong || format('%s can CREATE in %s', pair.engine_role, pair.own_schema);
     end if;
 
+    select array(select jsonb_array_elements_text(allowlist -> pair.engine_role)) into allowed;
+
     foreach other in array array[
       'identity', 'workspace', 'property', 'work', 'knowledge',
       'commerce', 'platform', 'derived', 'analytics_ws', 'analytics_pf'
     ] loop
       if other <> pair.own_schema
+         and not (other = any(allowed))
          and has_schema_privilege(pair.engine_role, other, 'USAGE') then
-        wrong := wrong || format('%s reaches %s, which it does not own', pair.engine_role, other);
+        wrong := wrong || format('%s reaches %s, which it does not own and is not on the named allowlist above', pair.engine_role, other);
+      end if;
+    end loop;
+
+    -- The reverse check matters just as much: a grant this file expects should actually be
+    -- there, or the allowlist above is describing a decision that was never made.
+    foreach other in array allowed loop
+      if not has_schema_privilege(pair.engine_role, other, 'USAGE') then
+        wrong := wrong || format('%s is expected to reach %s per this file''s own allowlist, but does not', pair.engine_role, other);
       end if;
     end loop;
   end loop;
@@ -99,7 +148,7 @@ begin
     raise exception 'Engine ownership violated: %', array_to_string(wrong, '; ');
   end if;
 
-  raise notice '2 · each engine role reaches its own schema and no other';
+  raise notice '2 · each engine role reaches its own schema, plus exactly its named, documented cross-schema grants, and no others';
 end;
 $$;
 

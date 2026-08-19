@@ -154,6 +154,17 @@ revoke all on function property.resolve_property_for_owner(uuid) from public, an
 
 -- =========================================================================
 -- THE MIRROR — INSERT
+--
+-- created_at IS new.created_at, NOT now() — a real bug, fixed here. The original version
+-- used now() for the mirrored asset's created_at, which is invisible for an ordinary fresh
+-- insert (new.created_at is already ~now() at that moment) but silently wrong for any row
+-- carrying a genuine historical timestamp — exactly 0052's own backfill scenario, which
+-- correctly preserves hi.created_at. Caught only by running VERIFY_BACKFILL_ASSETS.sql
+-- against real data (staging, 2026-08-19): its own probe inserts a household_items row
+-- with an explicit historical created_at, which this trigger's insert-mirror path
+-- (firing before the diagnostic's own manual backfill query ever sees the row, since
+-- `on conflict (household_items_id) ... do nothing` makes this trigger the one that
+-- actually wins the race) silently discarded.
 
 create or replace function public.household_items_mirror_insert()
 returns trigger
@@ -177,7 +188,7 @@ begin
   ) values (
     platform.uuid_v7_at(now()), v_property_id, new.name, new.category, new.brand, new.model,
     new.room, new.photo_path, new.purchased_on, new.notes, new.source, new.ai_suggestion,
-    new.id, now(), now()
+    new.id, new.created_at, now()
   )
   on conflict (household_items_id) where household_items_id is not null do nothing;
 
