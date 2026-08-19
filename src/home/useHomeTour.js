@@ -19,11 +19,7 @@ export function useHomeTour() {
   const [closed, setClosed] = useState(false);
   const [replaying, setReplaying] = useState(false);
 
-  const eligible = !!profile && isEligibleForFirstLoginTour({
-    profile,
-    userId: user?.id,
-    roleSelected: !!profile.onboarding_role_selected,
-  });
+  const eligible = !!profile && isEligibleForFirstLoginTour({ profile, userId: user?.id });
 
   const open = replaying || (eligible && !closed);
 

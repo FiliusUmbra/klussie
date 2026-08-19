@@ -76,10 +76,7 @@ export async function markHomeTourCompleted({ userId, updateProfile }) {
 // Replaying from Profile → Help must not un-complete anything: the tour opens, and
 // the stored completion stays exactly as it was. Exported so the intent is explicit
 // at the call site rather than being "we simply didn't write anything."
-export function isEligibleForFirstLoginTour({ profile, userId, roleSelected }) {
-  // Never over the top of the role question — that flow owns the screen until it's
-  // answered (AppShell's RoleSelectionScreen branch).
-  if (!roleSelected) return false;
+export function isEligibleForFirstLoginTour({ profile, userId }) {
   if (!isNewAccount(profile)) return false;
   return !hasCompletedHomeTour({ profile, userId });
 }

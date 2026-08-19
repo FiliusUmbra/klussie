@@ -17,7 +17,6 @@ import { fetchCatalog } from "../lib/catalog";
 import { HOME_CSS } from "../home/homeStyles.js";
 import { APP_CSS } from "./appStyles.js";
 import { WelcomeScreen } from "../auth/WelcomeScreen.jsx";
-import { RoleSelectionScreen } from "../auth/RoleSelectionScreen.jsx";
 import { BecomeProPrompt } from "../profile/BecomeProPrompt.jsx";
 import { BecomeProSheet } from "../profile/BecomeProSheet.jsx";
 import { CustomerApp } from "../customer/CustomerApp.jsx";
@@ -38,7 +37,7 @@ export function AppShell() {
   const [catalogError, setCatalogError] = useState(null);
   const [becomeProOpen, setBecomeProOpen] = useState(false);
   const toastTimer = useRef(null);
-  const { session, loading: authLoading, profile, proProfile, workspaceMemberships = [], activeWorkspace } = useAuth();
+  const { session, loading: authLoading, proProfile, workspaceMemberships = [], activeWorkspace } = useAuth();
 
   // Epic 03 WP12 — only a person with two or more REAL, resolved workspaces (today: an
   // existing pro's Personal + Professional pair, WP 03.03/03.04's backfill) gets the real
@@ -70,6 +69,12 @@ export function AppShell() {
     toastTimer.current = setTimeout(() => setToast(null), TOAST_DURATION_MS);
   };
 
+  // No classification gate anywhere below, deliberately (PLATFORM_DOMAIN_MODEL.md §27:
+  // "The platform never asks a person to classify themselves"). Every signed-in session
+  // lands straight in CustomerApp — its Personal Workspace — the moment its profile and
+  // catalog are ready. "I offer services" is never a forced first question; it's the
+  // role-switch segmented control above and BecomeProPrompt below, both reachable at any
+  // time, exactly matching "create an account, become a pro later."
   let body;
   if (authLoading || (session && !catalog && !catalogError)) {
     body = <LoadingScreen />;
@@ -77,8 +82,6 @@ export function AppShell() {
     body = <div className="pad"><div className="empty-block"><p>{catalogError}</p></div></div>;
   } else if (!session) {
     body = <WelcomeScreen />;
-  } else if (profile && !profile.onboarding_role_selected) {
-    body = <RoleSelectionScreen onProSelected={() => setRole("pro")} />;
   } else if (effectiveRole === "pro") {
     body = proProfile ? (
       <ProApp showToast={showToast} />

@@ -208,17 +208,6 @@ describe("profile changes write to the profile and nowhere else", () => {
     expect(tablesTouched).not.toContain("identities");
   });
 
-  it("markRoleSelected touches only the flag", async () => {
-    // The update the trigger's WHEN clause deliberately ignores, because application state
-    // about a session is not an attribute of a person.
-    const auth = renderAuth();
-    await waitFor(() => expect(auth()?.session).toBeTruthy());
-
-    await auth().markRoleSelected();
-
-    expect(writes).toEqual([{ table: "profiles", fields: { onboarding_role_selected: true } }]);
-  });
-
   it("never sends a person_ref in a profile update", async () => {
     // §8: "Its identifier is permanent and never reused." The database makes this
     // structurally impossible — the mirror statement does not name the column — and this
