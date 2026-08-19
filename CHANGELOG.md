@@ -50,6 +50,36 @@ accurately.
 
 ### Added
 
+**Epic 05 — Property Engine.** A property now exists for every Personal
+Workspace. Nothing here changes what a user sees — this epic's one
+client-facing change adds a field nothing downstream reads yet.
+
+- **`property.properties`** — the property aggregate, with a **mutable
+  current-steward pointer** (`steward_workspace_id`) rather than a
+  static workspace stamp, because stewardship transfers
+  ([ADR-0028](docs/adr/0028-stewardship-current-pointer-and-closed-period-log.md)).
+- **`property.stewardship_periods`** — the permanent, genuinely
+  append-only log of *closed* stewardships. Empty today: nothing has
+  ever transferred.
+- **Backfilled**: one property ("My Home") per existing Personal
+  Workspace. Professional and Business workspaces get none — nothing in
+  the product represents a business's premises yet.
+- **The isolation policy and the client resolver both reuse Epic 03's
+  existing membership helper directly.** No property-specific resolver
+  was built — ADR-0028 found the current-steward pointer is a plain,
+  indexed column, the same shape every other workspace-scoped table
+  already has.
+- **The property engine contract** — `my_properties()` (discovery) and
+  `resolve_property()` (detail), mirroring the workspace engine's own
+  shape.
+
+### Changed
+
+- `src/lib/homeInventory.js`'s `fetchHomeProfile()` resolves the
+  signed-in person's property (id and name); every other field is
+  unchanged, and nothing downstream reads the new one yet.
+- Test suite grew from 696 tests across 57 files to **742 across 62**.
+
 **Epic 03 — Workspace Engine.** The pivot of the roadmap: workspaces and
 memberships exist, every existing person and professional has been
 migrated onto them, and the two reads that actually changed — a

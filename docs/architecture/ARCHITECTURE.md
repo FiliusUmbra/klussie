@@ -257,9 +257,44 @@ owns the real underlying capability ships it — see
   too. Engines call the emission helper SQL-side; a real background
   consumer needs a direct Postgres connection this repository does not
   have.
-- **Production has none of Epic 01's schema.** Its migration ledger is
-  still unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
-  prerequisite for any push to it.
+- **Workspaces are real, and every existing user and pro has one**
+  (Epic 03, complete). `workspace.workspaces` / `.memberships` carry
+  tenancy; every identity has a Personal Workspace ("My Home"), every
+  `pro_profiles` row a Professional Workspace. All thirteen
+  workspace-scoped tables carry `workspace_id`, correctly backfilled and
+  reconciled, with a permissive isolation policy layered on top of the
+  existing 58 (nothing removed —
+  [ADR-0025](../adr/0025-marketplace-visibility-survives-epic-03.md)).
+  `fetchCustomerRequests`, `fetchHouseholdItems`, `fetchProServices` and
+  `fetchConversations` read by workspace when one resolves, with a
+  fallback proven identical to the pre-Epic-03 behaviour — which is what
+  every account still gets, since **there is no API Gateway and none was
+  built** ([ADR-0024](../adr/0024-request-context-resolved-in-the-database.md)):
+  the browser resolves its own context, once, against the database
+  directly. A real workspace switcher exists, reaching only accounts
+  with two or more genuine workspaces. Staging only, and **not seen
+  exercised against a live database** since WP 03.09 — no working test
+  credentials, no direct Postgres connection available to the sessions
+  that built WP 03.09–03.12 and all of Epic 05.
+- **A property exists for every Personal Workspace** (Epic 05,
+  complete). `property.properties` carries a **mutable current-steward
+  pointer** rather than a static workspace stamp — stewardship
+  transfers, so tenancy here is "the one place... not a static stamp"
+  ([ADR-0028](../adr/0028-stewardship-current-pointer-and-closed-period-log.md)).
+  `property.stewardship_periods` is the separate, genuinely append-only
+  log of *closed* periods — empty today, since nothing has ever
+  transferred. The isolation policy and the client resolver both reuse
+  Epic 03's existing membership helper directly; no property-specific
+  resolver was built. `src/lib/homeInventory.js`'s `fetchHomeProfile()`
+  resolves the property's id and name; nothing downstream reads them
+  yet. Locations, assets, documents and the real event-sourced Timeline
+  are Epics 06–08 and later — this epic is the aggregate and stewardship
+  alone. Staging only, same unverified-live-database gap as Epic 03.
+- **Production has none of Epic 01's schema**, nor Epic 03's, nor
+  Epic 05's. Its migration ledger is still unreconciled
+  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
+  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
+  itself covering only `0018`–`0029` and owed an update through `0042`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
