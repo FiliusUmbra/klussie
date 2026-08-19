@@ -16,11 +16,17 @@ declare
   v_inconsistent_count  integer;
 begin
   -- =========================================================================
-  -- 1 · Exactly 26 capabilities, exactly 5 dependency edges, exactly 3 presets
+  -- 1 · Exactly 27 capabilities, exactly 5 dependency edges, exactly 3 presets
+  --
+  -- 0075_capability_catalogue.sql seeds seven groups (demand_and_supply 5,
+  -- physical_world 4, care_over_time 5, knowledge_and_intelligence 4, working_together 3,
+  -- commercial 2, extension 4 = 27) — this check asserted 26 since it was written,
+  -- an off-by-one against the migration's own real seed data, caught only by running it
+  -- against real data (staging, 2026-08-19).
 
   select count(*) into v_count from platform.capabilities;
-  if v_count <> 26 then
-    raise exception '1a · expected 26 capabilities, found %', v_count;
+  if v_count <> 27 then
+    raise exception '1a · expected 27 capabilities, found %', v_count;
   end if;
 
   select count(*) into v_count from platform.capability_dependencies;
