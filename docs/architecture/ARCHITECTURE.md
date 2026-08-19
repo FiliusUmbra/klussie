@@ -290,11 +290,27 @@ owns the real underlying capability ships it — see
   yet. Locations, assets, documents and the real event-sourced Timeline
   are Epics 06–08 and later — this epic is the aggregate and stewardship
   alone. Staging only, same unverified-live-database gap as Epic 03.
+- **The location tree exists** (Epic 06, complete) — `property.locations`,
+  a recursive tree via an `ltree` materialised path, GiST-indexed, the
+  roadmap's own highest correctness-risk item in the physical tier.
+  Isolation inherits the property's current stewardship — no
+  location-level workspace column. Subtree containment
+  (`location_within`/`_ancestors`/`_descendants`) answers as one indexed
+  operation at any depth; re-parenting (`reparent_location()`) rewrites a
+  moved subtree's paths and emits `LocationTreeChanged` in one
+  transaction. **A real bug was found and fixed before this shipped:**
+  every `ltree` operator and function lives in the `extensions` schema,
+  not `pg_catalog`, and needed explicit qualification
+  (`OPERATOR(extensions.<op>)`, `extensions.nlevel()`) to resolve under
+  this codebase's `search_path = ''` discipline — see
+  `../../implementation/epic-06/COMPLETION.md` §5. No backfill, no client
+  wiring — nothing in the product creates a real location yet. Staging
+  only, same unverified-live-database gap as Epics 03 and 05.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
-  Epic 05's. Its migration ledger is still unreconciled
+  Epic 05's, nor Epic 06's. Its migration ledger is still unreconciled
   (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
   push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0042`.
+  itself covering only `0018`–`0029` and owed an update through `0047`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

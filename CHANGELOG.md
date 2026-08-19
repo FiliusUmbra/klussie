@@ -50,6 +50,32 @@ accurately.
 
 ### Added
 
+**Epic 06 — Location Engine.** The roadmap's own highest correctness-risk
+item in the physical tier. Nothing here changes what a user sees —
+nothing in the product creates a real location yet, so there is nothing
+to read or switch.
+
+- **`property.locations`** — a recursive tree, unbounded depth, via a
+  materialised `ltree` path (GiST-indexed) kept alongside the
+  authoritative parent pointer. Isolation inherits the property's
+  current stewardship — a location carries no workspace column of its
+  own, reusing Epic 03's existing membership helper through a join.
+- **Subtree containment as a first-class operation** — `location_within`,
+  `location_ancestors`, `location_descendants` — a single indexed
+  operation regardless of tree depth, never a recursive walk.
+- **Re-parenting** (`reparent_location()`) rewrites a moved subtree's
+  paths and emits `LocationTreeChanged` in the same transaction — the
+  event that keeps the Workspace and Search engines' eventual caches and
+  indexes from silently going stale, once either exists.
+- **A real bug found and fixed before any of this shipped:** every
+  `ltree` operator and function lives in Postgres's `extensions` schema,
+  not `pg_catalog`, and needed explicit schema qualification to resolve
+  under this codebase's `search_path = ''` discipline. Found by reasoning
+  through Postgres's own operator resolution rules, not by running
+  anything — no database connection was available this session either.
+
+- Test suite grew from 742 tests across 62 files to **792 across 67**.
+
 **Epic 05 — Property Engine.** A property now exists for every Personal
 Workspace. Nothing here changes what a user sees — this epic's one
 client-facing change adds a field nothing downstream reads yet.
