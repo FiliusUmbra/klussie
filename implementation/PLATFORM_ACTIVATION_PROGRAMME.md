@@ -105,6 +105,23 @@ here forward, not aspirational:
   slice's own scope and not dropped for lack of a place to write it
   down.
 
+### 1.3 · Review first
+
+> Review first. Implement second. Document only when architecture
+> changes. Implementation is the default.
+
+Scoping happens at the Activation Slice level — `SLICE_1_…`,
+`SLICE_2_…`, one document per slice, each answering the Four Questions
+(§2) in full before its first work package starts. A work package
+inside an already-scoped slice does not get its own scoping document;
+it gets reviewed against the slice document already governing it, then
+built. A new document is warranted only when a work package's own
+findings change the slice's architecture enough that the slice document
+itself needs correcting — exactly what WP 2.0 (foundation verification)
+and this section's own resequencing already did to
+`SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md`, in place, rather than
+spawning a parallel document next to it.
+
 ---
 
 ## 2 · The Four Questions
