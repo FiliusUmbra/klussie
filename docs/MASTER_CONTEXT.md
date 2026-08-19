@@ -142,47 +142,58 @@ professional who can solve it. Full vision: §5.
 ## 2. Current Milestone
 
 ```
-Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 09 — Workflow Engine
-Status                COMPLETE — 5 of 5 work packages. No client caller
+Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 10 — Maintenance Engine
+Status                COMPLETE — 4 of 4 work packages. No client caller
                        yet — pure addition. Live verification Pending.
+                       Record: implementation/epic-10/COMPLETION.md
+Current Objective     Done: the Maintenance Schedule aggregate (mutable,
+                       recurrence as a native interval, no version
+                       history) and the Maintenance Obligation aggregate
+                       (authoritative once created, immutable once
+                       completed or cancelled via a conditional guard
+                       trigger reusing property.documents_guard_
+                       deletion()'s own shape), full isolation, and an
+                       eight-function contract with no api.* delegate yet
+                       — property.reparent_location()'s posture, now a
+                       three-time pattern. work.generate_due_obligation()
+                       handles exactly one schedule, one obligation, per
+                       call rather than minting several ids itself —
+                       platform.uuid_v7_at() is backfill-only (ADR-0022),
+                       and generating new obligations on an ongoing basis
+                       is runtime generation, which belongs in the
+                       application. Three relationships DATABASE_
+                       ARCHITECTURE.md §16/SYSTEM_ARCHITECTURE.md §8.1
+                       name are deliberately not wired: due/overdue is
+                       computed at read time, not a stored event
+                       (no Notification engine yet); "produces workflow
+                       instances" and "resolved by service records" both
+                       wait on engines that don't exist yet (a real
+                       maintenance workflow definition, and Epic 11).
+                       Recorded explicitly (COMPLETION.md §5).
+Previous Milestone    Epic 09 — Workflow Engine (2026-08-18, complete,
+                       5/5 packages) — the Workflow Definition/Instance
+                       aggregates, the engine contract, and the real
+                       booking_request_lifecycle definition; does not
+                       retire the five legacy triggers (Epic 12's job).
                        Record: implementation/epic-09/COMPLETION.md
-Current Objective     Done: the Workflow Definition aggregate (versioned,
-                       immutable once published) and the Workflow
-                       Instance aggregate (ADR-0028's shape a fourth
-                       time — mutable current_stage, append-only
-                       transition log), the workflow engine contract
-                       (start/transition/read, no api.* delegate yet —
-                       property.reparent_location()'s own precedent, not
-                       property.my_documents()'s), and the real
-                       booking_request_lifecycle definition reproducing
-                       on_request_created/on_quote_sent/on_quote_accepted/
-                       on_job_completed/on_review_created's actual rules,
-                       including the quotes_ready self-loop the legacy
-                       trigger's own guard clause implies. Read before
-                       design found this epic does NOT retire the five
-                       legacy triggers or touch service_requests/quotes —
-                       a workflow instance needs a workspace-scoped
-                       subject those tables don't have until Epic 12's own
-                       migration gives them one; recorded explicitly, not
-                       silently dropped (COMPLETION.md §5.1).
-Previous Milestone    Epic 08 — Document Engine (2026-08-17, complete,
-                       9/9 packages) — both fetchRequestPhotos and
-                       fetchPortfolioItems live, each with a proven
-                       fallback; the public-visibility fork resolved by
-                       the product owner. Record:
-                       implementation/epic-08/COMPLETION.md
 Current Branch        main (Epic 03 WP01–WP08 merged via PR #1 and #2); Epic
                        03 WP09–WP12 on branch/PR #3; Epic 05 on branch/PR #4
                        (stacked on #3); Epic 06 on branch/PR #5 (stacked on
                        #4); Epic 07 on branch/PR #6 (stacked on #5); Epic 08
                        on branch/PR #7 (stacked on #6); Epic 09 on
-                       branch/PR #8 (stacked on #7)
-Next Deliverable      Run every Pending diagnostic across Epics 03–09
+                       branch/PR #8 (stacked on #7); Epic 10 on branch/PR #9
+                       (stacked on #8)
+Next Deliverable      Run every Pending diagnostic across Epics 03–10
                        against a real database — the single highest-
                        priority item in §12's debt table (P0) — before any
-                       live read switch or Epic 09's contract reaches an
+                       live read switch or Epic 09/10's contracts reach an
                        environment with real users. Then continue to
-                       Epic 10 (Maintenance Engine) per the roadmap.
+                       Epic 11 (Service Record Engine) per the roadmap.
+Open from Epic 10     Live verification Pending. Nothing in this epic run
+                       against any database — two diagnostics written
+                       across four migrations, none run. ObligationDue/
+                       ObligationOverdue events not emitted, no pg_cron
+                       wiring — named gaps, not silently built around.
 Open from Epic 09     Live verification Pending. Nothing in this epic run
                        against any database — two diagnostics written
                        across five migrations, none run. The five legacy
@@ -240,7 +251,7 @@ Open from Epic 00     Branch protection not enabled on main (CI reports failure
                        (ADR-0017, Free plan constraint); 31 user-facing
                        components still have no render test; no CI run has ever
                        been observed from this machine
-Last Updated          2026-08-18
+Last Updated          2026-08-18 (Epic 10)
 ```
 
 Implemented in Phase 1 so far: authenticated + rate-limited AI Gateway
@@ -266,7 +277,7 @@ disagrees with this table, this table wins.
 | Repository structure | See [`README.md`](../README.md#repository-structure) for the canonical layout — not duplicated here. Current layout does **not** match the target described in §6 |
 | Platform schema | In Progress — Epic 01 created the ten engine-tier schemas, twelve roles, `platform.events`, `platform.audit_records`, `platform.emit_event()` and consumer cursor/quarantine storage. Still unused except by erasure, which wrote the first audit row (Epic 02 WP07). Applied to staging only — production is untouched |
 | Identity | In Progress — Epic 02. `identity.identities` holds the person reference and personal attributes, backfilled from every profile and dual-written on signup **inside the auth transaction** (a trigger, not the client). Profile display now reads from it through two resolvers; erasure redacts across all three tables and deletes nothing. `public.profiles` and `public.profile_contacts` both remain, written and authoritative for application state and bilateral contact visibility — step 6 is unreachable ([ADR-0023](adr/0023-identity-display-resolution-versus-row-visibility.md)). Staging only |
-| Testing | In Progress — Vitest + React Testing Library, **1023 tests across 94 files**, plus a regression baseline (`engineering/TESTING.md`) and SQL diagnostics — through Epic 03 WP08 run against staging; WP 03.09 onward, and all of Epics 05–09 (09 complete), written but unrun (no DB connection this session, `MASTER_CONTEXT.md` §2). CI gates lint/type-check/test/build, and — for the first time — **actually observed passing** on Epic 03's PR #3. 31 user-facing components still have no render test. Previously: 561 tests across 42 files. No E2E |
+| Testing | In Progress — Vitest + React Testing Library, **1053 tests across 98 files**, plus a regression baseline (`engineering/TESTING.md`) and SQL diagnostics — through Epic 03 WP08 run against staging; WP 03.09 onward, and all of Epics 05–10 (10 complete), written but unrun (no DB connection this session, `MASTER_CONTEXT.md` §2). CI gates lint/type-check/test/build, and — for the first time — **actually observed passing** on Epic 03's PR #3. 31 user-facing components still have no render test. Previously: 561 tests across 42 files. No E2E |
 | Property Memory | In Progress — My Home V1 is derived entirely from existing rows (jobs, professionals, reviews, AI analyses, photos) via `src/lib/homeTimeline.js`, no new schema. My Items V1 is real storage (`household_items`, migration 0016) with manual entry and photos, and carries `source`/`ai_suggestion` so photo recognition can later propose values the owner confirms. Rooms, installations, documents and maintenance schedules remain Planned — no schema (ADR-0008) |
 | Localization | Implemented — 10 locales (`nl`, `fr`, `de`, `en`, `es`, `ar`, `fa`, `tr`, `ru`, `zh`), two right-to-left. UI copy lives in three tables under `src/lib`; catalog names live in the database. Parity across all three tables is derived from `LANGS` and enforced by `homeStrings.test.js` |
 | Core Platform | 3 of 11 layers Implemented (Auth, AI Gateway) or In Progress (Permissions). 8 layers Planned: Payments, Matching, Messaging, Notifications, Storage, Analytics, Marketplace Engine, API |
@@ -288,7 +299,7 @@ disagrees with this table, this table wins.
 | Security | In Progress — auth, RLS, rate limiting, least-privilege implemented; `engineering/SECURITY.md` documents the full threat model and known gaps | Pen-tested | New baseline | Unassigned |
 | Performance | Planned — not yet profiled | Defined once profiling implemented | New baseline | Unassigned |
 | Accessibility | In Progress — `design/ACCESSIBILITY.md` audit done; Epic 03 added a global focus ring, a real focus trap + focus restoration on `Modal`, live regions, ARIA tablist semantics, and 44px touch targets on new surfaces. Older screens not re-audited | Constitution Rule 6 formally verified | Improving | Unassigned |
-| Testing | In Progress — **1023 tests, 94 files**; all `src/lib` business logic, the homepage, both Property Memory surfaces, and Epics 01–09's (09 complete) schema/emission/consumer/workspace/property/location/asset/document/workflow layers covered. SQL diagnostics verify the database posture against staging through Epic 03 WP08; WP 03.09 onward, and all of Epics 05–09, unrun (no DB connection this session). Every gate in Epics 01-09 was proven able to fail before being trusted — a discipline that found real defects in Epic 02, a near-miss in Epic 03 (WP 03.11's public-profile reads), a real `search_path`/extension-schema bug in Epic 06, a real foreign-key bug in Epic 07 that would have broken `deleteHouseholdItem()`, a real scoping mistake in Epic 08's own roadmap one-liner (`avatar_url` did not belong, corrected before building it), and a real behavioural gap in Epic 09's first draft of the booking-lifecycle definition (the `quotes_ready` self-loop a second `QuoteSubmitted` needs, caught by re-reading `handle_quote_sent()`'s own guard clause before shipping) — see `implementation/epic-06/COMPLETION.md` §5, `implementation/epic-07/COMPLETION.md` §5, `implementation/epic-08/COMPLETION.md` §5, and `implementation/epic-09/COMPLETION.md` §5.5. The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is mostly not (WorkspaceSwitcher is the one exception, Epic 03) | Defined in Phase 2 | Improving | Unassigned |
+| Testing | In Progress — **1053 tests, 98 files**; all `src/lib` business logic, the homepage, both Property Memory surfaces, and Epics 01–10's (10 complete) schema/emission/consumer/workspace/property/location/asset/document/workflow/maintenance layers covered. SQL diagnostics verify the database posture against staging through Epic 03 WP08; WP 03.09 onward, and all of Epics 05–10, unrun (no DB connection this session). Every gate in Epics 01-10 was proven able to fail before being trusted — a discipline that found real defects in Epic 02, a near-miss in Epic 03 (WP 03.11's public-profile reads), a real `search_path`/extension-schema bug in Epic 06, a real foreign-key bug in Epic 07 that would have broken `deleteHouseholdItem()`, a real scoping mistake in Epic 08's own roadmap one-liner (`avatar_url` did not belong, corrected before building it), a real behavioural gap in Epic 09's first draft of the booking-lifecycle definition (the `quotes_ready` self-loop a second `QuoteSubmitted` needs, caught by re-reading `handle_quote_sent()`'s own guard clause before shipping), and a real identifier-generation trap avoided in Epic 10's first draft of schedule generation (a loop minting several ids server-side, which ADR-0022 forbids for anything but a backfill — resolved before it was built, not after) — see `implementation/epic-06/COMPLETION.md` §5, `implementation/epic-07/COMPLETION.md` §5, `implementation/epic-08/COMPLETION.md` §5, `implementation/epic-09/COMPLETION.md` §5.5, and `implementation/epic-10/COMPLETION.md` §5.2. The feature components extracted from `App.jsx` (customer/pro/auth/profile) still have no render tests — their *rules* are tested, their markup is mostly not (WorkspaceSwitcher is the one exception, Epic 03) | Defined in Phase 2 | Improving | Unassigned |
 | Design System | In Progress — 21 components implemented (Epic 03 added TrustStrip, UnfoldPanel/UnfoldItem, VoiceCapture, PhotoCapture, TextComposer, RecentWorkStrip, SegmentedTabs/TabPanel); most of `App.jsx` still unmigrated | Full adoption, dark mode, white-label tokens | Improving | Unassigned |
 | AI | In Progress — AI Gateway, intake, translation implemented | Full capability routing + eval automation | New baseline | Unassigned |
 | Marketplace Engine | In Progress — SQL-function matching implemented, no ranking/geo | Real Marketplace Engine implemented | New baseline | Unassigned |
@@ -487,7 +498,7 @@ Principles and KPIs are not alternatives. A feature needs a reason
 | 🟠 High | **Three ADRs are `Proposed`, not accepted** — [0020](adr/0020-events-partitioning-parameters.md), [0021](adr/0021-one-audit-table-with-nullable-workspace.md) and [0022](adr/0022-backfilled-identifiers-are-uuidv7-minted-in-sql.md) | All three were forced by questions the frozen documents left open, and all three are implemented. While `platform.events` and `platform.audit_records` are empty, changing either costs a `drop table` and a re-run; after the first written row it costs rewriting every partition of a table designed never to be rewritten | Accept, revise, or supersede — the decision is cheap now and expensive later. **The window closes when something starts writing rows**, which is not yet scheduled | Epic 01 | P1 |
 | 🟡 Medium | **The audit write path is unallocated** | Epic 01's definition lists it under Backend alongside the emission helper and consumer scaffolding, and no work package built it. `SUPABASE_ARCHITECTURE.md` §8 correctly makes `platform.audit_records` writable by no application role, so as things stand nothing can write an audit record at all. Nothing needs to yet | A `SECURITY DEFINER` function owned by a role that can write, callable by engines that cannot — the same shape as `platform.emit_event()`. A WP 01.08, or folded into the epic that first needs it | Epic 01 | P2 |
 | 🟠 High | **`RoleSelectionScreen` asks the exact question `PLATFORM_DOMAIN_MODEL.md` §27 forbids** | Principle 3 / §27: "The platform never asks a person to classify themselves... It is the wrong question because it is a question about *context*, asked as though it were a question about *identity*." `src/auth/RoleSelectionScreen.jsx` shows every new signup a one-time "how will you use klussie" choice (customer vs. professional) before anything else. Predates the Platform Domain Model freeze (ADR-0013); not introduced or worsened by Epic 03, and Epic 03's WP 03.12 (the workspace switcher) deliberately left it alone rather than redesigning onboarding in a work package scoped to add a switcher — see `IMPLEMENTATION_ROADMAP.md` §14 | A product decision, not an implementation one: replace the forced choice with "create an account, get a Personal Workspace, become a pro later when there's something real to put in it" (§27's own framing) — likely the same session that relocates the "Become a pro" entry point out of the topbar's `role` toggle for single-workspace users, which Epic 03 also left alone | Legacy, found during Epic 03 | P1 |
-| 🔴 Critical | **Epics 03, 05, 06, 07, 08 and 09 — nothing from WP 03.09 onward has been exercised against a live database, and neither Epic 07's nor Epic 08's reconciliation gate (roadmap §3's hard gate) has ever actually run** | Same class of gap as the Epic 02 row above, now **eight epics deep**: Epic 07 is complete (8/8) with a live read switch (`fetchHouseholdItems`); Epic 08 is complete (9/9) with **two** live read switches (`fetchRequestPhotos`, `fetchPortfolioItems`); Epic 09 is now also complete (5/5) — no read switch (nothing to switch yet), but its own write contract (`work.start_workflow_instance()`/`transition_workflow_instance()`) and shadow-verification diagnostic are equally unrun. `RECONCILE_ASSETS.sql` and `RECONCILE_DOCUMENTS.sql`, the checks roadmap §3 requires before any read-switch may be trusted, have never executed. Completing epics does not close this gap; it makes the gap matter more, since real client behaviour now depends on unexecuted SQL rather than only additive structure. No working credentials for either known test account, and no direct Postgres connection (pooler host/password, no linked Supabase CLI project) to run any of the ~32 `VERIFY_*.sql`/`RECONCILE_*.sql` diagnostics written since | Get a working `.env.local` (pointed at staging, with valid seeded-account credentials) and a direct Postgres connection. **Before any of Epic 07's or Epic 08's read switches, or Epic 09's contract, reach an environment with real users**, run `RECONCILE_ASSETS.sql`, `VERIFY_ASSET_DUAL_WRITE.sql`, `RECONCILE_DOCUMENTS.sql`, `VERIFY_WORKFLOW_CONTRACT.sql`, and every other Epic 07/08/09 diagnostic, and confirm all pass — this is the single highest-priority item in this table | Epic 03, 05, 06, 07, 08, 09 | **P0** |
+| 🔴 Critical | **Epics 03, 05, 06, 07, 08, 09 and 10 — nothing from WP 03.09 onward has been exercised against a live database, and neither Epic 07's nor Epic 08's reconciliation gate (roadmap §3's hard gate) has ever actually run** | Same class of gap as the Epic 02 row above, now **nine epics deep**: Epic 07 is complete (8/8) with a live read switch (`fetchHouseholdItems`); Epic 08 is complete (9/9) with **two** live read switches (`fetchRequestPhotos`, `fetchPortfolioItems`); Epic 09 is complete (5/5) and Epic 10 is now also complete (4/4) — neither has a read switch (nothing to switch yet), but their write contracts (`work.start_workflow_instance()`, `work.generate_due_obligation()`, and the rest) and shadow-verification diagnostics are equally unrun. `RECONCILE_ASSETS.sql` and `RECONCILE_DOCUMENTS.sql`, the checks roadmap §3 requires before any read-switch may be trusted, have never executed. Completing epics does not close this gap; it makes the gap matter more, since real client behaviour now depends on unexecuted SQL rather than only additive structure. No working credentials for either known test account, and no direct Postgres connection (pooler host/password, no linked Supabase CLI project) to run any of the ~34 `VERIFY_*.sql`/`RECONCILE_*.sql` diagnostics written since | Get a working `.env.local` (pointed at staging, with valid seeded-account credentials) and a direct Postgres connection. **Before any of Epic 07's or Epic 08's read switches, or Epic 09/10's contracts, reach an environment with real users**, run `RECONCILE_ASSETS.sql`, `VERIFY_ASSET_DUAL_WRITE.sql`, `RECONCILE_DOCUMENTS.sql`, `VERIFY_WORKFLOW_CONTRACT.sql`, `VERIFY_MAINTENANCE_CONTRACT.sql`, and every other Epic 07/08/09/10 diagnostic, and confirm all pass — this is the single highest-priority item in this table | Epic 03, 05, 06, 07, 08, 09, 10 | **P0** |
 | 🟠 High | No payment system | No real revenue path | Stripe Connect integration | Phase 4 | P1 |
 | 🟡 Medium | No render tests on the extracted feature components | The Engineering Health sprint moved ~2,150 lines of JSX into `src/customer`, `src/pro`, `src/auth`, `src/profile` and `src/messaging` with their rules unit-tested but their markup unverified by any test. The move was checked by line-level diff, build, lint and manual smoke — not by assertions that survive the next change | Add render tests per feature folder, starting with the surfaces that spend money: `RequestDetailSheet`, `InvoiceSheet`, `ProProfile` | Phase 2 | P2 |
 | 🟡 Medium | Literal `\uXXXX` escape text rendered in 12 places | JSX text content doesn't interpret backslash escapes, so customers see `€` where a euro sign belongs — in the invoice totals, the budget fields, the flexi tracker and the boost price. Preserved verbatim through the Engineering Health sprint because fixing it changes what a customer reads, which that sprint promised not to do | Replace each with the real character. Sites are commented in `ServiceSheet.jsx`, `QuoteFormSheet.jsx`, `AiIntakeSheet.jsx`, `InvoiceSheet.jsx`, `SendQuoteSheet.jsx`, `ProProfile.jsx`, `AppShell.jsx` | Phase 1 | P2 |
@@ -651,6 +662,8 @@ instinct should be: **"I'll open Klussie."**
 *Version 2.6 — 2026-08-17 (Epic 08 Document Engine complete, 9/9 packages: both read switches live — fetchRequestPhotos and fetchPortfolioItems, each with a proven fallback; the public-visibility architectural gap resolved by the product owner (is_public carried by document type); the caption-mirroring gap resolved directly, without re-asking; a new public-workspace resolver built for the portfolio switch; test count (978/89), P1 and P2 debt rows both closed)*
 
 *Version 2.7 — 2026-08-18 (Epic 09 Workflow Engine complete, 5/5 packages: the Workflow Definition and Instance aggregates, the engine contract with no `api.*` delegate yet, and the real `booking_request_lifecycle` definition reproducing the five legacy triggers' decisions, including the `quotes_ready` self-loop; read before design found this epic does not retire those triggers — Epic 12's own job, once requests/quotes are workspace-scoped; test count (1023/94))*
+
+*Version 2.8 — 2026-08-18 (Epic 10 Maintenance Engine complete, 4/4 packages: the Maintenance Schedule and Obligation aggregates, RLS isolation, and an eight-function contract with no `api.*` delegate yet; `work.generate_due_obligation()` handles one schedule and one obligation per call rather than minting ids in a loop, since ADR-0022 reserves runtime identifier generation for the application; three named relationships — due/overdue events, workflow instances, service-record resolution — deliberately not wired, each waiting on an engine that doesn't exist yet; test count (1053/98))*
 
 *Version 2.5 — 2026-08-17 (Epic 08 Document Engine, nearly complete: product owner resolved the public-visibility architectural gap — is_public carried by document type, matching retention_class's own precedent; service_request_photos got a dedicated discoverability lookup; fetchRequestPhotos switched and live with a proven fallback; fetchPortfolioItems deliberately not switched — a new, narrower caption-mirroring gap found building it — test count (959/86), P1 debt row resolved and replaced with a P2 for the caption gap)*
 

@@ -50,6 +50,44 @@ accurately.
 
 ### Added
 
+**Epic 10 — Maintenance Engine (complete, 4 of 4 packages).** No client
+caller exists yet — pure addition, no Changed entry below it.
+
+- **`work.maintenance_schedules`** — the recurring rule, anchored to
+  exactly one of an asset or a location, `recurrence` a native
+  `interval`. Ordinary mutable data, no version history — nothing in
+  `DATABASE_ARCHITECTURE.md` §16 requires reconstructing a schedule's
+  past configuration the way a workflow definition's version history
+  does.
+- **`work.maintenance_obligations`** — authoritative once created, never
+  conflated with a prediction (§16); immutable once `status` reaches
+  `completed` or `cancelled`, via a conditional guard trigger reusing
+  `property.documents_guard_deletion()`'s own shape (Epic 08).
+  Cancellation always carries a reason, enforced by both a table check
+  and the contract function.
+- **The maintenance engine contract** — create/cancel a schedule,
+  create/complete/cancel an obligation, plus two read functions. No
+  `api.*` delegate for any of the eight — `property.reparent_location()`'s
+  own precedent, now a three-time pattern in this roadmap.
+- **A real identifier-generation trap avoided before it was built**: the
+  obvious shape for "catch a schedule up on missed periods" is a loop
+  minting a fresh id per generated obligation via
+  `platform.uuid_v7_at()`. That function is documented backfill-only
+  (ADR-0022) — generating new obligations on an ongoing basis is runtime
+  generation, which belongs in the application, however deep inside a
+  function it happens. `work.generate_due_obligation()` instead handles
+  exactly one schedule, one obligation, per call; a caller catches a
+  backlogged schedule up by calling it once per missed period, each with
+  its own application-generated id.
+- **Three relationships named in the architecture but deliberately not
+  wired**: due/overdue is computed at read time from `due_on`, not a
+  stored event (no Notification engine exists yet to consume one);
+  "produces workflow instances" and "resolved by service records" both
+  wait on engines that don't exist yet (a real maintenance-specific
+  workflow definition, and Epic 11's Service Record Engine).
+
+- Test suite grew from 1023 tests across 94 files to **1053 across 98**.
+
 **Epic 09 — Workflow Engine (complete, 5 of 5 packages).** No client
 caller exists yet — pure addition, no Changed entry below it. Does not
 retire any of the five legacy triggers still driving booking today; see
