@@ -656,17 +656,49 @@ owns the real underlying capability ships it — see
   this epic mints was correct from the start, the direct benefit of
   Epic 15's own fix landing first. Derived workspace-graph edges,
   inferred world-graph edges, and `asset_class` rule-scope resolution are
-  deliberately not built — named gaps, not silently narrowed scope. No
-  `api.*` delegate — the same posture, now an eleven-time pattern.
+  deliberately not built — named gaps, not silently narrowed scope. **A
+  real bug caught in this epic's own work, before Epic 17 branched off
+  it**: `rules_in_force()`/`declare_rule()` never checked `confirmed_at`,
+  so an unconfirmed proposal would have been treated as already binding
+  — fixed on this branch (`implementation/epic-16/COMPLETION.md` §5.3).
+  No `api.*` delegate — the same posture, now an eleven-time pattern.
   Staging only for what was built; nothing applied anywhere.
+- **The intelligence engine exists, complete** (Epic 17, 4/4 packages) —
+  **no new schema, no new engine role**. `SUPABASE_ARCHITECTURE.md` §7's
+  own schema table already lists `knowledge` as shared by "Knowledge,
+  Intelligence," and `klussie_engine_knowledge` covers both. `knowledge.
+  memory_versions` — the one structural correction the Rebuild Test
+  forced on Property Memory (§36 finding 1): permanent, append-only,
+  no `workspace_id` column since memory follows the property, live,
+  surviving a change of steward, the same shape `work.service_records`
+  already uses. `knowledge.propose_rule()`/`confirm_proposed_rule()`/
+  `reject_proposed_rule()` close the gap Epic 16's own contract
+  deliberately deferred; rejection composes `retire_rule()` rather than
+  duplicating it. `knowledge.publish_memory_version()` resolves its
+  event's `workspace_id` from the property's current steward, live, and
+  deliberately uses `subject_type = 'property'` so a published version
+  appears in Epic 15's own Timeline with no changes needed there. Four
+  event-only actions carry no dedicated table —
+  `record_recommendation()`, `propose_prediction()`, `propose_asset()`,
+  `generate_summary()` — since nothing yet needs to query one back out.
+  **Read before design**: "migrates the existing AI intake and
+  translation onto the engine contract" turned out to be substantially
+  already done by other epics — translation is already Conversation's
+  own event (Epic 13), and AI intake's result lives entirely in a
+  request's own jsonb column with no SQL-side equivalent to migrate; what
+  this epic actually builds is the durable half neither had anywhere to
+  write. `event_type` minted correctly from the start, the second epic in
+  a row to do so. No `api.*` delegate — the same posture, now a
+  twelve-time pattern. Staging only for what was built; nothing applied
+  anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
-  Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's. Its migration
-  ledger is still unreconciled (`../operations/ENVIRONMENTS.md` §9),
-  which is a prerequisite for any push to it — see
-  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
-  `0018`–`0029` and owed an update through `0111`.
+  Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's, nor Epic 17's.
+  Its migration ledger is still unreconciled
+  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
+  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
+  itself covering only `0018`–`0029` and owed an update through `0114`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

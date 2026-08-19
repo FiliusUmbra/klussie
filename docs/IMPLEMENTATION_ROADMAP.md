@@ -62,8 +62,9 @@ this one, this one wins.
 25. [Work Packages — Epic 14](#25--work-packages--epic-14)
 26. [Work Packages — Epic 15](#26--work-packages--epic-15)
 27. [Work Packages — Epic 16](#27--work-packages--epic-16)
-28. [Risk Register](#28--risk-register)
-29. [How Implementation Sessions Work](#29--how-implementation-sessions-work)
+28. [Work Packages — Epic 17](#28--work-packages--epic-17)
+29. [Risk Register](#29--risk-register)
+30. [How Implementation Sessions Work](#30--how-implementation-sessions-work)
 
 ---
 
@@ -2379,7 +2380,61 @@ this epic's own migration sequence, with no rebase of Epics 09–14
 required (`0106_platform_schema_access_backfill.sql`; full reasoning in
 `implementation/epic-16/COMPLETION.md` §5.1).
 
-## 28 · Risk Register
+## 28 · Work Packages — Epic 17
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §26 (Property Memory), §36
+finding 1 (the published-versions split the Rebuild Test forced).
+`SYSTEM_ARCHITECTURE.md` §9.2. `PLATFORM_DOMAIN_MODEL.md` §18.1
+(Property Memory), §18.2 (Workspace Knowledge's proposal lifecycle),
+§19.3 (the six-stage loop). Epic 16 (`knowledge.rules`, shares its
+schema and role).
+
+**Read before design.** No new schema, no new engine role —
+`SUPABASE_ARCHITECTURE.md` §7's own schema table already lists `knowledge`
+as shared by "Knowledge, Intelligence," and `ROLES.md` §3 confirms
+`klussie_engine_knowledge` covers both. `src/lib/aiIntake.js`'s analysis
+result lives entirely in a request's own `answers.aiAnalysis` column with
+no SQL-side equivalent to migrate; `src/lib/translate.js`'s translation
+event already belongs to Conversation (Epic 13). What this epic actually
+builds: the durable half neither had anywhere to write — published
+memory, and a named contract for recommending, predicting, proposing and
+summarising. No backfill — greenfield, the same shape Epic 09 held.
+
+**17.01 · Published memory versions (add)**
+`knowledge.memory_versions` — the one structural correction the Rebuild
+Test forced on Property Memory (§36 finding 1): current memory is a
+projection, published versions are a permanent, append-only aggregate.
+No `workspace_id` column — Property Memory follows the property, live,
+surviving a change of steward, the same shape `work.service_records`
+already uses. **Complexity.** Medium. **Rollback.** Drop the table.
+
+**17.02 · RLS isolation (add)**
+One join deeper through `property.properties`, the same shape
+`commerce.credits` already uses through its parent invoice.
+**Complexity.** Low. **Rollback.** Drop the policy.
+
+**17.03 · Rule proposals (add)**
+`knowledge.propose_rule()`/`confirm_proposed_rule()`/
+`reject_proposed_rule()` — closes the gap Epic 16's own contract
+deliberately deferred ("added when Epic 17 has a real pattern to
+propose"). Rejection composes `retire_rule()` rather than duplicating
+it. **Complexity.** Medium. **Rollback.** Drop all three functions.
+
+**17.04 · The intelligence contract (add)**
+Six functions: `publish_memory_version()` (resolves its event's
+`workspace_id` from the property's current steward, live, never a
+caller-supplied value; `subject_type = 'property'` deliberately, so a
+published version appears in Epic 15's own Timeline for free),
+`current_property_memory()` (a plain read of the latest version, the
+same self-enforcing shape `property.resolve_property()` established),
+and four event-only actions with no dedicated table —
+`record_recommendation()`, `propose_prediction()`, `propose_asset()`,
+`generate_summary()` — since nothing yet needs to query one back out.
+`event_type` minted correctly from the start, the second epic in a row
+to do so. No `api.*` delegate — the twelfth occurrence.
+**Complexity.** High. **Rollback.** Drop all six functions.
+
+## 29 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2395,7 +2450,7 @@ required (`0106_platform_schema_access_backfill.sql`; full reasoning in
 | 10 | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format~~ (found and fixed in Epic 15, `implementation/epic-15/COMPLETION.md` §6) | ✅ Closed | 34 values across 7 epics violated `platform.events`' own `CHECK` constraint; ADR-0019 stayed authoritative, every call site conformed to it across all 7 branches |
 | 11 | ~~`klussie_engine_work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`~~ (found and fixed in Epic 16, `implementation/epic-16/COMPLETION.md` §5.1) | ✅ Closed | Six already-shipped `emit_event()` call sites across five epics would have failed with "permission denied for schema platform"; fixed forward in one migration, no rebase required |
 
-## 29 · How Implementation Sessions Work
+## 30 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
