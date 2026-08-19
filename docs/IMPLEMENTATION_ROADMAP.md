@@ -60,8 +60,9 @@ this one, this one wins.
 23. [Work Packages — Epic 12](#23--work-packages--epic-12)
 24. [Work Packages — Epic 13](#24--work-packages--epic-13)
 25. [Work Packages — Epic 14](#25--work-packages--epic-14)
-26. [Risk Register](#26--risk-register)
-27. [How Implementation Sessions Work](#27--how-implementation-sessions-work)
+26. [Work Packages — Epic 15](#26--work-packages--epic-15)
+27. [Risk Register](#27--risk-register)
+28. [How Implementation Sessions Work](#28--how-implementation-sessions-work)
 
 ---
 
@@ -2242,7 +2243,65 @@ pattern the frozen list already establishes. No `api.*` delegate for any
 of the ten functions — the eighth occurrence of that restraint.
 **Complexity.** High. **Rollback.** Drop all ten functions.
 
-## 26 · Risk Register
+## 26 · Work Packages — Epic 15
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §25 (Timeline), §28 (Digital
+Twin). `SYSTEM_ARCHITECTURE.md` §7.1 (Property — owns both). Epics 07, 10,
+11, 12, 13 (assets, maintenance, service records, engagements and
+conversations, the real subjects Timeline resolves against).
+
+**Read before design.** Not a new engine — `SYSTEM_ARCHITECTURE.md` §3's
+own ownership table assigns both the Timeline projection and the digital
+twin composition to **Property** (Epic 05), already built. This epic adds
+two read functions to that existing contract; no new schema, no new
+engine role. No backfill work package — both are pure projections (§3/§4:
+"may be rebuilt at will"), and no legacy table shaped like either exists
+to migrate from.
+
+**15.01 · Event stream and cross-engine read access (add)**
+`klussie_engine_property` gets `USAGE` on `platform` (never held before)
+plus a named `SELECT` on `platform.events`, and `SELECT` on six specific
+`work` tables it needs to resolve which subjects belong to a property.
+**Found and fixed in the same migration**: `platform.events` has had RLS
+enabled with no policy since Epic 01 — `klussie_consumer_delivery`'s own
+`SELECT` grant has been dead code the entire time; one policy, naming
+both roles, fixes it. **Complexity.** Medium. **Rollback.** Drop the
+policy and the grants.
+
+**15.02 · Timeline segment (add)**
+`property.timeline_segment()` — §25's own sentence taken literally: "a
+workspace may read the segment of a property's timeline that falls
+within its own stewardship period." Resolves six subject branches
+(property, asset, location, service_record, conversation, message)
+against `platform.events`, filtered to the caller's own current-or-past
+stewardship windows. Document resolution deliberately excluded — Document
+engine (Epic 08) has never emitted an event, and `document_attachments`
+carries its own explicit warning against being joined for a visibility
+decision. **Complexity.** High. **Rollback.** Drop the function.
+
+**15.03 · Digital Twin composition (add)**
+`property.assemble_twin()` — the twin itself stays unmaterialised (§28);
+this is only the "narrow summary projections" §28 explicitly permits:
+five live counts (locations, assets, documents, open maintenance
+obligations, service records), current-steward-only, deliberately not
+stewardship-window-scoped like Timeline. **Complexity.** Medium.
+**Rollback.** Drop the function.
+
+**A session-spanning finding, found and fixed.** Building this epic's own
+diagnostic surfaced that every `emit_event()` call in every engine
+contract since Epic 06 used a bare PascalCase `event_type`
+(`'ObligationCreated'`, `'ConversationOpened'`, ...) instead of ADR-0019's
+own stated `<engine>.<aggregate>.<past-participle>` format — 34 distinct
+values across 7 epics, none matching `platform.events`' own `CHECK`
+constraint (`0021_events.sql`). Not this epic's own code — it mints no
+events itself — but fixed across all seven affected branches (06, 09, 10,
+04, 11, 12, 13, 14) before this epic closed: ADR-0019 stayed authoritative
+and unmodified, and every call site was conformed to it, verified against
+`SYSTEM_ARCHITECTURE.md`'s own per-engine event lists rather than
+mechanically transformed — see `implementation/epic-15/COMPLETION.md` §6
+for the full mapping.
+
+## 27 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2255,8 +2314,9 @@ of the ten functions — the eighth occurrence of that restraint.
 | 7 | **Production is still the only environment until 00.06** | High | Epic 00 precedes all schema work; no migration before staging exists |
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
+| 10 | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format~~ (found and fixed in Epic 15, `implementation/epic-15/COMPLETION.md` §6) | ✅ Closed | 34 values across 7 epics violated `platform.events`' own `CHECK` constraint; ADR-0019 stayed authoritative, every call site conformed to it across all 7 branches |
 
-## 27 · How Implementation Sessions Work
+## 28 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
