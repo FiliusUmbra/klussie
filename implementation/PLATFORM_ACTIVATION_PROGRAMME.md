@@ -223,7 +223,13 @@ unmet acceptance criterion: `SLICE_0_ACTIVATION_INFRASTRUCTURE.md` §6.
   job (wiring a real audited action — a support-access grant, a
   capability withdrawal — to an actual caller), not Slice 0's.
 
-### Slice 1 — Property & Asset Activation
+### Slice 1 — Property & Asset Activation — **Complete except WP 1.9**
+
+Full work-package breakdown, findings, and status:
+`SLICE_1_PROPERTY_ASSET_ACTIVATION.md`. All ten work packages (WP
+1.0–1.10) merged; WP 1.9 (retiring `household_items`) deliberately
+waits for a real production observation window, per that document's own
+§2.
 
 *Corrects the original roadmaps' biggest coordination miss: My Home and
 My Business were scoped as two parallel, separately-sequenced phases
@@ -247,7 +253,14 @@ one slice.*
   triggers (§3); `homeTimeline.js`'s client-side derivation, once
   `platform.events` reads are wired for the Timeline.
 
-### Slice 2 — Marketplace Transaction Activation
+### Slice 2 — Marketplace Transaction Activation — **Scoping**
+
+Full work-package breakdown and findings:
+`SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md`. Nothing implemented
+yet — that document names two structural differences from Slice 1's own
+sequence worth reading before starting: the engine schema Epic 12 built
+has never been applied to any database, and this slice's own end state
+requires retiring a live system, not only adding beside one.
 
 *The single riskiest slice in the programme — worked in full in §2's
 example above. Not compressed or parallelized; the two sides of a live
