@@ -50,6 +50,39 @@ accurately.
 
 ### Added
 
+**Epic 19 — Notification Engine (complete, 3 of 3 packages).** No client
+caller exists yet — pure addition, no Changed entry below it. **Epic 18
+(Provider Intelligence Engine) was deliberately skipped**, on explicit
+instruction, in favour of proceeding directly to this epic — not built,
+not silently dropped, still owed.
+
+- **No schema, no engine role exists for Notification** anywhere in the
+  frozen documents — resolved by precedent, following Audit's own
+  placement in `platform`, owned by `klussie_engine_platform`, rather
+  than adding an eleventh schema.
+- **`platform.notifications`** (workspace-scoped, fully immutable) and
+  **`platform.notification_deliveries`** (one per recipient per channel,
+  immutable except `delivered_at`/`seen_at`/`acted_at`, each one-way) —
+  two tables, not one, matching the domain model's own split between a
+  workspace-scoped record and a per-person delivery fact.
+- **`platform.notification_preferences`** — the first genuinely mutable
+  aggregate this session has built. One row per membership, a real
+  foreign key into `workspace.memberships`, deliberately not append-only
+  since a preference toggle has no governance value worth a permanent
+  trail.
+- **`raise_notification()`** takes its recipients as a caller-supplied
+  `jsonb` array — fanning out to an unbounded, transaction-resolved set
+  means the caller mints every delivery id, never this function.
+- **`mark_notification_acted()`** emits a named extension beyond the
+  frozen event list, the third such gap-fill this session.
+- **`platform.my_inbox()`** composes the identity-scoped inbox at read
+  time across live membership — never materialised, so revoking a
+  membership removes its items with no separate invalidation step.
+- **`event_type` minted correctly from the start** — the third epic in a
+  row to do so.
+
+- Test suite grew from 1368 tests across 138 files to **1393 across 141**.
+
 **Epic 17 — Intelligence Engine (complete, 4 of 4 packages).** No client
 caller exists yet — pure addition, no Changed entry below it. No new
 schema, no new engine role — shares Epic 16's own `knowledge` schema and

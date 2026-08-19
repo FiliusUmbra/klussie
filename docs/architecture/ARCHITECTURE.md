@@ -691,14 +691,50 @@ owns the real underlying capability ships it — see
   a row to do so. No `api.*` delegate — the same posture, now a
   twelve-time pattern. Staging only for what was built; nothing applied
   anywhere.
+- **Epic 18 (Provider Intelligence Engine) is deliberately skipped**, on
+  explicit instruction, in favour of proceeding directly to Epic 19. Not
+  built, not silently dropped — recorded in `MASTER_CONTEXT.md` §2 and
+  `implementation/epic-19/COMPLETION.md`'s own header as a real,
+  out-of-order gap the roadmap still expects filled.
+- **The notification engine exists, complete** (Epic 19, 3/3 packages) —
+  no schema, no engine role exists for Notification anywhere in the
+  frozen documents (`SUPABASE_ARCHITECTURE.md` §7's own schema table
+  names none); resolved by precedent rather than invention, following
+  Audit's own placement in `platform`, owned by `klussie_engine_platform`
+  — both "Platform Services," both cross-cutting concerns with a genuine
+  aggregate rather than a pure projection. `platform.notifications`
+  (workspace-scoped, fully immutable) and `platform.
+  notification_deliveries` (one per recipient per channel, immutable
+  except delivered_at/seen_at/acted_at, each one-way) — two tables, not
+  one, matching §32's own split between a workspace-scoped record and a
+  per-person delivery fact. `platform.notification_preferences` — **the
+  first genuinely mutable aggregate this session has built**, a real
+  foreign key into `workspace.memberships`, one row each, deliberately
+  not append-only since a preference toggle has no governance value worth
+  a permanent trail, unlike every other table this session has built.
+  `raise_notification()` takes its recipients as a caller-supplied
+  `jsonb` array — fanning out to an unbounded, transaction-resolved set
+  means the caller mints every delivery id, never this function
+  (ADR-0022; no id-minting pattern already established in this session
+  covers an unbounded set, only a single conditional branch).
+  `mark_notification_acted()` emits `platform.notification.acted_on`, a
+  named extension beyond §10.1's own event list, the third such gap-fill
+  this session. `platform.my_inbox()` composes the identity-scoped inbox
+  at read time across live membership, joining `platform`, `identity` and
+  `workspace` in one query — never materialised, so revoking a
+  membership removes its items with no separate invalidation step,
+  proven in the diagnostic. `event_type` minted correctly from the
+  start, the third epic in a row. No `api.*` delegate — the same
+  posture, now a thirteen-time pattern. Staging only for what was built;
+  nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
-  Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's, nor Epic 17's.
-  Its migration ledger is still unreconciled
+  Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's, nor Epic 17's,
+  nor Epic 19's. Its migration ledger is still unreconciled
   (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
   push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0114`.
+  itself covering only `0018`–`0029` and owed an update through `0117`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
