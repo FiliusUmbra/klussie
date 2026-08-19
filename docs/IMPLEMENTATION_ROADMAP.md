@@ -65,8 +65,9 @@ this one, this one wins.
 28. [Work Packages — Epic 17](#28--work-packages--epic-17)
 29. [Work Packages — Epic 19](#29--work-packages--epic-19)
 30. [Work Packages — Epic 18](#30--work-packages--epic-18)
-31. [Risk Register](#31--risk-register)
-32. [How Implementation Sessions Work](#32--how-implementation-sessions-work)
+31. [Work Packages — Epic 20](#31--work-packages--epic-20)
+32. [Risk Register](#32--risk-register)
+33. [How Implementation Sessions Work](#33--how-implementation-sessions-work)
 
 ---
 
@@ -711,7 +712,8 @@ Closes the "no notifications outside an open tab" risk in
 
 **Epic 20 — Search Engine.** Postgres full-text across the eight domains;
 **scope indexed, never post-filtered**; re-indexing on scope-affecting
-events. Replaces the current client-side catalogue filter.
+events. Replaces the current client-side catalogue filter. **Complete**
+— see `implementation/epic-20/COMPLETION.md`.
 
 **Epic 21 — Analytics Engine.** Two physically separate schemas, two role
 grants. First instrumentation of the KPIs in `MASTER_CONTEXT.md` §14,
@@ -2549,7 +2551,66 @@ touches, a direct benefit of §30's own schema-placement choice.
 No `api.*` delegate — the fourteenth occurrence. **Complexity.** High.
 **Rollback.** Drop all four functions.
 
-## 31 · Risk Register
+## 31 · Work Packages — Epic 20
+
+Built immediately after Epic 18, on the roadmap's own forward
+sequencing, continuing the stacked-branch chain from
+`epic-18/provider-intelligence-engine`'s own tip.
+
+**Dependencies.** `SYSTEM_ARCHITECTURE.md` §10.2/§15.
+`SUPABASE_ARCHITECTURE.md` §2/§14/§15. `DATABASE_ARCHITECTURE.md` §3/§30.
+`docs/operations/ROLES.md` §2.2. Epic 03 (`api.current_workspace_
+memberships()`).
+
+**Read before design.** Unlike every epic since 18, both the schema
+(`derived`) and the engine role (`klussie_consumer_search`, "Maintains
+search support," created since Epic 01) are already named in the frozen
+documents — nothing to resolve by precedent here. No backfill —
+greenfield, since the current product has no full-text index of any
+kind (`pro_matches_request()` is a bare SQL function; Discover is a
+client-side filter).
+
+**20.01 · The search index (add)**
+`derived.search_index` — one polymorphic projection, all eight domains
+via a `domain` discriminator, mirroring `platform.events`' own shape
+rather than inventing eight near-identical tables. `search_index_global_
+has_no_workspace` requires `workspace_id is null` if and only if
+`domain = 'global'`; `search_index_published_only_public` forbids
+`is_published = true` anywhere outside `provider`/`global`, structurally.
+**The first Derived-class, hard-delete-permitted table this session has
+built** — no guard trigger, the opposite mutability posture from every
+prior aggregate. `'simple'` text search configuration, deliberately, not
+`'english'` — the platform is multi-locale. **Complexity.** Medium.
+**Rollback.** Drop the table.
+
+**20.02 · RLS isolation (add)**
+Two policies: the six ordinary domains under ordinary direct
+`workspace_id` membership; `provider`/`global` public once
+`is_published = true`, to `anon` and `authenticated` both. Built now even
+though `ROLES.md` §2.4's own "Not yet" bucket defers the actual grant to
+whichever epic ships the live read path — Search's own docs single out
+disclosure as its uniquely severe failure mode, so the predicate is
+reviewed and tested before the door opens, not after. **Complexity.**
+Low. **Rollback.** Drop both policies.
+
+**20.03 · The search engine contract (add)**
+Five functions. `reindex_item()` upserts one row keyed on `(domain,
+source_type, source_id)`. `remove_from_index()` performs a real hard
+delete. `search()` applies scope and the text match in the same `where`
+clause — "scope is indexed, never post-filtered" as a structural
+property, not a convention. `mark_index_rebuilt()` (canonical) and
+`mark_index_lag_detected()` (`p_is_derived => true`, the first event
+this session marks that way) both refuse a null workspace — global-
+domain rebuild event tracking has no owning workspace to attribute to,
+named as a deliberate gap rather than built around. **The first
+background-consumer role this session has granted `platform.
+emit_event()` to**, fulfilling the exact case `0023_emit_event.sql`'s
+own header predicted and left ungranted at Epic 01. `event_type` minted
+correctly from the start, the fifth epic in a row. No `api.*` delegate —
+the fifteenth occurrence. **Complexity.** High. **Rollback.** Drop all
+five functions.
+
+## 32 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2565,7 +2626,7 @@ No `api.*` delegate — the fourteenth occurrence. **Complexity.** High.
 | 10 | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format~~ (found and fixed in Epic 15, `implementation/epic-15/COMPLETION.md` §6) | ✅ Closed | 34 values across 7 epics violated `platform.events`' own `CHECK` constraint; ADR-0019 stayed authoritative, every call site conformed to it across all 7 branches |
 | 11 | ~~`klussie_engine_work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`~~ (found and fixed in Epic 16, `implementation/epic-16/COMPLETION.md` §5.1) | ✅ Closed | Six already-shipped `emit_event()` call sites across five epics would have failed with "permission denied for schema platform"; fixed forward in one migration, no rebase required |
 
-## 32 · How Implementation Sessions Work
+## 33 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
