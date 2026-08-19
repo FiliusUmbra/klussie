@@ -317,18 +317,24 @@ one slice.*
   triggers (§3); `homeTimeline.js`'s client-side derivation, once
   `platform.events` reads are wired for the Timeline.
 
-### Slice 2 — Marketplace Transaction Activation — **Scoping, WP 2.0 done**
+### Slice 2 — Marketplace Transaction Activation — **WP 2.0-2.3 done**
 
 Full work-package breakdown and findings:
 `SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md`. WP 2.0 applied and
-verified the foundation Epic 12 built (`0085`-`0090`, both existing
-diagnostics passing against real staging for the first time) — that
-document's own §1.1 has the full finding, including the one honest gap
-left open (the backfill's real per-row logic is unexercised, staging
-holding zero legacy marketplace rows). Nothing past WP 2.0 is
-implemented yet. This slice's own end state requires retiring a live
-system, not only adding beside one — still its defining structural
-difference from Slice 1.
+verified the foundation Epic 12 built (`0085`-`0090`); WP 2.1 shipped
+the read contracts (`0145`); WP 2.2 decided directed booking's shape
+and WP 2.3 shipped the write contracts together (`0146`), including a
+real bug found in legacy's own equivalent and deliberately not
+reproduced — see that document's own WP 2.2 entry. One honest gap
+still open from WP 2.0: the backfill's real per-row logic is
+unexercised, staging holding zero legacy marketplace rows. WP 2.4 (the
+scoped access grant consumer) moved after WP 2.6 per §1.1's own
+Platform Activation Priority — genuinely new infrastructure the core
+journey does not need to be real yet. Remaining: WP 2.5/2.6 (the client
+cutover — no client file has changed for this slice yet) and WP 2.7.
+This slice's own end state requires retiring a live system, not only
+adding beside one — still its defining structural difference from
+Slice 1.
 
 *The single riskiest slice in the programme — worked in full in §2's
 example above. Not compressed or parallelized; the two sides of a live
