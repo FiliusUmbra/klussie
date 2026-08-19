@@ -89,8 +89,8 @@ pointing at whatever replaced it.
 | [0026](0026-membership-helper-lives-in-public.md) | The membership helper is a `SECURITY DEFINER` function in a dedicated `api` schema | **Accepted** — revised from an originally proposed placement in `public`; sets the pattern for every later engine's RLS helper |
 | [0027](0027-workspace-permission-vocabulary.md) | The Workspace Permission Vocabulary | **Accepted** — twelve permissions scoped to workspace lifecycle and membership management only, deliberately excluding every other engine's future permissions |
 | [0028](0028-stewardship-current-pointer-and-closed-period-log.md) | Stewardship is a mutable current pointer plus an append-only log of closed periods | **Accepted** — resolves a contradiction between `DATABASE_ARCHITECTURE.md` §4 and §12's literal wording; the isolation predicate reuses Epic 03's membership helper directly, no new resolver |
-| [0029](0029-client-access-pattern-for-new-engines.md) | RPC/API routes are the default client-access pattern for the new engines; direct PostgREST reads are the named exception | **Proposed** — governs Platform Activation Slice 1 onward; free to revise until the first Slice 1 client code lands |
-| [0030](0030-operator-identity-via-operations-workspace.md) | Operator identity is a membership in a real, internal Operations Workspace — not a new access mechanism | **Proposed** — governs Platform Activation Slice 0 WP 0.3 onward; free to revise until the first real membership is seeded |
+| [0029](0029-client-access-pattern-for-new-engines.md) | RPC/API routes are the default client-access pattern for the new engines; direct PostgREST reads are the named exception | **Accepted** — governs Platform Activation Slice 1 onward |
+| [0030](0030-operator-identity-via-operations-workspace.md) | Operator identity is a membership in a real, internal Operations Workspace — not a new access mechanism | **Accepted** — governs Platform Activation Slice 0 WP 0.3 onward |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see

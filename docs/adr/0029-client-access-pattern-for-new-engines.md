@@ -1,8 +1,7 @@
 # ADR-0029: RPC/API routes are the default client-access pattern for the new engines; direct PostgREST reads are the named exception
 
-**Status:** Proposed — governs every read/write path built from Platform
-Activation Slice 1 onward; free to revise until the first Slice 1 client
-code lands
+**Status:** Accepted — governs every read/write path built from Platform
+Activation Slice 1 onward
 **Date:** 2026-08-19
 **Related:** `../adr/0024-request-context-resolved-in-the-database.md`,
 `../operations/ROLES.md` §7, `../architecture/SYSTEM_ARCHITECTURE.md`
