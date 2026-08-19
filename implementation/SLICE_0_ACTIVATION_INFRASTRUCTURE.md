@@ -177,12 +177,23 @@ convenient one:**
 ### 3.2 · What this does *not* solve, named honestly
 
 - **No self-service path exists to *become* an operator, deliberately.**
-  The first membership (the founder's own) is seeded by a migration,
-  by hand, the same way `docs/operations/staging_test_accounts.sql`-style
-  seeding already works for test accounts. Every subsequent operator is
-  added the same way an enterprise customer's employee is invited (§8,
-  direct invitation) — reusing existing machinery again, not inventing
-  onboarding for a five-person internal team.
+  This section originally described the founder's own first membership
+  as "seeded by a migration, by hand" — corrected once already, in
+  `0132_operations_workspace.sql`'s own header: a migration must
+  produce an identical structural result in every environment, and a
+  specific person's membership is per-environment operational data,
+  not structure. What was actually built (the Platform Activation
+  Programme, Initial Platform Operator bootstrap) is a reusable,
+  parameterised function, `platform.bootstrap_operator(p_email text)`
+  (`0144_platform_operator_bootstrap.sql`), reachable by no application
+  role, run directly against one environment at a time via
+  `supabase/seed/bootstrap_operator.sql` — the same
+  documented-manual-invocation shape `staging_test_accounts.sql`
+  already uses, with the email supplied at invocation time rather than
+  committed anywhere. Every subsequent operator is added the same way
+  an enterprise customer's employee is invited (§8, direct invitation)
+  — reusing existing machinery again, not inventing onboarding for a
+  five-person internal team.
 - **`klussie_engine_platform` needs new `SECURITY DEFINER` functions**,
   each checking "does the calling session's identity hold an active
   membership in the Operations workspace, at a role the requested
