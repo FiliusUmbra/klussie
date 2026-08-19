@@ -786,15 +786,48 @@ owns the real underlying capability ships it — see
   grant yet — `ROLES.md` §2.4's own "Not yet" bucket, opened by whichever
   epic ships the live client read path. Staging only for what was built;
   nothing applied anywhere.
+- **The analytics engine exists, complete** (Epic 21, 3/3 packages) —
+  built immediately after Epic 20, on the roadmap's own forward
+  sequencing. **A genuine inconsistency between the two frozen
+  documents, resolved by keeping both rather than picking a side:**
+  `DATABASE_ARCHITECTURE.md` §31 names six analytics domains ending in
+  Property; `SYSTEM_ARCHITECTURE.md` §16 also names six, ending in
+  Platform instead — two real, different concepts ("asset and building
+  behaviour over time" versus "growth, retention, health"), confirmed
+  distinct by `MASTER_CONTEXT.md` §14's own KPI table (NPS, retention).
+  This epic keeps **seven** domains, not six — the first time this
+  session has found a defect in the frozen documents themselves rather
+  than in an earlier implementation. Like Epic 20, both the schema
+  (`analytics_ws`/`analytics_pf`) and the role
+  (`klussie_consumer_analytics`, created since Epic 01) were already
+  named — nothing to resolve by precedent. `analytics_ws.workspace_metrics`
+  (Business, Property, Enterprise) and `analytics_pf.platform_metrics`
+  (Operational, Marketplace, AI, Platform) — the platform-scoped table
+  carries **no `workspace_id` column at all**, structurally, the same
+  guarantee Epic 16's own world graph tables already hold. **The second
+  Projection-class, hard-delete-permitted table pair this session has
+  built**, after Epic 20's own search index. `promote_platform_metric()`
+  has **no `p_workspace_id` parameter at all** — structurally unable to
+  emit a `platform.events` row, unlike Epic 20's `mark_index_rebuilt()`,
+  which merely refused one at runtime; its only durable trail is an
+  audited `platform.write_audit_record()` call with `p_workspace_id =>
+  null` (ADR-0021), the same discipline `knowledge.promote_fact()`
+  established for world-graph promotion, called directly rather than
+  through that function (a different aggregate). **The first role this
+  session grants both `platform.emit_event()` and `platform.
+  write_audit_record()`.** `event_type` minted correctly from the start,
+  the sixth epic in a row. No `api.*` delegate — the same posture, now a
+  sixteen-time pattern. Staging only for what was built; nothing applied
+  anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
   Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's, nor Epic 17's,
-  nor Epic 19's, nor Epic 18's, nor Epic 20's. Its migration ledger is
-  still unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
-  prerequisite for any push to it — see
+  nor Epic 19's, nor Epic 18's, nor Epic 20's, nor Epic 21's. Its
+  migration ledger is still unreconciled (`../operations/ENVIRONMENTS.md`
+  §9), which is a prerequisite for any push to it — see
   `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
-  `0018`–`0029` and owed an update through `0123`.
+  `0018`–`0029` and owed an update through `0126`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
