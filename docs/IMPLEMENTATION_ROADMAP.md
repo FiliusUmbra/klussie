@@ -56,8 +56,9 @@ this one, this one wins.
 19. [Work Packages — Epic 09](#19--work-packages--epic-09)
 20. [Work Packages — Epic 10](#20--work-packages--epic-10)
 21. [Work Packages — Epic 04](#21--work-packages--epic-04)
-22. [Risk Register](#22--risk-register)
-23. [How Implementation Sessions Work](#23--how-implementation-sessions-work)
+22. [Work Packages — Epic 11](#22--work-packages--epic-11)
+23. [Risk Register](#23--risk-register)
+24. [How Implementation Sessions Work](#24--how-implementation-sessions-work)
 
 ---
 
@@ -1944,7 +1945,76 @@ via `where not exists`, since the target table deliberately has no
 unique constraint to conflict against. **Complexity.** Medium.
 **Rollback.** Delete every row where `source = 'preset'`.
 
-## 22 · Risk Register
+## 22 · Work Packages — Epic 11
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §17 (Service Record —
+"the most consequential aggregate in the document"), `PLATFORM_DOMAIN_
+MODEL.md` §13.2 and §32 item 5 (the frozen architecture's own
+verification pass naming this split as "the part `DATABASE_ARCHITECTURE.
+md` must get exactly right"), `SYSTEM_ARCHITECTURE.md` §8.2. Property
+(Epic 05), Asset (Epic 07), Workspace (Epic 03).
+
+**Read before design.** §17 and §13.2 were each read in full, twice,
+before any SQL was written — three independent statements of the
+identical classification table, cross-checked against each other. Full
+findings in `implementation/epic-11/COMPLETION.md` §5, including a
+second occurrence of Epic 04's own `gen_random_uuid()` id-minting
+mistake, caught before shipping this time in a fraction of the time the
+first one took, because the pattern was already named.
+
+**11.01 · The Service Record shared core (add)**
+`work.service_records` — no `owning_workspace_id`; the core "follows the
+property" (§17), resolved live through `property_id ->
+property.properties.steward_workspace_id`, the same shape
+`property.assets`/`locations` already use, not `property.documents`'
+frozen-owner shape. `performing_workspace_id` is the permanent,
+non-revocable grant itself (§17) — a plain column, not a separate grants
+table; no withdraw path exists anywhere in this schema for it. Rich,
+variable content (diagnosis, symptoms, technicians, parts, measurements)
+lives in `content jsonb`, not fifteen nullable columns — every field
+shares one visibility rule regardless of type. Immutable except
+`customer_approved`/`customer_approved_at`, which may move false ->
+true exactly once. **Complexity.** High — the first aggregate in this
+roadmap combining a live-resolution visibility path with a frozen one on
+sibling tables. **Rollback.** Drop the table and its guard trigger.
+
+**11.02 · The two private annexes, and the amendment log (add)**
+`work.service_record_performing_annexes` — no workspace column of its
+own; the core already has one. `work.service_record_property_annexes` —
+freezes `owning_workspace_id` at write time, §17's own transfer table's
+exact opposite of the core. Both unique per `service_record_id`, enforced
+by the database, not the contract function alone.
+`work.service_record_amendments` — append-only, either party may author
+one. **Complexity.** Medium. **Rollback.** Drop all three tables.
+
+**11.03 · RLS isolation (add)**
+The core's own policy is the first in this schema where two independent
+relationships — direct `performing_workspace_id` membership, OR the
+property's current steward — combine with `or` rather than one chain
+however many joins deep. The performing annex's policy has no path
+through property stewardship; the property annex's policy has no path
+through performing-workspace membership — proven structurally in
+`VERIFY_SERVICE_RECORD_ISOLATION.sql`, which inspects the actual
+`pg_policies` text, not only a scenario's pass/fail. **Complexity.**
+High. **Rollback.** Drop all four policies.
+
+**11.04 · The service record engine contract (add)**
+Ten functions, none generic — `create_service_record()` is the
+performing workspace's one write to the core; `record_service_record_
+approval()` is the property side's one narrow write; the annexes and
+amendments each get their own function. `write_property_annex()`
+resolves the current steward itself, via a live join, rather than
+trusting a caller-supplied workspace id — the one value in this epic
+where a wrong value would cause the exact failure §17 names. **A real
+bug caught before shipping**: the first draft of
+`create_service_record()` minted its conditional `WarrantyArising`
+event's id via `gen_random_uuid()` — the identical mistake Epic 04's
+`grant_capability()` made — fixed by requiring `p_warranty_event_id` as
+a parameter on every call. No `api.*` delegate for any of the ten
+functions — `property.reparent_location()`'s posture, now a five-time
+pattern. **Complexity.** Very High. **Rollback.** Drop all ten functions.
+
+## 23 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -1958,7 +2028,7 @@ unique constraint to conflict against. **Complexity.** Medium.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 23 · How Implementation Sessions Work
+## 24 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
