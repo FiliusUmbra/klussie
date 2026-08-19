@@ -64,8 +64,9 @@ this one, this one wins.
 27. [Work Packages — Epic 16](#27--work-packages--epic-16)
 28. [Work Packages — Epic 17](#28--work-packages--epic-17)
 29. [Work Packages — Epic 19](#29--work-packages--epic-19)
-30. [Risk Register](#30--risk-register)
-31. [How Implementation Sessions Work](#31--how-implementation-sessions-work)
+30. [Work Packages — Epic 18](#30--work-packages--epic-18)
+31. [Risk Register](#31--risk-register)
+32. [How Implementation Sessions Work](#32--how-implementation-sessions-work)
 
 ---
 
@@ -694,10 +695,10 @@ authority with no elevated role.
 **Epic 18 — Provider Intelligence Engine.** Selection across all supply
 sources; decisions and overrides recorded append-only; explainability
 captured *with* the recommendation. Makes the marketplace one strategy
-among several rather than the default. **Skipped, on explicit
-instruction, in favour of proceeding directly to Epic 19** — not built,
-not silently dropped; still owed whenever the session returns to it (see
-`implementation/epic-19/COMPLETION.md`'s own header).
+among several rather than the default. **Built retroactively, on
+explicit instruction, after Epic 19** — branched off Epic 19's own tip
+rather than its chronological position, the same shape Epic 04 held
+earlier (see `implementation/epic-18/COMPLETION.md`).
 
 ---
 
@@ -2440,11 +2441,11 @@ to do so. No `api.*` delegate — the twelfth occurrence.
 
 ## 29 · Work Packages — Epic 19
 
-**Epic 18 (Provider Intelligence Engine) is deliberately skipped here**,
-on explicit instruction, in favour of proceeding directly to Epic 19.
-Not silently dropped — recorded in `MASTER_CONTEXT.md` §2 and in
-`implementation/epic-19/COMPLETION.md`'s own header as a real,
-out-of-order gap the roadmap still expects filled.
+**Epic 18 (Provider Intelligence Engine) was deliberately skipped here**,
+on explicit instruction, in favour of proceeding directly to Epic 19. Not
+silently dropped — recorded at the time in `MASTER_CONTEXT.md` §2 and in
+this section's own header as a real, out-of-order gap. **Built afterward,
+on explicit instruction; see §30.**
 
 **Dependencies.** `DATABASE_ARCHITECTURE.md` §32 (Notifications).
 `SYSTEM_ARCHITECTURE.md` §10.1. `PLATFORM_DOMAIN_MODEL.md` §20. Epic 03
@@ -2490,7 +2491,65 @@ separate invalidation step. `event_type` minted correctly from the
 start, the third epic in a row. No `api.*` delegate — the thirteenth
 occurrence. **Complexity.** High. **Rollback.** Drop all eight functions.
 
-## 30 · Risk Register
+## 30 · Work Packages — Epic 18
+
+**Built retroactively**, on explicit instruction, after Epic 19 —
+branched off Epic 19's own tip rather than its chronological position in
+this sequencing, the same shape Epic 04 held earlier in this session
+(`implementation/epic-18/COMPLETION.md`'s own header).
+
+**Dependencies.** `SYSTEM_ARCHITECTURE.md` §9.3. `PLATFORM_DOMAIN_MODEL.md`
+§14.4. `DATABASE_ARCHITECTURE.md` §29 (Rebuild Test, finding 2). Epic 12
+(Marketplace) via `work`'s own schema grouping.
+
+**Read before design.** The same class of gap Epic 19 found for
+Notification — no schema, no engine role named for Provider Intelligence
+anywhere in the frozen documents — resolved differently here,
+deliberately: `SYSTEM_ARCHITECTURE.md` §9.3's own "Dependencies" line
+names Marketplace directly, and join locality (§7's own stated reason for
+schema grouping) puts this epic's aggregate in `work`, owned by
+`klussie_engine_work`, alongside Marketplace, Service Record, Workflow,
+Maintenance and Conversation — not in `platform` as Notification's
+cross-cutting-concern precedent would suggest. The two epics answer the
+same class of gap two different ways because their own dependency
+structures differ, not because the rule is inconsistent (full contrast:
+`implementation/epic-18/COMPLETION.md` §5.1). No backfill — greenfield,
+the same shape Epic 09 and Epic 19 both held.
+
+**18.01 · Provider decisions, recommendations and overrides (add)**
+`work.provider_decisions` — one row per decision, `recommended_providers`
+required non-empty jsonb (explainability captured *with* the
+recommendation, §9.3), `selected_provider`/`decided_at` and
+`overridden_provider`/`override_reason`/`overridden_at` each a paired
+one-way outcome, and the two outcomes structurally mutually exclusive
+(`not (decided_at is not null and overridden_at is not null)`). Full
+guard trigger, the same shape Epic 11's and Epic 19's own aggregates
+hold. **Complexity.** Medium. **Rollback.** Drop the table and its guard
+trigger.
+
+**18.02 · RLS isolation (add)**
+One ordinary direct `workspace_id` membership policy — no combined-OR,
+since a provider only ever sees a selection through the marketplace
+engagement it produces, not this table directly. **Complexity.** Low.
+**Rollback.** Drop the policy.
+
+**18.03 · The provider intelligence contract (add)**
+Four functions. `produce_recommendation()` inserts and emits, capturing
+every candidate's own reasoning at decision time. `select_provider()`
+verifies the chosen provider actually appears in `recommended_providers`,
+refusing otherwise and directing the caller to `override_recommendation()`
+instead — which deliberately performs no such check, since disagreeing
+with the recommendation is the entire point of an override, but refuses
+a blank `p_reason` (§14.4: "a decision, not a signal to be weighed").
+Both outcome functions refuse a decision that already has one. Needs
+**zero new cross-schema grants** — the first epic since 15 that doesn't —
+because `klussie_engine_work` already reaches everything this contract
+touches, a direct benefit of §30's own schema-placement choice.
+`event_type` minted correctly from the start, the fourth epic in a row.
+No `api.*` delegate — the fourteenth occurrence. **Complexity.** High.
+**Rollback.** Drop all four functions.
+
+## 31 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2506,7 +2565,7 @@ occurrence. **Complexity.** High. **Rollback.** Drop all eight functions.
 | 10 | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format~~ (found and fixed in Epic 15, `implementation/epic-15/COMPLETION.md` §6) | ✅ Closed | 34 values across 7 epics violated `platform.events`' own `CHECK` constraint; ADR-0019 stayed authoritative, every call site conformed to it across all 7 branches |
 | 11 | ~~`klussie_engine_work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`~~ (found and fixed in Epic 16, `implementation/epic-16/COMPLETION.md` §5.1) | ✅ Closed | Six already-shipped `emit_event()` call sites across five epics would have failed with "permission denied for schema platform"; fixed forward in one migration, no rebase required |
 
-## 31 · How Implementation Sessions Work
+## 32 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
