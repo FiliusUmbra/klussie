@@ -51,7 +51,7 @@ established — property.create_property() (0135) had no authorization
 check either, being trusted only from handle_new_user()'s own Option A
 context, so a new property.create_property_for_caller() carries the
 real membership check and the internal function stays untouched) is
-merged (#PR_NUMBER). WP 1.9 (retire household_items) has not started —
+merged (#44). WP 1.9 (retire household_items) has not started —
 it explicitly waits for a real observation window against production
 accounts once WP 1.8 has been live a while, not immediately. This slice
 is substantially larger
