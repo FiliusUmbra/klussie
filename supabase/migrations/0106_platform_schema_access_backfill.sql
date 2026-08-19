@@ -1,0 +1,45 @@
+-- Epic 16 (unnumbered, foundational) — a second session-spanning gap found while wiring
+-- klussie_engine_knowledge's own access to `platform` for WP 16.01's write_audit_record().
+--
+-- CALLING A SCHEMA-QUALIFIED FUNCTION REQUIRES USAGE ON ITS SCHEMA, NOT JUST EXECUTE ON
+-- THE FUNCTION — AND SIX ALREADY-SHIPPED emit_event() CALL SITES NEVER HAD IT
+--
+-- PostgreSQL grants USAGE on a schema before any object inside it can even be looked up by
+-- a qualified name — `select platform.emit_event(...)` fails with "permission denied for
+-- schema platform" for a role holding EXECUTE on that exact function but no USAGE on the
+-- schema it lives in. 0023_emit_event.sql grants EXECUTE on platform.emit_event() to every
+-- engine role, including klussie_engine_work and klussie_engine_commerce — but neither role
+-- has ever held USAGE on schema platform anywhere in this migration history. Checked by
+-- grepping every "grant usage on schema platform" statement against every "perform
+-- platform.emit_event" call site: klussie_engine_property gained it in 0102 (for a
+-- different reason — reading platform.events directly, Epic 15) and klussie_engine_
+-- workspace gained it in 0075 (for a different reason too — reading platform.capabilities,
+-- Epic 04) — both incidentally already correct by coincidence, not by design. work and
+-- commerce were never granted it for any reason at all.
+--
+-- Six already-shipped contract functions are affected: work.start_workflow_instance()/
+-- transition_workflow_instance() (0069), work.create_maintenance_schedule() and its four
+-- siblings (0074), work.create_service_record() and its siblings (0084),
+-- work.create_request() and its siblings (0090), work.open_conversation() and its
+-- siblings (0096), and commerce.issue_invoice() and its siblings (0101) — every one of
+-- their emit_event() calls would fail with "permission denied for schema platform" the
+-- first time it ran against a real Postgres instance, independent of and in addition to
+-- Epic 15's own event_type finding (implementation/epic-15/COMPLETION.md §6).
+--
+-- FIXED FORWARD, NOT BY REBASING SIX ALREADY-SHIPPED BRANCHES AGAIN
+--
+-- Unlike event_type — a literal string inside each function body, unfixable without
+-- editing that exact function on its own branch — a missing GRANT is an independent
+-- statement. PostgreSQL only requires the grant to exist in the final cumulative migration
+-- state by the time a function is actually CALLED at runtime; it does not care which
+-- migration number granted it or which epic "owns" that migration. Adding it here, once,
+-- closes the gap for every earlier-defined function that needed it, with no rebase of
+-- Epics 09/10/11/12/13/14 required. This is why the fix lives in Epic 16's own migration
+-- sequence rather than six more amended commits.
+--
+-- klussie_engine_identity is not granted here — grep confirms no identity-schema function
+-- calls platform.emit_event() anywhere in this codebase, so there is no real call site
+-- needing it yet (ROLES.md §3 rule 1: a privilege is granted when there is a real caller).
+
+grant usage on schema platform to klussie_engine_work;
+grant usage on schema platform to klussie_engine_commerce;

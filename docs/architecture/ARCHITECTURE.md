@@ -627,14 +627,46 @@ owns the real underlying capability ships it — see
   `implementation/epic-15/COMPLETION.md` §6. No `api.*` delegate — the
   same posture, now a ten-time pattern. Staging only for what was built;
   nothing applied anywhere.
+- **The knowledge engine exists, complete** (Epic 16, 6/6 packages) —
+  `PLATFORM_DOMAIN_MODEL.md` §19.2 calls the Knowledge Graph "the most
+  demanding thing in this document"; this epic builds the smallest
+  correct slice of it. `knowledge.rules` — declared, binding Workspace
+  Knowledge (§18.2), four scope levels, conflicts surfaced rather than
+  resolved silently (`rules_in_force()` returns every rule tied at the
+  most specific applicable scope; `declare_rule()` records the moment a
+  conflict is created, once, never re-detected on every read).
+  `knowledge.workspace_edges` — asserted graph facts, no node table
+  needed since workspace-side nodes already exist elsewhere.
+  `knowledge.world_nodes`/`world_edges` — the world graph, real foreign
+  keys between nodes, no workspace reference anywhere structurally (§27's
+  own privacy guarantee), writable only through `knowledge.promote_fact()`
+  — one-way, irreversible, audited (§6/§33). **Closed a debt row
+  unallocated since Epic 01**: `platform.write_audit_record()`, mirroring
+  `platform.emit_event()`'s own shape, built because promotion is the
+  first real caller that needs it. **A second, independent
+  session-spanning finding, found and fixed forward**: `klussie_engine_
+  work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`
+  despite holding `EXECUTE` on `platform.emit_event()` since Epic 01, so
+  six already-shipped contract functions across five epics would have
+  failed with "permission denied for schema platform" — fixed in one new
+  migration, no rebase of the six affected branches required, since a
+  missing `GRANT` only needs to exist in the final cumulative migration
+  state rather than on the emitting function's own branch — see
+  `implementation/epic-16/COMPLETION.md` §5.1/§5.2. Every `event_type`
+  this epic mints was correct from the start, the direct benefit of
+  Epic 15's own fix landing first. Derived workspace-graph edges,
+  inferred world-graph edges, and `asset_class` rule-scope resolution are
+  deliberately not built — named gaps, not silently narrowed scope. No
+  `api.*` delegate — the same posture, now an eleven-time pattern.
+  Staging only for what was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
-  Epic 13's, nor Epic 14's, nor Epic 15's. Its migration ledger is still
-  unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
-  prerequisite for any push to it — see
+  Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's. Its migration
+  ledger is still unreconciled (`../operations/ENVIRONMENTS.md` §9),
+  which is a prerequisite for any push to it — see
   `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
-  `0018`–`0029` and owed an update through `0104`.
+  `0018`–`0029` and owed an update through `0111`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
