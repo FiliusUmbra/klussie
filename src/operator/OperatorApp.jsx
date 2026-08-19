@@ -14,11 +14,24 @@
 // audience assumption ever changes.
 import { useState } from "react";
 import { AuditLog } from "./AuditLog.jsx";
+import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
 
-const TABS = [{ id: "audit", label: "Audit" }];
+const TABS = [
+  { id: "audit", label: "Audit" },
+  { id: "workspaces", label: "Workspaces" },
+];
 
 export function OperatorApp() {
   const [tab, setTab] = useState("audit");
+  // Bumped by WorkspaceLookup's "View audit trail" so the next Audit mount seeds its
+  // workspace-id filter from it (AuditLog.jsx's own initialWorkspaceId prop) — a plain
+  // id string is enough since AuditLog is remounted on every tab switch, never hidden.
+  const [auditWorkspaceId, setAuditWorkspaceId] = useState(null);
+
+  const viewAuditFor = (workspaceId) => {
+    setAuditWorkspaceId(workspaceId);
+    setTab("audit");
+  };
 
   return (
     <div className="pad">
@@ -43,7 +56,13 @@ export function OperatorApp() {
 
       {tab === "audit" && (
         <div style={{ marginTop: 16 }}>
-          <AuditLog />
+          <AuditLog initialWorkspaceId={auditWorkspaceId} />
+        </div>
+      )}
+
+      {tab === "workspaces" && (
+        <div style={{ marginTop: 16 }}>
+          <WorkspaceLookup onViewAudit={viewAuditFor} />
         </div>
       )}
     </div>

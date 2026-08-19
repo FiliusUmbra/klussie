@@ -7,11 +7,19 @@ homeowner and the professional. It does not own the Programme's
 cross-cutting reasoning, which this document applies rather than
 restates.
 
-**Status.** Scoping. Nothing below is implemented. This slice is
-substantially larger than Slice 0 — five engines, two client
-experiences, and (per §1 below) genuinely missing write contracts, not
-merely unwired read paths — and is broken into a longer work-package
-sequence for exactly that reason, not built in one pass.
+**Status.** Tier 1 (Read) complete — WP 1.0 (#34), WP 1.1 (#35), WP 1.2
+(#36), WP 1.3 (#37) and WP 1.1a all merged. Every real account now gets
+a Personal workspace with a real property from signup onward (WP 1.0);
+all five engines' read contracts are real and wired into
+`MyItemsPanel.jsx` (WP 1.1–1.3); Platform Operations can look up a
+workspace by name, owner, property name or id and see its real
+capabilities, membership/property counts and last audit activity (WP
+1.1a). Tier 2 (Write + legacy retirement, WP 1.4–1.9) and WP 1.10 (My
+Business reuse) have not started. This slice is substantially larger
+than Slice 0 — five engines, two client experiences, and (per §1 below)
+genuinely missing write contracts, not merely unwired read paths — and
+is broken into a longer work-package sequence for exactly that reason,
+not built in one pass.
 
 **Why this took real investigation before a single line could be
 scoped.** The Programme's own §5 entry for this slice, and both
