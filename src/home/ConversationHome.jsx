@@ -113,6 +113,10 @@ export function ConversationHome({ onStart, requests = [], section = "klussie", 
             items={homeCtx.items}
             itemsError={homeCtx.itemsError}
             onRefresh={homeCtx.refreshItems}
+            fmtDate={fmtDate}
+            rooms={homeCtx.homeProfile?.rooms}
+            documents={homeCtx.homeProfile?.documents}
+            maintenance={homeCtx.maintenance}
           />
         </TabPanel>
 
