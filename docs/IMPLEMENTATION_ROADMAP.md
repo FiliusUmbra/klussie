@@ -67,8 +67,9 @@ this one, this one wins.
 30. [Work Packages — Epic 18](#30--work-packages--epic-18)
 31. [Work Packages — Epic 20](#31--work-packages--epic-20)
 32. [Work Packages — Epic 21](#32--work-packages--epic-21)
-33. [Risk Register](#33--risk-register)
-34. [How Implementation Sessions Work](#34--how-implementation-sessions-work)
+33. [Work Packages — Epic 22](#33--work-packages--epic-22)
+34. [Risk Register](#34--risk-register)
+35. [How Implementation Sessions Work](#35--how-implementation-sessions-work)
 
 ---
 
@@ -723,7 +724,8 @@ none of which is currently measured. **Complete** — see
 
 **Epic 22 — Subscription Engine.** Plans as capability bundles; the six
 tiers from `PLATFORM_DOMAIN_MODEL.md` §24. Separate from Billing so a
-capability can be granted with no commercial event.
+capability can be granted with no commercial event. **Complete** — see
+`implementation/epic-22/COMPLETION.md`.
 
 ---
 
@@ -2670,7 +2672,62 @@ directly rather than through that function (a different aggregate).
 the start, the sixth epic in a row. No `api.*` delegate — the sixteenth
 occurrence. **Complexity.** High. **Rollback.** Drop all four functions.
 
-## 33 · Risk Register
+## 33 · Work Packages — Epic 22
+
+Built immediately after Epic 21, on the roadmap's own forward
+sequencing, continuing the stacked-branch chain from
+`epic-21/analytics-engine`'s own tip. The last named epic in Tier
+"Services and Commercial" (Epics 19–22).
+
+**Dependencies.** `SYSTEM_ARCHITECTURE.md` §11.1. `PLATFORM_DOMAIN_MODEL.md`
+§24. `DATABASE_ARCHITECTURE.md` §10/§22. Epic 04 (Capability —
+`workspace.grant_capability()`/`withdraw_capability()`). Epic 14
+(Billing — the separate, already-built financial record).
+
+**Read before design.** `platform.plans` mirrors `platform.capabilities`'
+own placement exactly: a catalogue is platform-wide configuration, not a
+tenant's own data, and `PLATFORM_DOMAIN_MODEL.md` §24 itself says "no
+code knows what a tier is." `commerce.subscriptions` is the only new
+table in `commerce` — schema and role both already existed since
+Epic 14. No backfill — greenfield, no subscription concept exists
+anywhere in the legacy schema.
+
+**22.01 · The plan catalogue and the subscription aggregate (add)**
+`platform.plans` — five real plans seeded (personal, premium_home,
+professional, business, enterprise; White Label deliberately not
+seeded, named "(future)" in §24's own table), each `capability_keys`
+dependency-ordered against the real 5-edge dependency table Epic 04
+built, not invented from prose alone. `commerce.subscriptions` — one row
+per workspace, structurally enforced; `payer` a polymorphic
+`{payerType, payerRef}` jsonb, not a typed `workspace_id` column,
+mirroring Epic 18's own provider-identity shape. **The second genuinely
+mutable aggregate this session has built**, after Epic 19's notification
+preferences — real `UPDATE`, no guard trigger. **Complexity.** Medium.
+**Rollback.** Drop both tables.
+
+**22.02 · RLS isolation (add)**
+One policy, on `commerce.subscriptions` — ordinary direct `workspace_id`
+membership. **Complexity.** Low. **Rollback.** Drop the policy.
+
+**22.03 · The subscription engine contract (add)**
+Seven functions. **The first true cross-engine contract call this
+session has made**: every function until now touched only its own
+schema; this one calls `workspace.grant_capability()`/
+`withdraw_capability()` directly, since §11.1 states Subscription
+"does not own capability grants themselves — it *requests* them, and
+Capability decides." Capabilities are granted in the plan's own
+dependency-safe order and withdrawn in reverse — a correctness
+requirement, since `withdraw_capability()` refuses to withdraw a
+capability while something still held depends on it. Grant/withdraw
+loops swallow exactly two precondition messages ("already holds," "does
+not currently hold") and nothing else. `TrialStarted`/`TrialExpired` are
+a distinct aggregate token from the four ordinary subscription-lifecycle
+events, matching §11.1's own event list exactly. `event_type` minted
+correctly from the start, the seventh epic in a row. No `api.*`
+delegate — the seventeenth occurrence. **Complexity.** High.
+**Rollback.** Drop all seven functions.
+
+## 34 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -2686,7 +2743,7 @@ occurrence. **Complexity.** High. **Rollback.** Drop all four functions.
 | 10 | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format~~ (found and fixed in Epic 15, `implementation/epic-15/COMPLETION.md` §6) | ✅ Closed | 34 values across 7 epics violated `platform.events`' own `CHECK` constraint; ADR-0019 stayed authoritative, every call site conformed to it across all 7 branches |
 | 11 | ~~`klussie_engine_work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`~~ (found and fixed in Epic 16, `implementation/epic-16/COMPLETION.md` §5.1) | ✅ Closed | Six already-shipped `emit_event()` call sites across five epics would have failed with "permission denied for schema platform"; fixed forward in one migration, no rebase required |
 
-## 34 · How Implementation Sessions Work
+## 35 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
