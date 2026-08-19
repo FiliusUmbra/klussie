@@ -9,6 +9,7 @@ import { useAuth } from "../lib/auth.jsx";
 import { fetchPlatformTrustStats } from "../lib/pros";
 import { fetchHomeProfile, knownFactsFrom } from "../lib/homeInventory.js";
 import { fetchHouseholdItems } from "../lib/householdItems.js";
+import { fetchMaintenanceObligations } from "../lib/maintenance.js";
 import { pickTodayItem, activeRequests, completedWork } from "../lib/homeToday.js";
 import {
   propertySummary,
@@ -104,6 +105,21 @@ export function useHomeContext({ t, profile, requests }) {
     // Epic 03 WP11 — both are "add without switching" until the value exists, then switch.
   }, [ownerId, workspaceId, propertyId, reloadToken]);
 
+  // WP 1.3 — workspace-scoped, unlike rooms/documents above (see src/lib/maintenance.js's
+  // own header for why it is not folded into fetchHomeProfile()). Reuses the same
+  // reloadToken as items — an obligation completed elsewhere and a new item recorded are
+  // both "something changed, refresh what's shown," and a second token would only be two
+  // ways to ask for the same thing.
+  const [maintenance, setMaintenance] = useState(null);
+  useEffect(() => {
+    if (!workspaceId) return undefined;
+    let cancelled = false;
+    fetchMaintenanceObligations(workspaceId).then((rows) => {
+      if (!cancelled) setMaintenance(rows);
+    });
+    return () => { cancelled = true; };
+  }, [workspaceId, reloadToken]);
+
   const today = useMemo(() => pickTodayItem(requests), [requests]);
   const active = useMemo(() => activeRequests(requests, today?.request?.id), [requests, today]);
   const previousWork = useMemo(() => completedWork(requests), [requests]);
@@ -134,6 +150,7 @@ export function useHomeContext({ t, profile, requests }) {
     photoSources,
     items,
     itemsError,
+    maintenance,
     refreshItems,
   };
 }

@@ -192,6 +192,21 @@ export const HOME_CSS = `
 .home-group-count{ font-family:var(--font-mono); font-size:11px; font-weight:500; color:var(--ink-faint); }
 .home-group-empty{ margin:0; font-size:12px; color:var(--ink-soft); line-height:1.45; }
 
+/* ---- My Items, WP 1.3: the location tree, maintenance list, document list ---- */
+.location-tree{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-1); }
+.location-tree-root > .location-node{ font-weight:600; }
+.location-node .location-tree{ margin-inline-start:var(--space-4); padding-block-start:var(--space-1); font-weight:400; }
+.location-node-name{ display:flex; align-items:baseline; gap:var(--space-2); font-size:13px; color:var(--ink); }
+.location-node-type{ font-size:11px; color:var(--ink-faint); }
+
+.maintenance-list, .document-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
+.maintenance-row, .document-row{
+  display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-2);
+  font-size:13px; color:var(--ink);
+}
+.maintenance-row-title, .document-row-caption{ flex:1; min-width:0; }
+.maintenance-row-due, .document-row-validity{ font-size:11.5px; color:var(--ink-soft); flex:none; }
+
 /* ---- My Home: the property record ---- */
 
 /* The header is a quiet band, not a stat dashboard — the brief asks for a calm record,

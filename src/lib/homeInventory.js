@@ -1,21 +1,17 @@
 // What is left of the placeholder data boundary for My Home.
 //
-// Three of the four things this file used to stand in for are now real:
-//   - My Items has storage (0016) and a data layer (src/lib/householdItems.js).
-//   - My Home V1 is derived from requests the customer already has
-//     (src/lib/homeTimeline.js), which is what HOME_OPERATING_SYSTEM.md §2 means by
-//     "History and People aren't hypothetical."
-//   - The property itself is real (Epic 05) — `property` below, resolved through
-//     api.my_properties() (migration 0041), following auth.jsx's exact fallback idiom.
-//     Resolved, not yet used: nothing downstream reads it, the same "add without
-//     switching" restraint Epic 03 WP09 held for workspace context.
+// Platform Activation Slice 1, WP 1.3 — `rooms` and `documents` are real now, sourced
+// from the Location and Document engines through the read contracts WP 1.1/WP 1.1's
+// sibling epics already built (api.locations_for_property(), migration 0136;
+// api.my_documents(), Epic 08). `installations` stays an empty placeholder — nothing in
+// the schema distinguishes a fixed installation from an ordinary asset, and inventing that
+// distinction client-side would be building ahead of a real engine concept, the same
+// restraint this file's own history already demonstrates for property/rooms/documents in
+// turn. `upcomingMaintenance` is fetched separately (src/lib/maintenance.js), because it
+// is workspace-scoped, not property-scoped — see that module's own header for why.
 //
-// What remains genuinely unbuilt is the rest of the structural half of Property Memory:
-// rooms, installations, scheduled maintenance and documents — Epics 06-08, not this one.
-// No `home_assets` or `home_documents` table exists (ADR-0008), so those still return
-// empty — and the only caller that matters is knownFactsFrom below, which decides whether
-// a follow-up question can be skipped. Empty here means nothing is skipped, which is the
-// correct behaviour while klussie genuinely knows none of it.
+// The property itself is real (Epic 05) — `property` below, resolved through
+// api.my_properties() (migration 0041), following auth.jsx's exact fallback idiom.
 import { supabase } from "./supabaseClient";
 
 // The record a My Home installation is capable of holding, kept here as documentation
@@ -55,11 +51,94 @@ async function loadProperty() {
   }
 }
 
+// WP 1.3. `null` on any failure, the same fallback idiom as loadProperty() above — a
+// missing migration or an unexposed schema must never break the homepage, and an empty
+// tree reads identically to "nothing recorded yet," which for a real failure is a lie
+// worth avoiding but not one this function can tell apart from the genuine case without
+// surfacing an error nothing here is set up to show yet (see this file's own history:
+// every earlier read switch here started the same "log and continue" way).
+async function loadLocations(propertyId) {
+  try {
+    const { data, error } = await supabase.schema("api").rpc("locations_for_property", { p_property_id: propertyId });
+    if (error) {
+      console.warn("locations unavailable, continuing without them:", error.message);
+      return [];
+    }
+    return (data ?? []).map((row) => ({ id: row.id, parentId: row.parent_id, name: row.name, type: row.type }));
+  } catch (err) {
+    console.warn("locations unavailable, continuing without them:", err.message);
+    return [];
+  }
+}
+
+// Flat, path-ordered rows in (id, parentId, name, type, path) → a real tree, one root
+// array of { id, name, type, children }. property.locations_for_property() (migration
+// 0136) deliberately returns the flat shape and leaves this assembly to the client — the
+// same division of labour property.my_assets() already uses for a workspace's own asset
+// list. Pure and synchronous so it is testable without a network call, matching
+// knownFactsFrom below.
+export function buildLocationTree(flatLocations) {
+  const byId = new Map();
+  for (const loc of flatLocations) {
+    byId.set(loc.id, { id: loc.id, name: loc.name, type: loc.type, children: [] });
+  }
+  const roots = [];
+  for (const loc of flatLocations) {
+    const node = byId.get(loc.id);
+    const parent = loc.parentId ? byId.get(loc.parentId) : null;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  }
+  return roots;
+}
+
+// WP 1.3. Property-level documents only — api.my_documents() (Epic 08) requires exactly
+// one subject (property.my_documents()'s own "exactly one subject must be given" rule),
+// and a document attached directly to a specific location or asset is a real, distinct
+// case this function does not attempt: the honest scope for a first pass is what shows on
+// My Home's own top-level list, not everything attached anywhere in the twin. Browsing a
+// location's or an asset's own documents belongs to that location's or asset's own detail
+// view, a later work package, not a reason to fan this out into N+1 calls here.
+async function loadDocuments(propertyId) {
+  try {
+    const { data, error } = await supabase.schema("api").rpc("my_documents", { p_property_id: propertyId });
+    if (error) {
+      console.warn("documents unavailable, continuing without them:", error.message);
+      return [];
+    }
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      typeKey: row.type_key,
+      issuer: row.issuer,
+      validFrom: row.valid_from,
+      validUntil: row.valid_until,
+      caption: row.caption,
+    }));
+  } catch (err) {
+    console.warn("documents unavailable, continuing without them:", err.message);
+    return [];
+  }
+}
+
 // Async on purpose even though most of this still resolves immediately: the call sites
 // are written as if this were already a query, so the day the rest becomes one nothing
 // above it changes.
+//
+// rooms/documents are fetched only once a property actually resolves — without one there
+// is no property_id to ask either engine about, and the "no property yet" case is
+// identical in shape to "a property with nothing recorded in it" from every caller's own
+// point of view (homeInventory.test.js's own "still returns every field... all empty"
+// case pins exactly this).
 export async function fetchHomeProfile() {
-  return { ...EMPTY_HOME, property: await loadProperty() };
+  const property = await loadProperty();
+  if (!property) return EMPTY_HOME;
+
+  const [flatLocations, documents] = await Promise.all([
+    loadLocations(property.id),
+    loadDocuments(property.id),
+  ]);
+
+  return { ...EMPTY_HOME, property, rooms: buildLocationTree(flatLocations), documents };
 }
 
 // Which pieces of Property Memory Klussie actually holds for this customer — the
