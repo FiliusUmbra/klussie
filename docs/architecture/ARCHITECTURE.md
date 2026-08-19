@@ -432,12 +432,47 @@ owns the real underlying capability ships it — see
   delegate for any of its eight functions — `property.reparent_location()`'s
   posture, now a three-time pattern. Staging only for what was built;
   nothing applied anywhere.
+- **The capability engine exists, complete** (Epic 04, 6/6 packages) —
+  **built retroactively.** Epic 04 is Tier 1 in the roadmap's own
+  sequencing (§5: Identity, Workspace, Capability, before any
+  physical-model epic) but was skipped when the roadmap was originally
+  executed, with no branch, PR, completion record, or documented reason
+  found anywhere. Found and built after Epic 10, on request — its
+  migrations are numbered `0075` onward rather than renumbering Epics
+  05–10's already-open PRs (`../../implementation/epic-04/COMPLETION.md`
+  §5.1). `platform.capabilities` (the real 26-capability catalogue,
+  `PLATFORM_DOMAIN_MODEL.md` §6.7, seeded verbatim) and
+  `platform.capability_dependencies` (only the five edges §6.2 itself
+  states). `platform.capability_presets`/`capability_preset_grants` —
+  three presets (Personal, Professional, Business), matching this epic's
+  own acceptance criterion rather than §6.8's fourth (Enterprise, which
+  `workspace.workspaces.type` cannot express). **`workspace.
+  capability_grants`/`capability_grant_history` is shaped like
+  `workspace.memberships`/`membership_history` (Epic 03), not ADR-0028**
+  — a capability grant is a set a workspace holds, never one current
+  value, the first aggregate since Epic 03 itself to reuse that specific
+  shape. The contract's `grant_capability()` refuses rather than
+  auto-grants a missing dependency, and `withdraw_capability()` refuses
+  while a dependent is still held — Conflict 3's distinguishing test
+  applied a third time (after Workflow's transition rules and
+  Maintenance's schedule generation), because auto-cascading would mean
+  minting several ids per call with none supplied, exactly what `work.
+  generate_due_obligation()` already ruled out. No `api.*` delegate — the
+  same posture, now a four-time pattern. **A real bug caught before
+  shipping**: the first draft of `grant_capability()` minted its history
+  row's id via `gen_random_uuid()` internally, contradicting its own
+  header — found by re-reading the function before running the tests.
+  Backfilled: every existing workspace's matching preset, applied
+  directly (not through the contract function) and backdated to the
+  workspace's own `created_at`. Staging only for what was built; nothing
+  applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
-  Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's, nor Epic 09's,
-  nor Epic 10's. Its migration ledger is still unreconciled
-  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
-  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0074`.
+  Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
+  nor Epic 09's, nor Epic 10's. Its migration ledger is still
+  unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
+  prerequisite for any push to it — see
+  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
+  `0018`–`0029` and owed an update through `0080`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
