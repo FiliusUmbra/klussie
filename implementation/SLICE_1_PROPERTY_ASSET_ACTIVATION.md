@@ -41,8 +41,20 @@ covers, before this landed; new LocationFormSheet.jsx/
 DocumentUploadSheet.jsx give Locations and Documents their first write
 surface, both gated on a real property existing; Maintenance stays
 read-only — no client caller is named in this work package's own scope)
-is merged (#43). WP 1.9 and WP 1.10 (My Business reuse) have not
-started. This slice is substantially larger
+is merged (#43). WP 1.10 (My Business — ProApp.jsx gains a fifth
+BottomNav tab reusing MyItemsPanel.jsx/ItemFormSheet.jsx/
+LocationFormSheet.jsx/DocumentUploadSheet.jsx completely unmodified,
+via a new shared usePropertyTwin.js hook extracted from
+useHomeContext.js; the one genuinely new piece, Option B's lazy
+property-creation trigger, needed the same fix shape WP 1.7 already
+established — property.create_property() (0135) had no authorization
+check either, being trusted only from handle_new_user()'s own Option A
+context, so a new property.create_property_for_caller() carries the
+real membership check and the internal function stays untouched) is
+merged (#44). WP 1.9 (retire household_items) has not started —
+it explicitly waits for a real observation window against production
+accounts once WP 1.8 has been live a while, not immediately. This slice
+is substantially larger
 than Slice 0 — five engines, two client experiences, and (per §1 below)
 genuinely missing write contracts, not merely unwired read paths — and
 is broken into a longer work-package sequence for exactly that reason,

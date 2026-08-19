@@ -249,6 +249,7 @@ something it depends on.
 | P10 | Pause toggle removes the pro from matching | `ProProfile` |
 | P11 | Flexi tax tracker shows earnings against the threshold | `ProProfile` |
 | P12 | Boost shows its price and expiry | `ProProfile` |
+| P13 | My Business reuses the customer physical twin against the pro's own workspace, lazily creating its first property on first open | `MyBusinessPanel` |
 
 ### 5.6 · Messaging
 

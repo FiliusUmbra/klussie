@@ -12,7 +12,7 @@ vi.mock("../supabaseClient", () => ({
   },
 }));
 
-import { fetchHomeProfile, knownFactsFrom, buildLocationTree } from "../homeInventory";
+import { fetchHomeProfile, knownFactsFrom, buildLocationTree, createPropertyForCaller } from "../homeInventory";
 
 const PROPERTY_ROW = {
   id: "11111111-1111-4111-8111-000000000030",
@@ -232,5 +232,31 @@ describe("knownFactsFrom", () => {
     // question to skip.
     const facts = knownFactsFrom({ rooms: [], installations: [], upcomingMaintenance: [], property: { id: "p1", name: "My Home" } });
     expect(facts.size).toBe(0);
+  });
+});
+
+// Platform Activation Slice 1, WP 1.10 — Option B's own lazy-creation trigger: a
+// Professional workspace's "My Business" tab, opened for the first time with no
+// property yet.
+describe("createPropertyForCaller", () => {
+  it("calls api.create_property with the workspace, name and person actor type", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    const result = await createPropertyForCaller({ workspaceId: "ws-1", actorRef: "owner-1", name: "My Business" });
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "create_property", expect.objectContaining({
+      p_property_id: result.id,
+      p_steward_workspace_id: "ws-1",
+      p_name: "My Business",
+      p_actor_type: "person",
+      p_actor_ref: "owner-1",
+    }));
+  });
+
+  it("throws the real Supabase error instead of swallowing it", async () => {
+    apiRpc.mockResolvedValue({ error: new Error("insufficient_privilege") });
+
+    await expect(createPropertyForCaller({ workspaceId: "ws-1", actorRef: "owner-1", name: "My Business" }))
+      .rejects.toThrow("insufficient_privilege");
   });
 });

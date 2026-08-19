@@ -4,12 +4,10 @@
 // are genuinely testable — greeting band, trust-signal eligibility, today's priority —
 // are testable without rendering anything (ENGINEERING_STANDARDS.md, "no business
 // logic in UI").
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAuth } from "../lib/auth.jsx";
+import { useEffect, useMemo, useState } from "react";
 import { fetchPlatformTrustStats } from "../lib/pros";
-import { fetchHomeProfile, knownFactsFrom } from "../lib/homeInventory.js";
-import { fetchHouseholdItems } from "../lib/householdItems.js";
-import { fetchMaintenanceObligations } from "../lib/maintenance.js";
+import { knownFactsFrom } from "../lib/homeInventory.js";
+import { usePropertyTwin } from "./usePropertyTwin.js";
 import { pickTodayItem, activeRequests, completedWork } from "../lib/homeToday.js";
 import {
   propertySummary,
@@ -57,73 +55,23 @@ export function trustItemsFrom(t, trust) {
 
 export function useHomeContext({ t, profile, requests }) {
   const [trust, setTrust] = useState(null);
-  const [homeProfile, setHomeProfile] = useState(null);
-  // null means "not loaded yet" and [] means "genuinely nothing recorded" — My Items
-  // renders a different thing for each, so they must not collapse into one value.
-  const [items, setItems] = useState(null);
-  const [itemsError, setItemsError] = useState(null);
-  const ownerId = profile?.id;
-  // Epic 03 WP11, then Epic 07 WP08 — see fetchHouseholdItems for the fallback this depends
-  // on. propertyId comes from homeProfile, resolved by the separate effect below; it is
-  // null on first render (homeProfile starts null) and non-null shortly after, which is why
-  // it is its own dependency below rather than something read once.
-  const { activeWorkspace } = useAuth();
-  const workspaceId = activeWorkspace?.workspace_id;
-
-  // Items/homeProfile/maintenance all reload on the same token rather than by calling a
-  // fetch function directly, so each read lives in one effect with one cancellation
-  // path. `refreshItems` only asks for another pass; it never sets state itself.
-  const [reloadToken, setReloadToken] = useState(0);
-  const refreshItems = useCallback(() => setReloadToken((n) => n + 1), []);
+  // Platform Activation Slice 1, WP 1.10 — the physical twin (property/rooms/documents/
+  // items/maintenance) is now usePropertyTwin.js's own concern, shared with ProApp.jsx's
+  // "My Business" tab. See that hook's own header for why trust stayed behind here
+  // instead of moving with it.
+  const { workspaceId, homeProfile, propertyId, items, itemsError, maintenance, refreshItems } =
+    usePropertyTwin();
 
   useEffect(() => {
     let cancelled = false;
     // A failed trust fetch leaves `trust` null, which simply drops the data-backed
-    // items from the strip — never a broken or fabricated signal.
+    // items from the strip — never a broken or fabricated signal. Mount-only: trust is a
+    // platform-wide signal, not something a room or item save should ever refetch.
     fetchPlatformTrustStats()
       .then((stats) => { if (!cancelled) setTrust(stats); })
       .catch(() => {});
-    fetchHomeProfile()
-      .then((p) => { if (!cancelled) setHomeProfile(p); })
-      .catch(() => {});
     return () => { cancelled = true; };
-    // Platform Activation Slice 1, WP 1.8 — reloadToken added: adding a real location
-    // or document (LocationFormSheet.jsx/DocumentUploadSheet.jsx) calls the same
-    // refreshItems() an item save already does, and until now this effect never re-ran
-    // for it — homeProfile.rooms/.documents would still show a stale list every time.
-  }, [reloadToken]);
-
-  const propertyId = homeProfile?.property?.id;
-
-  useEffect(() => {
-    if (!ownerId) return;
-    let cancelled = false;
-    fetchHouseholdItems(ownerId, workspaceId, propertyId)
-      .then((rows) => { if (!cancelled) { setItems(rows); setItemsError(null); } })
-      // Surfaced rather than swallowed: an inventory that silently shows nothing after a
-      // failed read looks exactly like an inventory the customer never filled in, and
-      // would invite them to enter everything a second time.
-      .catch((err) => { if (!cancelled) setItemsError(err.message || String(err)); });
-    return () => { cancelled = true; };
-    // propertyId resolves shortly after mount (a separate effect, above); this intentionally
-    // re-fetches once it does, the same way a resolved workspaceId already re-fetches under
-    // Epic 03 WP11 — both are "add without switching" until the value exists, then switch.
-  }, [ownerId, workspaceId, propertyId, reloadToken]);
-
-  // WP 1.3 — workspace-scoped, unlike rooms/documents above (see src/lib/maintenance.js's
-  // own header for why it is not folded into fetchHomeProfile()). Reuses the same
-  // reloadToken as items — an obligation completed elsewhere and a new item recorded are
-  // both "something changed, refresh what's shown," and a second token would only be two
-  // ways to ask for the same thing.
-  const [maintenance, setMaintenance] = useState(null);
-  useEffect(() => {
-    if (!workspaceId) return undefined;
-    let cancelled = false;
-    fetchMaintenanceObligations(workspaceId).then((rows) => {
-      if (!cancelled) setMaintenance(rows);
-    });
-    return () => { cancelled = true; };
-  }, [workspaceId, reloadToken]);
+  }, []);
 
   const today = useMemo(() => pickTodayItem(requests), [requests]);
   const active = useMemo(() => activeRequests(requests, today?.request?.id), [requests, today]);

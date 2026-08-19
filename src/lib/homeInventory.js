@@ -12,7 +12,13 @@
 //
 // The property itself is real (Epic 05) — `property` below, resolved through
 // api.my_properties() (migration 0041), following auth.jsx's exact fallback idiom.
+//
+// Platform Activation Slice 1, WP 1.10 — createPropertyForCaller() (below
+// fetchHomeProfile()) is the client side of Option B's own lazy-creation trigger: a
+// Professional workspace's "My Business" tab, opened for the first time with no
+// property yet.
 import { supabase } from "./supabaseClient";
+import { uuidv7 } from "./ids.js";
 
 // The record a My Home installation is capable of holding, kept here as documentation
 // of the target shape rather than as a type the code can enforce (TypeScript is
@@ -139,6 +145,35 @@ export async function fetchHomeProfile() {
   ]);
 
   return { ...EMPTY_HOME, property, rooms: buildLocationTree(flatLocations), documents };
+}
+
+/**
+ * Creates a property for a workspace the caller has a live membership in
+ * (`api.create_property()`, WP 1.10) — Option B's own lazy-creation trigger: a
+ * Professional workspace's "My Business" tab, opened for the first time with no
+ * property yet. `actorRef` is the caller's own auth id (ADR-0019).
+ *
+ * No "already has one" guard exists at the contract level (§9.1 permits many
+ * properties) — callers are expected to check fetchHomeProfile()'s own `property` field
+ * first and call this only when it resolves to null, the same way ProApp.jsx's "My
+ * Business" tab does. Calling this when a property already exists creates a genuine
+ * second one, not an error.
+ */
+export async function createPropertyForCaller({ workspaceId, actorRef, name }) {
+  const propertyId = uuidv7();
+
+  const { error } = await supabase.schema("api").rpc("create_property", {
+    p_property_id: propertyId,
+    p_steward_workspace_id: workspaceId,
+    p_name: name,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
+
+  return { id: propertyId };
 }
 
 // Which pieces of Property Memory Klussie actually holds for this customer — the
