@@ -306,11 +306,42 @@ owns the real underlying capability ships it — see
   `../../implementation/epic-06/COMPLETION.md` §5. No backfill, no client
   wiring — nothing in the product creates a real location yet. Staging
   only, same unverified-live-database gap as Epics 03 and 05.
+- **The asset engine exists, complete** (Epic 07, **8/8 packages**) —
+  `property.assets` and `property.asset_placements` repeat ADR-0028's
+  mutable-pointer-plus-closed-log shape by citation, no new ADR needed.
+  Declared facets (`property.facet_types`, `property.asset_facets`) are
+  validated by trigger, key presence only, no facet type seeded yet.
+  Isolation inherits the property's stewardship, same as locations — no
+  asset-specific resolver, narrowed to active-only assets (0054) once the
+  contract got a real caller. **The first backfill in this roadmap moving
+  real, existing, live-table data**: every `household_items` row (the
+  live inventory feature) has a corresponding `property.assets` row,
+  linked by a bookkeeping-only `household_items_id` column. This backfill
+  deliberately does **not** exclude erased identities, unlike migration
+  0033's pattern — it moves existing possession data rather than creating
+  new structure, so an erased owner's item is still backfilled (see
+  `../../implementation/epic-07/COMPLETION.md` §5). **Kept in sync going
+  forward by three database triggers (0053), not by an application-level
+  second write** — the nearer precedent turned out to be migration 0027's
+  identity dual-write, a trigger being the only place a mirror write is
+  transactional with the primary one; building it found and fixed a real
+  bug, a missing `ON DELETE` clause on `household_items_id`'s foreign key
+  that would have broken `deleteHouseholdItem()` outright. `Mijn spullen`
+  (`fetchHouseholdItems`) now reads `property.assets` when a property
+  resolves, falling back to the two tiers Epic 03 WP 03.11 already proved.
+  **`RECONCILE_ASSETS.sql` — the six-step pattern's hard gate before a
+  read-switch may be trusted — has never actually run.** This session has
+  no database connection; per the current engineering directive that marks
+  live verification Pending rather than blocking the epic's completion,
+  but the read switch must not reach real users before that diagnostic
+  runs and passes. Staging only for what was built; nothing applied
+  anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
-  Epic 05's, nor Epic 06's. Its migration ledger is still unreconciled
-  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
-  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
-  itself covering only `0018`–`0029` and owed an update through `0047`.
+  Epic 05's, nor Epic 06's, nor Epic 07's. Its migration ledger is still
+  unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
+  prerequisite for any push to it — see
+  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering
+  only `0018`–`0029` and owed an update through `0054`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

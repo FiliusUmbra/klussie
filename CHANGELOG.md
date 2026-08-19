@@ -50,6 +50,64 @@ accurately.
 
 ### Added
 
+**Epic 07 — Asset Engine (complete, 8 of 8 packages).** `household_items`
+is still what every write actually lands on. What changed is where "Mijn
+spullen" reads from — see Changed, below, for that part stated plainly.
+
+- **`property.assets`** and **`property.asset_placements`** — placement
+  repeats [ADR-0028](docs/adr/0028-stewardship-current-pointer-and-closed-period-log.md)'s
+  mutable-current-pointer-plus-closed-log shape by citation, matching
+  `DATABASE_ARCHITECTURE.md` §14's near-verbatim wording; no new ADR
+  needed.
+- **Declared facets** — `property.facet_types` (a catalog an attribute
+  set must be declared in) and `property.asset_facets`, validated by
+  trigger against the declared key set. No facet type seeded yet;
+  nothing needs one.
+- **Isolation inherits the property's current stewardship**, same
+  pattern as locations — no asset- or facet-specific resolver.
+  `asset_placements` deliberately gets no policy: Historical class, read
+  through the engine contract only.
+- **The asset engine contract** — `my_assets()`/`resolve_asset()`, with
+  real `api` delegates this time (unlike Epic 06's engine-only
+  containment functions), narrowed to active-only assets once the
+  contract got a real caller.
+- **Backfilled: every live `household_items` row into `property.assets`**
+  — the first backfill in this roadmap moving real, existing data rather
+  than deriving from a table the same epic just created. Idempotent via
+  a bookkeeping-only `household_items_id` column. Deliberately does
+  **not** exclude erased identities, departing from migration 0033's
+  pattern, because this moves existing possession data rather than
+  creating new structure.
+- **Dual-write: every `household_items` write also writes
+  `property.assets`, going forward** — three database triggers, not an
+  application-level second write. A closer, already-accepted precedent
+  in this codebase (the identity dual-write) makes a trigger the only
+  place the mirror write is genuinely transactional with the primary
+  one. `household_items` remains authoritative.
+- **Fixed: a foreign key that would have broken deleting an item.**
+  `property.assets.household_items_id` had no `ON DELETE` behaviour,
+  which meant deleting a `household_items` row that had a mirrored asset
+  would fail outright. Fixed with `ON DELETE SET NULL` before the
+  dual-write above could make the bug guaranteed rather than latent.
+  Found by reading the existing schema, not by running anything.
+
+- Test suite grew from 792 tests across 67 files to **875 across 75**.
+
+### Changed
+
+- **"Mijn spullen" now reads from `property.assets`, not
+  `public.household_items` directly, whenever a property has resolved
+  for the signed-in workspace.** The list, sort order and every field
+  shown are unchanged by design — this is a data-source switch, not a
+  feature change — and it falls back to the exact prior behaviour when
+  no property has resolved yet, the same fallback discipline every read
+  switch since Epic 03 WP 03.11 has used. **Live verification of this
+  switch is Pending**: `RECONCILE_ASSETS.sql`, the check this roadmap
+  requires before trusting a read-switch, has been written and
+  structurally tested but has not run against a real database this
+  session. Do not treat this switch as verified in an environment with
+  real users until it has.
+
 **Epic 06 — Location Engine.** The roadmap's own highest correctness-risk
 item in the physical tier. Nothing here changes what a user sees —
 nothing in the product creates a real location yet, so there is nothing
