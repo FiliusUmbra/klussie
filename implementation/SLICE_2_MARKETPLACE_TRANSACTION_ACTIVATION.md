@@ -251,6 +251,22 @@ does not fit here, because this slice's actual risk is concentrated in
 the *cutover* itself (Tier 3), which has no equivalent risk class
 anywhere in Slice 1.
 
+**Resequenced for Platform Activation Priority.** The programme's own
+priority is now explicit: prefer letting a real user experience an
+existing capability over building further backend capability, unless
+architecture, security or correctness would be compromised. Read
+against that, WP 2.4 (the scoped access grant consumer) is genuinely
+new infrastructure — no background event-consumption mechanism exists
+in this codebase yet — that the core request → quote → accept →
+complete journey does not need to function for a real user: legacy
+already runs the identical journey today with no such grant existing at
+all, and Epic 12's own completion record already named its absence a
+structural gap carried forward, not a blocker. It now runs **after** WP
+2.6, as a fast-follow enhancing an already-activated engine, not
+gating the activation itself. WP 2.0–2.3 and 2.5–2.6 keep their
+original order and numbering; only WP 2.4's position in the sequence
+changes, not its number or scope.
+
 ### Tier 0 — Foundation
 
 **WP 2.0 — Apply the foundation; prove it, for the first time, against a real database — Done, see §1.1**
@@ -298,7 +314,7 @@ identical reason: every one of these thirteen `work.*` functions is
 currently reachable by `klussie_engine_work` only, with no membership
 check of its own, and none should be redefined in place.
 
-**WP 2.4 — The scoped access grant consumer**
+**WP 2.4 — The scoped access grant consumer — moved after WP 2.6, see this section's own header**
 
 Resolve §1.3. A Workspace-owned consumer of
 `marketplace.engagement.created`, creating the real, scoped
@@ -308,6 +324,8 @@ this codebase to extend, so this work package's first job is deciding
 what that mechanism actually is (a poll against `platform.events`? a
 Postgres trigger-based consumer? — an open question, not resolved by
 this document, see §5) before the consumer logic itself can be written.
+Kept numbered 2.4 for cross-reference stability; it now executes after
+2.6 in practice.
 
 ### Tier 3 — Client, and the cutover itself
 
@@ -355,7 +373,7 @@ WP 2.0 (apply + verify the never-run foundation)
    ├──► WP 2.2 (decision: directed booking)     │
    │        │                                   │
    │        ▼                                   │
-   │    WP 2.3 (write contracts) ──► WP 2.4 (scoped access grant consumer)
+   │    WP 2.3 (write contracts)                │
    │        │                                   │
    └────────┴───────────────┬───────────────────┘
                              ▼
@@ -364,19 +382,50 @@ WP 2.0 (apply + verify the never-run foundation)
                              ▼
                    WP 2.6 (client: write cutover — highest risk in the programme)
                              │
+                             ▼
+                   WP 2.4 (scoped access grant consumer — fast-follow)
+                             │
                         (real observation window)
                              ▼
                    WP 2.7 (retire the five legacy triggers)
 ```
 
-WP 2.4 does not block WP 2.5/2.6 structurally — a booking can complete
-without the scoped grant existing, it just means the performing
-workspace cannot yet see the customer's own physical twin for the
-property concerned. Sequenced before the cutover anyway, because
-shipping the cutover with a professional-facing gap already known and
-avoidable, rather than closed, is exactly the kind of asymmetry §1 of
-`PLATFORM_ACTIVATION_PROGRAMME.md` exists to catch before it ships, not
-after.
+**Revised from this document's original reasoning, honestly.** This
+section originally sequenced WP 2.4 *before* the cutover, arguing that
+"shipping the cutover with a professional-facing gap already known and
+avoidable, rather than closed," was the kind of asymmetry worth
+catching before it ships. That reasoning is not wrong on its own terms
+— it still holds as a *product* argument for building WP 2.4 well.
+What changed is the tie-breaker: the Programme's own Platform
+Activation Priority is now explicit that, between building further
+backend capability and letting a real user experience an existing one,
+B wins unless architecture, security or correctness would be
+compromised. WP 2.4 fails none of those three — a professional who
+accepts a booking without it sees exactly what a professional sees
+under legacy today, which is not a regression, only a not-yet-added
+enhancement — while WP 2.5/2.6 is the entire reason this slice exists.
+Genuinely new infrastructure (an event-consumption mechanism this
+codebase has never had) built before a single real user has touched
+the engine it enhances is the "building backend infrastructure merely
+because it is possible" the Priority explicitly warns against. WP 2.4
+still ships, as a fast-follow once the core journey is live and real —
+not dropped, not demoted to "someday."
+
+### 3.1 · UX discipline applied to this resequencing
+
+The Programme's Beautiful Software directive asks that a backend
+decision with UX implications be documented, not left implicit. This
+resequencing has one: WP 2.5/2.6 will put real customers and real
+professionals in front of the request → quote → accept → complete
+journey before WP 2.4 exists. A professional's request-detail view
+during that window has no structural way to show the customer's
+Location/Asset/Document twin — the fetch would find nothing to fetch,
+not fail, since no scoped membership exists yet to authorize it. WP 2.6
+must design that state as a real empty state (§1.10's own dividend
+still applies once WP 2.4 ships — "coming soon, not broken"), not
+silently omit the section or leave a spinner. Recorded here so WP 2.6
+inherits it as a stated requirement, not a UX gap discovered at review
+time.
 
 ---
 

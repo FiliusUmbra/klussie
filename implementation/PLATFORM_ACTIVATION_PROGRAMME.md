@@ -58,6 +58,53 @@ delivery rather than only to the *shape* of the code:
   experience considered for a given capability, it is asked *at the
   same time* as the other two.
 
+### 1.1 · Platform Activation Priority
+
+> The backend platform is considered feature-complete unless a genuine
+> architectural dependency is discovered. The objective is now Platform
+> Activation, not Platform Expansion. Whenever a decision exists between
+> (A) building another backend capability or (B) allowing a real user to
+> experience an existing capability, prefer B unless architecture,
+> security or correctness would be compromised.
+
+Stated after Slice 1 shipped and Slice 2's foundation was verified
+(WP 2.0) — the point at which continuing to build backend capability
+stopped being the obviously correct default and started needing an
+explicit reason each time. Applied for the first time in this document
+in `SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md` §3's own
+resequencing: WP 2.4 (the scoped access grant consumer — genuinely new
+infrastructure) now runs *after* the client cutover it enhances,
+because the core journey does not need it to be real for a user, and
+building it first would be exactly the backend-expansion-for-its-own-
+sake this principle exists to stop. Every future slice reads its own
+work-package order against this tie-breaker before assuming the
+original scoping order still holds.
+
+### 1.2 · Beautiful Software
+
+> Do not merely make Klussie functional. Make it delightful. The
+> platform should feel calm, premium, human and intelligent. Never
+> sacrifice usability for technical elegance.
+
+Applies at every layer, not only the screens users see directly:
+simplicity, discoverability, accessibility, emotional impact, trust,
+visual hierarchy, animation and micro-interaction, typography and
+spacing, empty/loading/success/error-recovery states, elderly users,
+first impressions. Two concrete obligations follow, both binding from
+here forward, not aspirational:
+
+- **A backend decision with UX implications gets documented at the
+  point it's made**, in the same scoping or completion document the
+  decision itself lives in — not left for whoever builds the screen
+  later to rediscover. `SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md`
+  §3.1 is the first instance: WP 2.4's resequencing (§1.1 above) means
+  WP 2.6 must design a real empty state for the professional's
+  not-yet-granted property access, not silently omit the section.
+- **A UX opportunity noticed during implementation is captured for the
+  Activation Slice it belongs to**, not built on the spot outside that
+  slice's own scope and not dropped for lack of a place to write it
+  down.
+
 ---
 
 ## 2 · The Four Questions
