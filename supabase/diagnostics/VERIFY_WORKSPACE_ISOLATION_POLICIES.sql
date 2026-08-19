@@ -149,6 +149,15 @@ begin
   insert into public.household_items (id, owner_id, workspace_id, name, category)
     values (v_item, v_owner_auth, v_ws, 'Probe drill', 'tool');
 
+  -- The connecting role (postgres.<project-ref>, per this file's own header) has BYPASSRLS
+  -- in Supabase by default — the probes below query public.household_items directly,
+  -- relying on the table's own RLS policies, which postgres would otherwise skip entirely
+  -- regardless of request.jwt.claims. Switching to authenticated (rolbypassrls = false) is
+  -- what makes this a real behavioural proof rather than a check that always passes —
+  -- caught only by running this diagnostic against real data (staging, 2026-08-19), where
+  -- the stranger check failed until this line was added.
+  execute 'set local role authenticated';
+
   -- The owner sees it — unchanged, via the pre-existing policy.
   perform set_config('request.jwt.claims', json_build_object('sub', v_owner_auth)::text, true);
   select count(*) into v_count from public.household_items where id = v_item;

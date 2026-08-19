@@ -38,6 +38,16 @@ comment on column property.documents.caption is
 
 -- =========================================================================
 -- THE CONTRACT — every function's return shape gains caption
+--
+-- CREATE OR REPLACE FUNCTION cannot change a function's return row shape (Postgres:
+-- "cannot change return type of existing function") — only its body. Every function below
+-- adds a column to its RETURNS TABLE, which is a real shape change, so each needs an
+-- explicit DROP first. Caught only by running this migration against real data (staging,
+-- 2026-08-19); the grants these six functions need are already re-stated explicitly further
+-- down in this same file (this migration's own comment at the grants block), so a drop
+-- followed by a fresh create leaves nothing under-granted.
+
+drop function if exists property.my_documents(uuid, uuid, uuid, uuid);
 
 create or replace function property.my_documents(
   p_property_id  uuid default null,
@@ -98,6 +108,8 @@ $$;
 comment on function property.my_documents(uuid, uuid, uuid, uuid) is
   'Every document attached to one subject, visible via a public document type, a live membership in the owning workspace, or an explicit share. caption is populated for portfolio_photo, always null for request_photo (0064). Not SECURITY DEFINER, granted to nobody, reachable only from api.my_documents().';
 
+drop function if exists property.resolve_document(uuid);
+
 create or replace function property.resolve_document(p_document_id uuid)
 returns table (
   id                  uuid,
@@ -139,6 +151,8 @@ $$;
 
 comment on function property.resolve_document(uuid) is
   'Resolves one document''s current version, including caption where it applies (0064). Not SECURITY DEFINER, granted to nobody, reachable only from api.resolve_document().';
+
+drop function if exists property.documents_for_service_request(uuid);
 
 create or replace function property.documents_for_service_request(p_request_id uuid)
 returns table (
@@ -182,6 +196,8 @@ comment on function property.documents_for_service_request(uuid) is
 -- =========================================================================
 -- THE DELEGATES — same signatures, same grants, only the return shape changed
 
+drop function if exists api.my_documents(uuid, uuid, uuid, uuid);
+
 create or replace function api.my_documents(
   p_property_id  uuid default null,
   p_location_id  uuid default null,
@@ -210,6 +226,8 @@ as $$
   select * from property.my_documents(p_property_id, p_location_id, p_asset_id, p_workspace_id);
 $$;
 
+drop function if exists api.resolve_document(uuid);
+
 create or replace function api.resolve_document(p_document_id uuid)
 returns table (
   id                  uuid,
@@ -232,6 +250,8 @@ set search_path = ''
 as $$
   select * from property.resolve_document(p_document_id);
 $$;
+
+drop function if exists api.documents_for_service_request(uuid);
 
 create or replace function api.documents_for_service_request(p_request_id uuid)
 returns table (

@@ -53,6 +53,23 @@ begin
   insert into property.locations (id, property_id, parent_id, name, type)
     values (v_loc, v_prop, null, 'Kitchen', 'kitchen');
 
+  -- The connecting role (postgres.<project-ref>, per this file's own header) has BYPASSRLS
+  -- in Supabase by default — the probes below query property.locations directly, relying on
+  -- the table's own RLS policy, which postgres would otherwise skip entirely regardless of
+  -- request.jwt.claims. Switching to authenticated (rolbypassrls = false) is what makes this
+  -- a real behavioural proof rather than a check that always passes.
+  --
+  -- authenticated has no USAGE on schema property at all yet (ROLES.md §2.4's own "Not yet"
+  -- bucket — no epic has shipped a live read path here). That is a separate, deliberate,
+  -- already-tracked gap, not what this diagnostic tests. The grants below are scoped to
+  -- this same transaction and revert with the rollback at the end of this file, so this
+  -- probe can isolate "does the RLS policy itself work" from "is the schema open yet".
+  execute 'grant usage on schema property to authenticated';
+  -- The policy's own USING clause subqueries property.properties (0045's own definition),
+  -- so evaluating it needs SELECT there too, not only on property.locations itself.
+  execute 'grant select on property.locations, property.properties to authenticated';
+  execute 'set local role authenticated';
+
   perform set_config('request.jwt.claims', json_build_object('sub', v_member_auth)::text, true);
   select count(*) into v_count from property.locations where id = v_loc;
   if v_count <> 1 then
