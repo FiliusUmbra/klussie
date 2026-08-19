@@ -21,9 +21,11 @@ import { BecomeProPrompt } from "../profile/BecomeProPrompt.jsx";
 import { BecomeProSheet } from "../profile/BecomeProSheet.jsx";
 import { CustomerApp } from "../customer/CustomerApp.jsx";
 import { ProApp } from "../pro/ProApp.jsx";
+import { OperatorApp } from "../operator/OperatorApp.jsx";
 import { LoadingScreen } from "../ui/Loading.jsx";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher.jsx";
 import { deriveEffectiveRole } from "../lib/workspaceContext.js";
+import { isOperatorWorkspace } from "../lib/operatorContext.js";
 
 // How long a toast stays up. Long enough to read a short confirmation, short enough that
 // it never sits over the thing the customer tapped next.
@@ -36,6 +38,7 @@ export function AppShell() {
   const [catalog, setCatalog] = useState(null);
   const [catalogError, setCatalogError] = useState(null);
   const [becomeProOpen, setBecomeProOpen] = useState(false);
+  const [operatorCheck, setOperatorCheck] = useState({ workspaceId: null, result: false });
   const toastTimer = useRef(null);
   const { session, loading: authLoading, proProfile, workspaceMemberships = [], activeWorkspace } = useAuth();
 
@@ -51,6 +54,34 @@ export function AppShell() {
   useEffect(() => {
     fetchCatalog().then(setCatalog).catch((err) => setCatalogError(err.message));
   }, []);
+
+  // Platform Activation Slice 0, WP 0.5 — is the active workspace the internal
+  // Operations Workspace (ADR-0030)? Re-checked whenever the active workspace changes
+  // (the switcher, WP 03.12, is how a real operator who is also an ordinary customer
+  // moves between the two). Keyed by workspace id rather than a flat boolean +
+  // "resolving" flag: setting the flag back to null on every change would itself be a
+  // synchronous setState inside the effect body (a lint error, and the underlying
+  // problem it flags — a needless extra render). Keying the stored result to the
+  // workspace id it was resolved for gets the same correctness — "still resolving"
+  // becomes "the stored id doesn't match the current one" — from a single state update
+  // that only ever happens inside the async callback below, never synchronously.
+  useEffect(() => {
+    const workspaceId = activeWorkspace?.workspace_id ?? null;
+    if (!workspaceId) return undefined;
+    let cancelled = false;
+    isOperatorWorkspace(workspaceId).then((result) => {
+      if (!cancelled) setOperatorCheck({ workspaceId, result });
+    });
+    return () => { cancelled = true; };
+  }, [activeWorkspace?.workspace_id]);
+
+  const activeWorkspaceId = activeWorkspace?.workspace_id ?? null;
+  // True only while there is a real workspace to check and its result hasn't landed yet
+  // — never true for a single-workspace person (activeWorkspaceId is null) or once the
+  // matching result has arrived, including for a workspace that turned out not to be
+  // the Operations Workspace.
+  const operatorCheckPending = activeWorkspaceId !== null && operatorCheck.workspaceId !== activeWorkspaceId;
+  const isOperator = operatorCheck.workspaceId === activeWorkspaceId && operatorCheck.result;
 
   const ctx = buildLangContext(langCode, catalog);
   const { t, dir } = ctx;
@@ -76,12 +107,19 @@ export function AppShell() {
   // role-switch segmented control above and BecomeProPrompt below, both reachable at any
   // time, exactly matching "create an account, become a pro later."
   let body;
-  if (authLoading || (session && !catalog && !catalogError)) {
+  if (authLoading || (session && !catalog && !catalogError) || (session && operatorCheckPending)) {
     body = <LoadingScreen />;
   } else if (catalogError) {
     body = <div className="pad"><div className="empty-block"><p>{catalogError}</p></div></div>;
   } else if (!session) {
     body = <WelcomeScreen />;
+  } else if (isOperator) {
+    // Platform Activation Slice 0, WP 0.5 — checked before the customer/pro branch
+    // below, and never falls through to it: the Operations Workspace is neither a
+    // customer nor a professional posture, and deriveEffectiveRole() (workspaceContext.js)
+    // is left completely unconsulted here, exactly as it already is for a
+    // single-workspace person (see that function's own comment).
+    body = <OperatorApp />;
   } else if (effectiveRole === "pro") {
     body = proProfile ? (
       <ProApp showToast={showToast} />
