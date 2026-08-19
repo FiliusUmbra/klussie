@@ -1,10 +1,8 @@
-// The Operations Workspace shell (Platform Activation Slice 0, WP 0.5) — a minimal
+// The Operations Workspace shell (Platform Activation Slice 0, WP 0.5/0.6) — a minimal
 // landing surface distinguishing "you are in Klussie Operations" from every other
 // context, rendered by AppShell.jsx whenever the active workspace holds the
 // platform_operations capability (ADR-0030). Reuses existing shell chrome and CSS
-// classes only — no new design-system component for this package, per this work
-// package's own stated scope; WP 0.6 replaces the single placeholder tab below with the
-// real Audit viewer (ROADMAP_C_PLATFORM_OPERATIONS.md §3.7).
+// classes only — no new design-system component for this shell itself.
 //
 // NOT ROUTED THROUGH useLang()/appStrings.js
 //
@@ -15,6 +13,7 @@
 // customer/professional experiences and Platform Operations. Revisit this if that
 // audience assumption ever changes.
 import { useState } from "react";
+import { AuditLog } from "./AuditLog.jsx";
 
 const TABS = [{ id: "audit", label: "Audit" }];
 
@@ -43,8 +42,8 @@ export function OperatorApp() {
       </div>
 
       {tab === "audit" && (
-        <div className="empty-block" style={{ marginTop: 16 }}>
-          <p>The audit log lands here next.</p>
+        <div style={{ marginTop: 16 }}>
+          <AuditLog />
         </div>
       )}
     </div>
