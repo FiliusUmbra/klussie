@@ -230,6 +230,8 @@ something it depends on.
 | C24 | My Items lists household items | `MyItemsPanel` *(automated)* |
 | C25 | Adding an item persists it with a photo | `ItemFormSheet` |
 | C26 | Item categories render and filter | *(automated)* |
+| C27 | Adding a room persists it under the property, nested under a chosen parent | `LocationFormSheet` |
+| C28 | Adding a document uploads its file and persists it attached to the property | `DocumentUploadSheet` |
 
 ### 5.5 · Professional
 

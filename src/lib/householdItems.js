@@ -8,6 +8,7 @@
 // URL would store something already expired.
 import { supabase } from "./supabaseClient";
 import { DEFAULT_ITEM_CATEGORY } from "./itemCategories.js";
+import { uuidv7 } from "./ids.js";
 
 const SIGNED_URL_TTL_SECONDS = 3600;
 
@@ -192,4 +193,139 @@ export async function deleteHouseholdItem(itemId, photoPath = null) {
   const { error } = await supabase.from("household_items").delete().eq("id", itemId);
   if (error) throw error;
   if (photoPath) await supabase.storage.from("item-photos").remove([photoPath]);
+}
+
+// =========================================================================
+// Platform Activation Slice 1, WP 1.8 — the real write path, through property.assets
+// (api.create_asset()/update_asset()/retire_asset(), migration 0139) rather than
+// household_items. Used whenever a real propertyId is known (WP 1.0 guarantees this for
+// every account from signup onward); ItemFormSheet.jsx falls back to the functions above
+// only when it is not — the exact two-tier shape fetchHouseholdItems() already
+// established for reads, now mirrored on the write side.
+//
+// A GENUINE BUGFIX, NOT ONLY A CUTOVER
+//
+// Before this, editing or deleting an item whose card came from api.my_assets() (every
+// account with a real property, i.e. every one WP 1.0 covers) called
+// updateHouseholdItem(item.id, ...) / deleteHouseholdItem(item.id, ...) — both target the
+// household_items TABLE by id, but item.id was a property.assets id (reshapeAsset's own
+// `id: row.id`), not a household_items id. Both calls matched zero rows and surfaced as a
+// save/delete failure. This was live and broken before WP 1.8; it is not a regression
+// this work package introduces.
+//
+// NO SEPARATE "SET PHOTO" STEP
+//
+// The legacy flow uploads, then creates the row, then points it at the upload — three
+// round trips, and a window where a freshly created item has no photo yet even though
+// one was picked. property.assets' own contract accepts photo_path directly on
+// create/update (WP 1.4), so the id is minted client-side first (ADR-0022), the photo
+// uploads to it, and the create call already carries the final path — one fewer step,
+// one fewer window.
+//
+// ONLY THE FIELDS THE FORM COLLECTS ARE EVER SENT — serial_number, parent_asset_id,
+// location_id, installed_on, expected_service_life_months, warranty_expires_on and
+// condition all go through as null. The contract has room for all seven; this form does
+// not grow new fields in this pass (WP 1.8's own scope is the cutover, not a redesign).
+function assetFieldsFromForm({ name, category, room, brand, model, purchasedOn, notes }) {
+  return {
+    name: (name || "").trim(),
+    type: category || DEFAULT_ITEM_CATEGORY,
+    roomLabel: orNull(room),
+    make: orNull(brand),
+    model: orNull(model),
+    acquiredOn: purchasedOn || null,
+    notes: orNull(notes),
+  };
+}
+
+async function uploadAssetPhoto(assetId, ownerId, file) {
+  const path = `${ownerId}/${assetId}/${crypto.randomUUID()}`;
+  const { error } = await supabase.storage.from("item-photos").upload(path, file, { contentType: file.type });
+  if (error) throw error;
+  return path;
+}
+
+/** Creates a real asset (property.assets) under a real property. `actorRef` is the
+ * caller's own auth id (ADR-0019 — the same value ConversationHome.jsx already passes
+ * as `ownerId`, since public.profiles.id references auth.users.id directly). */
+export async function createAsset({ propertyId, ownerId, actorRef, name, category, room, brand, model, purchasedOn, notes, photoFile }) {
+  const assetId = uuidv7();
+  const photoPath = photoFile ? await uploadAssetPhoto(assetId, ownerId, photoFile) : null;
+  const fields = assetFieldsFromForm({ name, category, room, brand, model, purchasedOn, notes });
+
+  const { error } = await supabase.schema("api").rpc("create_asset", {
+    p_asset_id: assetId,
+    p_property_id: propertyId,
+    p_name: fields.name,
+    p_type: fields.type,
+    p_make: fields.make,
+    p_model: fields.model,
+    p_serial_number: null,
+    p_parent_asset_id: null,
+    p_location_id: null,
+    p_room_label: fields.roomLabel,
+    p_acquired_on: fields.acquiredOn,
+    p_installed_on: null,
+    p_expected_service_life_months: null,
+    p_warranty_expires_on: null,
+    p_condition: null,
+    p_photo_path: photoPath,
+    p_notes: fields.notes,
+    p_source: "manual",
+    p_ai_suggestion: null,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
+  return { id: assetId, photoPath };
+}
+
+/** Edits a real asset. A new photo replaces the old one only after the update itself
+ * succeeds — the same "row first, then clean up the old object" ordering
+ * setHouseholdItemPhoto() already holds. */
+export async function updateAsset(assetId, { ownerId, actorRef, previousPhotoPath, name, category, room, brand, model, purchasedOn, notes, photoFile }) {
+  const photoPath = photoFile ? await uploadAssetPhoto(assetId, ownerId, photoFile) : previousPhotoPath || null;
+  const fields = assetFieldsFromForm({ name, category, room, brand, model, purchasedOn, notes });
+
+  const { error } = await supabase.schema("api").rpc("update_asset", {
+    p_asset_id: assetId,
+    p_name: fields.name,
+    p_type: fields.type,
+    p_make: fields.make,
+    p_model: fields.model,
+    p_serial_number: null,
+    p_parent_asset_id: null,
+    p_room_label: fields.roomLabel,
+    p_acquired_on: fields.acquiredOn,
+    p_installed_on: null,
+    p_expected_service_life_months: null,
+    p_warranty_expires_on: null,
+    p_condition: null,
+    p_photo_path: photoPath,
+    p_notes: fields.notes,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
+
+  if (photoFile && previousPhotoPath) await supabase.storage.from("item-photos").remove([previousPhotoPath]);
+  return { id: assetId, photoPath };
+}
+
+/** Retires a real asset (active -> retired, api.retire_asset()) — never a hard delete.
+ * api.my_assets() (0054) already excludes retired assets, so the item disappears from
+ * "Mijn spullen" exactly as a delete would appear to, while its history is kept. */
+export async function retireAsset(assetId, actorRef) {
+  const { error } = await supabase.schema("api").rpc("retire_asset", {
+    p_asset_id: assetId,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
 }
