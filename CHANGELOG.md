@@ -50,6 +50,48 @@ accurately.
 
 ### Added
 
+**Epic 12 — Marketplace Engine (complete, 6 of 6 packages, deliberately
+narrowed scope).** No client caller exists yet — pure addition, no
+Changed entry below it. Does not retire any of the five legacy triggers
+still driving booking today — see the scope note first.
+
+- **A scope determination, before anything was built**: Epic 09's own
+  header named the trigger retirement "the single largest behavioural
+  risk in the roadmap," and the roadmap's own risk register requires the
+  regression baseline (WP 00.08) before that switch. This epic builds
+  the complete new schema, backfills every real request/quote/booked
+  engagement, and ships a full contract proven to reproduce the five
+  legacy triggers exactly — but does not dual-write a real scoped access
+  grant, retire any trigger, or cut the live booking flow over. Recorded
+  explicitly, not silently narrowed.
+- **`work.requests`** — reuses `public.categories`/`services` directly
+  rather than migrating marketplace taxonomy (its own separate debt
+  item). `workflow_instance_id` is a real, unpopulated forward-connection
+  to Epic 09.
+- **`work.quotes`** — mirrors `public.quotes`' own shape, owned by the
+  offering workspace.
+- **`work.engagements`** — a bilateral object, both parties denormalised
+  directly. `service_record_id`/`maintenance_obligation_id` are real,
+  unpopulated forward-connections to Epics 11 and 10. Immutable once
+  completed or cancelled; no delete grant, ever.
+- **Backfilled: every request, quote and booked engagement** — reusing
+  Epic 03's own already-resolved `workspace_id` columns rather than
+  re-deriving the identity → membership → workspace chain a third time.
+- **The marketplace engine contract** — thirteen functions reproducing
+  the five legacy triggers exactly, including `accept_quote()`'s bulk
+  decline of every other open quote in one statement. No `api.*`
+  delegate for any of them.
+- **A real cross-schema privilege violation caught before it shipped**:
+  the first draft built `work.grant_engagement_access()`, inserting
+  directly into `workspace.memberships` from a role
+  (`klussie_engine_work`) holding no privilege on that table at all —
+  removed entirely. The scoped access grant `DATABASE_ARCHITECTURE.md`
+  §19 describes belongs to a future Workspace-owned consumer of this
+  epic's own `EngagementCreated` event, per `SYSTEM_ARCHITECTURE.md`'s
+  own Workspace section.
+
+- Test suite grew from 1136 tests across 108 files to **1183 across 114**.
+
 **Epic 11 — Service Record Engine (complete, 4 of 4 packages).**
 `DATABASE_ARCHITECTURE.md` §17 names this "the most consequential
 aggregate in the document" and "the highest-risk surface in the

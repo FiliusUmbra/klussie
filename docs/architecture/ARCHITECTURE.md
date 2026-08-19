@@ -500,13 +500,41 @@ owns the real underlying capability ships it — see
   was already named. No `api.*` delegate — the same posture, now a
   five-time pattern. Staging only for what was built; nothing applied
   anywhere.
+- **The marketplace engine exists, in a deliberately narrowed scope**
+  (Epic 12, 6/6 packages **for this epic's own boundary** — the actual
+  behavioural switch is a named, undone step, not this epic's job). Epic
+  09's own header named the trigger retirement "the single largest
+  behavioural risk in the roadmap," and the roadmap's own risk register
+  requires the regression baseline (WP 00.08) before that switch — see
+  `../../implementation/epic-12/COMPLETION.md` §5.1. `work.requests`/
+  `quotes`/`engagements` are built, backfilled (reusing Epic 03's own
+  already-resolved `workspace_id` columns rather than re-deriving the
+  identity chain a third time), and served by a thirteen-function
+  contract proven, structurally, to reproduce the five legacy triggers'
+  exact decisions (`VERIFY_MARKETPLACE_CONTRACT.sql`) — the guarded
+  first-quote transition, the bulk decline of every other open quote in
+  one statement, the completion and review side effects. **It does not**
+  dual-write a real scoped access grant, retire any legacy trigger, or
+  cut the live booking flow over. **A real cross-schema privilege
+  violation was caught mid-build**: the first draft's `work.
+  grant_engagement_access()` inserted directly into
+  `workspace.memberships` from `work` — a table `klussie_engine_work`
+  holds no privilege on at all, which would have failed the instant
+  anyone called it. Removed entirely; `SYSTEM_ARCHITECTURE.md`'s own
+  Workspace section already names the correct shape ("Events consumed.
+  `EngagementAccepted`") — the grant belongs to a future Workspace-owned
+  consumer of this epic's own `EngagementCreated` event. No `api.*`
+  delegate — the same posture, now a six-time pattern. Reputation
+  projection deferred — no `work.reviews` aggregate exists anywhere in
+  the frozen architecture to compute it from. Staging only for what was
+  built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
-  nor Epic 09's, nor Epic 10's, nor Epic 11's. Its migration ledger is
-  still unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
-  prerequisite for any push to it — see
-  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
-  `0018`–`0029` and owed an update through `0084`.
+  nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's. Its
+  migration ledger is still unreconciled
+  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
+  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
+  itself covering only `0018`–`0029` and owed an update through `0090`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
