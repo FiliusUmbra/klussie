@@ -7,6 +7,37 @@ import { getPreferredWorkspaceId, setPreferredWorkspaceId } from "./workspacePre
 
 const AuthContext = createContext(null);
 
+// Platform Activation Slice 1, WP 1.0 — every id `handle_new_user()` needs to create a
+// Personal Workspace, its founding membership, and a property for a brand-new signup, all
+// inside the same auth transaction. Extends the exact discipline `person_ref` already
+// established (SUPABASE_ARCHITECTURE.md §3: "an engine must know an aggregate's identity
+// before it writes, so it can emit an event referencing it in the same transaction") to
+// the three further aggregates and the three events the new signup path creates —
+// `0135_personal_workspace_provisioning.sql`'s own header explains why the trigger's
+// `platform.uuid_v7_at(now())` fallback (the same one `person_ref` already has) is a
+// defensive backstop for a malformed client, never the primary path this function exists
+// to be.
+//
+// FOUND WHILE SCOPING SLICE 1, NOT A KNOWN GAP BEFORE THIS
+//
+// No account created after Epic 03's own workspace backfill migration ran has ever
+// received a workspace at all — `handle_new_user()` only ever created a profile and an
+// identity. Every workspace-scoped engine built since (capabilities, properties, assets,
+// marketplace, everything) has been unreachable for any post-backfill signup, silently,
+// because AppShell.jsx's own fallback to the pre-Epic-03 `role` toggle for a
+// zero-membership person is graceful by design and never surfaced the gap as a bug.
+function newAccountProvisioningIds() {
+  return {
+    person_ref: uuidv7(),
+    workspace_id: uuidv7(),
+    membership_id: uuidv7(),
+    property_id: uuidv7(),
+    workspace_event_id: uuidv7(),
+    membership_event_id: uuidv7(),
+    property_event_id: uuidv7(),
+  };
+}
+
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
@@ -148,7 +179,7 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName || null, person_ref: uuidv7() } },
+      options: { data: { full_name: fullName || null, ...newAccountProvisioningIds() } },
     });
     if (error) throw error;
     return { needsEmailConfirmation: !data.session };
@@ -171,7 +202,7 @@ export function AuthProvider({ children }) {
   const signInWithOtp = async (email) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin, data: { person_ref: uuidv7() } },
+      options: { emailRedirectTo: window.location.origin, data: newAccountProvisioningIds() },
     });
     if (error) throw error;
   };
