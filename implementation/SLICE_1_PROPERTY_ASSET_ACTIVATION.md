@@ -24,7 +24,14 @@ the 'documents' Storage bucket and its workspace-membership policies,
 the open question §5 flagged answered: no such policy existed before
 this; four new customer-facing document_types seeded; property-level
 attachment only, matching WP 1.3's own read scope) is merged
-(#41). WP 1.7–1.9 and WP 1.10 (My Business reuse) have not
+(#41). WP 1.7 (maintenance write delegate —
+work.create_manual_maintenance_obligation(), a new function with a
+real membership + asset/location-stewardship check, never a change to
+the shared work.create_maintenance_obligation() that
+schedule/compliance/prediction still call directly and unchanged; see
+this WP's own migration for why a thin delegate alone would have
+reopened the exact hole WP 1.2 closed on the read side) is merged
+(#42). WP 1.8–1.9 and WP 1.10 (My Business reuse) have not
 started. This slice is substantially larger
 than Slice 0 — five engines, two client experiences, and (per §1 below)
 genuinely missing write contracts, not merely unwired read paths — and
