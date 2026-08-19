@@ -50,6 +50,45 @@ accurately.
 
 ### Added
 
+**Epic 14 — Billing Engine (complete, 5 of 5 packages).** No client
+caller exists yet — pure addition, no Changed entry below it. The first
+real revenue path: `src/lib/billing.js`'s `PLATFORM_COMMISSION_RATE` was
+a display-only constant with no persisted record; this epic formalises
+it as a real, immutable ledger.
+
+- **`commerce.invoices`** — immutable except `status`
+  (`issued` → `paid` → `credited`, `credited` a true terminal).
+  Multi-currency and multi-jurisdiction from the first row, no closed
+  list of either. `payer_workspace_id` is a real, unpopulated
+  forward-connection.
+- **Subscription (§11.1) is deliberately not this epic** — the roadmap
+  already sequences it separately, six epics later as Epic 22; nothing
+  here invents a subscription concept ahead of it.
+- **`commerce.credits`** — corrections by credit-and-reissue, never an
+  edit; append-only, enforced structurally.
+- **`commerce.payments`** — one table for both payments and payouts, a
+  `direction` column rather than two duplicated shapes, matching
+  `work.maintenance_obligations`' own `source`-column idiom (Epic 10).
+- **`commerce.issue_marketplace_commission_invoice()`** resolves a real
+  engagement's price and composes `commerce.issue_invoice()` rather than
+  duplicating its insert — the third occurrence of the "compose, don't
+  duplicate" pattern this session (`work.generate_due_obligation()`,
+  Epic 10). The commission rate is a required parameter, never a
+  hardcoded constant.
+- **`commerce.settle_payment()`** marks a linked invoice paid in the
+  same transaction as settling an inbound payment against it.
+- **A named gap in the frozen event vocabulary**: §11.2 has no
+  `PayoutFailed` event despite `commerce.payments.status` structurally
+  permitting a failed outbound payment. `commerce.fail_payment()` emits
+  it anyway, a minimal, consistent extension, recorded here rather than
+  silently worked around.
+- **No new bug class this epic** — every emitted event's `workspace_id`
+  is a real, directly-available column; the first epic since Epic 11
+  where the read-before-design pass found no structural bug, only scope
+  and naming findings.
+
+- Test suite grew from 1228 tests across 120 files to **1269 across 125**.
+
 **Epic 13 — Conversation Engine (complete, 6 of 6 packages, reviewed
 against every completed engine before implementation).** No client
 caller exists yet — pure addition, no Changed entry below it. Review
