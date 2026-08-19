@@ -284,26 +284,38 @@ SQL text.
 
 ### Tier 1 — Read
 
-**WP 2.1 — The request/quote/engagement read contracts**
+**WP 2.1 — The request/quote/engagement read contracts — Done**
 
 `api.my_requests()`, `api.resolve_request()`, `api.quotes_for_request()`,
 `api.my_quotes()`, `api.my_engagements()` — same two-layer shape as
 every prior read switch this programme has built, with one real
 difference: `quotes_for_request()`/`my_engagements()`'s own
 authorization check is two-sided, and should port `0088`'s own RLS
-predicate (§1.2) rather than re-derive it.
+predicate (§1.2) rather than re-derive it. Shipped as `0145`, verified
+on staging: the customer sees both competing quotes on their own
+request; each pro sees only their own quote, never a competitor's.
 
 ### Tier 2 — Write
 
-**WP 2.2 — Decision: how directed booking is represented**
+**WP 2.2 — Decision: how directed booking is represented — Done**
 
 Resolve §1.4. Real options — new columns on `work.requests` mirroring
 legacy's three, or workflow-definition configuration per `0085`'s own
 suggestion — named here because `create_request()`'s own caller-checked
 wrapper (WP 2.3) needs a real shape to build against, the same way WP
-1.0 was resolved before WP 1.4 needed it.
+1.0 was resolved before WP 1.4 needed it. Decided: new columns
+(`directed_workspace_id`/`directed_until`/`auto_accept_max`) — workflow-
+definition configuration would have silently pulled in §1.5's own step
+3, explicitly left open by this document. Shipped as `0146`, alongside
+WP 2.3 below (one migration, one decision plus its own implementation,
+per this program's own §1.3). Found and did not reproduce a real bug in
+legacy's own equivalent: `directed_until`'s column default breaks every
+ordinary insert once it fires — reproduced directly against staging,
+checked (read-only) against production too. Flagged to the user, not
+silently fixed on legacy's own table, which this migration never
+touches.
 
-**WP 2.3 — The request/quote/engagement write contracts**
+**WP 2.3 — The request/quote/engagement write contracts — Done**
 
 `api.create_request()`, `api.withdraw_request()`, `api.submit_quote()`,
 `api.decline_quote()`, `api.accept_quote()`, `api.complete_engagement()`,
@@ -312,7 +324,11 @@ wrapper (WP 2.3) needs a real shape to build against, the same way WP
 function" shape WP 1.7 and WP 1.10 both already established, for the
 identical reason: every one of these thirteen `work.*` functions is
 currently reachable by `klussie_engine_work` only, with no membership
-check of its own, and none should be redefined in place.
+check of its own, and none should be redefined in place. Shipped as
+`0146`. `submit_quote_for_caller()`'s own auto-accept cascade (a direct
+call to the unmodified `work.accept_quote()`, no trigger recursion to
+mirror) verified on staging: the right workspace, inside the window, at
+or under the ceiling auto-accepts; the wrong workspace does not.
 
 **WP 2.4 — The scoped access grant consumer — moved after WP 2.6, see this section's own header**
 
