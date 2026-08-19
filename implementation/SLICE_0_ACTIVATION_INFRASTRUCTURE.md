@@ -8,10 +8,12 @@ document applies that reasoning to one slice, in the level of detail
 `implementation/templates/WORK_PACKAGE.md` requires before a package can
 actually be picked up.
 
-**Status.** Scoping. Nothing below is implemented. Two of the seven work
-packages are ADRs and must reach at least `Proposed` status — the same
-bar `ADR-0020`/`0021`/`0022` sit at today — before the packages that
-depend on them can start.
+**Status.** Complete. All seven work packages built and verified against
+staging — `ADR-0029`/`0030` `Accepted`; `0132`–`0134` applied; the
+client shell and Audit viewer merged; `VERIFY_SLICE_0_END_TO_END.sql`
+(WP 0.7) passes. §6 below is the honest accounting — six of seven
+acceptance criteria hold; one does not yet, for a reason outside this
+slice's own scope, stated plainly rather than glossed over.
 
 **Why Slice 0 first.** Per the Programme's own §5: it activates no
 user-facing journey and is invisible to the homeowner and the
@@ -409,34 +411,69 @@ starts, not because Slice 0's own later packages need it.
 ## 6 · Acceptance criteria for "Slice 0 is done"
 
 Directly against the Programme's own §5 Slice 0 entry and §6 end-state
-conditions — not a new bar invented here:
+conditions — not a new bar invented here. Six of seven hold; the
+seventh honestly does not yet, and is explained rather than marked done
+regardless.
 
-- [ ] ADR-0029 and ADR-0030 both `Proposed` (§2, §3).
-- [ ] The Operations Workspace exists in staging, seeded, verified via
-  diagnostic (WP 0.3, WP 0.7).
-- [ ] `platform.audit_records` has a real, gated, tested read path — the
-  first non-`postgres` consumer of that table since Epic 01 (WP 0.4).
-- [ ] The Audit viewer is live and shows real data, including its own
-  bootstrap (WP 0.6).
-- [ ] Zero homeowner- or professional-facing behaviour changed — Slice 0
-  is invisible to both, exactly as the Programme states.
-- [ ] The Legacy Inventory (`PLATFORM_ACTIVATION_PROGRAMME.md` §3) gains
+- [x] ADR-0029 and ADR-0030 both `Accepted` (§2, §3) — explicit
+  confirmation received; both updated from `Proposed`.
+- [x] The Operations Workspace exists in staging, seeded, verified via
+  diagnostic (WP 0.3, WP 0.7) — `VERIFY_OPERATIONS_WORKSPACE.sql` and
+  `VERIFY_SLICE_0_END_TO_END.sql` both pass.
+- [x] `platform.audit_records` has a real, gated, tested read path — the
+  first non-`postgres` consumer of that table since Epic 01 (WP 0.4) —
+  `VERIFY_AUDIT_READ_PATH.sql` proves it with a real impersonated
+  session, both directions.
+- [ ] **The Audit viewer is live and shows real data, including its own
+  bootstrap (WP 0.6) — not met.** The viewer itself is real, correct,
+  and fully tested (`AuditLog.jsx`, verified against a fabricated
+  record in `VERIFY_AUDIT_READ_PATH.sql`/`VERIFY_SLICE_0_END_TO_END.sql`).
+  What's missing is real data to show: checked directly, exactly two
+  call sites for `platform.write_audit_record()` exist anywhere in the
+  codebase (`knowledge.promote_fact()`, the analytics contract), and
+  neither has ever been invoked through a live client —
+  `platform.audit_records` holds zero rows on staging, confirmed again
+  by WP 0.7's own diagnostic. This is not a Slice 0 defect; it's a
+  fact about the rest of the platform that Slice 0 surfaced rather than
+  caused. Closing it needs a later slice to wire a real audited action
+  (a support-access grant, a capability withdrawal) to an actual
+  caller — tracked here, not fixed here.
+- [x] Zero homeowner- or professional-facing behaviour changed — Slice 0
+  is invisible to both, exactly as the Programme states. Confirmed: no
+  file under `src/customer/`, `src/pro/`, or `src/home/` changed across
+  any Slice 0 work package.
+- [x] The Legacy Inventory (`PLATFORM_ACTIVATION_PROGRAMME.md` §3) gains
   no new row from this slice — nothing legacy is replaced yet, by
-  design.
-- [ ] The Activation Ratio dashboard (§4 of the Programme) has
+  design. Confirmed: no legacy table or client module was touched.
+- [x] The Activation Ratio dashboard (§4 of the Programme) has
   somewhere to live once it's built — this slice does not build the
   dashboard itself, only the Overview shell it will eventually sit in.
+  Read literally rather than generously: `OperatorApp.jsx` is that
+  shell (the workspace-gated container, the tab mechanism), currently
+  holding one tab (Audit); an Overview tab is additive to `TABS`, not a
+  redesign, whenever a later slice builds it.
 
 ---
 
-## 7 · Open questions carried into implementation
+## 7 · Open questions — resolved
 
-- **The §3.3 capability-describability tension** — WP 0.2's ADR must
-  take a position; this document deliberately does not.
-- **Naming.** `platform_operations` as the capability key and `Klussie
-  Operations` as the workspace name are working names, chosen for
-  clarity in this scoping pass, not committed — WP 0.2 may rename
-  either while drafting.
-- **Whether a denied audit-read attempt is itself audited** (WP 0.7) —
-  a real, small design decision, deliberately left to the ADR rather
-  than decided by a migration author under deadline.
+- **The §3.3 capability-describability tension** — resolved in
+  `ADR-0030`'s own text: a capability used solely to gate the
+  platform's own operator tooling, never granted to any customer-facing
+  plan or preset, is a stated, narrow exception to §6.2's
+  describability rule, not a violation of it.
+- **Naming.** Kept as scoped: `platform_operations` and `Klussie
+  Operations`, both live in `0132_operations_workspace.sql` unchanged.
+- **Whether a denied (or any) audit-read attempt is itself audited**
+  (WP 0.7) — **no.** Checked against `PLATFORM_DOMAIN_MODEL.md` §23's
+  own list of what must be audited — permission/membership changes,
+  access grants and revocations, commercial changes, exports or
+  deletions, administrative actions, intelligence actions on a
+  person's behalf. A plain view of the audit log, permitted or denied,
+  matches none of them; §23 names *export* specifically as the
+  auditable read-adjacent action (not built — out of scope per
+  `0133`'s own header), which is the textual signal that a plain view
+  without exporting was deliberately left out. `VERIFY_SLICE_0_END_TO_END.sql`
+  check 4 proves this structurally, not just by citation: reading
+  `platform.audit_records`, by an operator or a stranger, inserts no
+  new row into it.

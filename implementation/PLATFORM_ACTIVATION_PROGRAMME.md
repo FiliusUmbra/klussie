@@ -195,20 +195,33 @@ dependency, value, operational-readiness and Beta-1 reasoning as the
 superseded sequencing document, corrected for the coordination this
 document requires.
 
-### Slice 0 — Activation Infrastructure
+### Slice 0 — Activation Infrastructure — **Complete**
 
 *Enables every later slice; activates no user-facing journey itself.*
+Full work-package breakdown, verification detail, and the one honestly
+unmet acceptance criterion: `SLICE_0_ACTIVATION_INFRASTRUCTURE.md` §6.
 
-- **Decide:** the client-read strategy (RPC/API routes as the default,
-  per the reasoning in the superseded `ROADMAP_SEQUENCING.md` §3 —
-  unchanged by this restructuring) and the operator authentication
-  mechanism (`ROADMAP_C` §4/§10).
-- **Build:** the Audit viewer (`ROADMAP_C` §3.7) — the precondition for
-  every other slice's actions being provable, not optional groundwork.
-- **Homeowner / Professional:** invisible — no screen changes.
+- **Decided:** the client-read strategy (`ADR-0029` — RPC/API routes as
+  the default) and the operator authentication mechanism (`ADR-0030` —
+  a real membership in an internal Operations Workspace, not a new
+  access mechanism).
+- **Built:** the Operations Workspace and its capability (WP 0.3), the
+  audited read path onto `platform.audit_records` (WP 0.4), the client
+  shell and routing (WP 0.5), and the real Audit viewer (`ROADMAP_C`
+  §3.7, WP 0.6) — the precondition for every other slice's actions
+  being provable, not optional groundwork.
+- **Homeowner / Professional:** invisible, confirmed — no file under
+  `src/customer/`, `src/pro/`, or `src/home/` changed.
 - **Platform Operations:** this slice *is* Platform Operations'
-  foundation (`ROADMAP_C` Phase C1).
-- **Legacy replaced:** none yet — pure enablement.
+  foundation (`ROADMAP_C` Phase C1) — the first screen that product has
+  ever had.
+- **Legacy replaced:** none — pure enablement, as scoped.
+- **Known gap, carried forward, not fixed here:** the Audit viewer has
+  nothing real to show yet — `platform.audit_records` holds zero rows
+  on staging, because no engine's live code path calls
+  `platform.write_audit_record()` today. Closing it is a later slice's
+  job (wiring a real audited action — a support-access grant, a
+  capability withdrawal — to an actual caller), not Slice 0's.
 
 ### Slice 1 — Property & Asset Activation
 
