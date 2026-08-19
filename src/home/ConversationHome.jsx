@@ -117,6 +117,8 @@ export function ConversationHome({ onStart, requests = [], section = "klussie", 
             rooms={homeCtx.homeProfile?.rooms}
             documents={homeCtx.homeProfile?.documents}
             maintenance={homeCtx.maintenance}
+            propertyId={homeCtx.propertyId}
+            workspaceId={homeCtx.workspaceId}
           />
         </TabPanel>
 

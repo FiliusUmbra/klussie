@@ -8,14 +8,30 @@
 // The photo is uploaded after the row exists, because storage paths are keyed by item id.
 // A failed upload therefore leaves a real item without a picture rather than losing the
 // whole entry.
+//
+// Platform Activation Slice 1, WP 1.8 — TWO WRITE PATHS, CHOSEN BY WHETHER A REAL
+// PROPERTY EXISTS
+//
+// `propertyId` present means the real contract (api.create_asset()/update_asset()/
+// retire_asset(), WP 1.4) is used — every account WP 1.0 provisions. Its absence falls
+// back to the legacy household_items functions, the same two-tier shape
+// fetchHouseholdItems() already established for reads. "Delete" on the real path is
+// retire_asset() (active -> retired, never a hard delete) rather than deleteHouseholdItem
+// — api.my_assets() (0054) already excludes retired assets, so the item disappears from
+// this list exactly as a delete would, while its history is kept.
 import { useState, useRef } from "react";
 import { Camera, X, Trash2 } from "lucide-react";
 import { Drawer, Modal, Button } from "../design-system";
 import { ITEM_CATEGORIES, SUGGESTED_ROOMS, DEFAULT_ITEM_CATEGORY, canSaveItem } from "../lib/itemCategories.js";
-import { createHouseholdItem, updateHouseholdItem, setHouseholdItemPhoto, deleteHouseholdItem } from "../lib/householdItems.js";
+import { createHouseholdItem, updateHouseholdItem, setHouseholdItemPhoto, deleteHouseholdItem, createAsset, updateAsset, retireAsset } from "../lib/householdItems.js";
 
-export function ItemFormSheet({ t, ownerId, item, onClose, onSaved }) {
+export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }) {
   const editing = !!item;
+  // The caller's own auth id doubles as ADR-0019's actor_ref — public.profiles.id
+  // references auth.users.id directly (0001), so ownerId already IS that value; no
+  // separate prop is threaded down just to carry the same id under a second name.
+  const usingRealContract = !!propertyId;
+  const actorRef = ownerId;
   const [name, setName] = useState(item?.name || "");
   const [category, setCategory] = useState(item?.category || DEFAULT_ITEM_CATEGORY);
   const [room, setRoom] = useState(item?.room || "");
@@ -45,12 +61,20 @@ export function ItemFormSheet({ t, ownerId, item, onClose, onSaved }) {
     setError("");
     setBusy(true);
     try {
-      const payload = { ownerId, name, category, room, brand, model, purchasedOn, notes };
-      const saved = editing
-        ? await updateHouseholdItem(item.id, payload)
-        : await createHouseholdItem(payload);
-      if (photoFile) {
-        await setHouseholdItemPhoto(saved.id, ownerId, photoFile, item?.photoPath || null);
+      const fields = { name, category, room, brand, model, purchasedOn, notes };
+      if (usingRealContract) {
+        if (editing) {
+          await updateAsset(item.id, { ownerId, actorRef, previousPhotoPath: item.photoPath, photoFile, ...fields });
+        } else {
+          await createAsset({ propertyId, ownerId, actorRef, photoFile, ...fields });
+        }
+      } else {
+        const saved = editing
+          ? await updateHouseholdItem(item.id, { ownerId, ...fields })
+          : await createHouseholdItem({ ownerId, ...fields });
+        if (photoFile) {
+          await setHouseholdItemPhoto(saved.id, ownerId, photoFile, item?.photoPath || null);
+        }
       }
       await onSaved();
       onClose();
@@ -65,7 +89,11 @@ export function ItemFormSheet({ t, ownerId, item, onClose, onSaved }) {
     setError("");
     setBusy(true);
     try {
-      await deleteHouseholdItem(item.id, item.photoPath);
+      if (usingRealContract) {
+        await retireAsset(item.id, actorRef);
+      } else {
+        await deleteHouseholdItem(item.id, item.photoPath);
+      }
       await onSaved();
       onClose();
     } catch (err) {

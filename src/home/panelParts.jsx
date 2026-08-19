@@ -14,10 +14,18 @@
 // The empty line is always a real sentence about that specific section — "no professional
 // has finished a job here yet" — rather than one generic "nothing saved" repeated down the
 // page, which tells someone nothing about what would fill it.
-export function HomeSection({ title, emptyText, children, isEmpty }) {
+//
+// `action` (Platform Activation Slice 1, WP 1.8): an optional node rendered beside the
+// title, for a section that can add its own content (a "+ Add" button). Optional and
+// additive — every existing caller (MyHomePanel.jsx's five read-only sections) renders
+// exactly as before without it.
+export function HomeSection({ title, emptyText, children, isEmpty, action }) {
   return (
     <section className="home-group">
-      <h3 className="home-group-title">{title}</h3>
+      <h3 className="home-group-title">
+        {title}
+        {action}
+      </h3>
       {isEmpty ? <p className="home-group-empty">{emptyText}</p> : children}
     </section>
   );

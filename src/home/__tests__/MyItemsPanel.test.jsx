@@ -2,8 +2,17 @@
 // four (Locations, Maintenance, Items, Documents), all real reads now, all but Items
 // read-only (no write contract exists yet for Location/Document/Maintenance — Tier 2,
 // SLICE_1_PROPERTY_ASSET_ACTIVATION.md WP 1.4-1.7).
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+//
+// WP 1.8 — Locations and Documents gained a real write surface (LocationFormSheet.jsx/
+// DocumentUploadSheet.jsx); Maintenance did not (no client caller is named in this work
+// package's own scope). Both new libraries are mocked here the same way ItemFormSheet's
+// own dependency already is in other test files — this file renders the sheets, not
+// their own save logic, which is each sheet's own test's job.
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+
+vi.mock("../../lib/locations.js", () => ({ createLocation: vi.fn(() => Promise.resolve({ id: "loc-new" })) }));
+vi.mock("../../lib/documents.js", () => ({ createDocument: vi.fn(() => Promise.resolve({ id: "doc-new" })) }));
 
 import { MyItemsPanel } from "../MyItemsPanel.jsx";
 
@@ -26,6 +35,14 @@ const t = {
   myItemsDocumentsEmpty: "No documents added yet.",
   myItemsDocumentExpired: "Expired",
   myItemsDocumentValidUntil: "Valid until {date}",
+  locationFormAddTitle: "Add a room", locationFormNameLabel: "Name",
+  locationFormNamePlaceholder: "e.g. Attic", locationFormTypeLabel: "Type",
+  locationFormTypePlaceholder: "e.g. bedroom", locationFormParentLabel: "Inside",
+  locationFormParentNone: "None — top level", locationFormSaveNew: "Save room",
+  documentFormAddTitle: "Add a document", documentFormFileLabel: "File", documentFormFileAdd: "Choose file",
+  documentFormTypeLabel: "Type", documentTypeWarranty: "Warranty", documentTypeCertificate: "Certificate",
+  documentTypeManual: "Manual", documentTypeOther: "Other",
+  documentFormIssuerLabel: "Issuer", documentFormValidUntilLabel: "Valid until", documentFormSaveNew: "Save document",
 };
 
 const fmtDate = (iso) => iso;
@@ -127,5 +144,38 @@ describe("MyItemsPanel — Items section still works alongside the new ones", ()
     expect(screen.getByText("No rooms added yet.")).toBeTruthy();
     expect(screen.getByText("Nothing scheduled or overdue.")).toBeTruthy();
     expect(screen.getByText("No documents added yet.")).toBeTruthy();
+  });
+});
+
+describe("MyItemsPanel — adding a room or document (WP 1.8)", () => {
+  it("withholds both '+' actions when no real property exists yet", () => {
+    render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} />);
+    expect(screen.queryByLabelText("Add a room")).toBeNull();
+    expect(screen.queryByLabelText("Add a document")).toBeNull();
+  });
+
+  it("shows both '+' actions once a real property exists", () => {
+    render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" />);
+    expect(screen.getByLabelText("Add a room")).toBeTruthy();
+    expect(screen.getByLabelText("Add a document")).toBeTruthy();
+  });
+
+  it("opens LocationFormSheet from the Rooms section's '+' action", () => {
+    render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" />);
+    fireEvent.click(screen.getByLabelText("Add a room"));
+    expect(screen.getByText("Add a room")).toBeTruthy();
+    expect(screen.getByLabelText("Name")).toBeTruthy();
+  });
+
+  it("opens DocumentUploadSheet from the Documents section's '+' action", () => {
+    render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" />);
+    fireEvent.click(screen.getByLabelText("Add a document"));
+    expect(screen.getByText("Add a document")).toBeTruthy();
+    expect(screen.getByLabelText("File")).toBeTruthy();
+  });
+
+  it("does not offer maintenance creation — no client caller is named in this work package's scope", () => {
+    render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" />);
+    expect(screen.queryByLabelText(/maintenance/i)).toBeNull();
   });
 });

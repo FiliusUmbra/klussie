@@ -70,6 +70,12 @@ export function useHomeContext({ t, profile, requests }) {
   const { activeWorkspace } = useAuth();
   const workspaceId = activeWorkspace?.workspace_id;
 
+  // Items/homeProfile/maintenance all reload on the same token rather than by calling a
+  // fetch function directly, so each read lives in one effect with one cancellation
+  // path. `refreshItems` only asks for another pass; it never sets state itself.
+  const [reloadToken, setReloadToken] = useState(0);
+  const refreshItems = useCallback(() => setReloadToken((n) => n + 1), []);
+
   useEffect(() => {
     let cancelled = false;
     // A failed trust fetch leaves `trust` null, which simply drops the data-backed
@@ -81,13 +87,12 @@ export function useHomeContext({ t, profile, requests }) {
       .then((p) => { if (!cancelled) setHomeProfile(p); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+    // Platform Activation Slice 1, WP 1.8 — reloadToken added: adding a real location
+    // or document (LocationFormSheet.jsx/DocumentUploadSheet.jsx) calls the same
+    // refreshItems() an item save already does, and until now this effect never re-ran
+    // for it — homeProfile.rooms/.documents would still show a stale list every time.
+  }, [reloadToken]);
 
-  // Items reload on a token rather than by calling a fetch function directly, so the
-  // read lives in one effect with one cancellation path. `refreshItems` only asks for
-  // another pass; it never sets item state itself.
-  const [reloadToken, setReloadToken] = useState(0);
-  const refreshItems = useCallback(() => setReloadToken((n) => n + 1), []);
   const propertyId = homeProfile?.property?.id;
 
   useEffect(() => {
@@ -152,5 +157,11 @@ export function useHomeContext({ t, profile, requests }) {
     itemsError,
     maintenance,
     refreshItems,
+    // Platform Activation Slice 1, WP 1.8 — both already resolved above; re-exposed so
+    // MyItemsPanel.jsx's new write surfaces (ItemFormSheet/LocationFormSheet/
+    // DocumentUploadSheet) can reach them without re-deriving workspaceId from
+    // useAuth() a second time or reaching into homeProfile.property.id themselves.
+    workspaceId,
+    propertyId,
   };
 }

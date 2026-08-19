@@ -21,15 +21,26 @@ import { useState } from "react";
 import { Plus, Pencil } from "lucide-react";
 import { groupByCategory } from "../lib/itemCategories.js";
 import { ItemFormSheet } from "./ItemFormSheet.jsx";
+import { LocationFormSheet } from "./LocationFormSheet.jsx";
+import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
 import { interpolate } from "../lib/homeStrings.js";
 import { Badge } from "../design-system";
 import { HomeSection } from "./panelParts.jsx";
 
-// Platform Activation Slice 1, WP 1.3 — Locations, Maintenance and Documents below are
-// read-only, deliberately. No write contract exists yet for any of the three (Tier 2,
-// SLICE_1_PROPERTY_ASSET_ACTIVATION.md WP 1.4/1.5/1.6/1.7) — this pass wires the real
-// read side of all five engines into one panel, the same restraint every earlier "read
-// switch" in this slice already held before its own write side existed.
+// Platform Activation Slice 1, WP 1.3 wired the real read side of all five engines into
+// one panel, Locations/Maintenance/Documents deliberately read-only until their own
+// write contracts existed (Tier 2, WP 1.4-1.7). WP 1.8 is that write side, for Locations
+// and Documents specifically (per SLICE_1_PROPERTY_ASSET_ACTIVATION.md's own WP 1.8
+// scope — no maintenance-creation UI is named there, so none is added here either).
+// Maintenance stays read-only in this panel; api.create_maintenance_obligation() (WP 1.7)
+// exists but this work package does not name a client caller for it.
+function SectionAddButton({ label, onClick }) {
+  return (
+    <button type="button" className="home-section-action" onClick={onClick} aria-label={label}>
+      <Plus size={13} aria-hidden="true" />
+    </button>
+  );
+}
 
 // One node of the location tree (src/lib/homeInventory.js's buildLocationTree()),
 // rendered recursively. `type` is a configurable, unconstrained taxonomy value (migration
@@ -136,8 +147,12 @@ function ItemCard({ item, onEdit }) {
   );
 }
 
-export function MyItemsPanel({ t, ownerId, items, itemsError, onRefresh, fmtDate, rooms, documents, maintenance }) {
-  const [formFor, setFormFor] = useState(null); // { item } | { item: null } | null
+export function MyItemsPanel({
+  t, ownerId, items, itemsError, onRefresh, fmtDate, rooms, documents, maintenance, propertyId, workspaceId,
+}) {
+  // null | { type: "item", item } | { type: "location" } | { type: "document" }
+  const [activeSheet, setActiveSheet] = useState(null);
+  const canAddRoomsOrDocuments = !!propertyId;
 
   const groups = groupByCategory(items);
   const loading = items === null && !itemsError;
@@ -146,7 +161,7 @@ export function MyItemsPanel({ t, ownerId, items, itemsError, onRefresh, fmtDate
     <div className="home-panel">
       <h2 className="home-panel-question">{t.myItemsQuestion}</h2>
 
-      <button type="button" className="home-panel-action" onClick={() => setFormFor({ item: null })}>
+      <button type="button" className="home-panel-action" onClick={() => setActiveSheet({ type: "item", item: null })}>
         <Plus size={15} aria-hidden="true" /> {t.itemAddTitle}
       </button>
 
@@ -154,8 +169,18 @@ export function MyItemsPanel({ t, ownerId, items, itemsError, onRefresh, fmtDate
           resolving (useHomeContext.js's own "null means not loaded yet" convention,
           reused here) — rendered as their section's empty state until then, never a
           separate loading line of its own, since a wrong-but-brief "nothing yet" costs
-          less here than three more loading strings would. */}
-      <HomeSection title={t.myItemsRoomsTitle} emptyText={t.myItemsRoomsEmpty} isEmpty={!rooms?.length}>
+          less here than three more loading strings would.
+          The "+" action is withheld until a real property exists (canAddRoomsOrDocuments)
+          — create_location()/create_document() both require one, and a customer without
+          one yet has nowhere for a new room or document to attach to. */}
+      <HomeSection
+        title={t.myItemsRoomsTitle}
+        emptyText={t.myItemsRoomsEmpty}
+        isEmpty={!rooms?.length}
+        action={canAddRoomsOrDocuments && (
+          <SectionAddButton label={t.locationFormAddTitle} onClick={() => setActiveSheet({ type: "location" })} />
+        )}
+      >
         <LocationTree rooms={rooms || []} />
       </HomeSection>
 
@@ -192,7 +217,7 @@ export function MyItemsPanel({ t, ownerId, items, itemsError, onRefresh, fmtDate
           </h3>
           <ul className="item-grid">
             {group.items.map((item) => (
-              <ItemCard key={item.id} item={item} onEdit={(i) => setFormFor({ item: i })} />
+              <ItemCard key={item.id} item={item} onEdit={(i) => setActiveSheet({ type: "item", item: i })} />
             ))}
           </ul>
         </section>
@@ -202,16 +227,42 @@ export function MyItemsPanel({ t, ownerId, items, itemsError, onRefresh, fmtDate
         title={t.myItemsDocumentsTitle}
         emptyText={t.myItemsDocumentsEmpty}
         isEmpty={!documents?.length}
+        action={canAddRoomsOrDocuments && (
+          <SectionAddButton label={t.documentFormAddTitle} onClick={() => setActiveSheet({ type: "document" })} />
+        )}
       >
         <DocumentList t={t} fmtDate={fmtDate} documents={documents || []} />
       </HomeSection>
 
-      {formFor && (
+      {activeSheet?.type === "item" && (
         <ItemFormSheet
           t={t}
           ownerId={ownerId}
-          item={formFor.item}
-          onClose={() => setFormFor(null)}
+          propertyId={propertyId}
+          item={activeSheet.item}
+          onClose={() => setActiveSheet(null)}
+          onSaved={onRefresh}
+        />
+      )}
+
+      {activeSheet?.type === "location" && (
+        <LocationFormSheet
+          t={t}
+          propertyId={propertyId}
+          actorRef={ownerId}
+          rooms={rooms || []}
+          onClose={() => setActiveSheet(null)}
+          onSaved={onRefresh}
+        />
+      )}
+
+      {activeSheet?.type === "document" && (
+        <DocumentUploadSheet
+          t={t}
+          propertyId={propertyId}
+          workspaceId={workspaceId}
+          actorRef={ownerId}
+          onClose={() => setActiveSheet(null)}
           onSaved={onRefresh}
         />
       )}

@@ -207,6 +207,19 @@ export const HOME_CSS = `
 .maintenance-row-title, .document-row-caption{ flex:1; min-width:0; }
 .maintenance-row-due, .document-row-validity{ font-size:11.5px; color:var(--ink-soft); flex:none; }
 
+/* ---- My Items, WP 1.8: the Location/Document section "+" action, and the picked-file
+   row DocumentUploadSheet shows once a file is chosen ---- */
+.home-section-action{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px; flex:none; padding:0;
+  border:none; border-radius:999px; background:var(--sage-bg); color:var(--forest-dark); cursor:pointer;
+}
+.document-file-picked{
+  display:flex; align-items:center; gap:var(--space-2);
+  font-size:12.5px; color:var(--ink); padding:var(--space-3);
+  background:var(--sage-bg); border-radius:10px;
+}
+
 /* ---- My Home: the property record ---- */
 
 /* The header is a quiet band, not a stat dashboard — the brief asks for a calm record,
