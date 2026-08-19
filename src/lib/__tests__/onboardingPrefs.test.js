@@ -60,27 +60,23 @@ describe("isEligibleForFirstLoginTour", () => {
   const newAccount = { created_at: "2026-08-12T10:00:00Z" };
 
   it("shows the tour to a new customer who has never seen it", () => {
-    expect(isEligibleForFirstLoginTour({ profile: newAccount, userId: "u1", roleSelected: true })).toBe(true);
-  });
-
-  it("never opens over the role question, which owns the screen until it is answered", () => {
-    expect(isEligibleForFirstLoginTour({ profile: newAccount, userId: "u1", roleSelected: false })).toBe(false);
+    expect(isEligibleForFirstLoginTour({ profile: newAccount, userId: "u1" })).toBe(true);
   });
 
   it("does not show it again once completed", () => {
     const profile = { ...newAccount, home_tour_completed_at: "2026-08-12T11:00:00Z" };
-    expect(isEligibleForFirstLoginTour({ profile, userId: "u1", roleSelected: true })).toBe(false);
+    expect(isEligibleForFirstLoginTour({ profile, userId: "u1" })).toBe(false);
   });
 
   it("leaves existing customers alone — the tour is for new accounts only", () => {
     // Their home_tour_completed_at is null too, since the column postdates them; without
     // the ship-date cutoff every established customer would be walked through the basics.
     const established = { created_at: "2026-05-01T09:00:00Z" };
-    expect(isEligibleForFirstLoginTour({ profile: established, userId: "u1", roleSelected: true })).toBe(false);
+    expect(isEligibleForFirstLoginTour({ profile: established, userId: "u1" })).toBe(false);
   });
 
   it("treats an unreadable created_at as pre-existing rather than guessing", () => {
-    expect(isEligibleForFirstLoginTour({ profile: {}, userId: "u1", roleSelected: true })).toBe(false);
-    expect(isEligibleForFirstLoginTour({ profile: { created_at: "nonsense" }, userId: "u1", roleSelected: true })).toBe(false);
+    expect(isEligibleForFirstLoginTour({ profile: {}, userId: "u1" })).toBe(false);
+    expect(isEligibleForFirstLoginTour({ profile: { created_at: "nonsense" }, userId: "u1" })).toBe(false);
   });
 });

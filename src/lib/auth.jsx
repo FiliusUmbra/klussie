@@ -14,10 +14,14 @@ export function useAuth() {
 }
 
 // The person's own attributes now come from the identity engine (Epic 02 WP06, step 5 of
-// the migration pattern). `public.profiles` is still read, and still written, for the two
-// things that are not attributes of a person: `onboarding_role_selected` and
-// `home_tour_completed_at` are state about a session, and WP 02.01 deliberately gave the
-// identity row no column for either.
+// the migration pattern). `public.profiles` is still read, and still written, for the
+// thing that is not an attribute of a person: `home_tour_completed_at` is state about a
+// session, and WP 02.01 deliberately gave the identity row no column for it.
+// (`onboarding_role_selected` is the same kind of session state, but nothing writes it
+// any more — the pre-launch audit's §2.5 finding (PLATFORM_DOMAIN_MODEL.md §27: "never
+// asks a person to classify themselves") removed the classification gate that used to
+// set it; see AppShell.jsx. The column itself is left alone, unread and permanently
+// false on new signups, rather than dropped by a migration only this removal motivated.)
 //
 // The merged object is the shape every consumer already receives. Nothing downstream
 // changes, which is the point: ADR-0023's success condition is that a user cannot tell.
@@ -210,15 +214,6 @@ export function AuthProvider({ children }) {
     await refreshProfile(session.user.id);
   };
 
-  // Marks the post-auth "how will you use Klussie" question as answered,
-  // whichever branch the user picked — see RoleSelectionScreen in App.jsx.
-  const markRoleSelected = async () => {
-    if (!session?.user) throw new Error("Not signed in.");
-    const { error } = await supabase.from("profiles").update({ onboarding_role_selected: true }).eq("id", session.user.id);
-    if (error) throw error;
-    await refreshProfile(session.user.id);
-  };
-
   const value = {
     session,
     user: session?.user ?? null,
@@ -239,7 +234,6 @@ export function AuthProvider({ children }) {
     signOut,
     becomePro,
     updateProfile,
-    markRoleSelected,
     refreshProfile: () => refreshProfile(session?.user?.id ?? null),
   };
 

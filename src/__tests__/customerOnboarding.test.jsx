@@ -172,12 +172,6 @@ describe("useHomeTour — shown once, replayable forever", () => {
     expect(state()).toBe("open");
   });
 
-  it("never opens over the role question", () => {
-    authState.profile = { onboarding_role_selected: false, created_at: "2026-08-12T10:00:00Z" };
-    render(<Harness />);
-    expect(state()).toBe("closed");
-  });
-
   it("does not open for a customer who already completed it", () => {
     authState.profile = { onboarding_role_selected: true, created_at: "2026-08-12T10:00:00Z", home_tour_completed_at: "2026-08-12T11:00:00Z" };
     render(<Harness />);
