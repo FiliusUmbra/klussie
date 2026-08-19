@@ -382,12 +382,35 @@ owns the real underlying capability ships it — see
   `src/lib/portfolio.js`, each with a proven fallback
   (`../../implementation/epic-08/COMPLETION.md`). Staging only for what
   was built; nothing applied anywhere.
+- **The workflow engine exists, complete** (Epic 09, 5/5 packages) —
+  `work.workflow_definitions` (versioned per `definition_key`, immutable
+  once published except `deprecated_at`, never deleted) and
+  `work.workflow_instances`/`work.workflow_transitions` (ADR-0028's
+  mutable-pointer-plus-append-only-log shape, a fourth application).
+  **Does not retire the five legacy triggers** (`on_quote_accepted`,
+  `on_job_completed`, `on_review_created`, `on_request_created`,
+  `on_quote_sent`) or touch `public.service_requests`/`public.quotes` —
+  read before design found a workflow instance needs a workspace-scoped
+  subject those tables do not have until Epic 12's own migration gives
+  them one, so this epic builds the real, generic engine and a real
+  published definition (`booking_request_lifecycle` v1, reproducing the
+  five triggers' actual decisions including the `quotes_ready` self-loop
+  a second `QuoteSubmitted` needs) without wiring it to anything live
+  yet — `../../implementation/epic-09/COMPLETION.md` §5.1. The engine
+  contract (`work.start_workflow_instance()`,
+  `work.transition_workflow_instance()`, three read functions) has no
+  `api.*` delegate — `property.reparent_location()`'s own precedent
+  (migration 0047: granted to the engine role only, no client caller
+  yet), not `property.my_documents()`'s. `subject_type`/`subject_id` is a
+  polymorphic pair with no foreign key, reusing `platform.emit_event()`'s
+  own shape (migration 0023) rather than inventing a new one. Staging
+  only for what was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
-  Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's. Its migration
-  ledger is still unreconciled (`../operations/ENVIRONMENTS.md` §9),
-  which is a prerequisite for any push to it — see
-  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering
-  only `0018`–`0029` and owed an update through `0063`.
+  Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's, nor Epic 09's.
+  Its migration ledger is still unreconciled
+  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
+  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
+  itself covering only `0018`–`0029` and owed an update through `0070`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but
