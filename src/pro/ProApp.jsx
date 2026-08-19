@@ -6,7 +6,7 @@
 // subscription only has to be rebuilt when that set actually changes, not on every
 // re-render. `categoryKey` is what makes that comparison cheap.
 import { useState, useEffect } from "react";
-import { User, ClipboardList, MessageCircle, Briefcase } from "lucide-react";
+import { User, ClipboardList, MessageCircle, Briefcase, Building2 } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import {
@@ -25,13 +25,17 @@ import { LoadingScreen } from "../ui/Loading.jsx";
 import { ProDashboard } from "./ProDashboard.jsx";
 import { ProJobs } from "./ProJobs.jsx";
 import { ProProfile } from "./ProProfile.jsx";
+import { MyBusinessPanel } from "./MyBusinessPanel.jsx";
 import { SendQuoteSheet } from "./SendQuoteSheet.jsx";
 import { offeredCategoryIds } from "../lib/proStatus.js";
 import { netEarnings } from "../lib/billing.js";
 import { unreadTotal } from "../lib/conversationSelectors.js";
 
 export function ProApp({ showToast }) {
-  const { t, BASE_SERVICES } = useLang();
+  // Platform Activation Slice 1, WP 1.10 — fmtDate added for MyBusinessPanel.jsx's own
+  // reuse of MyItemsPanel.jsx, which formats maintenance due-dates and document validity
+  // dates the same way ConversationHome.jsx's own customer surface already does.
+  const { t, BASE_SERVICES, fmtDate } = useLang();
   const { user, activeWorkspace } = useAuth();
   // Epic 03 WP11 — a pro's own Professional Workspace, threaded into fetchProServices only.
   // Not threaded into fetchConversations/subscribeToConversationsForUser: those match on
@@ -100,11 +104,13 @@ export function ProApp({ showToast }) {
         {tab === "profile" && (
           <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} onPauseToggled={refreshLeads} />
         )}
+        {tab === "business" && <MyBusinessPanel t={t} fmtDate={fmtDate} />}
       </div>
 
       <BottomNav tab={tab} setTab={setTab} items={[
         { id: "dashboard", label: t.navDashboard, icon: Briefcase, badge: leads.length },
         { id: "jobs", label: t.navMyJobs, icon: ClipboardList },
+        { id: "business", label: t.navMyBusiness, icon: Building2 },
         { id: "messages", label: t.navMessages, icon: MessageCircle, badge: unreadTotal(conversations) },
         { id: "profile", label: t.navProfile, icon: User },
       ]} />
