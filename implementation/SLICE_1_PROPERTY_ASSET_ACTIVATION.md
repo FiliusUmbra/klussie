@@ -41,7 +41,7 @@ covers, before this landed; new LocationFormSheet.jsx/
 DocumentUploadSheet.jsx give Locations and Documents their first write
 surface, both gated on a real property existing; Maintenance stays
 read-only — no client caller is named in this work package's own scope)
-is merged (#PR_NUMBER). WP 1.9 and WP 1.10 (My Business reuse) have not
+is merged (#43). WP 1.9 and WP 1.10 (My Business reuse) have not
 started. This slice is substantially larger
 than Slice 0 — five engines, two client experiences, and (per §1 below)
 genuinely missing write contracts, not merely unwired read paths — and
