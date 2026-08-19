@@ -50,6 +50,33 @@ accurately.
 
 ### Added
 
+**Epic 22 — Subscription Engine (complete, 3 of 3 packages).** No client
+caller exists yet — pure addition, no Changed entry below it. Built
+immediately after Epic 21, on the roadmap's own forward sequencing —
+the last named epic in Tier "Services and Commercial" (Epics 19–22).
+
+- **`platform.plans`** — five real plans seeded (personal, premium_home,
+  professional, business, enterprise; White Label deliberately not
+  seeded, named "(future)" in `PLATFORM_DOMAIN_MODEL.md` §24's own
+  table), each capability bundle dependency-ordered against the real
+  capability dependency table.
+- **`commerce.subscriptions`** — one row per workspace, structurally
+  enforced; `payer` a polymorphic `{payerType, payerRef}` jsonb.
+- **The second genuinely mutable aggregate this session has built**,
+  after Epic 19's notification preferences.
+- **The first true cross-engine contract call this session has made** —
+  this contract calls `workspace.grant_capability()`/
+  `withdraw_capability()` directly, since Subscription "requests"
+  capability grants rather than owning them.
+- **Capabilities are granted in the plan's own order and withdrawn in
+  reverse** — a correctness requirement, not a style choice.
+- **`TrialStarted`/`TrialExpired`** are a distinct aggregate token from
+  the four ordinary subscription-lifecycle events.
+- **`event_type` minted correctly from the start** — the seventh epic
+  in a row to do so.
+
+- Test suite grew from 1461 tests across 150 files to **1488 across 154**.
+
 **Epic 21 — Analytics Engine (complete, 3 of 3 packages).** No client
 caller exists yet — pure addition, no Changed entry below it. Built
 immediately after Epic 20, on the roadmap's own forward sequencing.

@@ -819,15 +819,49 @@ owns the real underlying capability ships it — see
   the sixth epic in a row. No `api.*` delegate — the same posture, now a
   sixteen-time pattern. Staging only for what was built; nothing applied
   anywhere.
+- **The subscription engine exists, complete** (Epic 22, 3/3 packages)
+  — built immediately after Epic 21, on the roadmap's own forward
+  sequencing, the last named epic in Tier "Services and Commercial"
+  (Epics 19–22). `platform.plans` mirrors `platform.capabilities`' own
+  placement exactly — a catalogue is platform-wide configuration, not a
+  tenant's own data, and `PLATFORM_DOMAIN_MODEL.md` §24 itself says "no
+  code knows what a tier is." Five real plans seeded (personal,
+  premium_home, professional, business, enterprise — White Label
+  deliberately not seeded, named "(future)" in §24's own table), each
+  `capability_keys` dependency-ordered against Epic 04's real 5-edge
+  dependency table, not invented from prose alone. `commerce.subscriptions`
+  — one row per workspace, structurally enforced; `payer` a polymorphic
+  `{payerType, payerRef}` jsonb, not a typed `workspace_id` column,
+  mirroring Epic 18's own provider-identity shape. **The second
+  genuinely mutable aggregate this session has built**, after Epic 19's
+  notification preferences — real `UPDATE`, no guard trigger. **The
+  first true cross-engine contract call this session has made**: every
+  function until now touched only its own schema; this one calls
+  `workspace.grant_capability()`/`withdraw_capability()` directly, since
+  `SYSTEM_ARCHITECTURE.md` §11.1 states Subscription "does not own
+  capability grants themselves — it *requests* them, and Capability
+  decides." `klussie_engine_commerce` needed `USAGE` on schema
+  `workspace` and `EXECUTE` on both functions, granted here for the
+  first time. Capabilities are granted in the plan's own dependency-safe
+  order and withdrawn in **reverse** — a correctness requirement, since
+  `workspace.withdraw_capability()` refuses to withdraw a capability
+  while something still held depends on it. Grant/withdraw loops swallow
+  exactly two precondition messages ("already holds," "does not
+  currently hold") and nothing else. `TrialStarted`/`TrialExpired` are a
+  distinct aggregate token from the four ordinary subscription-lifecycle
+  events, matching §11.1's own event list exactly. `event_type` minted
+  correctly from the start, the seventh epic in a row. No `api.*`
+  delegate — the same posture, now a seventeen-time pattern. Staging
+  only for what was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
   Epic 04's, nor Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's,
   nor Epic 09's, nor Epic 10's, nor Epic 11's, nor Epic 12's, nor
   Epic 13's, nor Epic 14's, nor Epic 15's, nor Epic 16's, nor Epic 17's,
-  nor Epic 19's, nor Epic 18's, nor Epic 20's, nor Epic 21's. Its
-  migration ledger is still unreconciled (`../operations/ENVIRONMENTS.md`
-  §9), which is a prerequisite for any push to it — see
-  `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering only
-  `0018`–`0029` and owed an update through `0126`.
+  nor Epic 19's, nor Epic 18's, nor Epic 20's, nor Epic 21's, nor
+  Epic 22's. Its migration ledger is still unreconciled
+  (`../operations/ENVIRONMENTS.md` §9), which is a prerequisite for any
+  push to it — see `../operations/PRODUCTION_MIGRATION_0018_0029.md`,
+  itself covering only `0018`–`0029` and owed an update through `0130`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

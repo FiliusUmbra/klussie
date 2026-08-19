@@ -142,53 +142,58 @@ professional who can solve it. Full vision: §5.
 ## 2. Current Milestone
 
 ```
-Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 21 — Analytics
+Current Milestone     IMPLEMENTATION_ROADMAP.md Epic 22 — Subscription
                        Engine
 Status                COMPLETE — 3 of 3 work packages. No client caller
                        yet — pure addition. Live verification Pending.
-                       Record: implementation/epic-21/COMPLETION.md
-Current Objective     BUILT IMMEDIATELY AFTER EPIC 20, ON THE ROADMAP'S
-                       OWN FORWARD SEQUENCING. A GENUINE INCONSISTENCY
-                       BETWEEN THE TWO FROZEN DOCUMENTS, RESOLVED BY
-                       KEEPING BOTH RATHER THAN PICKING A SIDE:
-                       DATABASE_ARCHITECTURE.md §31 names six analytics
-                       domains ending in Property; SYSTEM_ARCHITECTURE.md
-                       §16 also names six, ending in Platform instead —
-                       two real, different concepts ("asset and building
-                       behaviour over time" versus "growth, retention,
-                       health"), confirmed distinct by MASTER_CONTEXT.md
-                       §14's own KPI table (NPS, retention). This epic
-                       keeps SEVEN domains, not six. Like Epic 20, both
-                       the schema (analytics_ws/analytics_pf) and the
-                       role (klussie_consumer_analytics, created since
-                       Epic 01) were already named — nothing to resolve
-                       by precedent there. analytics_ws.workspace_metrics
-                       (Business, Property, Enterprise) and
-                       analytics_pf.platform_metrics (Operational,
-                       Marketplace, AI, Platform) — the platform-scoped
-                       table carries NO workspace_id COLUMN AT ALL,
-                       structurally, the same guarantee Epic 16's world
-                       graph already holds. THE SECOND PROJECTION-CLASS,
-                       HARD-DELETE-PERMITTED TABLE PAIR THIS SESSION HAS
-                       BUILT, after Epic 20's search index.
-                       promote_platform_metric() HAS NO p_workspace_id
-                       PARAMETER AT ALL — structurally unable to emit a
-                       platform.events row, unlike Epic 20's
-                       mark_index_rebuilt(), which merely refused one at
-                       runtime; its only durable trail is an audited
-                       platform.write_audit_record() call with
-                       p_workspace_id => null (ADR-0021). THE FIRST ROLE
-                       THIS SESSION GRANTS BOTH platform.emit_event() AND
-                       platform.write_audit_record(). event_type minted
-                       correctly from the start, the sixth epic in a row.
-                       See COMPLETION.md §5.
-Previous Milestone    Epic 20 — Search Engine (2026-08-19, complete, 3/3
-                       packages, no client caller yet — pure addition) —
-                       derived.search_index, the first Derived-class
-                       table this session built, scope and text match in
-                       one where clause, the first background-consumer
-                       role granted platform.emit_event(). Record:
-                       implementation/epic-20/COMPLETION.md
+                       Record: implementation/epic-22/COMPLETION.md
+Current Objective     BUILT IMMEDIATELY AFTER EPIC 21, ON THE ROADMAP'S
+                       OWN FORWARD SEQUENCING — the last named epic in
+                       Tier "Services and Commercial" (Epics 19-22).
+                       platform.plans mirrors platform.capabilities' own
+                       placement exactly (catalogue, not tenant data);
+                       five real plans seeded (personal, premium_home,
+                       professional, business, enterprise — White Label
+                       deliberately not seeded, named "(future)" in
+                       PLATFORM_DOMAIN_MODEL.md §24's own table), each
+                       capability_keys dependency-ordered against Epic
+                       04's real 5-edge dependency table.
+                       commerce.subscriptions — one row per workspace,
+                       structurally enforced; payer a polymorphic
+                       {payerType, payerRef} jsonb, mirroring Epic 18's
+                       own provider-identity shape. THE SECOND GENUINELY
+                       MUTABLE AGGREGATE THIS SESSION HAS BUILT, after
+                       Epic 19's notification preferences. THE FIRST TRUE
+                       CROSS-ENGINE CONTRACT CALL THIS SESSION HAS MADE —
+                       every function until now touched only its own
+                       schema; this one calls workspace.grant_capability()/
+                       withdraw_capability() directly, since §11.1 states
+                       Subscription "does not own capability grants
+                       themselves — it requests them, and Capability
+                       decides." klussie_engine_commerce needed USAGE on
+                       schema workspace and EXECUTE on both functions,
+                       granted here for the first time. Capabilities are
+                       GRANTED IN THE PLAN'S OWN ORDER AND WITHDRAWN IN
+                       REVERSE — a correctness requirement, since
+                       withdraw_capability() refuses to withdraw a
+                       capability while something still held depends on
+                       it. Grant/withdraw loops swallow exactly two
+                       precondition messages ("already holds," "does not
+                       currently hold") and nothing else.
+                       TrialStarted/TrialExpired are a distinct aggregate
+                       token from the four ordinary subscription-lifecycle
+                       events, matching §11.1's own event list exactly.
+                       event_type minted correctly from the start, the
+                       seventh epic in a row. See COMPLETION.md §5.
+Previous Milestone    Epic 21 — Analytics Engine (2026-08-19, complete,
+                       3/3 packages, no client caller yet — pure
+                       addition) — a genuine inconsistency between the
+                       two frozen documents found and resolved by
+                       keeping both (seven analytics domains, not six),
+                       analytics_ws.workspace_metrics/analytics_pf.
+                       platform_metrics, promote_platform_metric() with
+                       no workspace parameter at all. Record:
+                       implementation/epic-21/COMPLETION.md
 Current Branch        main (Epic 03 WP01–WP08 merged via PR #1 and #2); Epic
                        03 WP09–WP12 on branch/PR #3; Epic 05 on branch/PR #4
                        (stacked on #3); Epic 06 on branch/PR #5 (stacked on
@@ -207,18 +212,37 @@ Current Branch        main (Epic 03 WP01–WP08 merged via PR #1 and #2); Epic
                        branch/PR #19 (stacked on #18/epic-19 — branched
                        off its tip, built retroactively); Epic 20 on
                        branch/PR #20 (stacked on #19/epic-18); Epic 21 on
-                       branch/PR #? (stacked on #20/epic-20 — this
+                       branch/PR #21 (stacked on #20/epic-20); Epic 22 on
+                       branch/PR #? (stacked on #21/epic-21 — this
                        epic's own PR not yet opened at doc-update time)
-Next Deliverable      Run every Pending diagnostic across Epics 03–21 (in
+Next Deliverable      Run every Pending diagnostic across Epics 03–22 (in
                        build order) against a real database — the
                        standing P0 item in §12's debt table. The actual
                        behavioural switch Epic 12 deliberately left open
                        (dual-write the scoped access grant, retire the
                        five legacy triggers, cut the live booking flow
                        over) is gated on the regression baseline (WP
-                       00.08), not ordinary implementation work. Epic 22
-                       (Subscription Engine) is next per the roadmap's
-                       own forward sequencing.
+                       00.08), not ordinary implementation work. WITH
+                       EPIC 22 COMPLETE, EVERY EPIC IN THE ROADMAP'S OWN
+                       REGULAR BUILD SEQUENCE IS NOW BUILT — Epics 23-24
+                       (Enterprise Features, Integration Engine) are
+                       explicitly "Not scheduled," demand-gated on a real
+                       customer requiring them, not the next default step;
+                       Epics 25-26 (Mobile Readiness, Production
+                       Readiness) are the Delivery tier, gating actual
+                       release rather than further engine-building. The
+                       roadmap has no further "start the next epic"
+                       instruction to follow without one of: a real
+                       enterprise/integration customer, a decision to
+                       begin the Delivery tier, or the standing P0 (live
+                       verification) finally being unblocked.
+Open from Epic 22     Live verification Pending. One diagnostic written
+                       across four migrations, none run. No live wiring —
+                       nothing calls activate_subscription() from any real
+                       signup or payment flow yet; Payments (Epic 14's own
+                       remaining scope) is a named, separate gap. White
+                       Label not seeded, named "(future)" in the domain
+                       model's own table.
 Open from Epic 21     Live verification Pending. One diagnostic written
                        across three migrations, none run. No live wiring
                        — nothing computes a real KPI from transactional
@@ -368,7 +392,7 @@ Open from Epic 00     Branch protection not enabled on main (CI reports failure
                        (ADR-0017, Free plan constraint); 31 user-facing
                        components still have no render test; no CI run has ever
                        been observed from this machine
-Last Updated          2026-08-19 (Epic 21, built immediately after Epic 20)
+Last Updated          2026-08-19 (Epic 22, built immediately after Epic 21 — every non-demand-gated epic in the roadmap now built)
 ```
 
 Implemented in Phase 1 so far: authenticated + rate-limited AI Gateway
@@ -617,7 +641,7 @@ Principles and KPIs are not alternatives. A feature needs a reason
 | 🟠 High | **`RoleSelectionScreen` asks the exact question `PLATFORM_DOMAIN_MODEL.md` §27 forbids** | Principle 3 / §27: "The platform never asks a person to classify themselves... It is the wrong question because it is a question about *context*, asked as though it were a question about *identity*." `src/auth/RoleSelectionScreen.jsx` shows every new signup a one-time "how will you use klussie" choice (customer vs. professional) before anything else. Predates the Platform Domain Model freeze (ADR-0013); not introduced or worsened by Epic 03, and Epic 03's WP 03.12 (the workspace switcher) deliberately left it alone rather than redesigning onboarding in a work package scoped to add a switcher — see `IMPLEMENTATION_ROADMAP.md` §14 | A product decision, not an implementation one: replace the forced choice with "create an account, get a Personal Workspace, become a pro later when there's something real to put in it" (§27's own framing) — likely the same session that relocates the "Become a pro" entry point out of the topbar's `role` toggle for single-workspace users, which Epic 03 also left alone | Legacy, found during Epic 03 | P1 |
 | ✅ Closed | ~~Every `emit_event()` call since Epic 06 used the wrong `event_type` format — 34 values across 7 epics, none matching `platform.events`' own `CHECK` constraint~~ — found and fixed | `0021_events.sql`'s constraint enforces ADR-0019's stated `<engine>.<aggregate>.<past-participle>` format. Every contract function actually written since (Epic 06's `LocationTreeChanged` through Epic 14's ten billing functions) used a bare PascalCase word instead — `'ObligationCreated'`, `'ConversationOpened'`, `'PaymentAuthorized'` and 31 others. Found while writing Epic 15's own diagnostic — the first time this session a real contract function chain was assembled with an eye toward actually running it. On explicit instruction: ADR-0019 stays authoritative and unmodified; every one of the 34 call sites, their test assertions, and affected `comment on function` prose were corrected across all 7 branches (06, 09, 10, 04, 11, 12, 13, 14), each verified against `SYSTEM_ARCHITECTURE.md`'s own per-engine "Events produced" list rather than mechanically transformed — catching two further real corrections along the way (Workflow's aggregate should be `workflow_instance` per the real table, not a mechanical lowercase of the frozen `WorkflowStarted`/`WorkflowTransitioned`; Capability's aggregate is `capability_grant` per §3's own ownership table, not bare `capability`). Each branch was rebased onto its corrected parent, re-tested in full (every epic's own recorded test count reproduced exactly), and re-pushed | Fixed on each affected branch; `implementation/epic-15/COMPLETION.md` §6 has the full mapping and rationale | Epic 06, 09, 10, 04, 11, 12, 13, 14, 15 | Closed |
 | ✅ Closed | ~~`klussie_engine_work`/`klussie_engine_commerce` never held `USAGE` on schema `platform`, despite holding `EXECUTE` on `platform.emit_event()` since Epic 01~~ — found and fixed | Calling any schema-qualified function requires `USAGE` on its containing schema, not just `EXECUTE` on the function itself. Found while building Epic 16's own `platform.write_audit_record()` (WP 16.01) — checking every `USAGE on schema platform` grant against every `emit_event()` call site turned up two engine roles that never received it, despite both holding `EXECUTE` on `platform.emit_event()` since Epic 01. Six already-shipped contract functions across five epics (Workflow 0069, Maintenance 0074, Service Record 0084, Marketplace 0090, Conversation 0096, Billing 0101) would have failed with "permission denied for schema platform" the first time they ran against a real Postgres instance — independent of, and in addition to, the `event_type` finding above. Fixed forward in `0106_platform_schema_access_backfill.sql`, added to Epic 16's own migration sequence rather than by rebasing the six affected branches again: PostgreSQL only requires a `GRANT` to exist in the final cumulative migration state by the time a function is actually called, not on the same migration that defined it | `implementation/epic-16/COMPLETION.md` §5.1 has the full reasoning | Epic 09, 10, 11, 12, 13, 14, 16 | Closed |
-| 🔴 Critical | **Epics 03–21, in build order — nothing from WP 03.09 onward has been exercised against a live database, and neither Epic 07's nor Epic 08's reconciliation gate (roadmap §3's hard gate) has ever actually run** | Same class of gap as the Epic 02 row above, now **twenty-one epics deep**: Epic 07 is complete (8/8) with a live read switch (`fetchHouseholdItems`); Epic 08 is complete (9/9) with **two** live read switches; Epic 09 (5/5), Epic 10 (4/4), Epic 04 (6/6, built retroactively), Epic 11 (4/4), Epic 12 (6/6, narrowed scope), Epic 13 (6/6, reviewed before implementation), Epic 14 (5/5, the first real revenue path — see §2), Epic 15 (3/3, extends Property's own contract), Epic 16 (6/6, the smallest correct slice of the Knowledge Graph), Epic 17 (4/4, shares Epic 16's own schema and role), Epic 19 (3/3, the first genuinely mutable aggregate this session has built), Epic 18 (3/3, built retroactively after Epic 19, needing zero new cross-schema grants), Epic 20 (3/3, the first Derived-class table this session has built) and Epic 21 (3/3, resolving a genuine inconsistency between two frozen documents) are all also complete — none has a read switch, but their write contracts and shadow-verification diagnostics are equally unrun — no longer additionally blocked by the event_type defect or the platform-schema-USAGE gap two rows above once named, both now fixed. Epic 11's own `VERIFY_SERVICE_RECORD_ISOLATION.sql` remains the single most consequential diagnostic in the repository to actually run. Epic 12's own backfill has real, structural implications for a large volume of existing marketplace data. `RECONCILE_ASSETS.sql` and `RECONCILE_DOCUMENTS.sql`, the checks roadmap §3 requires before any read-switch may be trusted, have never executed. Completing epics does not close this gap; it makes the gap matter more. No working credentials for either known test account, and no direct Postgres connection to run any of the ~50 `VERIFY_*.sql`/`RECONCILE_*.sql` diagnostics written since | Get a working `.env.local` (pointed at staging, with valid seeded-account credentials) and a direct Postgres connection. **Before any read switch or any engine's contract reaches an environment with real users**, run `RECONCILE_ASSETS.sql`, `VERIFY_ASSET_DUAL_WRITE.sql`, `RECONCILE_DOCUMENTS.sql`, `VERIFY_WORKFLOW_CONTRACT.sql`, `VERIFY_MAINTENANCE_CONTRACT.sql`, `VERIFY_CAPABILITY_CONTRACT.sql`, `VERIFY_SERVICE_RECORD_ISOLATION.sql`, `VERIFY_MARKETPLACE_CONTRACT.sql`, `VERIFY_MARKETPLACE_ISOLATION.sql`, `VERIFY_CONVERSATION_CONTRACT.sql`, `VERIFY_CONVERSATION_ISOLATION.sql`, `VERIFY_BILLING_CONTRACT.sql`, `VERIFY_TIMELINE_TWIN.sql`, `VERIFY_KNOWLEDGE_ENGINE.sql`, `VERIFY_INTELLIGENCE_ENGINE.sql`, `VERIFY_NOTIFICATION_ENGINE.sql`, `VERIFY_PROVIDER_INTELLIGENCE.sql`, `VERIFY_SEARCH_ENGINE.sql`, `VERIFY_ANALYTICS_ENGINE.sql`, and every other diagnostic since Epic 03, and confirm all pass | Epic 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 | **P0** |
+| 🔴 Critical | **Epics 03–22, in build order — nothing from WP 03.09 onward has been exercised against a live database, and neither Epic 07's nor Epic 08's reconciliation gate (roadmap §3's hard gate) has ever actually run** | Same class of gap as the Epic 02 row above, now **twenty-two epics deep — every non-demand-gated epic in the roadmap**: Epic 07 is complete (8/8) with a live read switch (`fetchHouseholdItems`); Epic 08 is complete (9/9) with **two** live read switches; Epic 09 (5/5), Epic 10 (4/4), Epic 04 (6/6, built retroactively), Epic 11 (4/4), Epic 12 (6/6, narrowed scope), Epic 13 (6/6, reviewed before implementation), Epic 14 (5/5, the first real revenue path — see §2), Epic 15 (3/3, extends Property's own contract), Epic 16 (6/6, the smallest correct slice of the Knowledge Graph), Epic 17 (4/4, shares Epic 16's own schema and role), Epic 19 (3/3, the first genuinely mutable aggregate this session has built), Epic 18 (3/3, built retroactively after Epic 19, needing zero new cross-schema grants), Epic 20 (3/3, the first Derived-class table this session has built), Epic 21 (3/3, resolving a genuine inconsistency between two frozen documents) and Epic 22 (3/3, the first true cross-engine contract call this session has made) are all also complete — none has a read switch, but their write contracts and shadow-verification diagnostics are equally unrun — no longer additionally blocked by the event_type defect or the platform-schema-USAGE gap two rows above once named, both now fixed. Epic 11's own `VERIFY_SERVICE_RECORD_ISOLATION.sql` remains the single most consequential diagnostic in the repository to actually run. Epic 12's own backfill has real, structural implications for a large volume of existing marketplace data. `RECONCILE_ASSETS.sql` and `RECONCILE_DOCUMENTS.sql`, the checks roadmap §3 requires before any read-switch may be trusted, have never executed. Completing epics does not close this gap; it makes the gap matter more. No working credentials for either known test account, and no direct Postgres connection to run any of the ~51 `VERIFY_*.sql`/`RECONCILE_*.sql` diagnostics written since | Get a working `.env.local` (pointed at staging, with valid seeded-account credentials) and a direct Postgres connection. **Before any read switch or any engine's contract reaches an environment with real users**, run `RECONCILE_ASSETS.sql`, `VERIFY_ASSET_DUAL_WRITE.sql`, `RECONCILE_DOCUMENTS.sql`, `VERIFY_WORKFLOW_CONTRACT.sql`, `VERIFY_MAINTENANCE_CONTRACT.sql`, `VERIFY_CAPABILITY_CONTRACT.sql`, `VERIFY_SERVICE_RECORD_ISOLATION.sql`, `VERIFY_MARKETPLACE_CONTRACT.sql`, `VERIFY_MARKETPLACE_ISOLATION.sql`, `VERIFY_CONVERSATION_CONTRACT.sql`, `VERIFY_CONVERSATION_ISOLATION.sql`, `VERIFY_BILLING_CONTRACT.sql`, `VERIFY_TIMELINE_TWIN.sql`, `VERIFY_KNOWLEDGE_ENGINE.sql`, `VERIFY_INTELLIGENCE_ENGINE.sql`, `VERIFY_NOTIFICATION_ENGINE.sql`, `VERIFY_PROVIDER_INTELLIGENCE.sql`, `VERIFY_SEARCH_ENGINE.sql`, `VERIFY_ANALYTICS_ENGINE.sql`, `VERIFY_SUBSCRIPTION_ENGINE.sql`, and every other diagnostic since Epic 03, and confirm all pass | Epic 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 | **P0** |
 | 🟠 High | No payment system | No real revenue path | Stripe Connect integration | Phase 4 | P1 |
 | 🟡 Medium | No render tests on the extracted feature components | The Engineering Health sprint moved ~2,150 lines of JSX into `src/customer`, `src/pro`, `src/auth`, `src/profile` and `src/messaging` with their rules unit-tested but their markup unverified by any test. The move was checked by line-level diff, build, lint and manual smoke — not by assertions that survive the next change | Add render tests per feature folder, starting with the surfaces that spend money: `RequestDetailSheet`, `InvoiceSheet`, `ProProfile` | Phase 2 | P2 |
 | 🟡 Medium | Literal `\uXXXX` escape text rendered in 12 places | JSX text content doesn't interpret backslash escapes, so customers see `€` where a euro sign belongs — in the invoice totals, the budget fields, the flexi tracker and the boost price. Preserved verbatim through the Engineering Health sprint because fixing it changes what a customer reads, which that sprint promised not to do | Replace each with the real character. Sites are commented in `ServiceSheet.jsx`, `QuoteFormSheet.jsx`, `AiIntakeSheet.jsx`, `InvoiceSheet.jsx`, `SendQuoteSheet.jsx`, `ProProfile.jsx`, `AppShell.jsx` | Phase 1 | P2 |
@@ -807,6 +831,8 @@ instinct should be: **"I'll open Klussie."**
 *Version 3.9 — 2026-08-19 (Epic 20 Search Engine complete, 3/3 packages — built immediately after Epic 18, on the roadmap's own forward sequencing. Unlike every epic since 18, both the schema (`derived`) and the engine role (`klussie_consumer_search`, created since Epic 01, waiting for a real caller) were already named in the frozen documents — nothing to resolve by precedent this time. `derived.search_index` — one polymorphic table, all eight domains via a `domain` discriminator, mirroring `platform.events`' own shape rather than inventing eight near-identical tables. `search_index_global_has_no_workspace` and `search_index_published_only_public` make two of §15's rules structural rather than merely policed. **The first Derived-class, hard-delete-permitted table this session has built** — no guard trigger, the opposite mutability posture from every prior aggregate. `derived.search()`'s scope predicate and text predicate sit in one `where` clause of one statement — "scope is indexed, never post-filtered" as a structural property, not a convention. `mark_index_rebuilt()` (canonical) and `mark_index_lag_detected()` (`p_is_derived => true`, the first event this session marks that way) both refuse a null workspace — global-domain rebuild event tracking is a named, deliberate gap. **The first background-consumer role this session has granted `platform.emit_event()` to**, fulfilling the exact case `0023_emit_event.sql`'s own header predicted and left ungranted at Epic 01. `'simple'` text search configuration, deliberately, not `'english'` — the platform is multi-locale. `event_type` minted correctly from the start, the fifth epic in a row — test count (1439/147))*
 
 *Version 4.0 — 2026-08-19 (Epic 21 Analytics Engine complete, 3/3 packages — built immediately after Epic 20, on the roadmap's own forward sequencing. A genuine inconsistency between the two frozen documents, resolved by keeping both rather than picking a side: `DATABASE_ARCHITECTURE.md` §31 names six analytics domains ending in Property; `SYSTEM_ARCHITECTURE.md` §16 also names six, ending in Platform instead — two real, different concepts, confirmed distinct by `MASTER_CONTEXT.md` §14's own KPI table. This epic keeps seven domains, not six — the first time this session has found a defect in the frozen documents themselves rather than in an earlier implementation. Like Epic 20, both the schema (`analytics_ws`/`analytics_pf`) and the role (`klussie_consumer_analytics`, created since Epic 01) were already named. `analytics_ws.workspace_metrics` and `analytics_pf.platform_metrics` — the platform-scoped table carries **no `workspace_id` column at all**, structurally, the same guarantee Epic 16's world graph already holds. **The second Projection-class, hard-delete-permitted table pair this session has built.** `promote_platform_metric()` has **no `p_workspace_id` parameter at all** — structurally unable to emit a `platform.events` row, unlike Epic 20's `mark_index_rebuilt()`, which merely refused one at runtime; its only durable trail is an audited `platform.write_audit_record()` call with `p_workspace_id => null` (ADR-0021). **The first role this session grants both `platform.emit_event()` and `platform.write_audit_record()`.** `event_type` minted correctly from the start, the sixth epic in a row — test count (1461/150))*
+
+*Version 4.1 — 2026-08-19 (Epic 22 Subscription Engine complete, 3/3 packages — built immediately after Epic 21, on the roadmap's own forward sequencing, the last named epic in Tier "Services and Commercial" (Epics 19-22); every non-demand-gated epic in the roadmap is now built. `platform.plans` mirrors `platform.capabilities`' own placement exactly; five real plans seeded (personal, premium_home, professional, business, enterprise — White Label deliberately not seeded, named "(future)" in `PLATFORM_DOMAIN_MODEL.md` §24's own table), each `capability_keys` dependency-ordered against Epic 04's real 5-edge dependency table, not invented from prose alone. `commerce.subscriptions` — one row per workspace, structurally enforced; `payer` a polymorphic `{payerType, payerRef}` jsonb, mirroring Epic 18's own provider-identity shape. **The second genuinely mutable aggregate this session has built**, after Epic 19's notification preferences. **The first true cross-engine contract call this session has made** — every function until now touched only its own schema; this one calls `workspace.grant_capability()`/`withdraw_capability()` directly, since `SYSTEM_ARCHITECTURE.md` §11.1 states Subscription "does not own capability grants themselves — it requests them, and Capability decides." Capabilities are granted in the plan's own order and withdrawn in reverse — a correctness requirement, since `withdraw_capability()` refuses to withdraw a capability while something still held depends on it, proven directly in `VERIFY_SUBSCRIPTION_ENGINE.sql`. `TrialStarted`/`TrialExpired` are a distinct aggregate token from the four ordinary subscription-lifecycle events, matching §11.1's own event list exactly. `event_type` minted correctly from the start, the seventh epic in a row — test count (1488/154))*
 
 *Version 2.5 — 2026-08-17 (Epic 08 Document Engine, nearly complete: product owner resolved the public-visibility architectural gap — is_public carried by document type, matching retention_class's own precedent; service_request_photos got a dedicated discoverability lookup; fetchRequestPhotos switched and live with a proven fallback; fetchPortfolioItems deliberately not switched — a new, narrower caption-mirroring gap found building it — test count (959/86), P1 debt row resolved and replaced with a P2 for the caption gap)*
 
