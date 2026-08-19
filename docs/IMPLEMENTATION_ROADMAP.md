@@ -52,8 +52,9 @@ this one, this one wins.
 15. [Work Packages — Epic 05](#15--work-packages--epic-05)
 16. [Work Packages — Epic 06](#16--work-packages--epic-06)
 17. [Work Packages — Epic 07](#17--work-packages--epic-07)
-18. [Risk Register](#18--risk-register)
-19. [How Implementation Sessions Work](#19--how-implementation-sessions-work)
+18. [Work Packages — Epic 08](#18--work-packages--epic-08)
+19. [Risk Register](#19--risk-register)
+20. [How Implementation Sessions Work](#20--how-implementation-sessions-work)
 
 ---
 
@@ -1444,7 +1445,273 @@ be just this one read. **Complexity.** High. **Rollback.** Revert the
 read path; no data change. **Deploy gate:** do not ship this to an
 environment with real users before WP 07.07 has actually run and passed.
 
-## 18 · Risk Register
+## 18 · Work Packages — Epic 08
+
+**Dependencies.** `DATABASE_ARCHITECTURE.md` §15 (Document), owned by
+the same `property` schema and `klussie_engine_property` role as
+Property, Location and Asset (migration `0018`'s own grouping comment:
+"read together constantly... §2 chose tier-level grouping precisely so
+those joins stay inside a schema"). `SUPABASE_ARCHITECTURE.md` §11.3
+(the signed-URL mitigations this epic must carry forward).
+
+**Read before design — what this epic's own one-line roadmap summary
+got wrong, found by reading §15 in full rather than building from the
+one-liner alone.** The original scope note (above, written before this
+epic's own frozen sections existed as a cross-check target) says
+"migrates existing avatars, portfolio images and request photos." Checked
+against `DATABASE_ARCHITECTURE.md` §15's actual definition — "evidence
+that outlives what it was attached to" — and the domain model's own list
+of examples (invoices, warranties, manuals, certificates, "a photo of a
+leak") — an avatar is neither. It carries no type, no validity period, no
+issuer, and is not "about" anything else; it is decoration on an identity
+row, not evidence about a home. **`profiles.avatar_url` is deliberately
+excluded from this epic.** Portfolio images ("photos of past work" — real
+evidentiary content, `§15`'s own "photo of a leak" example is the same
+shape) and request photos (identical reasoning) both genuinely fit and
+are migrated. Recorded here explicitly, per this session's standing
+discipline: the code and the frozen documents win over an earlier
+assumption, including the roadmap's own.
+
+**Three more findings from the same read-before-design pass, each
+changing what would otherwise have been built:**
+
+1. **Versioning is not a future evolution — it is a stated, current
+   requirement, and it is ADR-0028's shape a third time.**
+   `PLATFORM_DOMAIN_MODEL.md` §12 lists "versioning, since certificates
+   are reissued" under "how it evolves," which reads as deferred. But
+   `DATABASE_ARCHITECTURE.md` §15 states it as the model itself:
+   *"Metadata mutable; content immutable — a reissued certificate is a
+   new version, not an edit. Version history is retained."* The more
+   specific, more authoritative document wins (this session's own
+   standing rule for resolving exactly this kind of tension, applied
+   here rather than picking the more convenient reading). The shape to
+   build it is not new: a mutable current-version pointer plus a
+   genuinely append-only log of superseded versions — ADR-0028's exact
+   pattern, already reused once for Asset placement (Epic 07) without a
+   new ADR. It is reused again here, for the same reason: the frozen
+   documents already describe the identical shape.
+2. **Document type must be a declared catalog, not free text — and
+   unlike `facet_types` (Epic 07), it cannot ship empty.** §15: *"Documents
+   that are evidence follow Historical retention. Documents that are
+   convenience may be deleted by their owner. The distinction is carried
+   by document type, so it is decided by configuration rather than a
+   user's judgement in the moment."* `property.facet_types` (Epic 07)
+   shipped with zero seeded rows because nothing needed one yet. This
+   epic's own backfill (WP 08.06) needs real rows to classify
+   `portfolio_items` and `service_request_photos` into — the first
+   declared catalog in this roadmap that cannot follow `facet_types`'
+   own restraint unmodified, and worth stating why rather than silently
+   deviating from precedent.
+3. **"Attachment is not a visibility grant" is stated as a principle that
+   was *"nearly lost"* — meaning the RLS design has exactly one way to
+   get this wrong, and this epic must not take it.** §15, verbatim:
+   *"A document attached to an asset does not become visible to a
+   contractor with access to that asset... Every document has exactly
+   one owning workspace and an explicit sharing state. Attachment says
+   what a document is about. Sharing says who may see it. The two are
+   set independently."* Concretely: no isolation policy in WP 08.04 may
+   join through `document_attachments` to grant visibility. The only two
+   paths to seeing a document are membership in its owning workspace, or
+   an explicit row in `document_shares`.
+
+**Look for connections — what this epic strengthens without redesigning
+it.** `service_request_photos`' own existing RLS (migration `0007`)
+already implements attachment/sharing as two separate policies on one
+table — "customers manage own," "matching pros can view" — without ever
+naming it as such. This epic does not invent the separation; it gives an
+already-real pattern its own structural home. The general form of
+"matching pros can view" turns out to be nothing more than "share with
+another workspace," since a professional's identity *is* a workspace in
+this architecture (§27) — no new sharing primitive was needed, only the
+existing workspace concept applied to a new object. `property.assets`'
+own `warranty_expires_on` (Epic 07, unused since) is a second, smaller
+connection: once real documents exist with their own validity periods,
+that column's role changes from primary source to fallback — already
+designed in full, ahead of this epic, in
+[`GUIDANCE_SYSTEM.md`](../design/GUIDANCE_SYSTEM.md) §17.4.1.
+
+**Experience Review, kept concise per this session's own standing
+discipline (validation, not redesign).**
+*Which journey uses this?* None yet, client-side — this epic is
+structural, the same risk class Epics 05 and 06 were.
+*Does Guidance expand because of it?* Yes, already — `GUIDANCE_SYSTEM.md`
+§17.4.1 designed the Documents guidance moment ahead of this epic
+existing, precisely so the sentence is ready the moment a real control
+is.
+*Does an existing conversation become smarter?* Not yet — that's the AI
+intake's own extraction capability (§12: "reading a document to propose
+structured facts"), a later connection, not this epic's job.
+*Does this fulfil an existing promise rather than create a new one?*
+Yes — Layer 1's own Act III.3 already told every customer "Klussie
+already has that ready for you" before any of this existed; this epic is
+what makes that sentence true.
+
+**08.01 · The declared type catalog, the document aggregate, and its
+version history (add)**
+`property.document_types` — natural key `type_key`, `retention_class`
+constrained (`'evidence'`, `'convenience'` — a real state machine, the
+same restraint distinction `asset.lifecycle_state` already draws from
+`asset.type`), seeded with exactly the two rows WP 08.06 needs
+(`portfolio_photo`, `request_photo`), both `convenience` — neither is
+compliance evidence, both may be deleted by their owner, matching what
+is already true of them today. `property.documents` — owning workspace
+(not null, set at creation, no transfer — nothing in §15 describes
+document ownership transferring the way stewardship does), document
+type, current version pointer. `property.document_versions` — closed,
+immutable, append-only, ADR-0028's shape repeated a third time: storage
+bucket/path, content hash, issuer, validity period, `superseded_at`.
+**Complexity.** High — the first versioned aggregate in this roadmap.
+**Rollback.** Drop all three tables.
+
+**08.02 · Attachment — multi-subject, scoped to subjects that exist
+today (add)**
+`property.document_attachments`: one row per (document, subject) pair, a
+document may have several. Four nullable subject columns —
+`property_id`, `location_id`, `asset_id`, `workspace_id` — with a check
+that exactly one is set per row, real foreign keys rather than a
+stringly-typed polymorphic pair, so referential integrity is enforced by
+the database rather than by convention. **Maintenance record and
+marketplace engagement are named as real subjects in §15 and
+deliberately not included** — neither table exists (Epic 10, Epic 12),
+and adding a column that can never be populated is exactly the
+speculative structure ADR-0010 rules out. **Complexity.** Medium.
+**Rollback.** Drop the table.
+
+**08.03 · Sharing — independent of attachment, the principle §15 calls
+"nearly lost" (add)**
+`property.document_shares`: `document_id`, `shared_with_workspace_id`,
+`created_at`. No row means visible only to the owning workspace. Revoking
+a share is a delete, not a closed period — sharing state is Transactional
+(§4), not Historical; nothing in §15 requires a permanent record of past
+sharing grants the way stewardship requires one of past stewards.
+**Complexity.** Low. **Rollback.** Drop the table.
+
+**08.04 · RLS isolation — the one place this epic can violate its own
+stated principle (add)**
+Owning-workspace membership *or* a row in `document_shares` naming the
+caller's workspace — `api.current_workspace_memberships()`, the same
+predicate every policy since Epic 03 reuses. **Never** a join through
+`document_attachments`. A structural test asserts this negatively —
+the isolation policy's own SQL must not reference
+`document_attachments` at all, not merely "not use it for visibility,"
+so a future edit cannot reintroduce the exact mistake §15 says was
+nearly made once already. **Complexity.** Medium. **Rollback.** Drop the
+policies.
+
+**08.05 · The document engine contract (add)**
+`property.my_documents(subject)` (mirroring `my_assets`'s discovery
+shape, one subject at a time — property, location, asset or workspace)
+and `property.resolve_document(document_id)` (current version's
+metadata plus validity). Real `api` delegates from the start — this
+epic's read-switch (WP 08.09, decomposed) is a genuine near-term caller,
+the same relationship WP 07.04's asset contract already has. No
+`share_document`/`revoke_share` mutation function yet — nothing in the
+product creates a share today (WP 08.06's backfill sets `document_shares`
+rows directly, in SQL, not through a mutation path a client would use);
+building one now would be structure with no real caller, the same
+restraint `decide_permission`-style functions have been held to since
+WP 05.04. **Complexity.** Medium. **Rollback.** Drop the functions.
+
+**08.06 · Backfill: `portfolio_items` and `service_request_photos` into
+`property.documents` (backfill)**
+One `property.documents` row (plus its single, closed-from-birth
+version) per existing row in either source table — `portfolio_photo` or
+`request_photo` type respectively. Owning workspace resolved via the
+same ownership-chain join this roadmap has used since WP 03.06:
+`portfolio_items.pro_id`/`service_request_photos.request_id` →
+`identity.identities` → `workspace.memberships` (owner, active,
+`professional`/`personal` respectively) → `workspace.workspaces`.
+Attachment: portfolio photos attach to the pro's own Professional
+Workspace (no asset/property exists for a pro's craft, only the
+workspace itself is a real subject); request photos attach to nothing
+today — no `service_requests`-to-`property` link exists yet (that link
+does not arrive until Epic 12, Marketplace) — left genuinely unattached
+rather than forcing a subject that doesn't fit, the same restraint that
+kept Epic 07's backfilled assets unplaced. **Sharing, backfilled
+directly**: every migrated `service_request_photos` row gets a
+`document_shares` row toward whichever workspace `pro_matches_request()`
+(migration `0004`) already names as a matching pro **at backfill time**
+— a point-in-time snapshot of the existing RLS policy's own logic, not a
+live rule; a pro who starts matching later gets no retroactive share,
+named as a real, accepted limitation rather than hidden. `portfolio_items`
+needs no share rows — it was always public, and stays public through its
+own existing table until WP 08.09 (decomposed) switches reads.
+**Neither source table is touched.** `avatar_url` is not backfilled at
+all — see this section's own Platform Discovery. **Complexity.** High —
+the second backfill in this roadmap moving real, existing production
+data (after WP 07.05), and the first backfilling from two source tables
+into one target in a single package. **Rollback.** Delete backfilled
+rows; both source tables are unaffected either way.
+
+**08.07 · Dual-write: `portfolio_items`/`service_request_photos` writes
+also write `property.documents` (complete)**
+Following Epic 07's WP 07.06 precedent exactly: a database trigger on
+each source table, not an application-level second write. Read before
+design found both source tables simpler than assumed —
+`src/lib/portfolio.js` and `src/lib/requestPhotos.js` were read in full
+before writing this package, and neither has a client-mutable field the
+document model needs to track beyond creation (portfolio's own
+`caption` has no equivalent column on `property.documents` and is a
+stated, deliberate gap), so only INSERT and DELETE triggers were built
+per table — no UPDATE trigger on either. **Also found and fixed, before
+any live delete could hit it:** `document_attachments.document_id` and
+`document_shares.document_id` (0056/0057) had no `ON DELETE` clause —
+the same class of bug as Epic 07's `household_items_id`, caught this
+time by re-reading those two migrations before writing the delete
+triggers, fixed with `ON DELETE CASCADE` in the same migration rather
+than needing a follow-up one. **Complexity.** High. **Rollback.** Drop
+the four triggers and the two mirror functions; the FK fix stands
+regardless, since it was a defect independent of dual-write existing.
+
+**08.08 · Reconcile `property.documents` against both source tables
+(complete, structurally)**
+`RECONCILE_DOCUMENTS.sql`, following `RECONCILE_ASSETS.sql`'s own shape
+— real row counts, null-safe discrepancy checks re-deriving owning
+workspace and every mapped field fresh for both source tables, plus an
+attachment-shape check specific to this epic (portfolio documents must
+be attached to their owning workspace; request-photo documents must
+stay unattached). Written and structurally tested; **has not run
+against a database this session** — live verification Pending.
+**Complexity.** Medium. **Rollback.** None — read-only.
+
+**08.09 · Switch reads to `property.documents` (complete)**
+Designing this package surfaced a genuine architectural gap, recorded in
+full in `implementation/epic-08/COMPLETION.md` §5.5 (public visibility)
+and the product owner's decision: **add explicit public-visibility
+support to the isolation model.** Built as `property.document_types.
+is_public` (`0062`) — carried by type, the same reasoning §15 already
+gives `retention_class` — with `portfolio_photo` the only public type;
+the isolation policy and both contract functions gained a third
+visibility branch, guarded on `auth.uid() is not null` so an anonymous
+caller falls through cleanly; the `api` delegates are now granted to
+`anon`, matching `portfolio_items`' own real grant. The discoverability
+half of the same finding (`service_request_photos` documents cannot be
+found by subject) was resolved directly as ordinary implementation work,
+not re-asked — a dedicated lookup, `property.documents_for_service_
+request()` (`0063`), via the existing bookkeeping join, same visibility
+rule as `resolve_document()` minus the public branch.
+
+Building the client switch surfaced a third, narrower finding
+(`implementation/epic-08/COMPLETION.md` §5.6): `fetchPortfolioItems()`
+returns `caption`, a real client-mutable field with no equivalent on
+`property.documents` — switching would have silently dropped it. Resolved
+directly (lower-stakes than §5.5, no visibility trade-off): `property.
+documents.caption` (`0064`), backfilled onto already-mirrored rows,
+added to every contract function's return shape, and `portfolio_items`
+gained its first-ever UPDATE mirror trigger. One more piece was needed to
+finish the switch: `workspace.resolve_public_professional_workspace()`
+(`0065`), the first "resolve *another* person's public workspace" lookup
+in this roadmap (every prior resolver only answers "what are *my own*
+workspaces"), granted to `anon` for the same reason `is_public` exists.
+
+Both source tables are now switched and live: `fetchRequestPhotos`
+(`src/lib/requestPhotos.js`) and `fetchPortfolioItems`
+(`src/lib/portfolio.js`), each with a proven fallback to identical prior
+behaviour. **Complexity.** High. **Rollback.** Revert either read path;
+no data change. **Deploy gate:** do not ship without `RECONCILE_
+DOCUMENTS.sql` having actually run and passed.
+
+## 19 · Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -1458,7 +1725,7 @@ environment with real users before WP 07.07 has actually run and passed.
 | 8 | **Architectural drift under delivery pressure** | Medium | Gate 7 and 9; deviations require an ADR before code |
 | 9 | **The roadmap outlives its assumptions** | Medium | Work packages decomposed just-in-time (§1); epic definitions revisited at tier boundaries |
 
-## 19 · How Implementation Sessions Work
+## 20 · How Implementation Sessions Work
 
 **From this point, no further planning documents are created.**
 
@@ -1495,7 +1762,8 @@ A session takes one of five shapes:
 | 05 — Property Engine | **Complete** 2026-08-16 — 6/6 packages. Not yet verified against a live database (gate 10 open, same as Epic 03). [Completion record](../implementation/epic-05/COMPLETION.md) |
 | 06 — Location Engine | **Complete** 2026-08-17 — 5/5 packages. Not yet verified against a live database (gate 10 open, fourth epic in a row). [Completion record](../implementation/epic-06/COMPLETION.md) |
 | 07 — Asset Engine | **Complete** — 8/8 packages. Dual-write is a database trigger (0053), not an application-level second write. Live verification (RECONCILE_ASSETS.sql, the six-step pattern's hard gate) is Pending — written and structurally tested, not yet run against a database. [Completion record](../implementation/epic-07/COMPLETION.md) |
-| 08–26 | Not started; work packages decomposed at epic start |
+| 08 — Document Engine | **Complete** — 9/9 packages. Both read switches live (`fetchRequestPhotos`, `fetchPortfolioItems`), each with a proven fallback. Two real findings surfaced building the read switch and resolved in the same session — public visibility (a product decision) and a caption-mirroring gap (resolved directly). Live verification Pending — written and structurally tested, not yet run against a database. [Completion record](../implementation/epic-08/COMPLETION.md) |
+| 09–26 | Not started; work packages decomposed at epic start |
 
 **Epic 03 closed with four ADRs**, each accepted as part of building the
 package it gated rather than after the fact:

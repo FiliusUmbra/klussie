@@ -336,12 +336,58 @@ owns the real underlying capability ships it — see
   but the read switch must not reach real users before that diagnostic
   runs and passes. Staging only for what was built; nothing applied
   anywhere.
+- **The document engine exists, complete** (Epic 08, 9/9 packages) —
+  `property.documents` holds the current version
+  directly on the row, `property.document_versions` holds only
+  superseded versions, append-only: ADR-0028's mutable-current-plus-
+  closed-log shape, a third application, no new ADR needed.
+  `property.document_types` is a declared catalog (matching
+  `property.facet_types`' own shape, Epic 07) but — unlike it — ships
+  seeded, since this epic's backfill needed real values to classify
+  existing rows into. `property.document_attachments` scopes to the
+  four real subjects (property, location, asset, workspace); maintenance
+  record and marketplace engagement, both named in
+  `DATABASE_ARCHITECTURE.md` §15, are deliberately not included, since
+  neither table exists yet. **`property.document_shares` is fully
+  independent of attachment** — `§15` calls that separation a principle
+  that was "nearly lost," and the isolation policy and engine contract
+  both hold the line in a real, reproducible scenario, not just by
+  omission. `portfolio_items` and `service_request_photos` are both
+  backfilled and now kept in sync going forward by four database
+  triggers (insert/delete on each source table — neither needed an
+  update trigger); building the delete triggers caught a real bug before
+  it could ship — `document_attachments`/`document_shares` had no
+  `ON DELETE` clause on `document_id`, fixed with `CASCADE` in the same
+  migration. **`profiles.avatar_url` is deliberately excluded** —
+  checked against §15's own definition of a document, found not to fit,
+  corrected before building it as the roadmap's own original scope note
+  assumed. **WP 08.09's architectural gap is resolved.** The product
+  owner decided: add explicit public-visibility support to the isolation
+  model. `property.document_types.is_public` (`0062`) carries it by
+  type — the same reasoning §15 already gives `retention_class` —
+  `portfolio_photo` the only public type; the isolation policy and both
+  contract functions gained a third visibility branch, guarded on
+  `auth.uid() is not null`. `property.documents_for_service_request()`
+  (`0063`) resolves the discoverability half (request-photo documents
+  are deliberately unattached) with a dedicated lookup, same visibility
+  rule, no public branch. Building the client switch found one more,
+  narrower gap — `caption` had no equivalent on `property.documents` —
+  resolved directly (`property.documents.caption`, `0064`;
+  `portfolio_items`' first-ever UPDATE mirror trigger) rather than
+  re-asked, since it carried no visibility trade-off. One more piece,
+  `workspace.resolve_public_professional_workspace()` (`0065`), the
+  first "resolve someone else's public workspace" lookup in this
+  roadmap, granted to `anon` for the same reason `is_public` exists.
+  **Both read switches are now live** — `src/lib/requestPhotos.js` and
+  `src/lib/portfolio.js`, each with a proven fallback
+  (`../../implementation/epic-08/COMPLETION.md`). Staging only for what
+  was built; nothing applied anywhere.
 - **Production has none of Epic 01's schema**, nor Epic 03's, nor
-  Epic 05's, nor Epic 06's, nor Epic 07's. Its migration ledger is still
-  unreconciled (`../operations/ENVIRONMENTS.md` §9), which is a
-  prerequisite for any push to it — see
+  Epic 05's, nor Epic 06's, nor Epic 07's, nor Epic 08's. Its migration
+  ledger is still unreconciled (`../operations/ENVIRONMENTS.md` §9),
+  which is a prerequisite for any push to it — see
   `../operations/PRODUCTION_MIGRATION_0018_0029.md`, itself covering
-  only `0018`–`0029` and owed an update through `0054`.
+  only `0018`–`0029` and owed an update through `0063`.
 - **No backup/restore drill has ever been run.** Still open. The backup
   path is verified and the procedure documented
   ([ADR-0017](../adr/0017-free-tier-disaster-recovery-strategy.md)), but

@@ -14,16 +14,31 @@ not invented here.
 
 ## Onboarding
 
-**There is no separate onboarding walkthrough, and that's deliberate.**
-A new customer's first real interaction *is* the AI intake flow below —
-"AI before forms" (Product Constitution, Rule 1) means the product's
-onboarding and its core task are the same screen, not a tutorial that
-precedes it. The only pre-task screen is sign-in/sign-up
-(`AuthScreen`) — see Authentication, below.
+**The core task is never gated behind a tutorial — that part hasn't
+changed.** A new customer's first real interaction *is* the AI intake
+flow below, reachable with one tap from the very first screen, always —
+"AI before forms" (Product Constitution, Rule 1) means onboarding is
+never allowed to stand in front of the core task. The only pre-task
+screen is sign-in/sign-up (`AuthScreen`) — see Authentication, below.
+
+**What has changed: the flat statement that no walkthrough exists at
+all.** `CustomerOnboarding.jsx` — a four-slide, read-and-click-Next modal
+— already existed before this note was last true, and a full redesign is
+now **Planned**: see
+[`GUIDANCE_SYSTEM.md`](./GUIDANCE_SYSTEM.md) for the complete design.
+It's not scoped as "onboarding" at all any more — it's a permanent
+guidance capability (Part A), of which the redesigned first-login tour
+(Part B) is only the densest, most front-loaded instance. Part B's own
+§0 explains why none of this actually conflicts with Rule 1 — the rule
+is about forms, not wayfinding, and nothing in the design asks for
+anything the AI could have asked for instead. Until built,
+`CustomerOnboarding.jsx`'s current four-slide modal remains the real,
+shipped behaviour described below.
 
 For a pro, "onboarding" is `BecomeProSheet`: pro type, business name/VAT
 if applicable, a short bio, then straight into the real dashboard — no
-separate tour there either.
+separate tour there either. Out of scope for the redesign above; see that
+document's §11.3.
 
 ---
 

@@ -50,6 +50,99 @@ accurately.
 
 ### Added
 
+**Epic 08 — Document Engine (complete, 9 of 9 packages).**
+`portfolio_items` and `service_request_photos` remain fully
+authoritative and unmodified — see Changed, below, for what actually
+changed for a user.
+
+- **A scope correction, before anything was built**: the roadmap's own
+  original note for this epic named `avatar_url` as a migration target.
+  Checked against `DATABASE_ARCHITECTURE.md` §15's actual definition of
+  a document — evidence, with a type, a validity period, an issuer — an
+  avatar fits none of that. Excluded, corrected rather than built as
+  originally scoped.
+- **`property.documents`** and **`property.document_versions`** —
+  versioning repeats [ADR-0028](docs/adr/0028-stewardship-current-pointer-and-closed-period-log.md)'s
+  mutable-current-pointer-plus-closed-log shape, a third time, matching
+  `DATABASE_ARCHITECTURE.md` §15's own wording ("metadata mutable,
+  content immutable... version history is retained") rather than the
+  domain model's own softer "how it evolves" phrasing — the more
+  specific document won.
+- **`property.document_types`** — a declared catalog, matching
+  `property.facet_types`' own shape (Epic 07), but seeded from the
+  start: unlike facets, this epic's backfill needed real values.
+  `retention_class` (`evidence`/`convenience`) gates deletion via a
+  conditional trigger, never a grant alone.
+- **`property.document_attachments`** — scoped to the four subjects
+  with a real table today (property, location, asset, workspace);
+  maintenance record and marketplace engagement, both named in the
+  architecture, are not included since neither table exists yet.
+- **`property.document_shares`, fully independent of attachment** —
+  `DATABASE_ARCHITECTURE.md` §15 calls "attachment is not a visibility
+  grant" a principle that was nearly lost; the isolation policy and
+  engine contract both hold that line, proven in a real scenario (a
+  property steward who can see an asset but not a document attached to
+  it), not just by an absent join.
+- **Backfilled: `portfolio_items` and `service_request_photos` into
+  `property.documents`** — the second backfill in this roadmap moving
+  real, existing data, and the first from two source tables into one
+  target at once. Sharing for request photos is backfilled as a
+  point-in-time snapshot of the existing `pro_matches_request()`
+  matching rule.
+- **Dual-write: every `portfolio_items`/`service_request_photos` write
+  also writes `property.documents`, going forward** — four database
+  triggers (insert and delete on each source table), not an
+  application-level second write. Neither table needed an update
+  trigger — read before design found neither has a client-mutable field
+  the document model tracks.
+- **Fixed, before it could ship: a foreign key that would have broken
+  deleting a document.** `document_attachments.document_id` and
+  `document_shares.document_id` had no `ON DELETE` behaviour, which
+  would have made deleting a convenience-class document fail outright.
+  Fixed with `ON DELETE CASCADE` in the same migration that added the
+  delete triggers that would have hit it — caught this time before any
+  account could be affected, not after.
+- **Reconciled**: `RECONCILE_DOCUMENTS.sql`, written and structurally
+  tested, following `RECONCILE_ASSETS.sql`'s own shape.
+- **The read switch's architectural gap is resolved.** Designing it
+  found `property.documents`' isolation model had no path for public
+  visibility, while `portfolio_items` is genuinely public today — the
+  product owner decided to add explicit public-visibility support to the
+  isolation model. `property.document_types.is_public` carries it by
+  type — the same reasoning `DATABASE_ARCHITECTURE.md` §15 already gives
+  `retention_class` — with `portfolio_photo` the only public type.
+  `service_request_photos`-sourced documents, deliberately unattached
+  and undiscoverable by subject, get a dedicated lookup
+  (`property.documents_for_service_request()`) instead.
+- **`property.documents.caption`** — building the client read switch
+  found `fetchPortfolioItems()` returns `caption`, a real field
+  (`updatePortfolioCaption()`) with no equivalent on `property.documents`
+  until now. Backfilled onto already-mirrored rows; `portfolio_items`
+  gained its first-ever UPDATE mirror trigger to keep it in sync going
+  forward.
+- **`workspace.resolve_public_professional_workspace()`** — the first
+  "resolve someone else's public workspace" lookup in this roadmap,
+  needed to switch the portfolio read (every prior resolver only
+  answered "what are *my own* workspaces"). Public, matching
+  `portfolio_items`' own real grant — a workspace id isn't sensitive by
+  itself, and visibility of anything real stays gated separately.
+
+- Test suite grew from 875 tests across 75 files to **978 across 89**.
+
+### Changed
+
+- **`fetchRequestPhotos` and `fetchPortfolioItems` now read
+  `property.documents` via the document engine**, not their legacy
+  tables directly, whenever the new migrations are applied — both
+  falling back to the exact prior behaviour otherwise, the same fallback
+  discipline every read switch since Epic 03 WP 03.11 has used. Every
+  field either function returned before, including portfolio's
+  `caption`, is still returned. **Live verification of both switches is
+  Pending**: `RECONCILE_DOCUMENTS.sql` has been written and structurally
+  tested but has not run against a real database this session — do not
+  treat either switch as verified in an environment with real users
+  until it has.
+
 **Epic 07 — Asset Engine (complete, 8 of 8 packages).** `household_items`
 is still what every write actually lands on. What changed is where "Mijn
 spullen" reads from — see Changed, below, for that part stated plainly.
