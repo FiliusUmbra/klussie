@@ -31,7 +31,7 @@ the shared work.create_maintenance_obligation() that
 schedule/compliance/prediction still call directly and unchanged; see
 this WP's own migration for why a thin delegate alone would have
 reopened the exact hole WP 1.2 closed on the read side) is merged
-(#PR_NUMBER). WP 1.8–1.9 and WP 1.10 (My Business reuse) have not
+(#42). WP 1.8–1.9 and WP 1.10 (My Business reuse) have not
 started. This slice is substantially larger
 than Slice 0 — five engines, two client experiences, and (per §1 below)
 genuinely missing write contracts, not merely unwired read paths — and
