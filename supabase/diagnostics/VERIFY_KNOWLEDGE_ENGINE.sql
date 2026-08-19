@@ -107,8 +107,15 @@ begin
   raise notice '3 · two equally-specific rules are surfaced together as a conflict, neither picked silently';
 
   -- =========================================================================
-  -- 4 · Superseding the second conflicting rule resolves the conflict — supersession is
-  -- a new row, the old one frozen at superseded
+  -- 4 · Superseding one of two tied rules does NOT, by itself, resolve the conflict —
+  -- proving "conflicts are surfaced, never resolved silently" holds even under
+  -- supersession. Caught only by running this diagnostic against real data (staging,
+  -- 2026-08-19): the original expectation here was that supersession alone would drop the
+  -- count back to 1, which would mean superseding ONE of two tied rules silently resolves
+  -- a conflict involving a rule it never touched (v_rule_prop) — exactly what the
+  -- architecture forbids. The real, correct behaviour is that the successor (v_rule_new)
+  -- is STILL tied with the untouched v_rule_prop, both still marked is_conflict, until a
+  -- human explicitly retires one of them — which is what actually resolves it.
 
   perform knowledge.supersede_rule(
     p_old_rule_id => v_rule_prop2, p_new_rule_id => v_rule_new, p_rule => '{"amount": 500, "currency": "EUR"}'::jsonb,
@@ -118,11 +125,32 @@ begin
   if v_status <> 'superseded' then
     raise exception '4a · expected the old rule to be superseded, got %', v_status;
   end if;
+
+  select count(*) into v_count from knowledge.rules_in_force(v_ws, 'budget_threshold', v_prop, v_floor);
+  if v_count <> 2 then
+    raise exception '4b · expected the successor still tied with the untouched v_rule_prop, got % rows', v_count;
+  end if;
+  if exists (select 1 from knowledge.rules_in_force(v_ws, 'budget_threshold', v_prop, v_floor) where not is_conflict) then
+    raise exception '4c · superseding one tied rule silently cleared is_conflict on the other — conflicts must never resolve silently';
+  end if;
+  raise notice '4 · superseding one tied rule leaves its successor still tied with the untouched rule — no conflict resolves silently';
+
+  -- Now resolve it for real: retire the rule that lost, exactly as check 5 below proves
+  -- retirement itself works. Only an explicit human decision — not a side-effect of
+  -- superseding an unrelated rule — reduces this back to one rule in force.
+  perform knowledge.retire_rule(
+    p_rule_id => v_rule_prop, p_event_id => gen_random_uuid(),
+    p_correlation_id => gen_random_uuid(), p_actor_type => 'person', p_actor_ref => 'owner-1'
+  );
   select count(*) into v_count from knowledge.rules_in_force(v_ws, 'budget_threshold', v_prop, v_floor);
   if v_count <> 1 then
-    raise exception '4b · expected the conflict resolved after supersession, got % rows', v_count;
+    raise exception '4d · expected exactly one rule in force after explicitly retiring the loser, got %', v_count;
   end if;
-  raise notice '4 · superseding the losing rule resolves the conflict, the old row permanently marked, never edited';
+  select * into v_row from knowledge.rules_in_force(v_ws, 'budget_threshold', v_prop, v_floor);
+  if v_row.rule_id <> v_rule_new or v_row.is_conflict then
+    raise exception '4e · expected the superseding rule alone, cleanly in force, got rule % conflict %', v_row.rule_id, v_row.is_conflict;
+  end if;
+  raise notice '4f · explicitly retiring the losing rule is what actually resolves the conflict, leaving the superseding rule alone';
 
   -- =========================================================================
   -- 5 · A retired rule immutability guard: cannot revert status, cannot delete

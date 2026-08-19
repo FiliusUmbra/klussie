@@ -49,6 +49,23 @@ begin
   insert into property.facet_types (facet_type_key, declared_attributes) values (v_facet_type, '{}'::jsonb);
   insert into property.asset_facets (id, asset_id, facet_type_key, attributes) values (gen_random_uuid(), v_asset, v_facet_type, '{}'::jsonb);
 
+  -- The connecting role (postgres.<project-ref>, per this file's own header) has BYPASSRLS
+  -- in Supabase by default — the probes below query property.assets/asset_facets directly,
+  -- relying on the table's own RLS policy, which postgres would otherwise skip entirely
+  -- regardless of request.jwt.claims. Switching to authenticated (rolbypassrls = false) is
+  -- what makes this a real behavioural proof rather than a check that always passes.
+  --
+  -- authenticated has no USAGE on schema property at all yet (ROLES.md §2.4's own "Not yet"
+  -- bucket — no epic has shipped a live read path here). That is a separate, deliberate,
+  -- already-tracked gap, not what this diagnostic tests. The grants below are scoped to
+  -- this same transaction and revert with the rollback at the end of this file, so this
+  -- probe can isolate "does the RLS policy itself work" from "is the schema open yet".
+  execute 'grant usage on schema property to authenticated';
+  -- The policy's own USING clause subqueries property.properties (0050's own definition),
+  -- so evaluating it needs SELECT there too, not only on the tables being read directly.
+  execute 'grant select on property.assets, property.asset_facets, property.properties to authenticated';
+  execute 'set local role authenticated';
+
   perform set_config('request.jwt.claims', json_build_object('sub', v_member_auth)::text, true);
   select count(*) into v_count from property.assets where id = v_asset;
   if v_count <> 1 then raise exception 'A live workspace member cannot see an asset in the property they steward'; end if;

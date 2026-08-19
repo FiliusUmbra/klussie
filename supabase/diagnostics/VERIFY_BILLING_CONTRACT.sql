@@ -50,7 +50,7 @@ begin
   perform commerce.issue_marketplace_commission_invoice(
     p_invoice_id => v_invoice, p_engagement_id => v_engagement, p_commission_rate => 0.12,
     p_currency => 'EUR', p_jurisdiction => 'BE',
-    p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(), p_actor_type => 'system', p_actor_ref => null
+    p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(), p_actor_type => 'system', p_actor_ref => 'diagnostic-billing-job'
   );
 
   select total, status into v_total, v_status from commerce.resolve_invoice(v_invoice);
@@ -75,10 +75,10 @@ begin
   perform commerce.record_payment(
     p_payment_id => v_payment_in, p_workspace_id => (select performing_workspace_id from work.engagements where id = v_engagement),
     p_invoice_id => v_invoice, p_direction => 'inbound', p_amount => 12.00, p_currency => 'EUR',
-    p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(), p_actor_type => 'system', p_actor_ref => null
+    p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(), p_actor_type => 'system', p_actor_ref => 'diagnostic-billing-job'
   );
   perform commerce.settle_payment(
-    v_payment_in, gen_random_uuid(), gen_random_uuid(), 'system', null
+    v_payment_in, gen_random_uuid(), gen_random_uuid(), 'system', 'diagnostic-billing-job'
   );
 
   select status into v_status from commerce.resolve_invoice(v_invoice);
@@ -91,7 +91,7 @@ begin
   -- 3 · A payment cannot be settled twice
 
   begin
-    perform commerce.settle_payment(v_payment_in, gen_random_uuid(), gen_random_uuid(), 'system', null);
+    perform commerce.settle_payment(v_payment_in, gen_random_uuid(), gen_random_uuid(), 'system', 'diagnostic-billing-job');
     raise exception '3 · settling an already-settled payment did not raise';
   exception when others then
     if sqlerrm not like '%does not exist or is not pending%' then raise; end if;
@@ -104,9 +104,9 @@ begin
   perform commerce.record_payment(
     p_payment_id => v_payment_out, p_workspace_id => (select performing_workspace_id from work.engagements where id = v_engagement),
     p_invoice_id => null, p_direction => 'outbound', p_amount => 88.00, p_currency => 'EUR',
-    p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(), p_actor_type => 'system', p_actor_ref => null
+    p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(), p_actor_type => 'system', p_actor_ref => 'diagnostic-billing-job'
   );
-  perform commerce.settle_payment(v_payment_out, gen_random_uuid(), gen_random_uuid(), 'system', null);
+  perform commerce.settle_payment(v_payment_out, gen_random_uuid(), gen_random_uuid(), 'system', 'diagnostic-billing-job');
 
   select status into v_status from commerce.workspace_payments((select performing_workspace_id from work.engagements where id = v_engagement))
   where id = v_payment_out;

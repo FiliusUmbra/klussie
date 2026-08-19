@@ -155,15 +155,25 @@ inserted_documents as (
     document_id, workspace_id, 'request_photo', 'request-photos', storage_path,
     service_request_photo_id, created_at, now()
   from candidates
-  returning id, service_request_photo_id, request_id
+  returning id, service_request_photo_id
+),
+-- RETURNING can only project columns of property.documents itself (or `*`) — request_id
+-- was never inserted there, only carried through candidates for this join. Recovering it
+-- via service_request_photo_id (which IS returned) rather than trying to return it
+-- directly is the fix; caught only by running this migration against real data (staging,
+-- 2026-08-19) — every prior structural test asserted the SQL's shape, not its validity.
+documents_with_request as (
+  select idoc.id, c.request_id
+  from inserted_documents idoc
+  join candidates c on c.service_request_photo_id = idoc.service_request_photo_id
 )
 -- Sharing: a point-in-time snapshot of public.pro_matches_request()'s own predicate
 -- (migration 0004), reproduced as a set-based join — see this migration's own header.
 insert into property.document_shares (id, document_id, shared_with_workspace_id)
 select distinct
-  platform.uuid_v7_at(now()), idoc.id, pro_w.id
-from inserted_documents idoc
-join public.service_requests sr on sr.id = idoc.request_id
+  platform.uuid_v7_at(now()), dwr.id, pro_w.id
+from documents_with_request dwr
+join public.service_requests sr on sr.id = dwr.request_id
 join public.pro_services ps on ps.service_id = sr.service_id
 join public.services sv on sv.id = sr.service_id
 join public.pro_profiles pp on pp.profile_id = ps.pro_id and not pp.paused
