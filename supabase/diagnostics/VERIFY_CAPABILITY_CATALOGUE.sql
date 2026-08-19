@@ -16,17 +16,24 @@ declare
   v_inconsistent_count  integer;
 begin
   -- =========================================================================
-  -- 1 · Exactly 27 capabilities, exactly 5 dependency edges, exactly 3 presets
+  -- 1 · Exactly 27 customer-facing capabilities, exactly 5 dependency edges,
+  -- exactly 3 presets
   --
-  -- 0075_capability_catalogue.sql seeds seven groups (demand_and_supply 5,
-  -- physical_world 4, care_over_time 5, knowledge_and_intelligence 4, working_together 3,
-  -- commercial 2, extension 4 = 27) — this check asserted 26 since it was written,
-  -- an off-by-one against the migration's own real seed data, caught only by running it
-  -- against real data (staging, 2026-08-19).
+  -- 0075_capability_catalogue.sql seeds seven customer-facing groups (demand_and_supply
+  -- 5, physical_world 4, care_over_time 5, knowledge_and_intelligence 4,
+  -- working_together 3, commercial 2, extension 4 = 27) — this check asserted 26 since it
+  -- was written, an off-by-one against the migration's own real seed data, caught only by
+  -- running it against real data (staging, 2026-08-19).
+  --
+  -- Scoped to `category <> 'internal'` since 0132_operations_workspace.sql (ADR-0030):
+  -- platform_operations is a real, deliberate 28th row in the table, in a category §6.7
+  -- itself never names, because it has no customer, ever, by design — this check verifies
+  -- 0075/0076's own customer-facing seed, not "every row in the table forever," so it
+  -- excludes the one category that was never meant to be part of it.
 
-  select count(*) into v_count from platform.capabilities;
+  select count(*) into v_count from platform.capabilities where category <> 'internal';
   if v_count <> 27 then
-    raise exception '1a · expected 27 capabilities, found %', v_count;
+    raise exception '1a · expected 27 customer-facing capabilities, found %', v_count;
   end if;
 
   select count(*) into v_count from platform.capability_dependencies;

@@ -1,7 +1,7 @@
 # ADR-0030: Operator identity is a membership in a real, internal Operations Workspace — not a new access mechanism
 
-**Status:** Proposed — governs Platform Activation Slice 0 WP 0.3
-onward; free to revise until the first real membership is seeded
+**Status:** Accepted — governs Platform Activation Slice 0 WP 0.3
+onward
 **Date:** 2026-08-19
 **Related:** `../architecture/PLATFORM_DOMAIN_MODEL.md` §2, §6.2, §7,
 §8, `../architecture/SYSTEM_ARCHITECTURE.md` §12.3,
