@@ -53,14 +53,20 @@ begin
   -- 2 · Two documents attach to the same asset; only the caller's own (or shared) one
   -- is returned — attachment finds candidates, visibility filters them, independently
 
-  set local role klussie_engine_property;
   -- Simulated caller context: workspace.current_memberships() depends on auth.uid(),
   -- which this diagnostic cannot set outside a real session — this check instead proves
   -- the SQL shape directly: both documents attach to the asset, but resolve_document()
   -- only succeeds for the owner, never for a non-owning, non-shared workspace, by
   -- checking property.documents' own visibility predicate against each explicitly below
   -- rather than through the membership-dependent contract function.
-  reset role;
+  --
+  -- A `set local role klussie_engine_property; reset role;` pair used to sit here, doing
+  -- nothing between the two statements and left over from an earlier draft. Removed:
+  -- postgres is not a member of any klussie_engine_* role (ROLES.md's own design — "a real
+  -- connection role is granted membership by the epic that gives an engine its own
+  -- connection," which has not happened for any engine yet), so the switch only ever
+  -- raised "permission denied to set role" — caught running this diagnostic against real
+  -- data (staging, 2026-08-19).
 
   select count(*) into v_count from property.document_attachments where asset_id = v_asset;
   if v_count <> 2 then

@@ -1,5 +1,5 @@
 // Keeps 0075_capability_catalogue.sql inside PLATFORM_DOMAIN_MODEL.md §6.7's real
-// catalogue (26 capabilities, verbatim) and §6.2's own dependency graph — only the five
+// catalogue (27 capabilities, verbatim) and §6.2's own dependency graph — only the five
 // edges the text actually states, none invented.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -29,7 +29,7 @@ describe("0075_capability_catalogue migration", () => {
     expect(created.sort()).toEqual(["platform.capabilities", "platform.capability_dependencies"]);
   });
 
-  it("seeds exactly the 26 capabilities §6.7 names, each key present", () => {
+  it("seeds exactly the 27 capabilities §6.7 names, each key present", () => {
     const start = codeNoComments.indexOf("insert into platform.capabilities");
     const block = codeNoComments.slice(start, codeNoComments.indexOf("on conflict (capability_key)", start));
     for (const key of CAPABILITY_KEYS) {

@@ -145,13 +145,28 @@ begin
   -- THE REWRITE — the moved location and every descendant, one statement. subpath(path,
   -- nlevel(v_old_path)) strips the moved location's OLD prefix from each row's path,
   -- leaving only what is below it; concatenating v_new_path onto that remainder reattaches
-  -- it under the new position. For the moved location itself, the remainder is empty and
-  -- the result is exactly v_new_path — ltree's own || operator handles that correctly,
-  -- which is why this line uses it instead of the text-and-dot shortcut used above.
+  -- it under the new position.
+  --
+  -- THE MOVED LOCATION ITSELF NEEDS AN EXPLICIT GUARD, NOT subpath()'s OWN "EMPTY REMAINDER"
+  -- BEHAVIOUR — this line's own original comment assumed subpath(path, nlevel(v_old_path))
+  -- would return an empty ltree when path = v_old_path exactly (the moved row itself, whose
+  -- "remainder below the old prefix" is nothing). ltree's subpath() does not do that: calling
+  -- it with an offset equal to the path's own nlevel raises "invalid positions" (SQLSTATE
+  -- 22023), unconditionally, for every 2-argument and 3-argument form tried — not merely
+  -- returning empty. This means reparent_location() failed on every single call, always,
+  -- since the row being moved always satisfies path = v_old_path and is always included in
+  -- `where path <@ v_old_path`. Caught only by running this migration's own diagnostic
+  -- against real data (staging, 2026-08-19) — no static test executes SQL, so this had never
+  -- once actually run. Fixed with an explicit CASE: the moved row gets v_new_path directly,
+  -- with no subpath() call at all; every genuine descendant (nlevel(path) > nlevel(v_old_path),
+  -- never hitting the boundary) is untouched by this fix.
   with moved as (
     update property.locations
     set parent_id  = case when id = p_location_id then p_new_parent_id else parent_id end,
-        path        = v_new_path OPERATOR(extensions.||) extensions.subpath(path, extensions.nlevel(v_old_path)),
+        path        = case
+                         when extensions.nlevel(path) = extensions.nlevel(v_old_path) then v_new_path
+                         else v_new_path OPERATOR(extensions.||) extensions.subpath(path, extensions.nlevel(v_old_path))
+                       end,
         updated_at  = now()
     where path OPERATOR(extensions.<@) v_old_path
     returning id

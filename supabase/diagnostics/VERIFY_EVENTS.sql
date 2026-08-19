@@ -144,15 +144,44 @@ begin
     problems := problems || 'row level security is not enabled'::text;
   end if;
 
-  if exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'events') then
-    problems := problems || 'a policy exists on a table that is not client-readable'::text;
-  end if;
+  -- Epic 15 (0102_timeline_twin_access.sql) added events_engine_read — full-stream SELECT
+  -- for exactly the two trusted internal roles platform.events' own original comment named
+  -- ("background consumers on §7's elevated path"): klussie_consumer_delivery (a dead grant
+  -- since 0021 until this policy made it work) and klussie_engine_property (Timeline). Not
+  -- a per-caller isolation predicate — anon/authenticated/service_role stay fully revoked,
+  -- checked above, and per-caller scoping happens inside property.timeline_segment()
+  -- itself. This diagnostic predates that change (Epic 01) and asserted "no policy at all"
+  -- until updated here — caught running it against real data (staging, 2026-08-19), where
+  -- the assertion had gone stale relative to a real, deliberate, already-documented
+  -- architectural decision, not a regression.
+  declare
+    rec record;
+  begin
+    select * into rec from pg_policies
+    where schemaname = 'platform' and tablename = 'events' and policyname = 'events_engine_read';
+    if not found then
+      problems := problems || 'events_engine_read policy is missing'::text;
+    else
+      if rec.cmd <> 'SELECT' then
+        problems := problems || format('events_engine_read is for %s, not SELECT', rec.cmd);
+      end if;
+      if rec.roles::text[] <> array['klussie_consumer_delivery', 'klussie_engine_property'] then
+        problems := problems || format('events_engine_read grants %s, not exactly klussie_consumer_delivery and klussie_engine_property', rec.roles);
+      end if;
+    end if;
+    if exists (
+      select 1 from pg_policies
+      where schemaname = 'platform' and tablename = 'events' and policyname <> 'events_engine_read'
+    ) then
+      problems := problems || 'an unexpected additional policy exists on platform.events'::text;
+    end if;
+  end;
 
   if array_length(problems, 1) is not null then
     raise exception 'Access posture wrong: %', array_to_string(problems, '; ');
   end if;
 
-  raise notice '3 · unreadable by clients, unwritable by anyone but its engine, RLS on with no policies';
+  raise notice '3 · unreadable by clients, unwritable by anyone but its engine, RLS on with exactly the one named engine-read policy';
 end;
 $$;
 

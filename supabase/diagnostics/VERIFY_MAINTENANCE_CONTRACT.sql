@@ -36,7 +36,10 @@ begin
   perform work.create_maintenance_schedule(
     p_schedule_id => v_sched, p_workspace_id => v_ws, p_asset_id => v_asset, p_location_id => null,
     p_title => 'Quarterly filter change', p_description => null,
-    p_recurrence => interval '1 month', p_first_due_on => current_date - interval '2 months',
+    -- current_date - interval evaluates to timestamp, not date, and
+    -- create_maintenance_schedule's own p_first_due_on is date — caught running this
+    -- diagnostic against real data (staging, 2026-08-19).
+    p_recurrence => interval '1 month', p_first_due_on => (current_date - interval '2 months')::date,
     p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
     p_actor_type => 'person', p_actor_ref => 'customer-1'
   );
@@ -52,17 +55,17 @@ begin
   perform work.generate_due_obligation(
     p_schedule_id => v_sched, p_obligation_id => v_obl1,
     p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
-    p_actor_type => 'system', p_actor_ref => null
+    p_actor_type => 'system', p_actor_ref => 'diagnostic-maintenance-job'
   );
   perform work.generate_due_obligation(
     p_schedule_id => v_sched, p_obligation_id => v_obl2,
     p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
-    p_actor_type => 'system', p_actor_ref => null
+    p_actor_type => 'system', p_actor_ref => 'diagnostic-maintenance-job'
   );
   perform work.generate_due_obligation(
     p_schedule_id => v_sched, p_obligation_id => v_obl3,
     p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
-    p_actor_type => 'system', p_actor_ref => null
+    p_actor_type => 'system', p_actor_ref => 'diagnostic-maintenance-job'
   );
 
   select count(*) into v_count from work.maintenance_obligations where schedule_id = v_sched;
@@ -86,7 +89,7 @@ begin
     perform work.generate_due_obligation(
       p_schedule_id => v_sched, p_obligation_id => gen_random_uuid(),
       p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
-      p_actor_type => 'system', p_actor_ref => null
+      p_actor_type => 'system', p_actor_ref => 'diagnostic-maintenance-job'
     );
     raise exception '3 · generating from a not-yet-due schedule did not raise';
   exception when others then
@@ -179,7 +182,7 @@ begin
     perform work.generate_due_obligation(
       p_schedule_id => v_sched, p_obligation_id => gen_random_uuid(),
       p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
-      p_actor_type => 'system', p_actor_ref => null
+      p_actor_type => 'system', p_actor_ref => 'diagnostic-maintenance-job'
     );
     raise exception '7b · generating from a cancelled schedule did not raise';
   exception when others then

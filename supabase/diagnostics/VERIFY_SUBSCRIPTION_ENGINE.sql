@@ -89,10 +89,11 @@ begin
     raise exception '4a · starting a business trial granted % capabilities with source trial, expected 14', v_count;
   end if;
 
-  perform commerce.activate_subscription(
-    gen_random_uuid(), v_ws, 'personal', jsonb_build_object('payerType', 'workspace', 'payerRef', v_ws),
-    gen_random_uuid(), gen_random_uuid(), 'person', 'customer-3'
-  );
+  -- v_subscription_id (v_ws's own, from checks 1-3) is already active, never trialing —
+  -- exactly what this check needs. The line that used to sit here re-activated a second
+  -- subscription for v_ws, which commerce.subscriptions' own one-per-workspace constraint
+  -- refuses (it was also entirely unnecessary): caught running this diagnostic against
+  -- real data (staging, 2026-08-19).
   begin
     perform commerce.expire_trial(v_subscription_id, gen_random_uuid(), gen_random_uuid(), 'system', 'trial-expiry-job');
     raise exception '4b · expiring a non-trialing subscription did not raise';

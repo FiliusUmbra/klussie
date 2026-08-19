@@ -28,6 +28,12 @@ begin
   insert into workspace.memberships (id, workspace_id, person_ref, role, state)
     values (gen_random_uuid(), v_ws, v_person_ref, 'owner', 'active');
 
+  -- portfolio_items.pro_id -> public.pro_profiles(profile_id) — missing here originally,
+  -- caught only by running this diagnostic against real data (staging, 2026-08-19).
+  insert into public.profiles (id, full_name) values (v_auth_id, 'Dual Write Pro') on conflict (id) do nothing;
+  insert into public.pro_profiles (profile_id, pro_type, paused) values (v_auth_id, 'flexi', false)
+    on conflict (profile_id) do update set paused = false;
+
   insert into public.portfolio_items (id, pro_id, image_url, storage_path, caption)
     values (v_item, v_auth_id, 'https://example.test/x.jpg', 'pro/x.jpg', 'Nice work');
 
@@ -65,6 +71,9 @@ begin
   insert into workspace.workspaces (id, type, name) values (v_ws, 'professional', 'Delete Pro Services');
   insert into workspace.memberships (id, workspace_id, person_ref, role, state)
     values (gen_random_uuid(), v_ws, v_person_ref, 'owner', 'active');
+  insert into public.profiles (id, full_name) values (v_auth_id, 'Delete Pro') on conflict (id) do nothing;
+  insert into public.pro_profiles (profile_id, pro_type, paused) values (v_auth_id, 'flexi', false)
+    on conflict (profile_id) do update set paused = false;
   insert into public.portfolio_items (id, pro_id, image_url, storage_path)
     values (v_item, v_auth_id, 'https://example.test/y.jpg', 'pro/y.jpg');
 
@@ -101,7 +110,7 @@ declare
   v_pro_auth      uuid := gen_random_uuid();
   v_pro_ref       uuid := gen_random_uuid();
   v_pro_ws        uuid := gen_random_uuid();
-  v_category_id   uuid := gen_random_uuid();
+  v_category_id   text := 'diagnostic-' || gen_random_uuid()::text;
   v_service_id    uuid := gen_random_uuid();
   v_request_id    uuid := gen_random_uuid();
   v_photo_id      uuid := gen_random_uuid();
@@ -123,15 +132,23 @@ begin
   insert into workspace.memberships (id, workspace_id, person_ref, role, state)
     values (gen_random_uuid(), v_pro_ws, v_pro_ref, 'owner', 'active');
   insert into public.profiles (id, full_name) values (v_pro_auth, 'Match Pro') on conflict (id) do nothing;
-  insert into public.pro_profiles (profile_id, paused) values (v_pro_auth, false)
+  insert into public.pro_profiles (profile_id, pro_type, paused) values (v_pro_auth, 'flexi', false)
     on conflict (profile_id) do update set paused = false;
-  insert into public.categories (id, name) values (v_category_id, 'Dual Write Category') on conflict do nothing;
-  insert into public.services (id, category_id, name, certified_only)
-    values (v_service_id, v_category_id, 'Dual Write Service', false) on conflict do nothing;
+  -- public.categories has no name column (that lives in category_translations) and its id
+  -- is text, not uuid — caught running this diagnostic against real data (staging,
+  -- 2026-08-19).
+  insert into public.categories (id, icon) values (v_category_id, 'wrench') on conflict do nothing;
+  -- public.services has no name column (that lives in service_translations) and requires
+  -- mode and base_price, neither with a default — caught running this diagnostic against
+  -- real data (staging, 2026-08-19).
+  insert into public.services (id, category_id, mode, base_price, certified_only)
+    values (v_service_id, v_category_id, 'quote', 50.00, false) on conflict do nothing;
   insert into public.pro_services (pro_id, service_id) values (v_pro_auth, v_service_id) on conflict do nothing;
 
-  insert into public.service_requests (id, customer_id, service_id, category_id, details, status)
-    values (v_request_id, v_customer_auth, v_service_id, v_category_id, 'Dual write test job', 'collecting');
+  -- when_pref is required, no default — caught running this diagnostic against real data
+  -- (staging, 2026-08-19).
+  insert into public.service_requests (id, customer_id, service_id, category_id, details, when_pref, status, directed_until)
+    values (v_request_id, v_customer_auth, v_service_id, v_category_id, 'Dual write test job', 'flexible', 'collecting', null);
 
   insert into public.service_request_photos (id, request_id, storage_path)
     values (v_photo_id, v_request_id, 'req/z.jpg');

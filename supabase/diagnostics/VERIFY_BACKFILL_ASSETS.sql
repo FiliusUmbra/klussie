@@ -63,8 +63,14 @@ begin
   -- handle_new_user() already created profiles, profile_contacts and identity.identities
   -- in the same transaction. Erase it immediately — the point of this probe is that an
   -- ERASED owner's items are still backfilled (this migration's own deliberate departure
-  -- from 0033).
-  update identity.identities set erased_at = now() where person_ref = v_person_ref;
+  -- from 0033). Mirrors 0029_identity_erasure.sql's own field list exactly: setting
+  -- erased_at alone violates identities_erasure_is_complete, which requires every personal
+  -- field null in the same statement — caught only by running this diagnostic against real
+  -- data (staging, 2026-08-19), where the shortcut version had never actually been executed.
+  update identity.identities
+  set full_name = null, avatar_url = null, city = null, email = null, phone = null,
+      erased_at = now(), updated_at = now()
+  where person_ref = v_person_ref;
 
   insert into workspace.workspaces (id, type, name) values (v_ws, 'personal', 'My Home');
   insert into workspace.memberships (id, workspace_id, person_ref, role, state)

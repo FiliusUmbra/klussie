@@ -58,7 +58,7 @@ declare
   v_pro_ws        uuid := gen_random_uuid();
 
   v_service_id    uuid := gen_random_uuid();
-  v_category_id   uuid := gen_random_uuid();
+  v_category_id   text := 'diagnostic-' || gen_random_uuid()::text;
   v_request_id    uuid := gen_random_uuid();
   v_photo_id      uuid := gen_random_uuid();
 
@@ -84,13 +84,19 @@ begin
     values (gen_random_uuid(), v_pro_ws, v_pro_ref, 'owner', 'active');
 
   insert into public.profiles (id, full_name) values (v_pro_auth, 'Doc Pro') on conflict (id) do nothing;
-  insert into public.pro_profiles (profile_id, paused) values (v_pro_auth, false)
+  insert into public.pro_profiles (profile_id, pro_type, paused) values (v_pro_auth, 'flexi', false)
     on conflict (profile_id) do update set paused = false;
 
-  insert into public.categories (id, name) values (v_category_id, 'Test Category')
+  -- public.categories has no name column (that lives in category_translations) and its id
+  -- is text, not uuid — a genuine schema mismatch this diagnostic had never actually run
+  -- against, caught running it against real data (staging, 2026-08-19).
+  insert into public.categories (id, icon) values (v_category_id, 'wrench')
     on conflict do nothing;
-  insert into public.services (id, category_id, name, certified_only)
-    values (v_service_id, v_category_id, 'Test Service', false)
+  -- public.services has no name column (that lives in service_translations) and requires
+  -- mode and base_price, neither with a default — caught running this diagnostic against
+  -- real data (staging, 2026-08-19).
+  insert into public.services (id, category_id, mode, base_price, certified_only)
+    values (v_service_id, v_category_id, 'quote', 50.00, false)
     on conflict do nothing;
   insert into public.pro_services (pro_id, service_id) values (v_pro_auth, v_service_id)
     on conflict do nothing;
@@ -100,8 +106,10 @@ begin
     values (gen_random_uuid(), v_pro_auth, 'https://example.test/x.jpg', 'pro/x.jpg', 'Test work', '2025-06-01T00:00:00Z');
 
   -- Request + matching photo
-  insert into public.service_requests (id, customer_id, service_id, category_id, details, status, created_at)
-    values (v_request_id, v_customer_auth, v_service_id, v_category_id, 'Test job', 'collecting', '2025-06-01T00:00:00Z');
+  -- when_pref is required, no default — caught running this diagnostic against real data
+  -- (staging, 2026-08-19).
+  insert into public.service_requests (id, customer_id, service_id, category_id, details, when_pref, status, created_at, directed_until)
+    values (v_request_id, v_customer_auth, v_service_id, v_category_id, 'Test job', 'flexible', 'collecting', '2025-06-01T00:00:00Z', null);
   insert into public.service_request_photos (id, request_id, storage_path, created_at)
     values (v_photo_id, v_request_id, 'req/x.jpg', '2025-06-01T00:00:00Z');
 
@@ -152,12 +160,22 @@ begin
     insert into property.documents (id, owning_workspace_id, type_key, storage_bucket, storage_path, service_request_photo_id, created_at, updated_at)
     select document_id, workspace_id, 'request_photo', 'request-photos', storage_path, service_request_photo_id, created_at, now()
     from candidates
-    returning id, request_id
+    returning id, service_request_photo_id
+  ),
+  -- RETURNING can only project columns of property.documents itself — request_id was
+  -- never inserted there, only carried through candidates for this join. The same fix as
+  -- 0060_backfill_documents.sql's own header explains, this diagnostic's own inline copy
+  -- of that logic had the identical bug — caught running it against real data (staging,
+  -- 2026-08-19).
+  documents_with_request as (
+    select ins.id, c.request_id
+    from inserted ins
+    join candidates c on c.service_request_photo_id = ins.service_request_photo_id
   )
   insert into property.document_shares (id, document_id, shared_with_workspace_id)
-  select distinct platform.uuid_v7_at(now()), ins.id, pro_w.id
-  from inserted ins
-  join public.service_requests sr on sr.id = ins.request_id
+  select distinct platform.uuid_v7_at(now()), dwr.id, pro_w.id
+  from documents_with_request dwr
+  join public.service_requests sr on sr.id = dwr.request_id
   join public.pro_services ps on ps.service_id = sr.service_id
   join public.services sv on sv.id = sr.service_id
   join public.pro_profiles pp on pp.profile_id = ps.pro_id and not pp.paused
