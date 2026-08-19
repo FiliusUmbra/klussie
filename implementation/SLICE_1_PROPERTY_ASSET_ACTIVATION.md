@@ -14,8 +14,10 @@ all five engines' read contracts are real and wired into
 `MyItemsPanel.jsx` (WP 1.1–1.3); Platform Operations can look up a
 workspace by name, owner, property name or id and see its real
 capabilities, membership/property counts and last audit activity (WP
-1.1a). Tier 2 (Write + legacy retirement, WP 1.4–1.9) and WP 1.10 (My
-Business reuse) have not started. This slice is substantially larger
+1.1a). Tier 2 (Write + legacy retirement) is underway: WP 1.4 (asset
+write contract — create/update/retire/dispose, backend only, no client
+caller yet) is merged (#PR_NUMBER). WP 1.5–1.9 and WP 1.10 (My Business
+reuse) have not started. This slice is substantially larger
 than Slice 0 — five engines, two client experiences, and (per §1 below)
 genuinely missing write contracts, not merely unwired read paths — and
 is broken into a longer work-package sequence for exactly that reason,
