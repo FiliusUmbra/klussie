@@ -679,7 +679,7 @@ describe("ConversationHome — booking and relief (WP9 / ADR-0012)", () => {
     await waitFor(() => expect(screen.getByText("Peter Painter")).toBeTruthy());
 
     await act(async () => { bookButton().click(); });
-    await waitFor(() => expect(uploadRequestPhoto).toHaveBeenCalledWith("req-1", undefined, file));
+    await waitFor(() => expect(uploadRequestPhoto).toHaveBeenCalledWith("req-1", undefined, undefined, file));
   });
 
   it("keeps the confirmation when a photo upload fails after the request exists", async () => {

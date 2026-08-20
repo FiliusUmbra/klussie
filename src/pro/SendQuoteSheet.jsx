@@ -22,7 +22,7 @@ export function SendQuoteSheet({ lead, onClose, onSubmit }) {
       <div className="sheet-sub">{serviceInfo(lead.serviceId).name}</div>
       <JobDetailsSummary serviceId={lead.serviceId} fields={lead.answers.fields} />
       <AiAnalysisSummary aiAnalysis={lead.answers.aiAnalysis} />
-      <RequestPhotosStrip requestId={lead.id} />
+      <RequestPhotosStrip requestId={lead.id} legacy />
 
       <label className="field-label">{t.yourPriceLabel}</label>
       <div className="search" style={{ marginBottom: 18 }}>

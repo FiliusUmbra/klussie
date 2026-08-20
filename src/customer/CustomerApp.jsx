@@ -95,13 +95,14 @@ export function CustomerApp({ showToast }) {
   // request at all — the better of the two failure modes for someone with a leak.
   const attachPhotos = async (requestId, photos) => {
     for (const file of photos || []) {
-      await uploadRequestPhoto(requestId, user.id, file);
+      await uploadRequestPhoto(requestId, user.id, workspaceId, file);
     }
   };
 
   const createRequest = async (service, { whenPref, details, detailsJson, budget, city, photos }) => {
     const created = await createServiceRequest({
       customerId: user.id,
+      workspaceId,
       serviceId: service.id,
       categoryId: service.cat,
       details,
@@ -120,6 +121,7 @@ export function CustomerApp({ showToast }) {
   const createRequestFromAi = async ({ serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, photos }) => {
     const created = await createServiceRequest({
       customerId: user.id,
+      workspaceId,
       serviceId,
       categoryId,
       details,
@@ -134,18 +136,18 @@ export function CustomerApp({ showToast }) {
   };
 
   const acceptQuote = async (quoteId) => {
-    await acceptQuoteApi(quoteId);
+    await acceptQuoteApi(quoteId, user.id);
     await refresh();
     showToast(t.toastBooked);
   };
 
   const markComplete = async (requestId) => {
-    await markCompleteApi(requestId);
+    await markCompleteApi(requestId, user.id);
     await refresh();
   };
 
   const submitReview = async (request, review) => {
-    await submitReviewApi({ requestId: request.id, customerId: user.id, proId: request.bookedProId, stars: review.stars, text: review.text });
+    await submitReviewApi({ requestId: request.id, customerId: user.id, stars: review.stars, text: review.text });
     await refresh();
     showToast(t.toastThanks);
   };
@@ -205,6 +207,7 @@ export function CustomerApp({ showToast }) {
         <ConversationSheet
           conversationId={openConversation.id}
           userId={user.id}
+          workspaceId={workspaceId}
           otherName={openConversation.otherName}
           onClose={() => { setOpenConversation(null); refreshConversations(); }}
         />

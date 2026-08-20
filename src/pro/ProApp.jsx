@@ -37,10 +37,11 @@ export function ProApp({ showToast }) {
   // dates the same way ConversationHome.jsx's own customer surface already does.
   const { t, BASE_SERVICES, fmtDate } = useLang();
   const { user, activeWorkspace } = useAuth();
-  // Epic 03 WP11 — a pro's own Professional Workspace, threaded into fetchProServices only.
-  // Not threaded into fetchConversations/subscribeToConversationsForUser: those match on
-  // the REQUESTING (customer) workspace, which a pro's own workspace id never equals — see
-  // messages.js for the reasoning.
+  // Epic 03 WP11 / Platform Activation Slice 2 WP 2.6 — a pro's own Professional
+  // Workspace. api.my_conversations() (0157) is person-scoped, not workspace-filtered
+  // (resolved via public.current_identity(), participant membership) — workspaceId here
+  // identifies which side of each conversation is "mine" for computing unreadCount, not a
+  // read filter, so it threads into fetchConversations/subscribeToConversationsForUser too.
   const workspaceId = activeWorkspace?.workspace_id;
   const [tab, setTab] = useState("dashboard");
   const [quoteLead, setQuoteLead] = useState(null);
@@ -55,8 +56,8 @@ export function ProApp({ showToast }) {
   const categoryKey = categoryIds.join(",");
 
   const refreshLeads = () => fetchProLeads(user.id).then(setLeads);
-  const refreshJobs = () => fetchProJobs(user.id).then(setJobs);
-  const refreshConversations = () => fetchConversations(user.id).then(setConversations);
+  const refreshJobs = () => fetchProJobs(user.id, workspaceId).then(setJobs);
+  const refreshConversations = () => fetchConversations(user.id, workspaceId).then(setConversations);
   const refreshProInfo = () => fetchPublicProInfo([user.id]).then((m) => setProInfo(m[user.id]));
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export function ProApp({ showToast }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, workspaceId]);
 
-  useEffect(() => subscribeToProQuoteUpdates(user.id, refreshJobs), [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => subscribeToProQuoteUpdates(workspaceId, refreshJobs), [workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     refreshLeads();
     return subscribeToProLeads(categoryIds, refreshLeads);
@@ -76,10 +77,9 @@ export function ProApp({ showToast }) {
 
   useEffect(() => {
     refreshConversations();
-    // No workspaceId: see the note above this component's workspaceId declaration.
-    return subscribeToConversationsForUser(user.id, undefined, refreshConversations);
+    return subscribeToConversationsForUser(user.id, workspaceId, refreshConversations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id]);
+  }, [user.id, workspaceId]);
 
   if (!leads || !jobs || !proInfo || !offeredServiceIds || !conversations) {
     return <LoadingScreen />;
@@ -88,7 +88,7 @@ export function ProApp({ showToast }) {
   const earnedGross = netEarnings([...jobs.booked, ...jobs.completed], user.id);
 
   const sendQuote = async (lead, price, message) => {
-    await sendQuoteApi({ requestId: lead.id, proId: user.id, price, message });
+    await sendQuoteApi({ requestId: lead.id, proId: user.id, workspaceId, price, message });
     setQuoteLead(null);
     await refreshLeads();
     await refreshJobs();
@@ -120,6 +120,7 @@ export function ProApp({ showToast }) {
         <ConversationSheet
           conversationId={openConversation.id}
           userId={user.id}
+          workspaceId={workspaceId}
           otherName={openConversation.otherName}
           onClose={() => { setOpenConversation(null); refreshConversations(); }}
         />

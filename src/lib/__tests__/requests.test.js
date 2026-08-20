@@ -1,34 +1,50 @@
-// Foundation Freeze Epic 01, Slice C: the first real test suite, proving the
-// harness works against this codebase's actual pattern — a thin wrapper
-// around a Supabase call, throwing on { error } — not a trivial pure-function
-// example. src/lib/supabaseClient.js is mocked entirely so these run without
-// a real network call or real env vars.
+// Platform Activation Slice 2, WP 2.6: the client cutover's own test suite. Rewritten
+// alongside src/lib/requests.js's own rewrite — the previous version of this file tested
+// the pre-cutover, legacy-only contract and is stale against the current code (every
+// write now dual-writes at creation, every read but fetchProLeads() reads work.*, three
+// signatures grew a required workspaceId). src/lib/supabaseClient.js and src/lib/pros.js
+// are both mocked entirely so these run without a real network call, real env vars, or a
+// second, unrelated layer of Supabase calls inside fetchPublicProInfo().
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../supabaseClient", () => ({
-  supabase: { from: vi.fn(), channel: vi.fn(), removeChannel: vi.fn() },
+  supabase: { from: vi.fn(), schema: vi.fn(), channel: vi.fn(), removeChannel: vi.fn() },
+}));
+
+vi.mock("../pros", () => ({
+  initialsFrom: vi.fn((name) => (name ? name.split(" ").map((w) => w[0]).join("") : "")),
+  fetchPublicProInfo: vi.fn(() => Promise.resolve({})),
 }));
 
 import { supabase } from "../supabaseClient";
+import { fetchPublicProInfo } from "../pros";
 import {
   createServiceRequest,
   createDirectedRequest,
+  fetchCustomerRequests,
+  fetchProLeads,
+  fetchProJobs,
   sendQuote,
   acceptQuote,
-  fetchCustomerRequests,
+  markComplete,
+  submitReview,
   subscribeToCustomerRequests,
+  subscribeToRequestQuotes,
+  subscribeToProLeads,
+  subscribeToProQuoteUpdates,
 } from "../requests";
 
-// A minimal stand-in for supabase-js's chainable, thenable query builder —
-// supports the exact chains src/lib/requests.js actually uses
-// (.insert().select().single(), .insert() awaited directly, .update().eq(),
-// .select().eq().order()).
+// A minimal stand-in for supabase-js's chainable, thenable query builder — supports the
+// exact chains src/lib/requests.js's legacy-only paths still use (.insert() awaited
+// directly, .select().in().neq().order()).
 function createQueryBuilder(result) {
   const builder = {
     insert: vi.fn(() => builder),
     update: vi.fn(() => builder),
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    neq: vi.fn(() => builder),
+    in: vi.fn(() => builder),
     order: vi.fn(() => builder),
     single: vi.fn(() => Promise.resolve(result)),
     then: (onFulfilled, onRejected) => Promise.resolve(result).then(onFulfilled, onRejected),
@@ -36,286 +52,345 @@ function createQueryBuilder(result) {
   return builder;
 }
 
+// A stand-in for supabase.schema("api").rpc(name, args) — every new-schema call this file
+// makes. `handlers` maps rpc function name to a (args) => { data, error } responder;
+// calling an rpc with no matching handler is a test bug (an unaccounted-for call), not a
+// silently-passing one, so it throws rather than returning undefined.
+function mockApi(handlers) {
+  const rpc = vi.fn((name, args) => {
+    const handler = handlers[name];
+    if (!handler) throw new Error(`requests.test.js: unexpected rpc call "${name}" with ${JSON.stringify(args)}`);
+    return Promise.resolve(handler(args));
+  });
+  vi.mocked(supabase.schema).mockReturnValue({ rpc });
+  return rpc;
+}
+
+// The two calls every reshape path makes when a request has no quotes yet: an empty
+// quotes_for_request, and (for a non-terminal status) no review_for_request call at all.
+const noQuotesNoReview = {
+  quotes_for_request: () => ({ data: [], error: null }),
+};
+
 beforeEach(() => {
   vi.mocked(supabase.from).mockReset();
+  vi.mocked(supabase.schema).mockReset();
   vi.mocked(supabase.channel).mockReset();
   vi.mocked(supabase.removeChannel).mockReset();
+  vi.mocked(fetchPublicProInfo).mockReset().mockResolvedValue({});
 });
 
 describe("createServiceRequest", () => {
-  it("maps camelCase args to the real snake_case columns and reshapes the returned row", async () => {
-    const row = {
-      id: "req-1",
-      customer_id: "cust-1",
-      service_id: "svc-1",
-      category_id: "cleaning",
-      details: "leaking sink",
-      details_json: { severity: "high" },
-      ai_analysis: null,
-      when_pref: "this_week",
-      budget: 100,
-      city: "Brussels",
-      status: "collecting",
-      booked_pro_id: null,
-      created_at: "2026-08-06T00:00:00Z",
-      updated_at: "2026-08-06T00:00:00Z",
-      quotes: [],
-      reviews: [],
-    };
-    const builder = createQueryBuilder({ data: row, error: null });
-    vi.mocked(supabase.from).mockReturnValue(builder);
+  const args = {
+    customerId: "cust-1", workspaceId: "ws-1", serviceId: "svc-1", categoryId: "cleaning",
+    details: "leaking sink", detailsJson: { severity: "high" }, whenPref: "this_week",
+    budget: 100, city: "Brussels",
+  };
 
-    const result = await createServiceRequest({
-      customerId: "cust-1",
-      serviceId: "svc-1",
-      categoryId: "cleaning",
-      details: "leaking sink",
-      detailsJson: { severity: "high" },
-      whenPref: "this_week",
-      budget: 100,
-      city: "Brussels",
-    });
+  it("writes the legacy row first, then work.requests correlated to it, then reshapes the result", async () => {
+    const legacyBuilder = createQueryBuilder({ error: null });
+    vi.mocked(supabase.from).mockReturnValue(legacyBuilder);
+    const rpc = mockApi({ create_request: () => ({ error: null }), ...noQuotesNoReview });
+
+    const result = await createServiceRequest(args);
 
     expect(supabase.from).toHaveBeenCalledWith("service_requests");
-    expect(builder.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customer_id: "cust-1",
-        service_id: "svc-1",
-        category_id: "cleaning",
-        when_pref: "this_week",
-        details_json: { severity: "high" },
-      })
-    );
-    // reshapeRequest's real output shape — not the raw row.
+    const legacyRow = legacyBuilder.insert.mock.calls[0][0];
+    expect(legacyRow).toMatchObject({
+      customer_id: "cust-1", service_id: "svc-1", category_id: "cleaning",
+      when_pref: "this_week", details_json: { severity: "high" }, budget: 100, city: "Brussels",
+    });
+
+    const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+    expect(createCall[1]).toMatchObject({
+      p_requesting_workspace_id: "ws-1", p_category_id: "cleaning", p_service_id: "svc-1",
+      p_when_pref: "this_week", p_budget: 100, p_details_json: { severity: "high" }, p_city: "Brussels",
+      p_service_request_id: legacyRow.id, p_directed_workspace_id: null, p_auto_accept_max: null,
+      p_actor_type: "person", p_actor_ref: "cust-1",
+    });
+
     expect(result).toMatchObject({
-      id: "req-1",
-      cat: "cleaning",
-      serviceId: "svc-1",
-      status: "collecting",
-      quotes: [],
+      id: createCall[1].p_request_id, cat: "cleaning", serviceId: "svc-1", status: "collecting", quotes: [],
     });
   });
 
-  it("sends null for detailsJson when given an empty object, not {}", async () => {
-    const builder = createQueryBuilder({
-      data: { id: "req-2", category_id: "cleaning", quotes: [], reviews: [], details_json: null },
-      error: null,
-    });
-    vi.mocked(supabase.from).mockReturnValue(builder);
+  it("sends null for detailsJson when given an empty object, not {}, on both writes", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+    const rpc = mockApi({ create_request: () => ({ error: null }), ...noQuotesNoReview });
 
-    await createServiceRequest({
-      customerId: "cust-1",
-      serviceId: "svc-1",
-      categoryId: "cleaning",
-      whenPref: "flexible",
-      detailsJson: {},
-    });
+    await createServiceRequest({ ...args, detailsJson: {} });
 
-    expect(builder.insert).toHaveBeenCalledWith(expect.objectContaining({ details_json: null }));
+    const legacyRow = vi.mocked(supabase.from).mock.results[0].value.insert.mock.calls[0][0];
+    expect(legacyRow.details_json).toBeNull();
+    const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+    expect(createCall[1].p_details_json).toBeNull();
   });
 
-  it("throws the real Supabase error instead of swallowing it", async () => {
-    const builder = createQueryBuilder({ data: null, error: new Error("insert failed") });
-    vi.mocked(supabase.from).mockReturnValue(builder);
+  it("throws the legacy error without ever calling create_request", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: new Error("insert failed") }));
+    const rpc = mockApi({ create_request: () => ({ error: null }), ...noQuotesNoReview });
 
-    await expect(
-      createServiceRequest({ customerId: "cust-1", serviceId: "svc-1", categoryId: "cleaning", whenPref: "flexible" })
-    ).rejects.toThrow("insert failed");
+    await expect(createServiceRequest(args)).rejects.toThrow("insert failed");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("throws create_request's own error even though the legacy row already exists", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+    mockApi({ create_request: () => ({ error: new Error("denied") }), ...noQuotesNoReview });
+
+    await expect(createServiceRequest(args)).rejects.toThrow("denied");
   });
 });
 
-// Epic 03 WP9. The guardrails here are ADR-0012's, not conveniences: a directed request
-// with no professional or no ceiling would be a commitment with nothing bounding it.
+// Epic 03 WP9 / ADR-0012 guardrails, now sitting in front of a professional-workspace
+// resolution call rather than a plain insert.
 describe("createDirectedRequest", () => {
   const args = {
-    customerId: "cust-1",
-    serviceId: "svc-1",
-    categoryId: "repairs",
-    proId: "pro-9",
-    autoAcceptMax: 260,
-    details: "my sink is leaking",
-    whenPref: "this_week",
-    city: "Brussels",
+    customerId: "cust-1", workspaceId: "ws-1", serviceId: "svc-1", categoryId: "repairs",
+    proId: "pro-9", autoAcceptMax: 260, details: "my sink is leaking", whenPref: "this_week", city: "Brussels",
   };
 
-  function directedRow(overrides = {}) {
-    return {
-      id: "req-1", customer_id: "cust-1", service_id: "svc-1", category_id: "repairs",
-      details: "my sink is leaking", details_json: null, ai_analysis: null,
-      when_pref: "this_week", budget: null, city: "Brussels",
-      status: "awaiting_pro", booked_pro_id: null,
-      directed_pro_id: "pro-9", directed_until: "2026-08-11T00:00:00Z", auto_accept_max: "260.00",
-      created_at: "2026-08-10T00:00:00Z", updated_at: "2026-08-10T00:00:00Z",
-      quotes: [], reviews: [], ...overrides,
-    };
-  }
-
-  it("writes a request addressed to one professional, awaiting them", async () => {
-    const builder = createQueryBuilder({ data: directedRow(), error: null });
-    vi.mocked(supabase.from).mockReturnValue(builder);
-
-    await createDirectedRequest(args);
-
-    expect(supabase.from).toHaveBeenCalledWith("service_requests");
-    expect(builder.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customer_id: "cust-1",
-        directed_pro_id: "pro-9",
-        auto_accept_max: 260,
-        status: "awaiting_pro",
-      })
-    );
-  });
-
-  it("writes nothing that would commit the professional", async () => {
-    const builder = createQueryBuilder({ data: directedRow(), error: null });
-    vi.mocked(supabase.from).mockReturnValue(builder);
-
-    await createDirectedRequest(args);
-    const row = builder.insert.mock.calls[0][0];
-
-    // booked_pro_id and any price belong to handle_quote_accepted() acting on a real
-    // quote. Setting either here is exactly the shortcut ADR-0012 rejected.
-    expect(row.booked_pro_id).toBeUndefined();
-    expect(row.price).toBeUndefined();
-    expect(row.status).toBe("awaiting_pro");
-  });
-
-  it("leaves the exclusive window to the database rather than sending one", async () => {
-    const builder = createQueryBuilder({ data: directedRow(), error: null });
-    vi.mocked(supabase.from).mockReturnValue(builder);
-
-    await createDirectedRequest(args);
-    // How long a professional gets is a platform rule. A client-supplied deadline would
-    // be a client-controlled one.
-    expect(builder.insert.mock.calls[0][0].directed_until).toBeUndefined();
-  });
-
-  it("refuses a request with no professional to direct at", async () => {
+  it("refuses a request with no professional to direct at, before any call", async () => {
     await expect(createDirectedRequest({ ...args, proId: null })).rejects.toThrow(/professional/i);
     expect(supabase.from).not.toHaveBeenCalled();
+    expect(supabase.schema).not.toHaveBeenCalled();
   });
 
-  it("refuses a request with no usable ceiling", async () => {
+  it("refuses a request with no usable ceiling, before any call", async () => {
     for (const bad of [null, undefined, 0, -5]) {
       await expect(createDirectedRequest({ ...args, autoAcceptMax: bad })).rejects.toThrow(/ceiling/i);
     }
     expect(supabase.from).not.toHaveBeenCalled();
+    expect(supabase.schema).not.toHaveBeenCalled();
   });
 
-  it("reshapes the directed columns for callers, dates and numbers included", async () => {
-    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: directedRow(), error: null }));
+  it("refuses when the professional has no resolvable workspace, before writing anything", async () => {
+    mockApi({ resolve_public_professional_workspace: () => ({ data: null, error: null }) });
 
-    const result = await createDirectedRequest(args);
-    expect(result).toMatchObject({
-      id: "req-1",
-      status: "awaiting_pro",
-      directedProId: "pro-9",
-      // numeric(10,2) arrives as a string; a caller comparing it to a price needs a number.
-      autoAcceptMax: 260,
+    await expect(createDirectedRequest(args)).rejects.toThrow(/resolvable workspace/i);
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("resolves the professional's real workspace, then dual-writes correlated, directed rows", async () => {
+    const legacyBuilder = createQueryBuilder({ error: null });
+    vi.mocked(supabase.from).mockReturnValue(legacyBuilder);
+    const rpc = mockApi({
+      resolve_public_professional_workspace: () => ({ data: "pro-ws-9", error: null }),
+      create_request: () => ({ error: null }),
+      ...noQuotesNoReview,
     });
-    expect(result.directedUntil).toBe(new Date("2026-08-11T00:00:00Z").getTime());
-  });
-
-  it("leaves the directed fields null on an ordinary request", async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      createQueryBuilder({
-        data: directedRow({ status: "collecting", directed_pro_id: null, directed_until: null, auto_accept_max: null }),
-        error: null,
-      })
-    );
 
     const result = await createDirectedRequest(args);
-    expect(result.directedProId).toBeNull();
-    expect(result.directedUntil).toBeNull();
-    expect(result.autoAcceptMax).toBeNull();
+
+    const legacyRow = legacyBuilder.insert.mock.calls[0][0];
+    expect(legacyRow).toMatchObject({
+      customer_id: "cust-1", directed_pro_id: "pro-9", auto_accept_max: 260, status: "awaiting_pro",
+    });
+    // ADR-0012: no shortcut into a state only handle_quote_accepted() may reach.
+    expect(legacyRow.booked_pro_id).toBeUndefined();
+    expect(legacyRow.price).toBeUndefined();
+    expect(legacyRow.directed_until).toBeUndefined();
+
+    const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+    expect(createCall[1]).toMatchObject({
+      p_service_request_id: legacyRow.id, p_directed_workspace_id: "pro-ws-9", p_auto_accept_max: 260,
+    });
+
+    // reshapeWorkRequest carries directed_workspace_id straight through, unresolved.
+    expect(result.directedProId).toBe("pro-ws-9");
+    expect(result.autoAcceptMax).toBe(260);
   });
 
-  it("throws on a failed insert rather than reporting a request that does not exist", async () => {
-    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: null, error: { message: "denied" } }));
+  it("throws on a failed legacy insert without calling create_request", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: { message: "denied" } }));
+    const rpc = mockApi({
+      resolve_public_professional_workspace: () => ({ data: "pro-ws-9", error: null }),
+      create_request: () => ({ error: null }),
+    });
+
     await expect(createDirectedRequest(args)).rejects.toMatchObject({ message: "denied" });
+    expect(rpc).not.toHaveBeenCalledWith("create_request", expect.anything());
   });
 });
 
-// Epic 03 WP11 — the read switch. workspaceId is undefined until WP 03.09's resolver
-// places a caller in exactly one workspace; the acceptance bar for this package is that a
-// single-workspace customer's request list is unaffected by which branch actually runs.
+// Epic 03 WP11 / WP 2.6 — work.requests has no customer_id concept at all, so a resolved
+// workspace is not an optimization here, it's the only shape the read has.
 describe("fetchCustomerRequests", () => {
-  it("filters by customer_id when no workspace has been resolved", async () => {
-    const builder = createQueryBuilder({ data: [], error: null });
-    vi.mocked(supabase.from).mockReturnValue(builder);
-
-    await fetchCustomerRequests("cust-1");
-
-    expect(supabase.from).toHaveBeenCalledWith("service_requests");
-    expect(builder.eq).toHaveBeenCalledWith("customer_id", "cust-1");
-    expect(builder.eq).not.toHaveBeenCalledWith("workspace_id", expect.anything());
+  it("returns an empty list without calling Supabase at all when no workspace has resolved", async () => {
+    const result = await fetchCustomerRequests("cust-1", undefined);
+    expect(result).toEqual([]);
+    expect(supabase.schema).not.toHaveBeenCalled();
   });
 
-  it("filters by workspace_id once a workspace is resolved, not customer_id", async () => {
-    // The actual switch this package makes. Both filters landing would be a stricter,
-    // wrong query — service_requests has no row where both columns are simultaneously
-    // satisfied by an AND, since eq() calls chain onto the same builder.
-    const builder = createQueryBuilder({ data: [], error: null });
-    vi.mocked(supabase.from).mockReturnValue(builder);
+  it("reads via api.my_requests, scoped to the workspace, and reshapes newest first", async () => {
+    const rows = [
+      { id: "req-1", category_id: "cleaning", service_id: "svc-1", status: "collecting", created_at: "2026-08-01T00:00:00Z", when_pref: "flexible", details: "a", details_json: null, ai_analysis: null, budget: null, city: "Brussels", directed_workspace_id: null, directed_until: null, auto_accept_max: null },
+      { id: "req-2", category_id: "repairs", service_id: "svc-2", status: "collecting", created_at: "2026-08-06T00:00:00Z", when_pref: "flexible", details: "b", details_json: null, ai_analysis: null, budget: null, city: "Brussels", directed_workspace_id: null, directed_until: null, auto_accept_max: null },
+    ];
+    const rpc = mockApi({
+      my_requests: (a) => (a.p_workspace_id === "ws-1" ? { data: rows, error: null } : { data: [], error: null }),
+      ...noQuotesNoReview,
+    });
 
-    await fetchCustomerRequests("cust-1", "ws-1");
+    const result = await fetchCustomerRequests("cust-1", "ws-1");
 
-    expect(builder.eq).toHaveBeenCalledWith("workspace_id", "ws-1");
-    expect(builder.eq).not.toHaveBeenCalledWith("customer_id", expect.anything());
+    expect(rpc).toHaveBeenCalledWith("my_requests", { p_workspace_id: "ws-1" });
+    expect(result.map((r) => r.id)).toEqual(["req-2", "req-1"]);
   });
 
-  it("reshapes the same rows identically whichever filter ran", async () => {
-    const row = {
+  it("returns an empty list without reshaping when my_requests comes back empty", async () => {
+    const rpc = mockApi({ my_requests: () => ({ data: [], error: null }) });
+    const result = await fetchCustomerRequests("cust-1", "ws-1");
+    expect(result).toEqual([]);
+    // Nothing to reshape means no quotes_for_request call either.
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws the real error instead of swallowing it", async () => {
+    mockApi({ my_requests: () => ({ data: null, error: new Error("denied") }) });
+    await expect(fetchCustomerRequests("cust-1", "ws-1")).rejects.toThrow("denied");
+  });
+});
+
+// STAYS ON LEGACY, deliberately (see requests.js's own header) — plus the one addition,
+// excluding a lead whose correlated work.requests row has moved past 'collecting'.
+describe("fetchProLeads", () => {
+  function row(overrides = {}) {
+    return {
       id: "req-1", customer_id: "cust-1", category_id: "cleaning", service_id: "svc-1",
       details: "leak", details_json: null, ai_analysis: null, when_pref: "flexible",
       budget: null, city: "Brussels", status: "collecting", booked_pro_id: null,
       directed_pro_id: null, directed_until: null, auto_accept_max: null,
       created_at: "2026-08-06T00:00:00Z", updated_at: "2026-08-06T00:00:00Z",
-      quotes: [], reviews: [],
+      quotes: [], reviews: [], ...overrides,
     };
-    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row], error: null }));
-    const withoutWorkspace = await fetchCustomerRequests("cust-1");
+  }
 
-    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row], error: null }));
-    const withWorkspace = await fetchCustomerRequests("cust-1", "ws-1");
+  it("excludes a lead the pro has already quoted, without ever calling the lifecycle bridge", async () => {
+    const builder = createQueryBuilder({
+      data: [row({ quotes: [{ id: "q-1", request_id: "req-1", pro_id: "pro-1", price: 50, message: null, status: "sent", sent_at: "2026-08-06T00:00:00Z", pro: null }] })],
+      error: null,
+    });
+    vi.mocked(supabase.from).mockReturnValue(builder);
+    const rpc = mockApi({ request_lifecycle_statuses: () => ({ data: [], error: null }) });
 
-    expect(withoutWorkspace).toEqual(withWorkspace);
+    const result = await fetchProLeads("pro-1");
+
+    expect(result).toEqual([]);
+    expect(rpc).not.toHaveBeenCalled();
   });
 
-  it("throws the real Supabase error instead of swallowing it", async () => {
-    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: null, error: new Error("denied") }));
-    await expect(fetchCustomerRequests("cust-1")).rejects.toThrow("denied");
+  it("excludes a lead whose correlated work.requests row has moved past collecting", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row({ id: "req-1" }), row({ id: "req-2" })], error: null }));
+    const rpc = mockApi({
+      request_lifecycle_statuses: () => ({
+        data: [{ service_request_id: "req-1", status: "booked" }, { service_request_id: "req-2", status: "collecting" }],
+        error: null,
+      }),
+    });
+
+    const result = await fetchProLeads("pro-9");
+
+    expect(rpc).toHaveBeenCalledWith("request_lifecycle_statuses", { p_service_request_ids: ["req-1", "req-2"] });
+    expect(result.map((r) => r.id)).toEqual(["req-2"]);
+  });
+
+  it("keeps a lead that has no correlation at all — a lead predating dual-write", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row({ id: "req-1" })], error: null }));
+    mockApi({ request_lifecycle_statuses: () => ({ data: [], error: null }) });
+
+    const result = await fetchProLeads("pro-9");
+    expect(result.map((r) => r.id)).toEqual(["req-1"]);
+  });
+
+  it("skips the lifecycle bridge entirely when there are no candidates to check", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [], error: null }));
+    const rpc = mockApi({ request_lifecycle_statuses: () => ({ data: [], error: null }) });
+
+    await fetchProLeads("pro-9");
+    expect(rpc).not.toHaveBeenCalled();
   });
 });
 
-describe("subscribeToCustomerRequests", () => {
+describe("fetchProJobs", () => {
+  it("returns empty buckets without calling Supabase when no workspace has resolved", async () => {
+    const result = await fetchProJobs("pro-1", undefined);
+    expect(result).toEqual({ sent: [], booked: [], completed: [] });
+    expect(supabase.schema).not.toHaveBeenCalled();
+  });
+
+  it("sorts quotes into sent/booked/completed and keeps the .quotes array ProJobs.jsx reads", async () => {
+    mockApi({
+      my_quotes: () => ({
+        data: [
+          { id: "q-sent", request_id: "req-sent", offering_workspace_id: "ws-1", price: 50, status: "sent" },
+          { id: "q-booked", request_id: "req-booked", offering_workspace_id: "ws-1", price: 80, status: "accepted" },
+          { id: "q-done", request_id: "req-done", offering_workspace_id: "ws-1", price: 120, status: "accepted" },
+        ],
+        error: null,
+      }),
+      my_engagements: () => ({
+        data: [
+          { id: "eng-1", request_id: "req-booked", performing_workspace_id: "ws-1" },
+          { id: "eng-2", request_id: "req-done", performing_workspace_id: "ws-1" },
+        ],
+        error: null,
+      }),
+      resolve_request: (a) => {
+        const byId = {
+          "req-sent": { id: "req-sent", service_id: "svc-1", status: "collecting" },
+          "req-booked": { id: "req-booked", service_id: "svc-2", status: "booked" },
+          "req-done": { id: "req-done", service_id: "svc-3", status: "completed" },
+        };
+        return { data: [byId[a.p_request_id]].filter(Boolean), error: null };
+      },
+      review_for_request: (a) =>
+        a.p_request_id === "req-done"
+          ? { data: [{ stars: 5, body: "Great work" }], error: null }
+          : { data: [], error: null },
+      resolve_workspace_owner_auth_ids: () => ({ data: [{ workspace_id: "ws-1", auth_user_id: "pro-1" }], error: null }),
+    });
+
+    const result = await fetchProJobs("pro-1", "ws-1");
+
+    expect(result.sent.map((r) => r.id)).toEqual(["req-sent"]);
+    expect(result.booked.map((r) => r.id)).toEqual(["req-booked"]);
+    expect(result.completed.map((r) => r.id)).toEqual(["req-done"]);
+
+    expect(result.booked[0].quotes).toEqual([{ id: "q-booked", proId: "pro-1", price: 80, status: "accepted" }]);
+    expect(result.completed[0].review).toEqual({ stars: 5, text: "Great work" });
+    expect(result.sent[0].bookedProId).toBeNull();
+    expect(result.booked[0].bookedProId).toBe("pro-1");
+  });
+
+  it("propagates a my_quotes error", async () => {
+    mockApi({ my_quotes: () => ({ data: null, error: new Error("denied") }), my_engagements: () => ({ data: [], error: null }) });
+    await expect(fetchProJobs("pro-1", "ws-1")).rejects.toThrow("denied");
+  });
+});
+
+describe("subscribeToCustomerRequests / subscribeToRequestQuotes", () => {
   function createChannel() {
     const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) };
     return channel;
   }
 
-  it("subscribes on customer_id when no workspace has been resolved", () => {
-    const channel = createChannel();
-    vi.mocked(supabase.channel).mockReturnValue(channel);
-
-    subscribeToCustomerRequests("cust-1", undefined, vi.fn());
-
-    const [, options] = channel.on.mock.calls[0];
-    expect(options.filter).toBe("customer_id=eq.cust-1");
+  it("returns a no-op without opening a channel when no workspace has resolved", () => {
+    const unsubscribe = subscribeToCustomerRequests("cust-1", undefined, vi.fn());
+    expect(supabase.channel).not.toHaveBeenCalled();
+    expect(() => unsubscribe()).not.toThrow();
   });
 
-  it("subscribes on workspace_id once a workspace is resolved", () => {
-    // The positional-argument regression this test exists to catch: workspaceId sits
-    // between customerId and onChange, and a caller passing the old two-argument form
-    // would silently install onChange as the filter's workspace id instead.
+  it("subscribes to work.requests, work.quotes and work.engagements, scoped to the workspace", () => {
     const channel = createChannel();
     vi.mocked(supabase.channel).mockReturnValue(channel);
 
     subscribeToCustomerRequests("cust-1", "ws-1", vi.fn());
 
-    const [, options] = channel.on.mock.calls[0];
-    expect(options.filter).toBe("workspace_id=eq.ws-1");
+    const tables = channel.on.mock.calls.map(([, opts]) => opts.table);
+    expect(tables).toEqual(["requests", "quotes", "engagements"]);
+    expect(channel.on.mock.calls[0][1]).toMatchObject({ schema: "work", filter: "requesting_workspace_id=eq.ws-1" });
+    expect(channel.on.mock.calls[2][1]).toMatchObject({ schema: "work", filter: "requesting_workspace_id=eq.ws-1" });
   });
 
   it("returns an unsubscribe function that removes the channel", () => {
@@ -327,52 +402,186 @@ describe("subscribeToCustomerRequests", () => {
 
     expect(supabase.removeChannel).toHaveBeenCalledWith(channel);
   });
+
+  it("subscribeToRequestQuotes subscribes to work.quotes filtered by request_id", () => {
+    const channel = createChannel();
+    vi.mocked(supabase.channel).mockReturnValue(channel);
+
+    subscribeToRequestQuotes("req-1", vi.fn());
+
+    expect(channel.on.mock.calls[0][1]).toMatchObject({ schema: "work", table: "quotes", filter: "request_id=eq.req-1" });
+  });
 });
 
-describe("sendQuote", () => {
-  it("inserts into quotes with the real column names", async () => {
-    const builder = createQueryBuilder({ error: null });
-    vi.mocked(supabase.from).mockReturnValue(builder);
+// Unchanged: fetchProLeads() itself stays legacy, so its own invalidation signal does too.
+describe("subscribeToProLeads", () => {
+  it("subscribes to legacy service_requests inserts, filtered by category", () => {
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) };
+    vi.mocked(supabase.channel).mockReturnValue(channel);
 
-    await sendQuote({ requestId: "req-1", proId: "pro-1", price: 85, message: "Can do today" });
+    subscribeToProLeads(["cleaning", "repairs"], vi.fn());
 
-    expect(supabase.from).toHaveBeenCalledWith("quotes");
-    expect(builder.insert).toHaveBeenCalledWith({
-      request_id: "req-1",
-      pro_id: "pro-1",
-      price: 85,
-      message: "Can do today",
+    expect(channel.on.mock.calls[0][1]).toMatchObject({
+      schema: "public", table: "service_requests", filter: "category_id=in.(cleaning,repairs)",
     });
   });
 
-  it("defaults message to null when omitted", async () => {
+  it("returns a no-op when there are no offered categories yet", () => {
+    const unsubscribe = subscribeToProLeads([], vi.fn());
+    expect(supabase.channel).not.toHaveBeenCalled();
+    expect(() => unsubscribe()).not.toThrow();
+  });
+});
+
+describe("subscribeToProQuoteUpdates", () => {
+  it("returns a no-op without opening a channel when no workspace has resolved", () => {
+    const unsubscribe = subscribeToProQuoteUpdates(undefined, vi.fn());
+    expect(supabase.channel).not.toHaveBeenCalled();
+    expect(() => unsubscribe()).not.toThrow();
+  });
+
+  it("subscribes to work.quotes (offering side) and work.engagements (performing side)", () => {
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) };
+    vi.mocked(supabase.channel).mockReturnValue(channel);
+
+    subscribeToProQuoteUpdates("ws-1", vi.fn());
+
+    expect(channel.on.mock.calls[0][1]).toMatchObject({ schema: "work", table: "quotes", filter: "offering_workspace_id=eq.ws-1" });
+    expect(channel.on.mock.calls[1][1]).toMatchObject({ schema: "work", table: "engagements", filter: "performing_workspace_id=eq.ws-1" });
+  });
+});
+
+// Dual-writes, correlated via api.resolve_work_request_for_legacy() — requestId is always
+// a LEGACY id here, since fetchProLeads() stays legacy.
+describe("sendQuote", () => {
+  const args = { requestId: "legacy-req-1", proId: "pro-1", workspaceId: "ws-1", price: 85, message: "Can do today" };
+
+  it("always inserts the legacy quote first, with the real column names", async () => {
     const builder = createQueryBuilder({ error: null });
     vi.mocked(supabase.from).mockReturnValue(builder);
+    mockApi({
+      resolve_work_request_for_legacy: () => ({ data: null, error: null }),
+    });
 
-    await sendQuote({ requestId: "req-1", proId: "pro-1", price: 85 });
+    await sendQuote(args);
 
-    expect(builder.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ message: null })
-    );
+    expect(supabase.from).toHaveBeenCalledWith("quotes");
+    expect(builder.insert).toHaveBeenCalledWith({ request_id: "legacy-req-1", pro_id: "pro-1", price: 85, message: "Can do today" });
+  });
+
+  it("defaults message to null when omitted, on both writes", async () => {
+    const builder = createQueryBuilder({ error: null });
+    vi.mocked(supabase.from).mockReturnValue(builder);
+    const rpc = mockApi({ resolve_work_request_for_legacy: () => ({ data: "work-req-1", error: null }), submit_quote: () => ({ error: null }) });
+
+    await sendQuote({ ...args, message: undefined });
+
+    expect(builder.insert).toHaveBeenCalledWith(expect.objectContaining({ message: null }));
+    const submitCall = rpc.mock.calls.find(([name]) => name === "submit_quote");
+    expect(submitCall[1].p_message).toBeNull();
+  });
+
+  it("dual-writes into work.quotes when a correlated work.requests row exists", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+    const rpc = mockApi({
+      resolve_work_request_for_legacy: (a) => (a.p_service_request_id === "legacy-req-1" ? { data: "work-req-1", error: null } : { data: null, error: null }),
+      submit_quote: () => ({ error: null }),
+    });
+
+    await sendQuote(args);
+
+    const submitCall = rpc.mock.calls.find(([name]) => name === "submit_quote");
+    expect(submitCall[1]).toMatchObject({
+      p_request_id: "work-req-1", p_offering_workspace_id: "ws-1", p_price: 85, p_message: "Can do today",
+      p_legacy_quote_id: null, p_actor_type: "person", p_actor_ref: "pro-1",
+    });
+  });
+
+  it("degrades gracefully — writes legacy only — when no correlation exists", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+    const rpc = mockApi({ resolve_work_request_for_legacy: () => ({ data: null, error: null }) });
+
+    await sendQuote(args);
+
+    expect(rpc).not.toHaveBeenCalledWith("submit_quote", expect.anything());
+  });
+
+  it("throws the legacy error without attempting the correlation lookup", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: new Error("insert failed") }));
+    const rpc = mockApi({ resolve_work_request_for_legacy: () => ({ data: null, error: null }) });
+
+    await expect(sendQuote(args)).rejects.toThrow("insert failed");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("throws the work.quotes error even though the legacy quote already exists", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+    mockApi({
+      resolve_work_request_for_legacy: () => ({ data: "work-req-1", error: null }),
+      submit_quote: () => ({ error: new Error("denied") }),
+    });
+
+    await expect(sendQuote(args)).rejects.toThrow("denied");
   });
 });
 
 describe("acceptQuote", () => {
-  it("updates the quote's status to accepted by id", async () => {
-    const builder = createQueryBuilder({ error: null });
-    vi.mocked(supabase.from).mockReturnValue(builder);
+  it("calls api.accept_quote with the quote and the real, resolved customer identity", async () => {
+    const rpc = mockApi({ accept_quote: () => ({ error: null }) });
 
-    await acceptQuote("quote-1");
+    await acceptQuote("quote-1", "cust-1");
 
-    expect(supabase.from).toHaveBeenCalledWith("quotes");
-    expect(builder.update).toHaveBeenCalledWith({ status: "accepted" });
-    expect(builder.eq).toHaveBeenCalledWith("id", "quote-1");
+    const call = rpc.mock.calls.find(([name]) => name === "accept_quote");
+    expect(call[1]).toMatchObject({ p_quote_id: "quote-1", p_actor_type: "person", p_actor_ref: "cust-1" });
   });
 
   it("throws on a Supabase error", async () => {
-    const builder = createQueryBuilder({ error: new Error("update failed") });
-    vi.mocked(supabase.from).mockReturnValue(builder);
+    mockApi({ accept_quote: () => ({ error: new Error("update failed") }) });
+    await expect(acceptQuote("quote-1", "cust-1")).rejects.toThrow("update failed");
+  });
+});
 
-    await expect(acceptQuote("quote-1")).rejects.toThrow("update failed");
+describe("markComplete", () => {
+  it("resolves the engagement for the request, then completes it", async () => {
+    const rpc = mockApi({
+      resolve_engagement_for_request: (a) => (a.p_request_id === "req-1" ? { data: "eng-1", error: null } : { data: null, error: null }),
+      complete_engagement: () => ({ error: null }),
+    });
+
+    await markComplete("req-1", "cust-1");
+
+    const call = rpc.mock.calls.find(([name]) => name === "complete_engagement");
+    expect(call[1]).toMatchObject({ p_engagement_id: "eng-1", p_actor_type: "person", p_actor_ref: "cust-1" });
+  });
+
+  it("throws rather than completing when no engagement is found", async () => {
+    const rpc = mockApi({ resolve_engagement_for_request: () => ({ data: null, error: null }) });
+
+    await expect(markComplete("req-1", "cust-1")).rejects.toThrow(/no engagement/i);
+    expect(rpc).not.toHaveBeenCalledWith("complete_engagement", expect.anything());
+  });
+
+  it("throws on a resolve error", async () => {
+    mockApi({ resolve_engagement_for_request: () => ({ data: null, error: new Error("denied") }) });
+    await expect(markComplete("req-1", "cust-1")).rejects.toThrow("denied");
+  });
+});
+
+describe("submitReview", () => {
+  it("calls api.submit_review_for_request with the real, resolved customer identity — never proId", async () => {
+    const rpc = mockApi({ submit_review_for_request: () => ({ error: null }) });
+
+    await submitReview({ requestId: "req-1", customerId: "cust-1", stars: 5, text: "Great work" });
+
+    const call = rpc.mock.calls.find(([name]) => name === "submit_review_for_request");
+    expect(call[1]).toMatchObject({
+      p_request_id: "req-1", p_stars: 5, p_body: "Great work", p_actor_type: "person", p_actor_ref: "cust-1",
+    });
+    expect(call[1]).not.toHaveProperty("p_pro_id");
+  });
+
+  it("throws on a Supabase error", async () => {
+    mockApi({ submit_review_for_request: () => ({ error: new Error("denied") }) });
+    await expect(submitReview({ requestId: "req-1", customerId: "cust-1", stars: 5, text: "x" })).rejects.toThrow("denied");
   });
 });

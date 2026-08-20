@@ -42,7 +42,7 @@ export function ProDashboard({ leads, onQuote, proInfo }) {
           <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
           <JobDetailsSummary serviceId={r.serviceId} fields={r.answers.fields} />
           <AiAnalysisSummary aiAnalysis={r.answers.aiAnalysis} />
-          <RequestPhotosStrip requestId={r.id} />
+          <RequestPhotosStrip requestId={r.id} legacy />
         </JobCard>
       ))}
       {proProfile.pro_type === PRO_TYPE_FLEXI && (

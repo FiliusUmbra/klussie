@@ -13,7 +13,7 @@ import { fetchMessages, sendMessage, markConversationRead, saveMessageTranslatio
 import { translateMessage } from "../lib/translate";
 import { messagesNeedingTranslation } from "../lib/conversationSelectors.js";
 
-export function ConversationSheet({ conversationId, userId, otherName, onClose }) {
+export function ConversationSheet({ conversationId, userId, workspaceId, otherName, onClose }) {
   const { t, langCode } = useLang();
   const [messages, setMessages] = useState(null);
   const [draft, setDraft] = useState("");
@@ -24,10 +24,10 @@ export function ConversationSheet({ conversationId, userId, otherName, onClose }
 
   useEffect(() => {
     refresh();
-    markConversationRead(conversationId, userId);
+    markConversationRead(conversationId);
     const unsubscribe = subscribeToMessages(conversationId, () => {
       refresh();
-      markConversationRead(conversationId, userId);
+      markConversationRead(conversationId);
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,7 +48,7 @@ export function ConversationSheet({ conversationId, userId, otherName, onClose }
       translatingRef.current.add(m.id);
       try {
         const translated = await translateMessage({ text: m.body, targetLocale: langCode });
-        await saveMessageTranslation(m.id, langCode, translated);
+        await saveMessageTranslation(m.id, langCode, translated, userId);
         setMessages((cur) =>
           cur?.map((x) => (x.id === m.id ? { ...x, translations: { ...x.translations, [langCode]: translated } } : x)) ?? cur
         );
@@ -64,7 +64,7 @@ export function ConversationSheet({ conversationId, userId, otherName, onClose }
     const body = draft.trim();
     if (!body) return;
     setDraft("");
-    await sendMessage({ conversationId, senderId: userId, body });
+    await sendMessage({ conversationId, senderId: userId, senderWorkspaceId: workspaceId, body });
     await refresh();
   };
 
