@@ -1,0 +1,56 @@
+-- Platform Activation Slice 2, WP 2.6 (client cutover) — grants `authenticated` USAGE on
+-- schema `platform`, closing a write-path bug INVISIBLE TO EVERY SQL-LEVEL DIAGNOSTIC THIS
+-- PROGRAMME HAS EVER RUN.
+--
+-- THE BUG, FOUND ONLY BY DRIVING THE REAL BROWSER CLIENT AGAINST STAGING
+--
+-- Every write that reaches platform.emit_event() through a client-facing api.* delegate
+-- failed with `permission denied for schema platform` (SQLSTATE 42501) when called for
+-- real, through PostgREST, as `authenticated` — confirmed for api.submit_quote() and
+-- api.create_request(), both first exercised live only once this slice's client rewrite
+-- was actually driven in a browser. Every read (api.my_conversations(), etc.) worked fine.
+--
+-- WHY A psql SESSION NEVER CAUGHT THIS — THE REAL REASON EVERY PRIOR VERIFY_*.sql
+-- DIAGNOSTIC IN THIS PROGRAMME GAVE A FALSE PASS ON THIS EXACT CLASS OF BUG
+--
+-- `select api.submit_quote(p_actor_type => 'person', ...)` from a real psql session
+-- (`set local role authenticated`) SUCCEEDS. PostgreSQL coerces the untyped string
+-- literal 'person' to platform.actor_type via the CALLED FUNCTION'S OWN declared
+-- parameter type — that coercion path does not require the caller to hold USAGE on the
+-- type's own schema. PostgREST does not construct a call this way: it resolves and casts
+-- an incoming JSON value against the target Postgres type via its own schema-cache
+-- introspection, which — for a custom enum living in a schema the caller has no USAGE
+-- on — is a real, separate privilege check that a hand-written SQL call never exercises.
+-- Every VERIFY_*.sql/RECONCILE_*.sql diagnostic in this programme (Epic 03 onward) has
+-- called every function directly in SQL, exactly the path that hides this. This is not
+-- this session's own oversight alone — it is why the client cutover's own explicit mandate
+-- to verify against a real browser, not only against SQL, exists at all.
+--
+-- WHY THIS WAS NEVER GRANTED BEFORE
+--
+-- 0106_platform_schema_access_backfill.sql (Epic 16) found and fixed the identical root
+-- cause — a role missing USAGE on schema platform despite holding EXECUTE on
+-- platform.emit_event() — but scoped to the ENGINE roles calling platform.emit_event()
+-- from inside their own SECURITY DEFINER-reached engine code
+-- (klussie_engine_work/klussie_engine_commerce). `authenticated` itself was never a
+-- candidate for that fix, because before this slice no client call had ever passed a
+-- platform.actor_type value as an argument PostgREST itself must resolve — every prior
+-- engine epic built its write contract but never switched a live client onto it (the same
+-- P0 debt MASTER_CONTEXT.md §12 already tracks). This is that gap's own concrete,
+-- reproducible cause for every engine that emits an event through a client-reachable
+-- api.* delegate, not only Marketplace/Conversation.
+--
+-- WHY A SCHEMA-LEVEL GRANT, NOT A NARROWER ONE
+--
+-- USAGE on a schema grants only the ability to reference objects in it (resolve names,
+-- including a type for casting) — no SELECT/INSERT/EXECUTE on anything inside platform is
+-- implied or changed by this grant. `authenticated` already cannot read platform.events or
+-- platform.audit_records directly (both remain revoked, unchanged) and still reaches
+-- platform.emit_event() only through SECURITY DEFINER api.* delegates, unchanged. This is
+-- the same schema-USAGE-only shape 0106 already established for the engine roles, applied
+-- to the one role this slice is the first to need it for.
+
+grant usage on schema platform to authenticated;
+
+comment on schema platform is
+  'Owns platform-wide, cross-engine concerns: identity backbone and the shared event/audit substrate (SUPABASE_ARCHITECTURE.md §7). USAGE granted to klussie_engine_work/klussie_engine_commerce (0106) and to authenticated (0158, WP 2.6) — both needed only to resolve platform.actor_type (an argument every client-facing write eventually passes) and platform-schema objects referenced inside SECURITY DEFINER delegates; no table in this schema is directly reachable by either.';
