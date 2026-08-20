@@ -10,6 +10,13 @@
 -- engagement's conversation (WP 2.6's own cascade): check 2 confirms the auto-accept
 -- path opens a real, two-participant conversation, not merely an engagement.
 --
+-- And since 0150 added the dual-write correlation (WP 2.6's own finding — legacy's
+-- pro_matches_request() must keep seeing new activity): check 2 also creates a real
+-- legacy service_requests/quotes row alongside the new ones, confirms both correlation
+-- columns (service_request_id/legacy_quote_id) land, and check 2f confirms the status
+-- bridge (api.request_lifecycle_statuses()) reports the real, post-acceptance status for
+-- the correlated legacy id.
+--
 --   psql -w -h <pooler-host> -p 5432 -U postgres.<project-ref> -d postgres \
 --        -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_MARKETPLACE_WRITE_CONTRACT.sql
 
@@ -68,7 +75,7 @@ begin
     p_request_id => v_ordinary_request, p_requesting_workspace_id => v_customer_ws,
     p_property_id => null, p_asset_id => null, p_location_id => null,
     p_category_id => null, p_service_id => null, p_details => 'Ordinary leak', p_when_pref => 'flexible', p_budget => 100.00,
-    p_directed_workspace_id => null, p_auto_accept_max => null,
+    p_service_request_id => null, p_directed_workspace_id => null, p_auto_accept_max => null,
     p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
     p_actor_type => 'person', p_actor_ref => v_customer_auth::text
   );
@@ -83,34 +90,70 @@ begin
   -- =========================================================================
   -- 2 · A directed request, quoted by the right workspace at or under the ceiling,
   -- auto-accepts — books the request and creates the engagement with no separate
-  -- accept call
+  -- accept call. Also exercises the real dual-write: a real legacy service_requests/
+  -- quotes row is created alongside, correlated via service_request_id/legacy_quote_id
+  -- (WP 2.6's own finding — pro_matches_request() must keep seeing new activity).
 
-  execute 'set local role authenticated';
-  perform set_config('request.jwt.claims', json_build_object('sub', v_customer_auth)::text, true);
+  declare
+    v_legacy_request uuid := gen_random_uuid();
+    v_legacy_quote   uuid := gen_random_uuid();
+  begin
+    -- An ordinary legacy row, deliberately not directed there — legacy's own
+    -- directed_pro_id references public.pro_profiles(profile_id), a row this
+    -- diagnostic never creates. directed_until must be set explicitly to null: its own
+    -- column default (0014) fires on any insert omitting it, regardless of
+    -- directed_pro_id — the exact bug this session found and documented in 0146's own
+    -- header, reproduced again here if not worked around. What this check verifies is
+    -- the dual-write correlation itself — the NEW work.requests row is the one that
+    -- carries p_directed_workspace_id below; the legacy row only needs to exist and be
+    -- correlatable.
+    insert into public.service_requests (id, customer_id, service_id, category_id, details, status, when_pref, directed_until)
+    values (v_legacy_request, v_customer_auth, '00000000-0000-0000-0000-000000000003', 'cleaning', 'Directed leak', 'collecting', 'flexible', null);
 
-  perform api.create_request(
-    p_request_id => v_directed_request, p_requesting_workspace_id => v_customer_ws,
-    p_property_id => null, p_asset_id => null, p_location_id => null,
-    p_category_id => null, p_service_id => null, p_details => 'Directed leak', p_when_pref => 'flexible', p_budget => 100.00,
-    p_directed_workspace_id => v_pro_ws, p_auto_accept_max => 90.00,
-    p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
-    p_actor_type => 'person', p_actor_ref => v_customer_auth::text
-  );
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claims', json_build_object('sub', v_customer_auth)::text, true);
 
-  reset role;
-  execute 'set local role authenticated';
-  perform set_config('request.jwt.claims', json_build_object('sub', v_pro_auth)::text, true);
+    perform api.create_request(
+      p_request_id => v_directed_request, p_requesting_workspace_id => v_customer_ws,
+      p_property_id => null, p_asset_id => null, p_location_id => null,
+      p_category_id => null, p_service_id => null, p_details => 'Directed leak', p_when_pref => 'flexible', p_budget => 100.00,
+      p_service_request_id => v_legacy_request, p_directed_workspace_id => v_pro_ws, p_auto_accept_max => 90.00,
+      p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
+      p_actor_type => 'person', p_actor_ref => v_customer_auth::text
+    );
 
-  perform api.submit_quote(
-    p_quote_id => v_quote, p_request_id => v_directed_request, p_offering_workspace_id => v_pro_ws,
-    p_price => 80.00, p_message => 'Can do it', p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
-    p_auto_accept_engagement_id => gen_random_uuid(), p_auto_accept_event_id => gen_random_uuid(), p_auto_accept_engagement_event_id => gen_random_uuid(),
-    p_auto_accept_conversation_id => gen_random_uuid(), p_auto_accept_customer_participant_id => gen_random_uuid(), p_auto_accept_pro_participant_id => gen_random_uuid(),
-    p_auto_accept_conversation_event_id => gen_random_uuid(), p_auto_accept_customer_participant_event_id => gen_random_uuid(), p_auto_accept_pro_participant_event_id => gen_random_uuid(),
-    p_actor_type => 'person', p_actor_ref => v_pro_auth::text
-  );
+    reset role;
+    if not exists (select 1 from work.requests where id = v_directed_request and service_request_id = v_legacy_request) then
+      raise exception '2z · the dual-write correlation (service_request_id) was not patched onto the new work.requests row';
+    end if;
 
-  reset role;
+    -- public.quotes.pro_id references public.pro_profiles(profile_id) — a real row is
+    -- required, not merely a real auth.users row.
+    insert into public.pro_profiles (profile_id, pro_type, bio)
+    values (v_pro_auth, 'flexi', 'Diagnostic pro for the dual-write correlation check');
+
+    insert into public.quotes (id, request_id, pro_id, price, message)
+    values (v_legacy_quote, v_legacy_request, v_pro_auth, 80.00, 'Can do it');
+
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claims', json_build_object('sub', v_pro_auth)::text, true);
+
+    perform api.submit_quote(
+      p_quote_id => v_quote, p_request_id => v_directed_request, p_offering_workspace_id => v_pro_ws,
+      p_price => 80.00, p_message => 'Can do it', p_legacy_quote_id => v_legacy_quote,
+      p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
+      p_auto_accept_engagement_id => gen_random_uuid(), p_auto_accept_event_id => gen_random_uuid(), p_auto_accept_engagement_event_id => gen_random_uuid(),
+      p_auto_accept_conversation_id => gen_random_uuid(), p_auto_accept_customer_participant_id => gen_random_uuid(), p_auto_accept_pro_participant_id => gen_random_uuid(),
+      p_auto_accept_conversation_event_id => gen_random_uuid(), p_auto_accept_customer_participant_event_id => gen_random_uuid(), p_auto_accept_pro_participant_event_id => gen_random_uuid(),
+      p_actor_type => 'person', p_actor_ref => v_pro_auth::text
+    );
+    reset role;
+
+    if not exists (select 1 from work.quotes where id = v_quote and legacy_quote_id = v_legacy_quote) then
+      raise exception '2y · the dual-write correlation (legacy_quote_id) was not patched onto the new work.quotes row';
+    end if;
+  end;
+
   select status into v_status from work.quotes where id = v_quote;
   if v_status <> 'accepted' then
     raise exception '2a · expected the directed quote to auto-accept, status is %', v_status;
@@ -144,6 +187,24 @@ begin
   raise notice '2 · a directed request auto-accepts a matching quote — books the request, creates the engagement, and opens a real two-participant conversation, no separate accept call';
 
   -- =========================================================================
+  -- 2f · The status bridge reports the real, post-acceptance status for the dual-written
+  -- legacy id — this is what fetchProLeads() uses to stop showing an already-booked
+  -- request to other pros, since legacy's own row (still 'awaiting_pro') never advances.
+
+  declare
+    v_bridge_status text;
+  begin
+    select status into v_bridge_status
+    from api.request_lifecycle_statuses(array[
+      (select service_request_id from work.requests where id = v_directed_request)
+    ]);
+    if v_bridge_status <> 'booked' then
+      raise exception '2f · the status bridge should report ''booked'' for the dual-written legacy id, got %', v_bridge_status;
+    end if;
+  end;
+  raise notice '2f · the status bridge reports the real, current work.requests status for the correlated legacy id';
+
+  -- =========================================================================
   -- 3 · The wrong workspace quoting a directed request does NOT auto-accept — goes to
   -- 'sent' exactly like an ordinary quote
 
@@ -158,7 +219,7 @@ begin
       p_request_id => v_second_directed, p_requesting_workspace_id => v_customer_ws,
       p_property_id => null, p_asset_id => null, p_location_id => null,
       p_category_id => null, p_service_id => null, p_details => 'Second directed', p_when_pref => 'flexible', p_budget => 100.00,
-      p_directed_workspace_id => v_pro_ws, p_auto_accept_max => 90.00,
+      p_service_request_id => null, p_directed_workspace_id => v_pro_ws, p_auto_accept_max => 90.00,
       p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
       p_actor_type => 'person', p_actor_ref => v_customer_auth::text
     );
@@ -168,7 +229,8 @@ begin
     perform set_config('request.jwt.claims', json_build_object('sub', v_wrong_pro_auth)::text, true);
     perform api.submit_quote(
       p_quote_id => v_wrong_quote, p_request_id => v_second_directed, p_offering_workspace_id => v_wrong_pro_ws,
-      p_price => 80.00, p_message => 'Not who this was directed at', p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
+      p_price => 80.00, p_message => 'Not who this was directed at', p_legacy_quote_id => null,
+      p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
       p_auto_accept_engagement_id => gen_random_uuid(), p_auto_accept_event_id => gen_random_uuid(), p_auto_accept_engagement_event_id => gen_random_uuid(),
       p_auto_accept_conversation_id => gen_random_uuid(), p_auto_accept_customer_participant_id => gen_random_uuid(), p_auto_accept_pro_participant_id => gen_random_uuid(),
       p_auto_accept_conversation_event_id => gen_random_uuid(), p_auto_accept_customer_participant_event_id => gen_random_uuid(), p_auto_accept_pro_participant_event_id => gen_random_uuid(),
@@ -195,7 +257,7 @@ begin
       p_request_id => gen_random_uuid(), p_requesting_workspace_id => v_customer_ws,
       p_property_id => null, p_asset_id => null, p_location_id => null,
       p_category_id => null, p_service_id => null, p_details => 'Should not exist', p_when_pref => 'flexible', p_budget => 100.00,
-      p_directed_workspace_id => null, p_auto_accept_max => null,
+      p_service_request_id => null, p_directed_workspace_id => null, p_auto_accept_max => null,
       p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
       p_actor_type => 'person', p_actor_ref => v_stranger_auth::text
     );
