@@ -74,7 +74,7 @@ begin
   perform api.create_request(
     p_request_id => v_ordinary_request, p_requesting_workspace_id => v_customer_ws,
     p_property_id => null, p_asset_id => null, p_location_id => null,
-    p_category_id => null, p_service_id => null, p_details => 'Ordinary leak', p_when_pref => 'flexible', p_budget => 100.00,
+    p_category_id => null, p_service_id => null, p_details => 'Ordinary leak', p_when_pref => 'flexible', p_budget => 100.00, p_details_json => null, p_ai_analysis => null, p_city => null,
     p_service_request_id => null, p_directed_workspace_id => null, p_auto_accept_max => null,
     p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
     p_actor_type => 'person', p_actor_ref => v_customer_auth::text
@@ -116,7 +116,7 @@ begin
     perform api.create_request(
       p_request_id => v_directed_request, p_requesting_workspace_id => v_customer_ws,
       p_property_id => null, p_asset_id => null, p_location_id => null,
-      p_category_id => null, p_service_id => null, p_details => 'Directed leak', p_when_pref => 'flexible', p_budget => 100.00,
+      p_category_id => null, p_service_id => null, p_details => 'Directed leak', p_when_pref => 'flexible', p_budget => 100.00, p_details_json => null, p_ai_analysis => null, p_city => null,
       p_service_request_id => v_legacy_request, p_directed_workspace_id => v_pro_ws, p_auto_accept_max => 90.00,
       p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
       p_actor_type => 'person', p_actor_ref => v_customer_auth::text
@@ -218,7 +218,7 @@ begin
     perform api.create_request(
       p_request_id => v_second_directed, p_requesting_workspace_id => v_customer_ws,
       p_property_id => null, p_asset_id => null, p_location_id => null,
-      p_category_id => null, p_service_id => null, p_details => 'Second directed', p_when_pref => 'flexible', p_budget => 100.00,
+      p_category_id => null, p_service_id => null, p_details => 'Second directed', p_when_pref => 'flexible', p_budget => 100.00, p_details_json => null, p_ai_analysis => null, p_city => null,
       p_service_request_id => null, p_directed_workspace_id => v_pro_ws, p_auto_accept_max => 90.00,
       p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
       p_actor_type => 'person', p_actor_ref => v_customer_auth::text
@@ -256,7 +256,7 @@ begin
     perform api.create_request(
       p_request_id => gen_random_uuid(), p_requesting_workspace_id => v_customer_ws,
       p_property_id => null, p_asset_id => null, p_location_id => null,
-      p_category_id => null, p_service_id => null, p_details => 'Should not exist', p_when_pref => 'flexible', p_budget => 100.00,
+      p_category_id => null, p_service_id => null, p_details => 'Should not exist', p_when_pref => 'flexible', p_budget => 100.00, p_details_json => null, p_ai_analysis => null, p_city => null,
       p_service_request_id => null, p_directed_workspace_id => null, p_auto_accept_max => null,
       p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
       p_actor_type => 'person', p_actor_ref => v_stranger_auth::text
