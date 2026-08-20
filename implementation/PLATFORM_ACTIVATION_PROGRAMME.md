@@ -334,14 +334,18 @@ honest gap still open from WP 2.0: the backfill's real per-row logic is
 unexercised, staging holding zero legacy marketplace rows. WP 2.4 (the
 scoped access grant consumer) moved after WP 2.6 per §1.1's own
 Platform Activation Priority — genuinely new infrastructure the core
-journey does not need to be real yet. WP 2.6's client rewrite is
-written, four-gate-clean, and open as a draft PR (#66) — held rather
-than merged, blocked on a staging infrastructure gap outside this
-slice's own scope (the `api` schema was never exposed to PostgREST on
-this environment; see that work package's own entry in
-`SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md` and the session's
-`klussie-critical-infra-gap` memory for the full finding). Remaining:
-unblocking and merging WP 2.6, then WP 2.7. This slice's own end state
+journey does not need to be real yet. WP 2.6 is DONE (PR #66, merged)
+— the client cutover, plus four real infrastructure gaps driving it
+live against staging surfaced and fixed (PR #68): the `api` schema's
+own PostgREST exposure, a missing `platform`-schema grant, missing
+Realtime publication/grants on six `work.*` tables, and a genuine
+self-referencing RLS policy bug in 0094 that had never once been
+evaluated for real before. The full create → quote → accept → message
+(delivered live) → complete → review lifecycle is now verified working
+end to end, live, in a real two-session browser test — see that work
+package's own entry in `SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md`
+and the session's `klussie-critical-infra-gap` memory (now closed) for
+the full finding chain. Remaining: WP 2.7. This slice's own end state
 requires retiring a live system, not only adding beside one — still
 its defining structural difference from Slice 1.
 

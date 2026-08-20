@@ -415,29 +415,38 @@ passing is the *floor*, not the bar this work package is held to. If
 the cutover cannot be made to feel like nothing happened, that is a
 reason to slow down inside WP 2.6, not a reason to ship it anyway.
 
-**Status, 2026-08-20: code-complete and four-gate-clean; not merged — blocked on an
-external infrastructure gap, not on this work package's own code.**
+**Status, 2026-08-20: DONE. Merged (PR #66), and — for the first time in this
+programme's history — actually verified live, in a real browser, end to end.**
 
 The backend contracts this work package needed (0147–0157, conversations included per
-the user's own explicit decision to fold that engine's activation in here) are built,
+the user's own explicit decision to fold that engine's activation in here) were built,
 individually SQL-verified with real impersonated staging sessions, and merged (PRs
-#54–#63, #65). The client rewrite itself — `src/lib/requests.js`,
-`src/lib/messages.js`, `src/lib/requestPhotos.js`, and every call site that threads a
-newly-required `workspaceId` — is written, passes lint/typecheck/build/the full test
-suite (196 files, 1972 tests), and is pushed as a draft PR (#66), held rather than
-merged.
+#54–#63, #65). The client rewrite — `src/lib/requests.js`, `src/lib/messages.js`,
+`src/lib/requestPhotos.js`, and every call site threading a newly-required
+`workspaceId` — passed lint/typecheck/build/the full test suite and was pushed as a
+draft PR (#66). Driving it against staging in a real browser (this work package's own
+explicit "existing users unable to tell" bar demands nothing less) then surfaced four
+real, previously-invisible gaps, each fixed and each re-verified live before merging:
 
-**Why held:** driving the real app against staging in a browser (this work package's
-own explicit "existing users unable to tell" bar demands nothing less) surfaced that
-staging's PostgREST has never had the `api` schema exposed (`Project Settings → Data
-API → Exposed schemas`) — a one-time, per-environment manual step ADR-0026 names and
-that was apparently never performed here. Every `api.*` function built since Epic 03
-is unreachable from the real browser client as a result, independent of and
-undetectable by any SQL-level diagnostic. See `klussie-critical-infra-gap` (session
-memory) for the full finding. PR #66's own description carries the exact
-re-verification checklist to run once that setting is flipped, at which point this
-work package converts from draft to ready and merges through the same discipline
-every other WP 2.6 PR has used — no further code work is expected to be needed first.
+1. Staging's PostgREST had never had the `api` schema exposed (`Project Settings →
+   Data API → Exposed schemas`) — a one-time, per-environment manual step ADR-0026
+   names, fixed by the user directly in the Dashboard.
+2. `authenticated` never held `USAGE` on schema `platform` — every write touching
+   `platform.emit_event()` failed live despite succeeding from a hand-written `psql`
+   session (0158).
+3. The six `work.*` tables the client subscribes to had neither Realtime publication
+   membership nor any base grant to `authenticated` — Realtime's own independent
+   per-subscriber authorization check had nothing to permit (0159).
+4. A genuine, pre-existing self-referencing RLS policy in 0094 caused infinite
+   recursion the moment it was ever actually evaluated under real RLS, which no SQL
+   diagnostic (all superuser, exempt from RLS) had ever done (0160).
+
+All four fixed and merged (PR #68), then the **full lifecycle re-verified live in a
+real two-session browser test**: create request → send quote → accept (opens a real
+engagement + conversation) → exchange messages, **delivered live with zero reload** →
+mark complete → leave a review. Every step confirmed correct both in the UI and
+directly in Postgres. See `klussie-critical-infra-gap` (session memory, now closed)
+for the full finding chain.
 
 **WP 2.7 — Retire the five legacy triggers**
 
