@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 const MIGRATION = "supabase/migrations/0064_document_caption.sql";
 
 const codeNoComments = readFileSync(MIGRATION, "utf8")
+  .replace(/\r\n/g, "\n")
   .split("\n")
   .filter((line) => !line.trimStart().startsWith("--"))
   .join("\n");

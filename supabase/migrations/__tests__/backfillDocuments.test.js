@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 
 const MIGRATION = "supabase/migrations/0060_backfill_documents.sql";
 
-const raw = readFileSync(MIGRATION, "utf8");
+const raw = readFileSync(MIGRATION, "utf8").replace(/\r\n/g, "\n");
 
 const codeNoComments = raw
   .split("\n")
