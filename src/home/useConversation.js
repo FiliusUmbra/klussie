@@ -20,7 +20,8 @@ const RECENT_WORK_LIMIT = 3;
 
 export function useConversation({ onStart }) {
   const { langCode, BASE_SERVICES, serviceInfo } = useLang();
-  const { profile } = useAuth();
+  const { profile, activeWorkspace } = useAuth();
+  const workspaceId = activeWorkspace?.workspace_id;
   const [capture, setCapture] = useState(null); // null | "voice" | { file, previewUrl }
   // null | { recap, text?, photos?, analyzing, analysis, failed, pro?, work? }
   const [conversation, setConversation] = useState(null);
@@ -131,6 +132,7 @@ export function useConversation({ onStart }) {
     try {
       const request = await createDirectedRequest({
         customerId: profile.id,
+        workspaceId,
         serviceId: service.id,
         categoryId: service.cat,
         proId: c.pro.id,
@@ -146,7 +148,7 @@ export function useConversation({ onStart }) {
       // a failed upload shouldn't undo a request that already exists, so it's reported
       // separately rather than rolling the booking back.
       await Promise.all(
-        (c.photos || []).map((p) => uploadRequestPhoto(request.id, profile.id, p.file))
+        (c.photos || []).map((p) => uploadRequestPhoto(request.id, profile.id, workspaceId, p.file))
       ).catch(() => {});
       setBooking("done");
     } catch {

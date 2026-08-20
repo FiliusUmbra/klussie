@@ -5,13 +5,15 @@
 import { useState, useEffect } from "react";
 import { fetchRequestPhotos } from "../lib/requestPhotos";
 
-export function RequestPhotosStrip({ requestId }) {
+// legacy: true when requestId is a lead's own id (fetchProLeads() stays on legacy — see
+// src/lib/requestPhotos.js's own header for why this can't be inferred from the id alone).
+export function RequestPhotosStrip({ requestId, legacy = false }) {
   const [photos, setPhotos] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    fetchRequestPhotos(requestId).then((p) => { if (!cancelled) setPhotos(p); });
+    fetchRequestPhotos(requestId, { legacy }).then((p) => { if (!cancelled) setPhotos(p); });
     return () => { cancelled = true; };
-  }, [requestId]);
+  }, [requestId, legacy]);
   if (!photos || photos.length === 0) return null;
   return (
     <div className="photo-strip">
