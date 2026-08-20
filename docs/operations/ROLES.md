@@ -77,8 +77,25 @@ delayed."*
 | `klussie_consumer_search` | Maintains search support | `derived` |
 | `klussie_consumer_analytics` | Loads analytics | `analytics_ws`, `analytics_pf` |
 | `klussie_consumer_delivery` | Delivers events | `platform` |
+| `klussie_consumer_workspace` | Creates scoped access grants from accepted engagements | `platform` (own bookkeeping), `workspace` (via one `SECURITY DEFINER` delegate only — no direct table privilege) |
 
-They hold `USAGE` and no table privileges. A consumer's grants are scoped
+The fifth role, and the first background consumer this platform has
+ever actually run (`0162_engagement_access_grant_consumer.sql`,
+[ADR-0031](../adr/0031-background-consumer-pattern-cursor-quarantine-pg-cron.md)).
+Running it live surfaced a real, pre-existing gap this table's own
+description below did not have: `platform.consumer_cursors` and
+`platform.consumer_quarantine` enabled RLS with no policy at all since
+Epic 01, meaning every one of the original four roles' table grants on
+these two tables had never once actually worked. `0162` added the
+missing policies for all five roles at once — see that migration's own
+header for the full finding.
+
+They hold `USAGE` and no table privileges — except the direct
+`SELECT`/`INSERT`/`UPDATE` grants on `platform.consumer_cursors`/
+`consumer_quarantine` every one of the five already has (§3 rule 2's
+own mutable-table exception), and `klussie_consumer_delivery`/
+`klussie_consumer_workspace`'s own direct `SELECT` on `platform.events`
+itself. A consumer's grants are scoped
 to *"what a specific consumer needs"*, which is a per-table fact and is
 granted by the epic that creates the table.
 

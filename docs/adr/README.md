@@ -91,6 +91,7 @@ pointing at whatever replaced it.
 | [0028](0028-stewardship-current-pointer-and-closed-period-log.md) | Stewardship is a mutable current pointer plus an append-only log of closed periods | **Accepted** — resolves a contradiction between `DATABASE_ARCHITECTURE.md` §4 and §12's literal wording; the isolation predicate reuses Epic 03's membership helper directly, no new resolver |
 | [0029](0029-client-access-pattern-for-new-engines.md) | RPC/API routes are the default client-access pattern for the new engines; direct PostgREST reads are the named exception | **Accepted** — governs Platform Activation Slice 1 onward |
 | [0030](0030-operator-identity-via-operations-workspace.md) | Operator identity is a membership in a real, internal Operations Workspace — not a new access mechanism | **Accepted** — governs Platform Activation Slice 0 WP 0.3 onward |
+| [0031](0031-background-consumer-pattern-cursor-quarantine-pg-cron.md) | The background-consumer pattern: a per-hash-partition `pg_cron` cursor loop over the parent event table, quarantining per-event, never blocking a partition | **Accepted** — governs every future background event consumer (Timeline, Notifications, Search, Analytics); first built for WP 2.4's engagement access grant consumer |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see
