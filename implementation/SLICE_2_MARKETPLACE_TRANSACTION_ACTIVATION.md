@@ -345,16 +345,46 @@ Kept numbered 2.4 for cross-reference stability; it now executes after
 
 ### Tier 3 — Client, and the cutover itself
 
-**WP 2.5 — Client: read cutover**
+**WP 2.5 — The structural equality check against the regression baseline — Done, rescoped honestly**
 
-`RequestsList.jsx`, `RequestDetailSheet.jsx`, `ProDashboard.jsx`,
-`ProJobs.jsx` read through WP 2.1's contracts. Unlike Slice 1's
-equivalent (WP 1.3, pure addition against previously-empty surfaces),
-every one of these screens is live and depended on today — this work
-package should read *alongside* the legacy path first (both sources
-fetched, legacy still authoritative, a structural equality check
-against the regression baseline) before the legacy read is dropped, not
-switch outright the way Slice 1 could afford to.
+Originally described as `RequestsList.jsx`/`RequestDetailSheet.jsx`/
+`ProDashboard.jsx`/`ProJobs.jsx` reading "alongside" legacy. Checked
+directly before building that: none of those four files fetch data
+themselves — `src/lib/requests.js`'s `fetchCustomerRequests()`/
+`fetchProLeads()`/`fetchProJobs()` are the real read call sites
+(`CustomerApp.jsx`, `ProApp.jsx`); all four named files are purely
+presentational, taking already-fetched arrays as props. Wiring a live
+client-side dual-fetch-and-compare into those call sites today would
+compare against structurally empty ground — no dual-write exists yet
+(WP 2.6's own job, §1.6), so any real customer's legacy requests would
+show as "missing" from the new contract every time, for no reason but
+sequencing. The exact "zero discrepancies is true and worthless" trap
+this session has already named twice (Epic 02's own WP 02.05, and this
+slice's own WP 2.0 backfill finding) — and per the Programme's own
+Platform Activation Priority (§1.1), building comparison plumbing that
+changes nothing a real user experiences, against data that cannot yet
+be meaningfully compared, is exactly the backend-expansion-for-its-own-
+sake the priority exists to catch.
+
+Delivered instead: `RECONCILE_MARKETPLACE.sql` — the same
+`RECONCILE_*.sql` genre `RECONCILE_ASSETS.sql`/`RECONCILE_IDENTITY.sql`/
+`RECONCILE_WORKSPACE.sql` already established for exactly this role
+("the evidence a read-switch needs before `src/lib/X.js` may read from
+the new schema," `RECONCILE_ASSETS.sql`'s own words). Read-only,
+real-data-only (no synthetic fixtures — a reconciliation proves the
+backfill's own output is trustworthy, not that comparison SQL parses),
+checks every eligible legacy request/quote/booking has a mirrored
+`work.*` row with agreeing fields, mapping legacy's `'awaiting_pro'`
+status onto `work.requests`' `'collecting'` (directed-ness is
+`directed_workspace_id`, not a distinct status, per WP 2.2's own
+decision). Runs today, honestly, over zero real rows on staging — the
+same thin-coverage note `RECONCILE_ASSETS.sql` already reports for this
+environment.
+
+The four client files' actual cutover moves to WP 2.6, where it
+belongs anyway: that work package already re-runs the backfill or
+accepts a dual-write window (§1.6) — the point real overlapping data to
+compare against first exists.
 
 **WP 2.6 — Client: write cutover — the single largest behavioural risk in the roadmap**
 
@@ -365,7 +395,25 @@ re-run or a dual-write window accepted (§1.6), C10–C21 and C11 all
 re-verified green before and after. Explicitly named by Epic 09's own
 header, repeated by Epic 12's, as the actual highest-risk step in this
 entire programme — this work package earns the most caution of
-anything built so far, not a routine cutover pass.
+anything built so far, not a routine cutover pass. Also now owns
+`RequestsList.jsx`/`RequestDetailSheet.jsx`/`ProDashboard.jsx`/
+`ProJobs.jsx`'s own read-side move onto WP 2.1's contracts, moved here
+from WP 2.5 (see that work package's own entry above) — this is the
+point real overlapping legacy/`work.*` data first exists to read
+against.
+
+**Explicit acceptance bar, per the Programme's own instruction:** this
+slice is a flagship of Platform Activation and must feel invisible to
+the customer and professional using it while making the platform
+underneath meaningfully better — not merely a data-source swap they
+happen not to notice by luck. Concretely: no loading-state regression
+(the dual-read/verified-switch shape must not add a visible delay a
+customer or pro would feel), no missing data during the transition
+(the WP 2.4-deferral empty state, §3.1, is the one deliberate,
+documented exception — everything else must be there), and C10–C21/C11
+passing is the *floor*, not the bar this work package is held to. If
+the cutover cannot be made to feel like nothing happened, that is a
+reason to slow down inside WP 2.6, not a reason to ship it anyway.
 
 **WP 2.7 — Retire the five legacy triggers**
 
