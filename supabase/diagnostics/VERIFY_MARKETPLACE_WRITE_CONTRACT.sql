@@ -6,6 +6,10 @@
 -- any one of those three conditions fails; a stranger cannot write through any of the
 -- eight api.* functions; cancelling is genuinely two-sided.
 --
+-- Also, since 0148 redefined api.accept_quote()/api.submit_quote() to open the
+-- engagement's conversation (WP 2.6's own cascade): check 2 confirms the auto-accept
+-- path opens a real, two-participant conversation, not merely an engagement.
+--
 --   psql -w -h <pooler-host> -p 5432 -U postgres.<project-ref> -d postgres \
 --        -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_MARKETPLACE_WRITE_CONTRACT.sql
 
@@ -101,6 +105,8 @@ begin
     p_quote_id => v_quote, p_request_id => v_directed_request, p_offering_workspace_id => v_pro_ws,
     p_price => 80.00, p_message => 'Can do it', p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
     p_auto_accept_engagement_id => gen_random_uuid(), p_auto_accept_event_id => gen_random_uuid(), p_auto_accept_engagement_event_id => gen_random_uuid(),
+    p_auto_accept_conversation_id => gen_random_uuid(), p_auto_accept_customer_participant_id => gen_random_uuid(), p_auto_accept_pro_participant_id => gen_random_uuid(),
+    p_auto_accept_conversation_event_id => gen_random_uuid(), p_auto_accept_customer_participant_event_id => gen_random_uuid(), p_auto_accept_pro_participant_event_id => gen_random_uuid(),
     p_actor_type => 'person', p_actor_ref => v_pro_auth::text
   );
 
@@ -118,7 +124,24 @@ begin
   if not exists (select 1 from work.engagements where request_id = v_directed_request and performing_workspace_id = v_pro_ws) then
     raise exception '2c · no engagement was created by the auto-accept cascade';
   end if;
-  raise notice '2 · a directed request auto-accepts a matching quote — books the request and creates the engagement, no separate accept call';
+
+  if not exists (
+    select 1 from work.conversations c
+    join work.engagements e on e.id = c.engagement_id
+    where e.request_id = v_directed_request
+  ) then
+    raise exception '2d · the auto-accept cascade did not open a conversation for the new engagement';
+  end if;
+
+  if (
+    select count(*) from work.conversation_participants cp
+    join work.conversations c on c.id = cp.conversation_id
+    join work.engagements e on e.id = c.engagement_id
+    where e.request_id = v_directed_request
+  ) <> 2 then
+    raise exception '2e · the auto-accept cascade''s conversation does not have exactly 2 participants';
+  end if;
+  raise notice '2 · a directed request auto-accepts a matching quote — books the request, creates the engagement, and opens a real two-participant conversation, no separate accept call';
 
   -- =========================================================================
   -- 3 · The wrong workspace quoting a directed request does NOT auto-accept — goes to
@@ -147,6 +170,8 @@ begin
       p_quote_id => v_wrong_quote, p_request_id => v_second_directed, p_offering_workspace_id => v_wrong_pro_ws,
       p_price => 80.00, p_message => 'Not who this was directed at', p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
       p_auto_accept_engagement_id => gen_random_uuid(), p_auto_accept_event_id => gen_random_uuid(), p_auto_accept_engagement_event_id => gen_random_uuid(),
+      p_auto_accept_conversation_id => gen_random_uuid(), p_auto_accept_customer_participant_id => gen_random_uuid(), p_auto_accept_pro_participant_id => gen_random_uuid(),
+      p_auto_accept_conversation_event_id => gen_random_uuid(), p_auto_accept_customer_participant_event_id => gen_random_uuid(), p_auto_accept_pro_participant_event_id => gen_random_uuid(),
       p_actor_type => 'person', p_actor_ref => v_wrong_pro_auth::text
     );
     reset role;
@@ -186,6 +211,8 @@ begin
     perform api.accept_quote(
       p_quote_id => v_quote, p_engagement_id => gen_random_uuid(),
       p_event_id => gen_random_uuid(), p_engagement_event_id => gen_random_uuid(), p_declined_event_id => gen_random_uuid(),
+      p_conversation_id => gen_random_uuid(), p_customer_participant_id => gen_random_uuid(), p_pro_participant_id => gen_random_uuid(),
+      p_conversation_event_id => gen_random_uuid(), p_customer_participant_event_id => gen_random_uuid(), p_pro_participant_event_id => gen_random_uuid(),
       p_correlation_id => gen_random_uuid(), p_actor_type => 'person', p_actor_ref => v_stranger_auth::text
     );
   exception when sqlstate '42501' then
