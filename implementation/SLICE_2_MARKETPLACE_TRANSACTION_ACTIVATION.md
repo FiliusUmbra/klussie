@@ -415,6 +415,30 @@ passing is the *floor*, not the bar this work package is held to. If
 the cutover cannot be made to feel like nothing happened, that is a
 reason to slow down inside WP 2.6, not a reason to ship it anyway.
 
+**Status, 2026-08-20: code-complete and four-gate-clean; not merged — blocked on an
+external infrastructure gap, not on this work package's own code.**
+
+The backend contracts this work package needed (0147–0157, conversations included per
+the user's own explicit decision to fold that engine's activation in here) are built,
+individually SQL-verified with real impersonated staging sessions, and merged (PRs
+#54–#63, #65). The client rewrite itself — `src/lib/requests.js`,
+`src/lib/messages.js`, `src/lib/requestPhotos.js`, and every call site that threads a
+newly-required `workspaceId` — is written, passes lint/typecheck/build/the full test
+suite (196 files, 1972 tests), and is pushed as a draft PR (#66), held rather than
+merged.
+
+**Why held:** driving the real app against staging in a browser (this work package's
+own explicit "existing users unable to tell" bar demands nothing less) surfaced that
+staging's PostgREST has never had the `api` schema exposed (`Project Settings → Data
+API → Exposed schemas`) — a one-time, per-environment manual step ADR-0026 names and
+that was apparently never performed here. Every `api.*` function built since Epic 03
+is unreachable from the real browser client as a result, independent of and
+undetectable by any SQL-level diagnostic. See `klussie-critical-infra-gap` (session
+memory) for the full finding. PR #66's own description carries the exact
+re-verification checklist to run once that setting is flipped, at which point this
+work package converts from draft to ready and merges through the same discipline
+every other WP 2.6 PR has used — no further code work is expected to be needed first.
+
 **WP 2.7 — Retire the five legacy triggers**
 
 Only once WP 2.6 has been live and observed for a real window (the same
