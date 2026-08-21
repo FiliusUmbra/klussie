@@ -332,16 +332,56 @@ or under the ceiling auto-accepts; the wrong workspace does not.
 
 **WP 2.4 — The scoped access grant consumer — moved after WP 2.6, see this section's own header**
 
-Resolve §1.3. A Workspace-owned consumer of
-`marketplace.engagement.created`, creating the real, scoped
-`workspace.memberships` row `DATABASE_ARCHITECTURE.md` §19 describes.
-Genuinely new: no background event-consumption mechanism exists yet in
-this codebase to extend, so this work package's first job is deciding
-what that mechanism actually is (a poll against `platform.events`? a
-Postgres trigger-based consumer? — an open question, not resolved by
-this document, see §5) before the consumer logic itself can be written.
-Kept numbered 2.4 for cross-reference stability; it now executes after
-2.6 in practice.
+**Status, 2026-08-20: CODE COMPLETE, VERIFIED LIVE, PR OPEN PENDING MERGE.**
+Resolved §1.3 in two steps, per explicit direction, not one:
+
+1. **The scope-enforcement gap.** `workspace.memberships.scope` had
+   existed since migration 0030 with no policy or function anywhere
+   ever enforcing it — a scoped membership behaved identically to an
+   unscoped one. Shipping a real scoped grant onto that foundation
+   would have been dangerous, not merely incomplete. Fixed and merged
+   first, as its own work package: `0161_scoped_membership_authorization.sql`
+   (PR #70) — `workspace.current_property_scope()`, five RLS policies
+   and seven functions extended with a scoped OR-branch, verified live
+   and adversarially (owner/household-member regression, positive
+   scoped access, no cross-property or cross-tenant disclosure, expired/
+   ended-grant denial). Found and fixed a real, independent,
+   pre-existing operator-precedence bug in `property.my_documents()`
+   along the way (migration 0149; `AND` binding tighter than `OR` let
+   four of five subject branches bypass their own visibility check).
+2. **The consumer itself.** The mechanism question this document left
+   open — "a poll against `platform.events`? a trigger-based consumer?"
+   — is resolved: `pg_cron` polling `platform.events` through the
+   existing cursor/quarantine machinery (Epic 01, never wired to
+   anything real until now), per explicit direction to treat that as
+   the natural completion of infrastructure that already exists, not a
+   new framework. Documented as the platform's canonical background-
+   consumer pattern in [ADR-0031](../docs/adr/0031-background-consumer-pattern-cursor-quarantine-pg-cron.md),
+   written for every future Timeline/Notifications/Search/Analytics
+   consumer to copy. Shipped as `0162_engagement_access_grant_consumer.sql`
+   ([PR #71](https://github.com/FiliusUmbra/klussie/pull/71) — CI green,
+   30/30 structural tests, verified live end-to-end with a real
+   request → quote → accept flow through the actual `api.*` contracts;
+   **open, pending the user's own merge** — a `CREATE ROLE`/`GRANT`/
+   `pg_cron.schedule` migration, correctly gated by the harness's own
+   permission classifier the same way every prior schema-privilege
+   change in this programme has been). Four real bugs found live by
+   this migration's own diagnostic and fixed in it — see the PR/commit
+   description for the full list (a partition-table privilege gap, a
+   platform-wide `consumer_cursors`/`consumer_quarantine` RLS gap
+   dating to Epic 01 and affecting all four pre-existing consumer
+   roles, an id-minting privilege gap, and one real leftover engagement
+   from WP 2.6's own live verification, quarantined and then correctly
+   replayed once the underlying bug was fixed).
+
+Deliberately not built here, named rather than silently deferred:
+revocation on engagement completion or cancellation. Contractor access
+currently ends only via a 90-day safety-net expiry (anchored to the
+triggering event's own `occurred_at`, not a fixed business rule) —
+the honest rule is engagement lifecycle, and `granting_engagement_id`
+(a new column on `workspace.memberships`) is the handle a future
+consumer uses to end the exact right grant without touching the model
+built here.
 
 ### Tier 3 — Client, and the cutover itself
 
