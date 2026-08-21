@@ -4,11 +4,17 @@
 // The rules it renders live in src/lib — earnings and the tax-free ceiling in billing.js,
 // boost state and category locking in proStatus.js. This file decides layout and nothing
 // about eligibility.
+//
+// WorkspaceSwitcher lives here too, mirroring CustomerProfile.jsx's own reasoning — AppShell's
+// topbar (where it also renders) is display:none below 460px, every real phone. Every real
+// pro holds two live memberships (personal + professional) and had no way to reach the
+// personal one on an actual device before this.
 import { useState, useEffect, useRef } from "react";
 import { Camera, LogOut, ThumbsUp } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, Button, QuoteCard, TrustBadge, Modal } from "../design-system";
+import { WorkspaceSwitcher } from "../shell/WorkspaceSwitcher.jsx";
 import { updateProServices, updateProProfile, boostProfile, trustScore } from "../lib/pros";
 import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../lib/portfolio";
 import { fetchTestimonials, deleteTestimonial } from "../lib/testimonials";
@@ -91,6 +97,7 @@ export function ProProfile({ proInfo, completedCount, earnedGross, offeredServic
   return (
     <div className="pad">
       <div className="profile-head"><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" /><div><div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div><TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} /></div></div>
+      <WorkspaceSwitcher t={t} />
       {proProfile.bio && <p className="sheet-blurb">{proProfile.bio}</p>}
       <div className="stat-row">
         <div className="stat"><div className="stat-num">{completedCount}</div><div className="stat-label">{t.proJobsDone}</div></div>

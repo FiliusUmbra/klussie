@@ -6,6 +6,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 const apiRpc = vi.fn();
+const signOut = vi.fn();
+const setActiveWorkspaceId = vi.fn();
+const useAuthMock = vi.fn();
 
 vi.mock("../../lib/supabaseClient", () => ({
   supabase: {
@@ -13,11 +16,24 @@ vi.mock("../../lib/supabaseClient", () => ({
   },
 }));
 
+// A real, previously-missing sign-out (and, for a multi-workspace operator, a workspace
+// switch) is exactly what this screen was found to have no way to reach at all — see this
+// component's own header comment.
+vi.mock("../../lib/auth.jsx", () => ({ useAuth: () => useAuthMock() }));
+
 import { OperatorApp } from "../OperatorApp.jsx";
 
 beforeEach(() => {
   vi.clearAllMocks();
   apiRpc.mockResolvedValue({ data: [], error: null });
+  // Single membership by default; the dedicated test below overrides this to exercise
+  // the multi-workspace branch.
+  useAuthMock.mockReturnValue({
+    workspaceMemberships: [{ workspace_id: "ops-ws", workspace_name: "Klussie Operations", workspace_type: "business" }],
+    activeWorkspace: { workspace_id: "ops-ws" },
+    setActiveWorkspaceId,
+    signOut,
+  });
 });
 
 describe("OperatorApp", () => {
@@ -81,5 +97,38 @@ describe("OperatorApp", () => {
 
     await waitFor(() => expect(screen.getByRole("tab", { name: "Audit" }).getAttribute("aria-selected")).toBe("true"));
     expect(screen.getByLabelText("Filter by workspace id").value).toBe(workspaceId);
+  });
+
+  // A real, previously-missing gap — see this component's own header comment: this
+  // screen had no way to leave at all, on any device, before this.
+  it("always shows a way to sign out, even with a single membership", () => {
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
+    expect(signOut).toHaveBeenCalled();
+  });
+
+  it("shows no workspace switcher for a single-membership operator", () => {
+    render(<OperatorApp />);
+
+    expect(screen.queryByText("Workspace")).toBeNull();
+  });
+
+  it("shows a real workspace switcher for an operator who is also a real customer or pro", () => {
+    useAuthMock.mockReturnValue({
+      workspaceMemberships: [
+        { workspace_id: "ops-ws", workspace_name: "Klussie Operations", workspace_type: "business" },
+        { workspace_id: "personal-ws", workspace_name: "My Home", workspace_type: "personal" },
+      ],
+      activeWorkspace: { workspace_id: "ops-ws" },
+      setActiveWorkspaceId,
+      signOut,
+    });
+
+    render(<OperatorApp />);
+
+    expect(screen.getByText("Workspace")).toBeTruthy();
+    fireEvent.click(screen.getByText("My Home"));
+    expect(setActiveWorkspaceId).toHaveBeenCalledWith("personal-ws");
   });
 });
