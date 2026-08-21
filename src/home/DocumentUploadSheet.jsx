@@ -8,15 +8,12 @@
 import { useState } from "react";
 import { FileText } from "lucide-react";
 import { Drawer } from "../design-system";
-import { createDocument } from "../lib/documents.js";
+import { createDocument, documentTypeLabelKey } from "../lib/documents.js";
 
+// The four values 0141 actually seeded for a customer-authored upload — narrower than
+// documentTypeLabelKey()'s own full set (also portfolio_photo/request_photo, which are
+// system-attached, never picked from this dropdown).
 const DOCUMENT_TYPES = ["warranty", "certificate", "manual", "other"];
-const TYPE_LABEL_KEY = {
-  warranty: "documentTypeWarranty",
-  certificate: "documentTypeCertificate",
-  manual: "documentTypeManual",
-  other: "documentTypeOther",
-};
 
 export function DocumentUploadSheet({ t, propertyId, workspaceId, actorRef, onClose, onSaved }) {
   const [file, setFile] = useState(null);
@@ -71,7 +68,7 @@ export function DocumentUploadSheet({ t, propertyId, workspaceId, actorRef, onCl
       <div className="search" style={{ marginBottom: 14 }}>
         <select id="document-type" value={typeKey} onChange={(e) => setTypeKey(e.target.value)}>
           {DOCUMENT_TYPES.map((key) => (
-            <option key={key} value={key}>{t[TYPE_LABEL_KEY[key]]}</option>
+            <option key={key} value={key}>{t[documentTypeLabelKey(key)]}</option>
           ))}
         </select>
       </div>

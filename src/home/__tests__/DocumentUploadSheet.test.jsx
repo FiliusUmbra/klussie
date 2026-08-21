@@ -6,6 +6,10 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 vi.mock("../../lib/documents.js", () => ({
   createDocument: vi.fn(() => Promise.resolve({ id: "doc-new" })),
+  documentTypeLabelKey: (typeKey) => ({
+    warranty: "documentTypeWarranty", certificate: "documentTypeCertificate",
+    manual: "documentTypeManual", other: "documentTypeOther",
+  })[typeKey] ?? null,
 }));
 
 import { createDocument } from "../../lib/documents.js";

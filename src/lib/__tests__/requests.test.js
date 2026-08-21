@@ -367,6 +367,31 @@ describe("fetchProJobs", () => {
     mockApi({ my_quotes: () => ({ data: null, error: new Error("denied") }), my_engagements: () => ({ data: [], error: null }) });
     await expect(fetchProJobs("pro-1", "ws-1")).rejects.toThrow("denied");
   });
+
+  it("threads property/asset/location and engagement ids through for ProJobDetailSheet.jsx (WP 2.4)", async () => {
+    mockApi({
+      my_quotes: () => ({
+        data: [{ id: "q-booked", request_id: "req-booked", offering_workspace_id: "ws-1", price: 80, status: "accepted" }],
+        error: null,
+      }),
+      my_engagements: () => ({
+        data: [{ id: "eng-1", request_id: "req-booked", performing_workspace_id: "ws-1" }],
+        error: null,
+      }),
+      resolve_request: () => ({
+        data: [{ id: "req-booked", service_id: "svc-2", status: "booked", property_id: "prop-1", asset_id: null, location_id: null }],
+        error: null,
+      }),
+      review_for_request: () => ({ data: [], error: null }),
+      resolve_workspace_owner_auth_ids: () => ({ data: [{ workspace_id: "ws-1", auth_user_id: "pro-1" }], error: null }),
+    });
+
+    const result = await fetchProJobs("pro-1", "ws-1");
+
+    expect(result.booked[0]).toMatchObject({
+      propertyId: "prop-1", assetId: null, locationId: null, engagementId: "eng-1",
+    });
+  });
 });
 
 describe("subscribeToCustomerRequests / subscribeToRequestQuotes", () => {

@@ -60,3 +60,24 @@ export async function createDocument({ propertyId, workspaceId, actorRef, typeKe
 
   return { id: documentId };
 }
+
+// The label key for a document's type_key — one source of truth (PRODUCT_CONSTITUTION.md
+// Rule 8), shared by DocumentUploadSheet.jsx (the four types a customer may pick from)
+// and ProJobDetailSheet.jsx (WP 2.4 — a pro reading a customer's already-attached
+// documents, where portfolio_photo/request_photo are also real, existing type_keys, not
+// only the four upload-time choices). Unknown values (a future type_key added by a
+// migration before this map catches up) fall back to the raw key rather than blanking
+// the label — the same "never crash on an unanticipated enum value" idiom
+// requestStatus.js's own statusPresentation() already established.
+const DOCUMENT_TYPE_LABEL_KEY = {
+  warranty: "documentTypeWarranty",
+  certificate: "documentTypeCertificate",
+  manual: "documentTypeManual",
+  other: "documentTypeOther",
+  portfolio_photo: "documentTypePortfolioPhoto",
+  request_photo: "documentTypeRequestPhoto",
+};
+
+export function documentTypeLabelKey(typeKey) {
+  return DOCUMENT_TYPE_LABEL_KEY[typeKey] ?? null;
+}

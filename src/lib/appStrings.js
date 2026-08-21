@@ -106,6 +106,8 @@ export const APP_STRINGS = {
     convBookingFailed:"Het boeken lukte niet. Probeer het opnieuw.",
     convReliefTitle:"Je aanvraag is verstuurd", convReliefSub:"{name} heeft alles wat nodig is. Je hoort het zodra hij of zij reageert.",
     convComposerLabel:"Beschrijf je klus", convProgressLabel:"Voortgang van je aanvraag", convSendLabel:"Versturen", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
+    messageCustomerBtn:"Stuur een bericht", propertyTwinTitle:"Woninggegevens", twinLocationsLabel:"Ruimtes", twinAssetsLabel:"Toestellen", twinDocumentsLabel:"Documenten",
+    twinUnavailableMsg:"Woninggegevens zijn nog niet beschikbaar voor deze klus.", twinNoDataMsg:"Hier staat nog niets.",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro", workspaceSwitchLabel:"Espace de travail",
@@ -203,6 +205,8 @@ export const APP_STRINGS = {
     convBookingFailed:"La réservation a échoué. Réessayez.",
     convReliefTitle:"Votre demande est envoyée", convReliefSub:"{name} a tout ce qu'il faut. Vous serez prévenu dès sa réponse.",
     convComposerLabel:"Décris ton chantier", convProgressLabel:"Avancement de ta demande", convSendLabel:"Envoyer", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
+    messageCustomerBtn:"Envoyer un message", propertyTwinTitle:"Infos sur le logement", twinLocationsLabel:"Pièces", twinAssetsLabel:"Équipements", twinDocumentsLabel:"Documents",
+    twinUnavailableMsg:"Les infos sur le logement ne sont pas encore disponibles pour cette tâche.", twinNoDataMsg:"Rien n'a encore été ajouté ici.",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi", workspaceSwitchLabel:"Arbeitsbereich",
@@ -300,6 +304,8 @@ export const APP_STRINGS = {
     convBookingFailed:"Die Buchung hat nicht geklappt. Bitte erneut versuchen.",
     convReliefTitle:"Deine Anfrage ist raus", convReliefSub:"{name} hat alles Nötige. Du hörst, sobald eine Antwort da ist.",
     convComposerLabel:"Beschreibe deinen Auftrag", convProgressLabel:"Fortschritt deiner Anfrage", convSendLabel:"Senden", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
+    messageCustomerBtn:"Nachricht senden", propertyTwinTitle:"Objektdetails", twinLocationsLabel:"Räume", twinAssetsLabel:"Geräte", twinDocumentsLabel:"Dokumente",
+    twinUnavailableMsg:"Objektdetails sind für diesen Auftrag noch nicht verfügbar.", twinNoDataMsg:"Hier ist noch nichts hinterlegt.",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro", workspaceSwitchLabel:"Workspace",
@@ -397,6 +403,8 @@ export const APP_STRINGS = {
     convBookingFailed:"That didn't go through. Please try again.",
     convReliefTitle:"Your request is in", convReliefSub:"{name} has everything they need. You'll hear as soon as they respond.",
     convComposerLabel:"Describe your job", convProgressLabel:"Progress of your request", convSendLabel:"Send", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
+    messageCustomerBtn:"Message customer", propertyTwinTitle:"Property details", twinLocationsLabel:"Areas", twinAssetsLabel:"Equipment", twinDocumentsLabel:"Documents",
+    twinUnavailableMsg:"Property details aren't available for this job yet.", twinNoDataMsg:"Nothing recorded here yet.",
   },
   es: {
     previewingAs:"Vista previa como", roleCustomer:"Cliente", rolePro:"Profesional", workspaceSwitchLabel:"Espacio de trabajo",
@@ -494,6 +502,8 @@ export const APP_STRINGS = {
     convBookingFailed:"No se ha podido completar. Inténtalo de nuevo.",
     convReliefTitle:"Tu solicitud está enviada", convReliefSub:"{name} tiene todo lo que necesita. Te avisaremos en cuanto responda.",
     convComposerLabel:"Describe tu trabajo", convProgressLabel:"Progreso de tu solicitud", convSendLabel:"Enviar", convEstimateLabel:"Precio orientativo", convNoProYet:"Todavía no hay ningún profesional disponible para esto cerca de ti.",
+    messageCustomerBtn:"Enviar mensaje", propertyTwinTitle:"Datos de la vivienda", twinLocationsLabel:"Zonas", twinAssetsLabel:"Equipos", twinDocumentsLabel:"Documentos",
+    twinUnavailableMsg:"Los datos de la vivienda aún no están disponibles para este trabajo.", twinNoDataMsg:"Todavía no hay nada aquí.",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف", workspaceSwitchLabel:"مساحة العمل",
@@ -591,6 +601,8 @@ export const APP_STRINGS = {
     convBookingFailed:"لم يتم الحجز. حاول مرة أخرى.",
     convReliefTitle:"تم إرسال طلبك", convReliefSub:"لدى {name} كل ما يلزم. سنخبرك فور وصول الرد.",
     convComposerLabel:"صف العمل المطلوب", convProgressLabel:"تقدّم طلبك", convSendLabel:"إرسال", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
+    messageCustomerBtn:"أرسل رسالة", propertyTwinTitle:"تفاصيل العقار", twinLocationsLabel:"المساحات", twinAssetsLabel:"الأجهزة", twinDocumentsLabel:"المستندات",
+    twinUnavailableMsg:"تفاصيل العقار غير متوفرة بعد لهذا العمل.", twinNoDataMsg:"لا يوجد شيء هنا بعد.",
   },
   fa: {
     previewingAs:"پیش‌نمایش به‌عنوان", roleCustomer:"مشتری", rolePro:"متخصص", workspaceSwitchLabel:"فضای کاری",
@@ -688,6 +700,8 @@ export const APP_STRINGS = {
     convBookingFailed:"رزرو انجام نشد. دوباره تلاش کنید.",
     convReliefTitle:"درخواست شما ارسال شد", convReliefSub:"{name} هر چه لازم است دارد. به‌محض پاسخ او خبرتان می‌کنیم.",
     convComposerLabel:"کارتان را توضیح دهید", convProgressLabel:"روند درخواست شما", convSendLabel:"ارسال", convEstimateLabel:"قیمت تقریبی", convNoProYet:"فعلاً متخصص در دسترسی برای این کار نزدیک شما نیست.",
+    messageCustomerBtn:"ارسال پیام", propertyTwinTitle:"جزئیات ملک", twinLocationsLabel:"فضاها", twinAssetsLabel:"تجهیزات", twinDocumentsLabel:"مدارک",
+    twinUnavailableMsg:"جزئیات ملک هنوز برای این کار در دسترس نیست.", twinNoDataMsg:"هنوز چیزی ثبت نشده است.",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel", workspaceSwitchLabel:"Çalışma alanı",
@@ -785,6 +799,8 @@ export const APP_STRINGS = {
     convBookingFailed:"Rezervasyon yapılamadı. Lütfen tekrar deneyin.",
     convReliefTitle:"Talebin iletildi", convReliefSub:"{name} gereken her şeye sahip. Yanıt gelir gelmez haber vereceğiz.",
     convComposerLabel:"İşini anlat", convProgressLabel:"Talebinin ilerlemesi", convSendLabel:"Gönder", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
+    messageCustomerBtn:"Mesaj gönder", propertyTwinTitle:"Mülk bilgileri", twinLocationsLabel:"Alanlar", twinAssetsLabel:"Ekipmanlar", twinDocumentsLabel:"Belgeler",
+    twinUnavailableMsg:"Bu iş için mülk bilgileri henüz mevcut değil.", twinNoDataMsg:"Burada henüz bir şey yok.",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи", workspaceSwitchLabel:"Рабочее пространство",
@@ -882,6 +898,8 @@ export const APP_STRINGS = {
     convBookingFailed:"Не удалось отправить. Попробуйте ещё раз.",
     convReliefTitle:"Заявка отправлена", convReliefSub:"У {name} есть всё необходимое. Сообщим, как только придёт ответ.",
     convComposerLabel:"Опишите задачу", convProgressLabel:"Ход вашей заявки", convSendLabel:"Отправить", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
+    messageCustomerBtn:"Написать сообщение", propertyTwinTitle:"Данные об объекте", twinLocationsLabel:"Помещения", twinAssetsLabel:"Оборудование", twinDocumentsLabel:"Документы",
+    twinUnavailableMsg:"Данные об объекте пока недоступны для этой работы.", twinNoDataMsg:"Здесь пока ничего нет.",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士", workspaceSwitchLabel:"工作区",
@@ -979,5 +997,7 @@ export const APP_STRINGS = {
     convBookingFailed:"提交未成功，请再试一次。",
     convReliefTitle:"你的需求已送出", convReliefSub:"{name} 已收到所有信息。对方回复后我们会通知你。",
     convComposerLabel:"描述你的活儿", convProgressLabel:"你的请求进度", convSendLabel:"发送", convEstimateLabel:"参考价", convNoProYet:"你附近暂时没有可接这类活儿的师傅。",
+    messageCustomerBtn:"发送消息", propertyTwinTitle:"房产信息", twinLocationsLabel:"区域", twinAssetsLabel:"设备", twinDocumentsLabel:"文件",
+    twinUnavailableMsg:"此工作的房产信息暂不可用。", twinNoDataMsg:"这里还没有内容。",
   },
 };

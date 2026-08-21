@@ -24,6 +24,7 @@ import { BottomNav } from "../ui/BottomNav.jsx";
 import { LoadingScreen } from "../ui/Loading.jsx";
 import { ProDashboard } from "./ProDashboard.jsx";
 import { ProJobs } from "./ProJobs.jsx";
+import { ProJobDetailSheet } from "./ProJobDetailSheet.jsx";
 import { ProProfile } from "./ProProfile.jsx";
 import { MyBusinessPanel } from "./MyBusinessPanel.jsx";
 import { SendQuoteSheet } from "./SendQuoteSheet.jsx";
@@ -51,6 +52,7 @@ export function ProApp({ showToast }) {
   const [proInfo, setProInfo] = useState(null);
   const [conversations, setConversations] = useState(null);
   const [openConversation, setOpenConversation] = useState(null);
+  const [openJob, setOpenJob] = useState(null);
 
   const categoryIds = offeredCategoryIds(offeredServiceIds, BASE_SERVICES);
   const categoryKey = categoryIds.join(",");
@@ -99,7 +101,7 @@ export function ProApp({ showToast }) {
     <div className="view">
       <div className="content">
         {tab === "dashboard" && <ProDashboard leads={leads} onQuote={(l) => setQuoteLead(l)} proInfo={proInfo} />}
-        {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} />}
+        {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} onOpenJob={setOpenJob} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && (
           <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} onPauseToggled={refreshLeads} />
@@ -116,6 +118,20 @@ export function ProApp({ showToast }) {
       ]} />
 
       {quoteLead && <SendQuoteSheet lead={quoteLead} onClose={() => setQuoteLead(null)} onSubmit={(price, msg) => sendQuote(quoteLead, price, msg)} />}
+      {openJob && (() => {
+        // A job and its conversation share one join key today: request id — 0148 opens
+        // exactly one conversation per accepted engagement, and fetchProJobs()/
+        // fetchConversations() both already carry it (job.id, conversation.requestId).
+        const jobConversation = conversations.find((c) => c.requestId === openJob.id);
+        return (
+          <ProJobDetailSheet
+            job={openJob}
+            customerName={jobConversation?.otherName}
+            onMessage={jobConversation ? () => { setOpenConversation(jobConversation); setOpenJob(null); } : undefined}
+            onClose={() => setOpenJob(null)}
+          />
+        );
+      })()}
       {openConversation && (
         <ConversationSheet
           conversationId={openConversation.id}
