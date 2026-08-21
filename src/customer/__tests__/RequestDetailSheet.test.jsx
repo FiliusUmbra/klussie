@@ -7,6 +7,13 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
 vi.mock("../../lib/auth.jsx", () => ({ useAuth: () => ({ user: { id: "customer-1" } }) }));
+// RequestDetailSheet renders RequestPhotosStrip unconditionally, which calls
+// fetchRequestPhotos() -> the real Supabase client. Unmocked, this "worked" locally only
+// because a real .env.local happens to be present — CI has none, so the same call throws
+// (an unhandled rejection vitest reports as a failing run even though every assertion
+// itself passes). Mocked the same way DocumentUploadSheet.test.jsx's own tests already
+// keep every Supabase-touching child two steps removed.
+vi.mock("../../lib/requestPhotos.js", () => ({ fetchRequestPhotos: vi.fn(() => Promise.resolve([])) }));
 
 import { LangContext } from "../../lib/lang";
 import { RequestDetailSheet } from "../RequestDetailSheet.jsx";
