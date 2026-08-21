@@ -346,20 +346,18 @@ end to end, live, in a real two-session browser test — see that work
 package's own entry in `SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md`
 and the session's `klussie-critical-infra-gap` memory (now closed) for
 the full finding chain. WP 2.4 (the scoped access grant consumer) is
-CODE COMPLETE and verified live: the scope-enforcement prerequisite it
-needed shipped as its own work package (`0161`, PR #70, merged), and
-the consumer itself — the platform's first real background event
+DONE, merged, and live on staging: the scope-enforcement prerequisite
+it needed shipped as its own work package (`0161`, PR #70, merged),
+and the consumer itself — the platform's first real background event
 consumer, `pg_cron` polling `platform.events` through Epic 01's own
 cursor/quarantine machinery, documented as the canonical pattern for
 every future one in [ADR-0031](../docs/adr/0031-background-consumer-pattern-cursor-quarantine-pg-cron.md)
-— is [PR #71](https://github.com/FiliusUmbra/klussie/pull/71), CI
-green, open pending the user's own merge (a role/grant/schedule
-migration, correctly gated by the harness's permission classifier).
+— is [PR #71](https://github.com/FiliusUmbra/klussie/pull/71), merged.
 See that work package's own entry in
 `SLICE_2_MARKETPLACE_TRANSACTION_ACTIVATION.md` for the four real bugs
-its own diagnostic found and fixed live. Remaining: merge PR #71, then
-WP 2.7. This slice's own end state requires retiring a live system,
-not only adding beside one — still its defining structural difference
+its own diagnostic found and fixed live. Remaining: WP 2.7. This
+slice's own end state requires retiring a live system, not only
+adding beside one — still its defining structural difference
 from Slice 1.
 
 *The single riskiest slice in the programme — worked in full in §2's
