@@ -332,7 +332,7 @@ or under the ceiling auto-accepts; the wrong workspace does not.
 
 **WP 2.4 — The scoped access grant consumer — moved after WP 2.6, see this section's own header**
 
-**Status, 2026-08-20: CODE COMPLETE, VERIFIED LIVE, PR OPEN PENDING MERGE.**
+**Status, 2026-08-20: DONE. Both PRs merged, live and running on staging.**
 Resolved §1.3 in two steps, per explicit direction, not one:
 
 1. **The scope-enforcement gap.** `workspace.memberships.scope` had
@@ -359,17 +359,18 @@ Resolved §1.3 in two steps, per explicit direction, not one:
    consumer pattern in [ADR-0031](../docs/adr/0031-background-consumer-pattern-cursor-quarantine-pg-cron.md),
    written for every future Timeline/Notifications/Search/Analytics
    consumer to copy. Shipped as `0162_engagement_access_grant_consumer.sql`
-   ([PR #71](https://github.com/FiliusUmbra/klussie/pull/71) — CI green,
-   30/30 structural tests, verified live end-to-end with a real
-   request → quote → accept flow through the actual `api.*` contracts;
-   **open, pending the user's own merge** — a `CREATE ROLE`/`GRANT`/
-   `pg_cron.schedule` migration, correctly gated by the harness's own
+   ([PR #71](https://github.com/FiliusUmbra/klussie/pull/71), merged —
+   CI green, 30/30 structural tests, verified live end-to-end with a
+   real request → quote → accept flow through the actual `api.*`
+   contracts. The merge itself was gated by the harness's own
    permission classifier the same way every prior schema-privilege
-   change in this programme has been). Four real bugs found live by
-   this migration's own diagnostic and fixed in it — see the PR/commit
-   description for the full list (a partition-table privilege gap, a
-   platform-wide `consumer_cursors`/`consumer_quarantine` RLS gap
-   dating to Epic 01 and affecting all four pre-existing consumer
+   change in this programme has been — a `CREATE ROLE`/`GRANT`/
+   `pg_cron.schedule` migration, confirmed by the user before merging).
+   Four real bugs found live by this migration's own diagnostic and
+   fixed in it — see the PR/commit description for the full list (a
+   partition-table privilege gap, a platform-wide
+   `consumer_cursors`/`consumer_quarantine` RLS gap dating to Epic 01
+   and affecting all four pre-existing consumer
    roles, an id-minting privilege gap, and one real leftover engagement
    from WP 2.6's own live verification, quarantined and then correctly
    replayed once the underlying bug was fixed).
@@ -598,15 +599,17 @@ time.
   headed but has no precedent yet for *this* kind of time-boxed,
   per-request configuration). Left to whoever picks up WP 2.2, not
   resolved here.
-- **WP 2.4's own consumer mechanism** — this codebase has no background
-  event consumer anywhere. A poll loop against `platform.events`? A
-  Postgres trigger reacting to the `emit_event()` insert itself, in the
-  same transaction (collapsing "consumer" into "synchronous side
-  effect," which would need its own cross-schema privilege design given
-  §1.3's own finding about why the naive version failed)? A real
-  architectural decision, possibly warranting its own ADR given it is
-  the first instance of a pattern `MASTER_CONTEXT.md` §12 has tracked as
-  entirely unbuilt.
+- ~~**WP 2.4's own consumer mechanism**~~ — **Resolved, 2026-08-20.** A
+  poll loop against `platform.events`, through the existing
+  `platform.consumer_cursors`/`consumer_quarantine` machinery and
+  `pg_cron`, not a trigger — the same-transaction "synchronous side
+  effect" option was correctly ruled out by §1.3's own finding: it
+  cannot cross the `work` → `workspace` schema boundary without the
+  identical privilege problem that killed the first
+  `work.grant_engagement_access()` attempt. Did warrant its own ADR, as
+  anticipated here — [ADR-0031](../docs/adr/0031-background-consumer-pattern-cursor-quarantine-pg-cron.md),
+  written as documentation of the now-established pattern for every
+  future background consumer, not as a fresh product decision.
 - **The workflow-instance-driven switch (§1.5, step 3)** — genuinely
   unaddressed by this document. Whether Slice 2 is the right place to
   finally make `work.requests.status` workflow-derived, or whether that
