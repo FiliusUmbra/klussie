@@ -201,7 +201,23 @@ export function CustomerApp({ showToast }) {
           onSubmitted={async (payload) => { await createRequestFromAi(payload); setTab("requests"); }}
         />
       )}
-      {openRequestObj && <RequestDetailSheet request={openRequestObj} onClose={() => setOpenRequest(null)} onAccept={acceptQuote} onComplete={() => markComplete(openRequestObj.id)} onReview={() => { setOpenRequest(null); setReviewFor(openRequestObj.id); }} />}
+      {openRequestObj && (() => {
+        // Same join key as ProApp.jsx's own mirror of this: api.my_conversations()
+        // carries request_id, and fetchConversations() already exposes it as
+        // requestId — one conversation per accepted engagement (0148), matched
+        // without a second round trip.
+        const requestConversation = conversations.find((c) => c.requestId === openRequestObj.id);
+        return (
+          <RequestDetailSheet
+            request={openRequestObj}
+            onClose={() => setOpenRequest(null)}
+            onAccept={acceptQuote}
+            onComplete={() => markComplete(openRequestObj.id)}
+            onReview={() => { setOpenRequest(null); setReviewFor(openRequestObj.id); }}
+            onMessage={requestConversation ? () => { setOpenConversation(requestConversation); setOpenRequest(null); } : undefined}
+          />
+        );
+      })()}
       {reviewReq && <ReviewSheet onClose={() => setReviewFor(null)} onSubmit={(review) => { submitReview(reviewReq, review); setReviewFor(null); }} />}
       {openConversation && (
         <ConversationSheet
