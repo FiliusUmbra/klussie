@@ -14,7 +14,7 @@ const SEGMENT_BADGE = {
   completed: { tone: "sage", labelKey: "badgeDone" },
 };
 
-export function ProJobs({ sent, booked, completed, proId }) {
+export function ProJobs({ sent, booked, completed, proId, onOpenJob }) {
   const { t, fmt, serviceInfo } = useLang();
   const [seg, setSeg] = useState("sent");
   const lists = { sent, booked, completed };
@@ -37,6 +37,7 @@ export function ProJobs({ sent, booked, completed, proId }) {
         return (
           <JobCard
             key={r.id}
+            onClick={seg !== "sent" && onOpenJob ? () => onOpenJob(r) : undefined}
             title={serviceInfo(r.serviceId).name}
             badge={<Badge tone={badge.tone}>{t[badge.labelKey]}</Badge>}
             subtitle={`${t.yourQuoteLabel} €${fmt(myQuote?.price ?? 0)}`}

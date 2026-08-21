@@ -250,6 +250,7 @@ something it depends on.
 | P11 | Flexi tax tracker shows earnings against the threshold | `ProProfile` |
 | P12 | Boost shows its price and expiry | `ProProfile` |
 | P13 | My Business reuses the customer physical twin against the pro's own workspace, lazily creating its first property on first open | `MyBusinessPanel` |
+| P14 | Tapping a booked or completed job opens its detail — timeline, a direct link into the conversation, and (once WP 2.4's scoped grant resolves it) the customer's own property twin; a "sent" (quoted, not yet booked) job stays unclickable | `ProJobDetailSheet` |
 
 ### 5.6 · Messaging
 

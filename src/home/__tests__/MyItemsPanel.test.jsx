@@ -12,7 +12,13 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
 vi.mock("../../lib/locations.js", () => ({ createLocation: vi.fn(() => Promise.resolve({ id: "loc-new" })) }));
-vi.mock("../../lib/documents.js", () => ({ createDocument: vi.fn(() => Promise.resolve({ id: "doc-new" })) }));
+vi.mock("../../lib/documents.js", () => ({
+  createDocument: vi.fn(() => Promise.resolve({ id: "doc-new" })),
+  documentTypeLabelKey: (typeKey) => ({
+    warranty: "documentTypeWarranty", certificate: "documentTypeCertificate",
+    manual: "documentTypeManual", other: "documentTypeOther",
+  })[typeKey] ?? null,
+}));
 
 import { MyItemsPanel } from "../MyItemsPanel.jsx";
 

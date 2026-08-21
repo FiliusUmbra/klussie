@@ -376,6 +376,15 @@ export async function fetchProJobs(proId, workspaceId) {
       bookedProId: engagement ? (myProId ?? proId) : null,
       engaged: Boolean(engagement),
       review: reviewsByRequest.get(q.request_id) || null,
+      // WP 2.4's own real acceptance bar — the property/asset/location a booked job's
+      // request carries (api.resolve_request() already returns all three; nothing new
+      // to fetch), plus the engagement id, so ProJobDetailSheet.jsx can resolve the
+      // scoped twin (propertyTwin.js) and match this job to its conversation without a
+      // second round trip.
+      propertyId: request?.property_id ?? null,
+      assetId: request?.asset_id ?? null,
+      locationId: request?.location_id ?? null,
+      engagementId: engagement?.id ?? null,
     };
   });
 
