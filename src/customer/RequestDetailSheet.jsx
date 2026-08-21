@@ -5,10 +5,10 @@
 // The timeline and the commission breakdown both come from src/lib — the lifecycle from
 // requestStatus.js, the fee and payout from billing.js.
 import { useState } from "react";
-import { Check, Clock, ShieldCheck } from "lucide-react";
+import { Check, Clock, MessageCircle, ShieldCheck } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
-import { Avatar, Badge, Rating, PriceTag, QuoteCard, TrustBadge, Timeline, Drawer } from "../design-system";
+import { Avatar, Badge, Button, Rating, PriceTag, QuoteCard, TrustBadge, Timeline, Drawer } from "../design-system";
 import { trustScore } from "../lib/pros";
 import { JobDetailsSummary, AiAnalysisSummary, RequestPhotosStrip } from "../requests";
 import { ProPublicProfileSheet } from "../profile/ProPublicProfileSheet.jsx";
@@ -17,7 +17,7 @@ import { ReportSheet } from "./ReportSheet.jsx";
 import { timelineSteps } from "../lib/requestStatus.js";
 import { platformFee, netPayout } from "../lib/billing.js";
 
-export function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview }) {
+export function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview, onMessage }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
   const { user } = useAuth();
   const [showInvoice, setShowInvoice] = useState(false);
@@ -37,6 +37,12 @@ export function RequestDetailSheet({ request, onClose, onAccept, onComplete, onR
       <JobDetailsSummary serviceId={request.serviceId} fields={request.answers.fields} />
       <AiAnalysisSummary aiAnalysis={request.answers.aiAnalysis} />
       <RequestPhotosStrip requestId={request.id} />
+
+      {bookedQuote && onMessage && (
+        <Button variant="secondary" icon={MessageCircle} style={{ marginTop: 8, marginBottom: 4, width: "100%" }} onClick={onMessage}>
+          {t.messageProBtn}
+        </Button>
+      )}
 
       {request.status === "collecting" && (
         <div className="empty-block"><Clock size={22} color="var(--ink-soft)" /><p>{t.waitingMsg}</p></div>
