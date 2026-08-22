@@ -42,7 +42,7 @@ import { unreadTotal } from "../lib/conversationSelectors.js";
 // "flexible". Neither should reach the database as the string "".
 const numericBudget = (budget) => (budget === "" || budget == null ? null : Number(budget));
 
-export function CustomerApp({ showToast }) {
+export function CustomerApp({ showToast, onBecomePro }) {
   const { t } = useLang();
   const { user, activeWorkspace } = useAuth();
   const workspaceId = activeWorkspace?.workspace_id;
@@ -166,7 +166,7 @@ export function CustomerApp({ showToast }) {
         )}
         {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
-        {tab === "profile" && <CustomerProfile requests={requests} onReplayTour={tour.replay} />}
+        {tab === "profile" && <CustomerProfile requests={requests} onReplayTour={tour.replay} onBecomePro={onBecomePro} />}
       </div>
 
       <BottomNav tab={tab} setTab={setTab} items={[

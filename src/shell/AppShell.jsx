@@ -127,7 +127,10 @@ export function AppShell() {
       <BecomeProPrompt onStart={() => setBecomeProOpen(true)} />
     );
   } else {
-    body = <CustomerApp showToast={showToast} />;
+    // UNIFIED_PRODUCT_IA_REVIEW.md §5 — the real, reachable entry point into
+    // BecomeProSheet, alongside the topbar-only demo toggle below (still real for a
+    // desktop-width session, but never the only path now).
+    body = <CustomerApp showToast={showToast} onBecomePro={() => setBecomeProOpen(true)} />;
   }
 
   return (
