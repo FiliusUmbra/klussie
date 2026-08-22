@@ -108,6 +108,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Beschrijf je klus", convProgressLabel:"Voortgang van je aanvraag", convSendLabel:"Versturen", convEstimateLabel:"Richtprijs", convNoProYet:"Nog geen beschikbare vakman hiervoor in jouw buurt.",
     messageCustomerBtn:"Stuur een bericht", messageProBtn:"Stuur een bericht", propertyTwinTitle:"Woninggegevens", twinLocationsLabel:"Ruimtes", twinAssetsLabel:"Toestellen", twinDocumentsLabel:"Documenten",
     twinUnavailableMsg:"Woninggegevens zijn nog niet beschikbaar voor deze klus.", twinNoDataMsg:"Hier staat nog niets.",
+    serviceRecordTitle:"Onderhoudsverslag", serviceRecordEmptyMsg:"Je vakman schrijft hier op wat er gedaan is zodra de klus klaar is.", serviceRecordWarrantyLabel:"Garantie tot", serviceRecordRecommendationsLabel:"Aanbevolen vervolgstappen", serviceRecordApproveBtn:"Keur dit verslag goed", serviceRecordApprovedMsg:"Je hebt dit verslag goedgekeurd",
   },
   fr: {
     previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro", workspaceSwitchLabel:"Espace de travail",
@@ -207,6 +208,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Décris ton chantier", convProgressLabel:"Avancement de ta demande", convSendLabel:"Envoyer", convEstimateLabel:"Prix indicatif", convNoProYet:"Aucun pro disponible pour cela près de chez toi pour l'instant.",
     messageCustomerBtn:"Envoyer un message", messageProBtn:"Envoyer un message", propertyTwinTitle:"Infos sur le logement", twinLocationsLabel:"Pièces", twinAssetsLabel:"Équipements", twinDocumentsLabel:"Documents",
     twinUnavailableMsg:"Les infos sur le logement ne sont pas encore disponibles pour cette tâche.", twinNoDataMsg:"Rien n'a encore été ajouté ici.",
+    serviceRecordTitle:"Fiche d'intervention", serviceRecordEmptyMsg:"Ton pro rédigera ici ce qui a été fait une fois la tâche terminée.", serviceRecordWarrantyLabel:"Garantie jusqu'au", serviceRecordRecommendationsLabel:"Prochaines étapes recommandées", serviceRecordApproveBtn:"Approuver cette fiche", serviceRecordApprovedMsg:"Tu as approuvé cette fiche",
   },
   de: {
     previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi", workspaceSwitchLabel:"Arbeitsbereich",
@@ -306,6 +308,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Beschreibe deinen Auftrag", convProgressLabel:"Fortschritt deiner Anfrage", convSendLabel:"Senden", convEstimateLabel:"Richtpreis", convNoProYet:"Dafür ist gerade kein Profi in deiner Nähe verfügbar.",
     messageCustomerBtn:"Nachricht senden", messageProBtn:"Nachricht senden", propertyTwinTitle:"Objektdetails", twinLocationsLabel:"Räume", twinAssetsLabel:"Geräte", twinDocumentsLabel:"Dokumente",
     twinUnavailableMsg:"Objektdetails sind für diesen Auftrag noch nicht verfügbar.", twinNoDataMsg:"Hier ist noch nichts hinterlegt.",
+    serviceRecordTitle:"Serviceprotokoll", serviceRecordEmptyMsg:"Dein Profi trägt hier ein, was gemacht wurde, sobald der Auftrag abgeschlossen ist.", serviceRecordWarrantyLabel:"Garantie bis", serviceRecordRecommendationsLabel:"Empfohlene nächste Schritte", serviceRecordApproveBtn:"Protokoll bestätigen", serviceRecordApprovedMsg:"Du hast dieses Protokoll bestätigt",
   },
   en: {
     previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro", workspaceSwitchLabel:"Workspace",
@@ -405,6 +408,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Describe your job", convProgressLabel:"Progress of your request", convSendLabel:"Send", convEstimateLabel:"Estimate", convNoProYet:"No available professional for this near you yet.",
     messageCustomerBtn:"Message customer", messageProBtn:"Message pro", propertyTwinTitle:"Property details", twinLocationsLabel:"Areas", twinAssetsLabel:"Equipment", twinDocumentsLabel:"Documents",
     twinUnavailableMsg:"Property details aren't available for this job yet.", twinNoDataMsg:"Nothing recorded here yet.",
+    serviceRecordTitle:"Service record", serviceRecordEmptyMsg:"Your pro will write up what was done here once the job is finished.", serviceRecordWarrantyLabel:"Warranty until", serviceRecordRecommendationsLabel:"Recommended next steps", serviceRecordApproveBtn:"Approve this record", serviceRecordApprovedMsg:"You approved this record",
   },
   es: {
     previewingAs:"Vista previa como", roleCustomer:"Cliente", rolePro:"Profesional", workspaceSwitchLabel:"Espacio de trabajo",
@@ -504,6 +508,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Describe tu trabajo", convProgressLabel:"Progreso de tu solicitud", convSendLabel:"Enviar", convEstimateLabel:"Precio orientativo", convNoProYet:"Todavía no hay ningún profesional disponible para esto cerca de ti.",
     messageCustomerBtn:"Enviar mensaje", messageProBtn:"Enviar mensaje", propertyTwinTitle:"Datos de la vivienda", twinLocationsLabel:"Zonas", twinAssetsLabel:"Equipos", twinDocumentsLabel:"Documentos",
     twinUnavailableMsg:"Los datos de la vivienda aún no están disponibles para este trabajo.", twinNoDataMsg:"Todavía no hay nada aquí.",
+    serviceRecordTitle:"Ficha de servicio", serviceRecordEmptyMsg:"Tu profesional escribirá aquí lo que se hizo en cuanto termine el trabajo.", serviceRecordWarrantyLabel:"Garantía hasta", serviceRecordRecommendationsLabel:"Próximos pasos recomendados", serviceRecordApproveBtn:"Aprobar esta ficha", serviceRecordApprovedMsg:"Aprobaste esta ficha",
   },
   ar: {
     previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف", workspaceSwitchLabel:"مساحة العمل",
@@ -603,6 +608,7 @@ export const APP_STRINGS = {
     convComposerLabel:"صف العمل المطلوب", convProgressLabel:"تقدّم طلبك", convSendLabel:"إرسال", convEstimateLabel:"سعر تقديري", convNoProYet:"لا يوجد حرفي متاح لهذا العمل بالقرب منك حاليًا.",
     messageCustomerBtn:"أرسل رسالة", messageProBtn:"أرسل رسالة", propertyTwinTitle:"تفاصيل العقار", twinLocationsLabel:"المساحات", twinAssetsLabel:"الأجهزة", twinDocumentsLabel:"المستندات",
     twinUnavailableMsg:"تفاصيل العقار غير متوفرة بعد لهذا العمل.", twinNoDataMsg:"لا يوجد شيء هنا بعد.",
+    serviceRecordTitle:"سجل الخدمة", serviceRecordEmptyMsg:"سيكتب فنيك هنا ما تم إنجازه بمجرد انتهاء العمل.", serviceRecordWarrantyLabel:"الضمان حتى", serviceRecordRecommendationsLabel:"الخطوات التالية الموصى بها", serviceRecordApproveBtn:"الموافقة على هذا السجل", serviceRecordApprovedMsg:"لقد وافقت على هذا السجل",
   },
   fa: {
     previewingAs:"پیش‌نمایش به‌عنوان", roleCustomer:"مشتری", rolePro:"متخصص", workspaceSwitchLabel:"فضای کاری",
@@ -702,6 +708,7 @@ export const APP_STRINGS = {
     convComposerLabel:"کارتان را توضیح دهید", convProgressLabel:"روند درخواست شما", convSendLabel:"ارسال", convEstimateLabel:"قیمت تقریبی", convNoProYet:"فعلاً متخصص در دسترسی برای این کار نزدیک شما نیست.",
     messageCustomerBtn:"ارسال پیام", messageProBtn:"ارسال پیام", propertyTwinTitle:"جزئیات ملک", twinLocationsLabel:"فضاها", twinAssetsLabel:"تجهیزات", twinDocumentsLabel:"مدارک",
     twinUnavailableMsg:"جزئیات ملک هنوز برای این کار در دسترس نیست.", twinNoDataMsg:"هنوز چیزی ثبت نشده است.",
+    serviceRecordTitle:"گزارش خدمت", serviceRecordEmptyMsg:"متخصص شما به‌محض پایان کار، اینجا می‌نویسد چه کاری انجام شده است.", serviceRecordWarrantyLabel:"گارانتی تا", serviceRecordRecommendationsLabel:"مراحل بعدی پیشنهادی", serviceRecordApproveBtn:"تأیید این گزارش", serviceRecordApprovedMsg:"شما این گزارش را تأیید کردید",
   },
   tr: {
     previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel", workspaceSwitchLabel:"Çalışma alanı",
@@ -801,6 +808,7 @@ export const APP_STRINGS = {
     convComposerLabel:"İşini anlat", convProgressLabel:"Talebinin ilerlemesi", convSendLabel:"Gönder", convEstimateLabel:"Tahmini fiyat", convNoProYet:"Şu an yakınında bunun için müsait usta yok.",
     messageCustomerBtn:"Mesaj gönder", messageProBtn:"Mesaj gönder", propertyTwinTitle:"Mülk bilgileri", twinLocationsLabel:"Alanlar", twinAssetsLabel:"Ekipmanlar", twinDocumentsLabel:"Belgeler",
     twinUnavailableMsg:"Bu iş için mülk bilgileri henüz mevcut değil.", twinNoDataMsg:"Burada henüz bir şey yok.",
+    serviceRecordTitle:"Hizmet kaydı", serviceRecordEmptyMsg:"Ustan, iş bittiğinde ne yapıldığını buraya yazacak.", serviceRecordWarrantyLabel:"Garanti bitiş", serviceRecordRecommendationsLabel:"Önerilen sonraki adımlar", serviceRecordApproveBtn:"Bu kaydı onayla", serviceRecordApprovedMsg:"Bu kaydı onayladın",
   },
   ru: {
     previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи", workspaceSwitchLabel:"Рабочее пространство",
@@ -900,6 +908,7 @@ export const APP_STRINGS = {
     convComposerLabel:"Опишите задачу", convProgressLabel:"Ход вашей заявки", convSendLabel:"Отправить", convEstimateLabel:"Ориентировочно", convNoProYet:"Пока рядом нет доступного мастера для этой задачи.",
     messageCustomerBtn:"Написать сообщение", messageProBtn:"Написать сообщение", propertyTwinTitle:"Данные об объекте", twinLocationsLabel:"Помещения", twinAssetsLabel:"Оборудование", twinDocumentsLabel:"Документы",
     twinUnavailableMsg:"Данные об объекте пока недоступны для этой работы.", twinNoDataMsg:"Здесь пока ничего нет.",
+    serviceRecordTitle:"Акт выполненных работ", serviceRecordEmptyMsg:"Специалист опишет здесь, что было сделано, как только работа завершится.", serviceRecordWarrantyLabel:"Гарантия до", serviceRecordRecommendationsLabel:"Рекомендуемые дальнейшие шаги", serviceRecordApproveBtn:"Подтвердить акт", serviceRecordApprovedMsg:"Вы подтвердили этот акт",
   },
   zh: {
     previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士", workspaceSwitchLabel:"工作区",
@@ -999,5 +1008,6 @@ export const APP_STRINGS = {
     convComposerLabel:"描述你的活儿", convProgressLabel:"你的请求进度", convSendLabel:"发送", convEstimateLabel:"参考价", convNoProYet:"你附近暂时没有可接这类活儿的师傅。",
     messageCustomerBtn:"发送消息", messageProBtn:"发送消息", propertyTwinTitle:"房产信息", twinLocationsLabel:"区域", twinAssetsLabel:"设备", twinDocumentsLabel:"文件",
     twinUnavailableMsg:"此工作的房产信息暂不可用。", twinNoDataMsg:"这里还没有内容。",
+    serviceRecordTitle:"服务记录", serviceRecordEmptyMsg:"工作完成后，师傅会在这里写下具体做了什么。", serviceRecordWarrantyLabel:"保修至", serviceRecordRecommendationsLabel:"建议的后续步骤", serviceRecordApproveBtn:"确认此记录", serviceRecordApprovedMsg:"你已确认此记录",
   },
 };

@@ -108,7 +108,7 @@ consumer is built in this slice; §2.3 below is why.
 
 ## 3 · Work packages
 
-### WP 3.0 — Read contract — **this scoping pass's own next step**
+### WP 3.0 — Read contract — **DONE, PR #77, merged 2026-08-22**
 
 Ten `api.*` delegates mirroring `resolve_service_record`/`my_service_
 records`/`my_performing_annex`/`my_property_annex`/`service_record_
@@ -116,28 +116,53 @@ history` (five reads) and `create_service_record`/`record_service_
 record_approval`/`write_performing_annex`/`write_property_annex`/
 `amend_service_record` (five writes, each needing a real `work.*_for_
 caller()` wrapper first — §2.2). Same two-tier shape as every prior
-read/write switch this programme has built. No client caller yet;
-this is the layer WP 3.2/3.3 need to exist before either can be
-written.
+read/write switch this programme has built. Verified on staging via
+`VERIFY_SERVICE_RECORD_CONTRACT.sql`'s adversarial suite; found and
+fixed a real, pre-existing bug along the way (`work.engagements_
+reject_terminal_mutation()`, 0087, unconditionally blocked the one
+write 0087's own header predicted this work package would need to
+make).
 
-### WP 3.1 — Decision: what "authoring is reachable" means, concretely
+**Follow-up, same PR, migration 0164:** wiring WP 3.2 below exposed a
+real gap WP 3.0 itself left open — no existing read exposed `work.
+engagements.service_record_id`, so a client had no way to answer "does
+this request have a record yet" at all. `work.resolve_service_record_
+for_request(p_request_id)` closes it, two-sided, matching `work.
+resolve_engagement_for_request()`'s (0152) own established idiom
+rather than widening an already-shipped list read's shape (0152's own
+header already rejected that once, for the identical reason).
+
+### WP 3.1 — Decision: what "authoring is reachable" means, concretely — **decided, not yet built**
 
 A completed engagement (`work.engagements.status = 'completed'`,
-already true the moment `api.complete_engagement()` runs) is what
-unlocks the editor — not a new column, not a new event. `ProJobDetailSheet.jsx`
-(WP 2.4) is the natural host: it already renders per-job, already
-knows the engagement id, already has a `completed` segment. Whether an
-un-authored completed job shows an empty state ("write the service
-record") or the editor opens directly is a real UX decision belonging
-to WP 3.3, not assumed here.
+already true the moment `api.complete_engagement()` runs) **and** no
+`service_record_id` set yet is what should unlock the editor entry
+point — not a new column, not a new event; both facts already exist
+on `work.engagements` by the time a job reaches `completed`.
+`ProJobDetailSheet.jsx` (WP 2.4) is the natural host: it already
+renders per-job, already knows the engagement id, already has a
+`completed` segment.
 
-### WP 3.2 — Client: the customer's own read view
+**Deliberately not built yet.** The gate condition is decided; the
+entry point itself is not — surfacing a button that opens nothing
+(WP 3.3 doesn't exist yet) would be a worse empty state than showing
+none at all, the opposite of the mandate's own "empty states should
+educate and encourage." The pro-side entry point ships as part of
+WP 3.3, once there is a real editor for it to open.
+
+### WP 3.2 — Client: the customer's own read view — **DONE, this PR**
 
 `RequestDetailSheet.jsx`'s `completed`/`reviewed` states gain the real
 record once one exists — `ROADMAP_A` §5.1 step 5's own bar: "what
-happened to my boiler," not an invoice line. Smaller than WP 3.3; no
+happened to my boiler," not an invoice line. `ServiceRecordSummary.jsx`
+(new, self-fetching, the same idiom `RequestPhotosStrip.jsx` already
+establishes) renders the shared core (work performed, recommendations,
+warranty) plus a real Approve action wired to WP 3.0's own write
+contract, or an educating empty state — "your pro will write this up
+once the job is finished" — for every request today, since no
+authoring UI exists yet. Smaller than WP 3.3, as expected: no
 authorship, no progressive disclosure design questions, a real read
-against WP 3.0's own contract.
+and one real write against WP 3.0's own contract.
 
 ### WP 3.3 — Client: the Service Record editor — **the highest-leverage screen in either roadmap, per `ROADMAP_B` §8 Phase B3**
 
@@ -168,17 +193,20 @@ programme has already named twice (Epic 02 WP 02.05, Slice 2's own WP
 ## 4 · Sequencing
 
 ```
-WP 3.0 (read + write api.* contracts, no caller yet)
+WP 3.0 (read + write api.* contracts) ── DONE
    │
-   ├──► WP 3.2 (client: customer read view)
+   ├──► WP 3.2 (client: customer read view) ── DONE
    │
-   └──► WP 3.1 (decision: reachability) ──► WP 3.3 (client: the editor)
-                                                    │
-                                                    ▼
-                                          WP 3.4 (reputation, real data)
+   └──► WP 3.1 (decision: reachability) ── DECIDED ──► WP 3.3 (client: the editor) ── NEXT
+                                                                  │
+                                                                  ▼
+                                                        WP 3.4 (reputation, real data)
 ```
 
-WP 3.2 and WP 3.1/3.3 are independent once WP 3.0 ships — the
-customer's own read view needs nothing WP 3.3 decides. WP 3.4 is
+WP 3.2 and WP 3.1/3.3 were independent once WP 3.0 shipped — the
+customer's own read view needed nothing WP 3.3 decides, so it shipped
+first. WP 3.3 is next: the gate condition (WP 3.1) is settled, so the
+remaining work is entirely the editor's own design and build — see
+§3's own note on why no entry point ships ahead of it. WP 3.4 stays
 explicitly last: it needs real records to aggregate, which only exist
 once WP 3.3 ships and professionals actually use it.

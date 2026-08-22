@@ -213,6 +213,7 @@ automated (§4) or listed here. Walk the rows relevant to what changed.
 | C16 | Incoming quotes are listed with price and pro | `RequestDetailSheet` |
 | C17 | **Accepting a quote books the request, declines the others, and opens a conversation** | `RequestDetailSheet` |
 | C18 | Marking complete moves the request to `completed` | `RequestDetailSheet` |
+| C18a | A completed/reviewed request's Service Record shows the pro's own write-up once one exists, or an educating empty state ("your pro will write this up") for every request until WP 3.3 ships an authoring UI — plus a real Approve action against WP 3.0's write contract | `ServiceRecordSummary` *(automated)* |
 | C19 | Leaving a review updates the pro's rating | `ReviewSheet` |
 | C20 | Invoice shows totals, VAT and commission | `InvoiceSheet` |
 | C21 | Reporting a business submits a report | `ReportSheet` |

@@ -5,3 +5,4 @@ export { JobDetailsSummary } from "./JobDetailsSummary.jsx";
 export { AiAnalysisSummary } from "./AiAnalysisSummary.jsx";
 export { RequestPhotosStrip } from "./RequestPhotosStrip.jsx";
 export { StatusPill } from "./StatusPill.jsx";
+export { ServiceRecordSummary } from "./ServiceRecordSummary.jsx";

@@ -1,10 +1,12 @@
--- Verifies 0163_service_record_contract.sql (Platform Activation Slice 3, WP 3.0) with a
--- real request -> quote -> accept -> complete flow through the actual api.* write
--- contracts, then the new Service Record contract itself: authoring (closing 0087's own
--- gap — work.engagements.service_record_id gets set), the deliberate refusal when a
--- request has no physical subject, approval by the property's current steward, both
--- annexes' own membership boundary, amendment authorship validation, and one-record-per-
--- engagement idempotency — each adversarial case attempted and asserted denied.
+-- Verifies 0163_service_record_contract.sql and 0164_service_record_for_request.sql
+-- (Platform Activation Slice 3, WP 3.0 + follow-up) with a real request -> quote ->
+-- accept -> complete flow through the actual api.* write contracts, then the Service
+-- Record contract itself: authoring (closing 0087's own gap — work.engagements.
+-- service_record_id gets set), the deliberate refusal when a request has no physical
+-- subject, approval by the property's current steward, both annexes' own membership
+-- boundary, amendment authorship validation, one-record-per-engagement idempotency, and
+-- the request-keyed read WP 3.2's own client needs — each adversarial case attempted and
+-- asserted denied.
 --
 --   psql -w -h <pooler-host> -p 5432 -U postgres.<project-ref> -d postgres \
 --        -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_SERVICE_RECORD_CONTRACT.sql
@@ -278,6 +280,47 @@ begin
   end if;
 
   raise notice '8 · positive: the pro''s own real amendment recorded correctly';
+
+  -- =========================================================================
+  -- 9 · resolve_service_record_for_request() (0164) — both parties read the same record
+  -- by request id, a stranger gets nothing, and request B (no record authored) is empty
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_customer_auth)::text, true);
+  select count(*) into v_count from api.resolve_service_record_for_request(v_request_a);
+  if v_count <> 1 then
+    raise exception '9 · FAILED: the requesting customer could not resolve the record via request id';
+  end if;
+  reset role;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_pro_auth)::text, true);
+  select count(*) into v_count from api.resolve_service_record_for_request(v_request_a);
+  if v_count <> 1 then
+    raise exception '9 · FAILED: the performing pro could not resolve the record via request id';
+  end if;
+  reset role;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_stranger_auth)::text, true);
+  select count(*) into v_count from api.resolve_service_record_for_request(v_request_a);
+  if v_count <> 0 then
+    raise exception '9 · FAILED: a stranger resolved a record they have no claim on';
+  end if;
+  reset role;
+
+  -- Same customer, same real membership, request B specifically — proves the empty
+  -- result on B is "no record authored," not "no access," the distinction the stranger
+  -- check above cannot make on its own.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_customer_auth)::text, true);
+  select count(*) into v_count from api.resolve_service_record_for_request(v_request_b);
+  if v_count <> 0 then
+    raise exception '9 · FAILED: request B (no record ever authored) resolved a record anyway';
+  end if;
+  reset role;
+
+  raise notice '9 · positive: both parties read the same record by request id, a stranger got nothing, and an un-authored request (real access, no record) resolved empty';
 
   raise notice 'VERIFY_SERVICE_RECORD_CONTRACT: all checks passed';
 end;
