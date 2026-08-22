@@ -129,6 +129,9 @@ export function ProApp({ showToast }) {
             customerName={jobConversation?.otherName}
             onMessage={jobConversation ? () => { setOpenConversation(jobConversation); setOpenJob(null); } : undefined}
             onClose={() => setOpenJob(null)}
+            actorRef={user.id}
+            workspaceId={workspaceId}
+            onRecordSaved={refreshJobs}
           />
         );
       })()}

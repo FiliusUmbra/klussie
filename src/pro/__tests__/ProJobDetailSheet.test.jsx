@@ -8,8 +8,15 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 vi.mock("../../lib/propertyTwin.js", () => ({
   fetchPropertyTwin: vi.fn(),
 }));
+// ProServiceRecordSection (WP 3.1/3.3) self-fetches whenever job.status === "completed" —
+// mocked the same way fetchPropertyTwin is above, so the every-other-status tests below
+// stay unaffected (none of them pass status: "completed").
+vi.mock("../../lib/serviceRecords.js", () => ({
+  fetchServiceRecordForRequest: vi.fn(),
+}));
 
 import { fetchPropertyTwin } from "../../lib/propertyTwin.js";
+import { fetchServiceRecordForRequest } from "../../lib/serviceRecords.js";
 import { ProJobDetailSheet } from "../ProJobDetailSheet.jsx";
 import { LangContext } from "../../lib/lang";
 
@@ -20,6 +27,7 @@ const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = {
   t,
   fmt: (n) => String(n),
+  fmtDate: (ts) => `date:${ts}`,
   serviceInfo: (id) => ({ name: `service:${id}`, blurb: "" }),
 };
 
@@ -31,7 +39,7 @@ function renderSheet({ job: jobOverrides, ...rest } = {}) {
   };
   return render(
     <LangContext.Provider value={ctx}>
-      <ProJobDetailSheet job={job} customerName="Cathy Customer" onMessage={vi.fn()} onClose={vi.fn()} {...rest} />
+      <ProJobDetailSheet job={job} customerName="Cathy Customer" onMessage={vi.fn()} onClose={vi.fn()} workspaceId="ws-pro" actorRef="pro-1" {...rest} />
     </LangContext.Provider>
   );
 }
@@ -39,6 +47,8 @@ function renderSheet({ job: jobOverrides, ...rest } = {}) {
 beforeEach(() => {
   fetchPropertyTwin.mockReset();
   fetchPropertyTwin.mockResolvedValue({ property: null, locations: [], assets: [], documents: [] });
+  fetchServiceRecordForRequest.mockReset();
+  fetchServiceRecordForRequest.mockResolvedValue(null);
 });
 
 describe("ProJobDetailSheet", () => {
@@ -115,5 +125,50 @@ describe("ProJobDetailSheet", () => {
     renderSheet();
 
     await waitFor(() => expect(screen.getByText("some_future_type")).toBeTruthy());
+  });
+
+  it("does not fetch or render the Service Record section for anything but a completed job", () => {
+    renderSheet({ job: { status: "booked" } });
+    expect(fetchServiceRecordForRequest).not.toHaveBeenCalled();
+    expect(screen.queryByText("serviceRecordTitle")).toBeNull();
+  });
+});
+
+// Platform Activation Slice 3, WP 3.1 (the decided gate) + WP 3.3 (the editor that makes
+// it a real entry point, not a stub).
+describe("ProJobDetailSheet — ProServiceRecordSection (WP 3.1 + WP 3.3)", () => {
+  it("shows a real 'write it up' entry point for a completed job with no record yet — the gate WP 3.1 decided", async () => {
+    fetchServiceRecordForRequest.mockResolvedValue(null);
+    renderSheet({ job: { status: "completed" } });
+
+    expect(fetchServiceRecordForRequest).toHaveBeenCalledWith("req-1");
+    await waitFor(() => expect(screen.getByText("srWriteItUpBtn")).toBeTruthy());
+  });
+
+  it("shows the pro's own read-only summary instead, once a record exists — never a reopened editor", async () => {
+    fetchServiceRecordForRequest.mockResolvedValue({
+      id: "rec-1", workPerformed: "Replaced the pressure relief valve.",
+      recommendations: "Check again next year.", warrantyUntil: "2027-08-01",
+    });
+    renderSheet({ job: { status: "completed" } });
+
+    await waitFor(() => expect(screen.getByText("Replaced the pressure relief valve.")).toBeTruthy());
+    expect(screen.getByText("Check again next year.")).toBeTruthy();
+    expect(screen.getByText(/date:2027-08-01/)).toBeTruthy();
+    expect(screen.queryByText("srWriteItUpBtn")).toBeNull();
+    // No approve action — that's ServiceRecordSummary's own customer-side behavior, and
+    // a pro is never the property's steward.
+    expect(screen.queryByText("serviceRecordApproveBtn")).toBeNull();
+  });
+
+  it("opens the editor sheet when 'write it up' is tapped", async () => {
+    fetchServiceRecordForRequest.mockResolvedValue(null);
+    renderSheet({ job: { status: "completed" } });
+
+    await waitFor(() => expect(screen.getByText("srWriteItUpBtn")).toBeTruthy());
+    fireEvent.click(screen.getByText("srWriteItUpBtn"));
+
+    expect(screen.getByText("srEditorTitle")).toBeTruthy();
+    expect(screen.getByPlaceholderText("srWorkPerformedPlaceholder")).toBeTruthy();
   });
 });
