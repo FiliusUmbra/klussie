@@ -264,6 +264,7 @@ does something else worth pinning — see the corrected row below.
 | P13 | My Business reuses the customer physical twin against the pro's own workspace, lazily creating its first property on first open | `MyBusinessPanel` |
 | P14 | Tapping a booked or completed job opens its detail — timeline, a direct link into the conversation, and (once WP 2.4's scoped grant resolves it) the customer's own property twin; a "sent" (quoted, not yet booked) job stays unclickable | `ProJobDetailSheet` |
 | P15 | A completed job with no Service Record yet shows a real "Write up what you did" entry point (WP 3.1's own decided gate); one with a record shows the pro's own read-only summary instead, never a reopened editor | `ProServiceRecordSection` |
+| P16 | First-login pro tour appears once for a pro who just became one, closing the "no separate tour" gap `UX_PATTERNS.md` named (`GUIDANCE_SYSTEM.md` §17.2.1) — six beats, skippable at every one, replayable from Profile → Help | `ProOnboarding` *(automated)* |
 | P16 | The Service Record editor saves work performed, date, price, recommendations, warranty and evidence photos in one call; the performing annex (cost, margin, supplier) renders in its own visually distinct, collapsed-by-default section and is never sent unless it has real content | `ServiceRecordEditorSheet` |
 
 ### 5.6 · Messaging
