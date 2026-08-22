@@ -56,4 +56,30 @@ describe("ProJobs", () => {
     fireEvent.click(screen.getByText("segBooked (1)"));
     expect(screen.getByText("service:svc-2").closest("button")).toBeNull();
   });
+
+  // TESTING.md §5.5 P6, corrected 2026-08-22 — no pro-side "mark complete" action exists
+  // or should (work.complete_engagement_for_caller()'s own comment: "confirming completion
+  // is the customer's own decision"). What ProJobs.jsx actually does for a completed job
+  // is show the customer's own review, or say plainly none has arrived yet.
+  it("P6 — a completed job with a review shows it, never a blank card", () => {
+    const reviewed = [{ id: "req-done", serviceId: "svc-3", quotes: [{ proId: "pro-1", price: 100 }], review: { stars: 5, text: "Great work" } }];
+    render(
+      <LangContext.Provider value={ctx}>
+        <ProJobs sent={[]} booked={[]} completed={reviewed} proId="pro-1" />
+      </LangContext.Provider>
+    );
+    fireEvent.click(screen.getByText("segDone (1)"));
+    expect(screen.getByText('"Great work"')).toBeTruthy();
+    expect(screen.queryByText("noReviewYet")).toBeNull();
+  });
+
+  it("P6 — a completed job with no review yet says so plainly, not silently", () => {
+    render(
+      <LangContext.Provider value={ctx}>
+        <ProJobs sent={[]} booked={[]} completed={COMPLETED} proId="pro-1" />
+      </LangContext.Provider>
+    );
+    fireEvent.click(screen.getByText("segDone (1)"));
+    expect(screen.getByText("noReviewYet")).toBeTruthy();
+  });
 });

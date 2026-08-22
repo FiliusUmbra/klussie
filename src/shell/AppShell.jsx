@@ -9,9 +9,8 @@
 // The lang context value itself is built by src/lib/langContext.js, so the formatters and
 // catalog lookups are testable without rendering anything.
 import { useState, useRef, useEffect } from "react";
-import { Globe } from "lucide-react";
 import { useAuth } from "../lib/auth.jsx";
-import { LangContext, LANGS } from "../lib/lang";
+import { LangContext } from "../lib/lang";
 import { buildLangContext } from "../lib/langContext.js";
 import { fetchCatalog } from "../lib/catalog";
 import { HOME_CSS } from "../home/homeStyles.js";
@@ -24,6 +23,7 @@ import { ProApp } from "../pro/ProApp.jsx";
 import { OperatorApp } from "../operator/OperatorApp.jsx";
 import { LoadingScreen } from "../ui/Loading.jsx";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher.jsx";
+import { LanguageSwitcher } from "./LanguageSwitcher.jsx";
 import { deriveEffectiveRole } from "../lib/workspaceContext.js";
 import { isOperatorWorkspace } from "../lib/operatorContext.js";
 
@@ -83,7 +83,7 @@ export function AppShell() {
   const operatorCheckPending = activeWorkspaceId !== null && operatorCheck.workspaceId !== activeWorkspaceId;
   const isOperator = operatorCheck.workspaceId === activeWorkspaceId && operatorCheck.result;
 
-  const ctx = buildLangContext(langCode, catalog);
+  const ctx = buildLangContext(langCode, catalog, setLangCode);
   const { t, dir } = ctx;
 
   // Keep the document's lang attribute in sync with the selected locale —
@@ -147,12 +147,7 @@ export function AppShell() {
               </div>
             </div>
           ))}
-          <div className="lang-switch">
-            <Globe size={13} color="#c9d6cd" />
-            <select value={langCode} onChange={(e) => setLangCode(e.target.value)}>
-              {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-            </select>
-          </div>
+          <LanguageSwitcher />
         </div>
 
         <div className={`phone lang-${langCode}`}>

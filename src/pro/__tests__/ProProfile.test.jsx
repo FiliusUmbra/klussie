@@ -27,10 +27,13 @@ import { LangContext } from "../../lib/lang";
 import { ProProfile } from "../ProProfile.jsx";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
+// langCode/setLangCode/LANGS: ProProfile also renders LanguageSwitcher now (the same
+// mobile-reachability fix as WorkspaceSwitcher) — buildLangContext()'s own real shape.
 const ctx = {
   t, fmt: (n) => String(n),
   catName: (c) => c, serviceInfo: (id) => ({ name: `service:${id}`, blurb: "" }),
   proBadgeLabel: () => null, CATS: [], BASE_SERVICES: [],
+  langCode: "en", setLangCode: () => {}, LANGS: [{ code: "en", label: "English", locale: "en-GB" }],
 };
 
 const PRO_INFO = { name: "Pierre Pro", initials: "PP", avatarUrl: null, rating: 5, reviews: 1 };

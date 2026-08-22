@@ -30,8 +30,17 @@ export const APP_CSS = `
 .segmented button{ border:none; background:none; color:#c9d6cd; font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:999px; cursor:pointer; font-family:var(--font-body); }
 .segmented .seg-on{ background:var(--surface); color:var(--forest); }
 .lang-switch{ display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); border-radius:999px; padding:5px 12px; }
+.lang-switch svg{ color:#c9d6cd; }
 .lang-switch select{ background:none; border:none; color:#fff; font-size:12.5px; font-weight:600; font-family:var(--font-body); cursor:pointer; outline:none; }
 .lang-switch select option{ color:#111; }
+/* Same control, rendered against a light page background (Profile screens) rather than
+   the dark topbar — see LanguageSwitcher.jsx's own header for why it needs to render
+   there at all. White-on-transparent-white would be invisible here, so this reuses the
+   same sage-bg/forest-dark pill treatment .pin/.badge-sage/.btn-secondary already use. */
+.lang-switch-light{ background:var(--sage-bg); }
+.lang-switch-light svg{ color:var(--forest-dark) !important; }
+.lang-switch-light select{ color:var(--forest-dark); }
+.lang-switch-light select option{ color:var(--ink); }
 
 .phone{ position:relative; width:390px; height:820px; background:var(--paper); border-radius:44px; border:8px solid #0d1512; box-shadow:0 30px 70px rgba(0,0,0,0.5); overflow:hidden; }
 /* Persian uses the Arabic script, so it takes the same face. Noto Sans Arabic covers the

@@ -30,8 +30,13 @@ const PRO_BADGE_LABEL_KEYS = { top: "topRated", elite: "elitePro" };
  * context first. Category and service lookups fall back to something displayable (the raw
  * id, an empty service) rather than undefined, because a missing translation should
  * degrade to a name, never to a blank screen.
+ *
+ * `setLangCode` is optional (every existing caller before LanguageSwitcher.jsx passes only
+ * two arguments, and still gets a fully working, read-only context) — carrying it, and
+ * `LANGS` itself, is what lets LanguageSwitcher.jsx render from `useLang()` alone, on any
+ * screen, with no prop drilling back up to AppShell.jsx.
  */
-export function buildLangContext(langCode, catalog) {
+export function buildLangContext(langCode, catalog, setLangCode) {
   const langMeta = LANGS.find((l) => l.code === langCode);
 
   // The homepage keeps its copy in its own modules so App's table didn't grow by ~90 keys
@@ -41,6 +46,8 @@ export function buildLangContext(langCode, catalog) {
   return {
     t,
     langCode,
+    LANGS,
+    setLangCode,
     dir: RTL_LANGS.has(langCode) ? "rtl" : "ltr",
     fmt: (n) => Number(n).toLocaleString(langMeta.locale),
     fmtDate: (ts) => new Date(ts).toLocaleDateString(langMeta.locale),

@@ -63,6 +63,19 @@ describe("buildLangContext", () => {
     expect(proBadgeLabel(undefined)).toBeNull();
   });
 
+  it("carries LANGS and setLangCode through — what LanguageSwitcher.jsx renders from useLang() alone, no prop drilling", () => {
+    const setLangCode = () => {};
+    const ctx = buildLangContext("nl", catalog, setLangCode);
+    expect(ctx.setLangCode).toBe(setLangCode);
+    expect(ctx.LANGS).toEqual(LANGS);
+  });
+
+  it("still works with no setLangCode at all — every caller before LanguageSwitcher.jsx passed only two arguments", () => {
+    const ctx = buildLangContext("nl", catalog);
+    expect(ctx.setLangCode).toBeUndefined();
+    expect(ctx.t.navDiscover).toBeDefined();
+  });
+
   it("labels each timing, and passes an unrecognised one straight through", () => {
     const { whenLabel, t } = buildLangContext("en", catalog);
     expect(whenLabel("this_week")).toBe(t.whenThisWeek);

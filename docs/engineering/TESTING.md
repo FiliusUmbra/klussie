@@ -235,6 +235,17 @@ something it depends on.
 
 ### 5.5 · Professional
 
+**P6, corrected 2026-08-22.** Previously read "Marking a job complete
+emits completion | `ProJobs`" — checked directly against the code
+while investigating a flagged mismatch and found genuinely wrong, not
+merely stale wording: no pro-side "mark complete" action exists
+anywhere in `src/pro/*.jsx`, and it never should — `work.
+complete_engagement_for_caller()`'s own comment (migration 0146) states
+the design outright: *"confirming completion is the customer's own
+decision, matching markComplete()'s own shape."* C18 already documents
+the real flow correctly on the customer side. `ProJobs.jsx` itself
+does something else worth pinning — see the corrected row below.
+
 | # | Flow | Surface |
 |---|---|---|
 | P1 | Becoming a pro creates a pro profile | `BecomeProSheet`, `BecomeProPrompt` |
@@ -242,7 +253,7 @@ something it depends on.
 | P3 | A flexi pro cannot see specialist-category leads | `ProDashboard` |
 | P4 | Sending a quote moves the request to `quotes_ready` | `SendQuoteSheet` |
 | P5 | Jobs list separates active from completed | `ProJobs` |
-| P6 | Marking a job complete emits completion | `ProJobs` |
+| P6 | A completed job shows the customer's own review, or says plainly that none has arrived yet — never a blank card | `ProJobs` *(automated)* |
 | P7 | Pro profile shows rating, badge and trust signals | `ProProfile` |
 | P8 | Portfolio items can be added and appear publicly | `PortfolioItemSheet`, `ProPublicProfileSheet` |
 | P9 | Testimonials can be added and appear publicly | `AddTestimonialSheet` |
@@ -286,7 +297,8 @@ something it depends on.
 | X7 | Touch targets stay at least 44px | All surfaces |
 | X8 | No console errors on any surface | All surfaces |
 | X9 | A single-workspace person sees the pre-Epic-03 "Previewing as" toggle and no other workspace chrome | `AppShell` |
-| X10 | A person with two live workspaces (Epic 03 WP12 — today, an existing pro's Personal + Professional pair) sees `WorkspaceSwitcher` instead, listing both by name; picking one switches which app renders and is remembered on reload | `WorkspaceSwitcher` |
+| X10 | A person with two live workspaces (Epic 03 WP12 — today, an existing pro's Personal + Professional pair) sees `WorkspaceSwitcher` instead, listing both by name; picking one switches which app renders and is remembered on reload. Reachable in two places since 2026-08-22 — AppShell's own topbar (desktop-width phone-mockup view only, `display:none` below 460px) and Profile (`CustomerProfile`/`ProProfile`/`OperatorApp`, the real path on an actual phone) — both read the identical `useAuth()` state, so switching from either shows the same result in the other | `WorkspaceSwitcher` |
+| X11 | The language picker changes `langCode` immediately, every locale's own strings render, and the choice is reachable on an actual phone — not only the desktop-width topbar (`display:none` below 460px), which is where this lived exclusively until 2026-08-22, when it was found unreachable on mobile the same way `WorkspaceSwitcher` was | `LanguageSwitcher` |
 
 ## 6 · Known defects — preserved deliberately
 
