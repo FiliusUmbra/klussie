@@ -369,7 +369,22 @@ transaction ship as one PR.*
   those sections' screen-level detail stands; their independent phase
   labels are retired in favour of this one slice.
 
-### Slice 3 — Service Record & Reputation Activation
+### Slice 3 — Service Record & Reputation Activation — **Scoped, WP 3.0 in progress**
+
+Full work-package breakdown and findings:
+`SLICE_3_SERVICE_RECORD_REPUTATION_ACTIVATION.md`, written 2026-08-22
+under the product-phase mandate — the mandate's own worked example:
+Epic 11 built a complete, real backend (ten contract functions, real
+RLS isolation, the authorship split enforced structurally) that zero
+client code anywhere references. A real, resolved question along the
+way, not assumed: `SYSTEM_ARCHITECTURE.md` §8.2's "Events consumed:
+`EngagementCompleted`" reads like WP 2.4's own consumer shape, but is
+not — `work.create_service_record()` requires real, human-authored
+content (`p_work_performed`) no event payload carries, and its own
+comment states records are "created already complete... never drafted
+then finalised." No consumer is built for this slice; completion makes
+the professional's own authoring screen *reachable*, not
+auto-populated. See that document's own §2.3.
 
 - **Homeowner:** sees a real, structured Service Record as "what
   happened to my boiler," not an invoice line (`ROADMAP_A` §5.1 step
