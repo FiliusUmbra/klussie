@@ -392,7 +392,10 @@ WP 3.1 (the reachability gate — a completed engagement with no
 `service_record_id` yet) is decided but deliberately unbuilt: no entry
 point ships until WP 3.3 (the editor) exists for it to open — see the
 scoping doc's own §3 note on why a button that opens nothing is worse
-than no button. WP 3.3 is next.
+than no button. WP 3.3's own UX architecture is now written —
+`WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md` — grounded in the real
+schema, per the mandate's own instruction to design before
+implementing; build is next.
 
 - **Homeowner:** sees a real, structured Service Record as "what
   happened to my boiler," not an invoice line (`ROADMAP_A` §5.1 step
