@@ -132,23 +132,19 @@ resolve_engagement_for_request()`'s (0152) own established idiom
 rather than widening an already-shipped list read's shape (0152's own
 header already rejected that once, for the identical reason).
 
-### WP 3.1 — Decision: what "authoring is reachable" means, concretely — **decided, not yet built**
+### WP 3.1 — Decision: what "authoring is reachable" means, concretely — **DONE, built as part of WP 3.3**
 
 A completed engagement (`work.engagements.status = 'completed'`,
 already true the moment `api.complete_engagement()` runs) **and** no
-`service_record_id` set yet is what should unlock the editor entry
-point — not a new column, not a new event; both facts already exist
-on `work.engagements` by the time a job reaches `completed`.
-`ProJobDetailSheet.jsx` (WP 2.4) is the natural host: it already
-renders per-job, already knows the engagement id, already has a
-`completed` segment.
-
-**Deliberately not built yet.** The gate condition is decided; the
-entry point itself is not — surfacing a button that opens nothing
-(WP 3.3 doesn't exist yet) would be a worse empty state than showing
-none at all, the opposite of the mandate's own "empty states should
-educate and encourage." The pro-side entry point ships as part of
-WP 3.3, once there is a real editor for it to open.
+`service_record_id` set yet is what unlocks the editor entry point —
+not a new column, not a new event; both facts already existed on
+`work.engagements` by the time a job reaches `completed`.
+`ProJobDetailSheet.jsx` (WP 2.4) is the host, exactly as decided: it
+already rendered per-job, already knew the engagement id, already had
+a `completed` segment (`ProServiceRecordSection.jsx`, new). The
+real entry point ("Leg vast wat je gedaan hebt"/"Write up what you
+did") ships in the same PR as the editor it opens — no window where a
+button opened nothing.
 
 ### WP 3.2 — Client: the customer's own read view — **DONE, this PR**
 
@@ -164,35 +160,56 @@ authoring UI exists yet. Smaller than WP 3.3, as expected: no
 authorship, no progressive disclosure design questions, a real read
 and one real write against WP 3.0's own contract.
 
-### WP 3.3 — Client: the Service Record editor — **the highest-leverage screen in either roadmap, per `ROADMAP_B` §8 Phase B3**
+### WP 3.3 — Client: the Service Record editor — **DONE, per `ROADMAP_B` §8 Phase B3**
 
-**Design written, not yet built.** `ROADMAP_B` §5.5's own design
-constraints — *"a four-field record must never feel like failure, and
-a two-hundred-field statutory inspection must never feel like the norm.
-Progressive disclosure, AI-proposed structure, and mandatory fields
-gated strictly by Compliance capability"* — are real UX architecture
-decisions, not implementation detail, and the mandate's own instruction
-is to document a better UX architecture *before* implementing it. See
-[`WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md`](WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md)
-for field tiers grounded in the real schema, the one genuinely-required
-new capability found along the way (evidence-photo attachment — no
-`service_record_id` subject exists on `property.document_attachments`
-today, closed by reusing the request-scoped attachment already
-established for pre-job photos, not a new table), why "AI-proposed
-structure" and "Compliance-gated mandatory fields" are correctly
-deferred rather than built now, and the entry-point wiring (reusing
-0164's own two-sided read, already proven on the customer side in
-WP 3.2). Depends on WP 3.0 (done) and WP 3.1 (decided).
+Built against
+[`WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md`](WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md),
+written first, per the mandate's own instruction to document a better
+UX architecture before implementing one. `ServiceRecordEditorSheet.jsx`
+(new) covers the design's own field tiers — Tier 0 (work performed,
+date) always visible; Tier 1 (price, pre-filled from the job's own
+accepted quote, recommendations, warranty) visible, not collapsed;
+Tier 2 collapsed; the performing annex in its own visually distinct
+container (`.private-annex`, amber rather than this app's usual sage —
+deliberately the one palette break in the app, so private-vs-shared
+needs no tooltip). One creation call, no draft, per 0084's own design;
+the annex and evidence photos are separate, genuinely optional writes,
+never sent when empty.
 
-### WP 3.4 — Reputation onto the real engine
+**Migration 0165 closes the one genuinely-required new capability the
+design note's own §4 found**: evidence photos are named as core shared
+content in `PLATFORM_DOMAIN_MODEL.md` §13.2, but no write path let the
+*performing* side attach a document to a request at all —
+`property.create_document_for_request()` (0149) is single-sided to the
+requesting workspace by design, and widening it would have blurred a
+real authorization boundary. `property.create_document_for_service_record()`
+is the narrower, dedicated fix — checked against the performing side,
+`type_key` hardcoded to a new `service_evidence` (retention_class
+`evidence`, never deletable), shared back to the requesting workspace
+via `property.document_shares` (an existing, unused mechanism —
+`property.my_documents()`'s own request-subject visibility has no
+two-sided branch, found live while wiring this).
+
+Verified live on staging through the actual UI, both sides: logged in
+as the real pro test account, opened a fresh completed job with no
+record, filled and saved the editor (core fields, the private annex,
+expanded and filled), confirmed the pro's own read-only summary
+replaced the entry point immediately, confirmed both the core record
+and the annex persisted server-side, then logged in as the customer
+and confirmed the exact same shared core rendered — with zero trace of
+the private annex (internal cost, margin, supplier) anywhere.
+
+### WP 3.4 — Reputation onto the real engine — **NEXT**
 
 `ROADMAP_B` §8 Phase B4. Replaces `src/lib/pros.js`'s hand-computed
 `trustScore()` with a real, Service-Record-derived aggregate. Depends
-on real records existing in volume — sequenced last, not first,
-deliberately: a reputation engine computed over zero real records is
+on real records existing in volume — sequenced last, deliberately: a
+reputation engine computed over zero (or a handful of test) records is
 the identical "zero discrepancies is true and worthless" trap this
 programme has already named twice (Epic 02 WP 02.05, Slice 2's own WP
-2.0).
+2.0). Now unblocked structurally (WP 3.3 shipped, real records can
+exist) but genuinely needs volume before it means anything — a real
+sequencing question for the next session, not assumed away here.
 
 ---
 
@@ -203,16 +220,14 @@ WP 3.0 (read + write api.* contracts) ── DONE
    │
    ├──► WP 3.2 (client: customer read view) ── DONE
    │
-   └──► WP 3.1 (decision: reachability) ── DECIDED ──► WP 3.3 (client: the editor) ── NEXT
-                                                                  │
-                                                                  ▼
-                                                        WP 3.4 (reputation, real data)
+   └──► WP 3.1 (decision: reachability) ── DONE ──► WP 3.3 (client: the editor) ── DONE
+                                                                │
+                                                                ▼
+                                                      WP 3.4 (reputation, real data) ── NEXT
 ```
 
 WP 3.2 and WP 3.1/3.3 were independent once WP 3.0 shipped — the
 customer's own read view needed nothing WP 3.3 decides, so it shipped
-first. WP 3.3 is next: the gate condition (WP 3.1) is settled, so the
-remaining work is entirely the editor's own design and build — see
-§3's own note on why no entry point ships ahead of it. WP 3.4 stays
-explicitly last: it needs real records to aggregate, which only exist
-once WP 3.3 ships and professionals actually use it.
+first, ahead of the editor. WP 3.4 is next, but not automatic: it
+needs real records to aggregate, and this slice's own live-verification
+records are test data, not volume.

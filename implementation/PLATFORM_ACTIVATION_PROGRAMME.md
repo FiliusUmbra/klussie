@@ -369,7 +369,7 @@ transaction ship as one PR.*
   those sections' screen-level detail stands; their independent phase
   labels are retired in favour of this one slice.
 
-### Slice 3 — Service Record & Reputation Activation — **WP 3.0 + WP 3.2 done, WP 3.1 decided, WP 3.3 next**
+### Slice 3 — Service Record & Reputation Activation — **WP 3.0-3.3 done, WP 3.4 next**
 
 Full work-package breakdown and findings:
 `SLICE_3_SERVICE_RECORD_REPUTATION_ACTIVATION.md`, written 2026-08-22
@@ -386,16 +386,19 @@ then finalised." No consumer is built for this slice; completion makes
 the professional's own authoring screen *reachable*, not
 auto-populated. See that document's own §2.3.
 
-WP 3.0 (the read/write `api.*` contract) and WP 3.2 (the customer's
-own read view, `RequestDetailSheet.jsx`) shipped together 2026-08-22.
-WP 3.1 (the reachability gate — a completed engagement with no
-`service_record_id` yet) is decided but deliberately unbuilt: no entry
-point ships until WP 3.3 (the editor) exists for it to open — see the
-scoping doc's own §3 note on why a button that opens nothing is worse
-than no button. WP 3.3's own UX architecture is now written —
-`WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md` — grounded in the real
-schema, per the mandate's own instruction to design before
-implementing; build is next.
+WP 3.0 (the read/write `api.*` contract), WP 3.2 (the customer's own
+read view, `RequestDetailSheet.jsx`), WP 3.1 (the reachability gate —
+a completed engagement with no `service_record_id` yet) and WP 3.3
+(the editor itself, `ServiceRecordEditorSheet.jsx`, built against
+`WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md` written before it) all shipped
+2026-08-22. One genuinely-required new capability found along the way
+(0165 — evidence-photo attachment from the performing side; see the
+scoping doc's own WP 3.3 entry). Verified live on staging through the
+real UI, both parties: a pro authoring a record end-to-end, the
+private annex persisting, and the customer reading back the shared
+core with zero trace of the annex. WP 3.4 (reputation onto the real
+engine) is next — needs real record volume, which this slice's own
+test records don't constitute.
 
 - **Homeowner:** sees a real, structured Service Record as "what
   happened to my boiler," not an invoice line (`ROADMAP_A` §5.1 step

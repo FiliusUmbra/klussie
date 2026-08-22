@@ -17,8 +17,9 @@ import { Badge, PriceTag, Timeline, Button, Drawer } from "../design-system";
 import { timelineSteps, statusPresentation } from "../lib/requestStatus.js";
 import { documentTypeLabelKey } from "../lib/documents.js";
 import { fetchPropertyTwin } from "../lib/propertyTwin.js";
+import { ProServiceRecordSection } from "./ProServiceRecordSection.jsx";
 
-export function ProJobDetailSheet({ job, customerName, onMessage, onClose }) {
+export function ProJobDetailSheet({ job, customerName, onMessage, onClose, workspaceId, actorRef, onRecordSaved }) {
   const { t, fmt, serviceInfo } = useLang();
   const [twin, setTwin] = useState(null);
   const [twinLoading, setTwinLoading] = useState(Boolean(job.propertyId));
@@ -112,6 +113,10 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose }) {
             </TwinSection>
           )}
         </>
+      )}
+
+      {job.status === "completed" && (
+        <ProServiceRecordSection job={job} workspaceId={workspaceId} actorRef={actorRef} onRecordSaved={onRecordSaved} />
       )}
     </Drawer>
   );

@@ -203,6 +203,15 @@ export const APP_CSS = `
 .job-details-summary{ background:var(--sage-bg); border-radius:10px; padding:10px 12px; margin:8px 0; display:flex; flex-direction:column; gap:4px; }
 .job-details-row{ display:flex; justify-content:space-between; gap:10px; font-size:13px; }
 .job-details-row span{ color:var(--ink-soft); }
+
+/* Platform Activation Slice 3, WP 3.3 — the Service Record editor's own performing
+   annex (margin, internal cost, supplier pricing). §13.2: "private by construction, not
+   by a checkbox someone can get wrong" — amber, not sage, is the whole point: every
+   other section of this app uses the sage/forest palette for shared, customer-visible
+   content, so switching palette here is the one signal a pro should never need a
+   tooltip to notice. */
+.private-annex{ background:var(--amber-bg); border-radius:12px; padding:14px; margin:16px 0; }
+.private-annex-label{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#8a5a10; margin-bottom:10px; }
 .photo-strip{ display:flex; gap:8px; overflow-x:auto; margin:8px 0; }
 .photo-strip-thumb{ flex-shrink:0; width:64px; height:64px; border-radius:10px; overflow:hidden; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); display:block; }
 .photo-strip-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
