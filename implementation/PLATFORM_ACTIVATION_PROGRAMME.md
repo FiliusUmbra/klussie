@@ -369,7 +369,7 @@ transaction ship as one PR.*
   those sections' screen-level detail stands; their independent phase
   labels are retired in favour of this one slice.
 
-### Slice 3 — Service Record & Reputation Activation — **Scoped, WP 3.0 in progress**
+### Slice 3 — Service Record & Reputation Activation — **WP 3.0 + WP 3.2 done, WP 3.1 decided, WP 3.3 next**
 
 Full work-package breakdown and findings:
 `SLICE_3_SERVICE_RECORD_REPUTATION_ACTIVATION.md`, written 2026-08-22
@@ -385,6 +385,14 @@ comment states records are "created already complete... never drafted
 then finalised." No consumer is built for this slice; completion makes
 the professional's own authoring screen *reachable*, not
 auto-populated. See that document's own §2.3.
+
+WP 3.0 (the read/write `api.*` contract) and WP 3.2 (the customer's
+own read view, `RequestDetailSheet.jsx`) shipped together 2026-08-22.
+WP 3.1 (the reachability gate — a completed engagement with no
+`service_record_id` yet) is decided but deliberately unbuilt: no entry
+point ships until WP 3.3 (the editor) exists for it to open — see the
+scoping doc's own §3 note on why a button that opens nothing is worse
+than no button. WP 3.3 is next.
 
 - **Homeowner:** sees a real, structured Service Record as "what
   happened to my boiler," not an invoice line (`ROADMAP_A` §5.1 step

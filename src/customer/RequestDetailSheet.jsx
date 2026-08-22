@@ -10,7 +10,7 @@ import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, Button, Rating, PriceTag, QuoteCard, TrustBadge, Timeline, Drawer } from "../design-system";
 import { trustScore } from "../lib/pros";
-import { JobDetailsSummary, AiAnalysisSummary, RequestPhotosStrip } from "../requests";
+import { JobDetailsSummary, AiAnalysisSummary, RequestPhotosStrip, ServiceRecordSummary } from "../requests";
 import { ProPublicProfileSheet } from "../profile/ProPublicProfileSheet.jsx";
 import { InvoiceSheet } from "./InvoiceSheet.jsx";
 import { ReportSheet } from "./ReportSheet.jsx";
@@ -101,6 +101,10 @@ export function RequestDetailSheet({ request, onClose, onAccept, onComplete, onR
 
       {request.status === "reviewed" && (
         <QuoteCard><div className="quote-top"><Rating value={request.review.stars} size={16} /></div><p className="quote-msg">"{request.review.text}"</p><button className="btn-secondary" onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button></QuoteCard>
+      )}
+
+      {(request.status === "completed" || request.status === "reviewed") && (
+        <ServiceRecordSummary requestId={request.id} />
       )}
 
       {bookedQuote && (
