@@ -166,17 +166,23 @@ and one real write against WP 3.0's own contract.
 
 ### WP 3.3 — Client: the Service Record editor — **the highest-leverage screen in either roadmap, per `ROADMAP_B` §8 Phase B3**
 
-Not scoped in file-and-line detail here, deliberately: `ROADMAP_B`
-§5.5's own design constraints — *"a four-field record must never feel
-like failure, and a two-hundred-field statutory inspection must never
-feel like the norm. Progressive disclosure, AI-proposed structure, and
-mandatory fields gated strictly by Compliance capability"* — are real
-UX architecture decisions, not implementation detail, and the
-mandate's own instruction is to document a better UX architecture
-*before* implementing it. This work package is: write that design
-(a short note, this document or its own), then build it. Depends on
-WP 3.0 (needs a real `api.create_service_record()` to call) and
-benefits from WP 3.1 being settled first.
+**Design written, not yet built.** `ROADMAP_B` §5.5's own design
+constraints — *"a four-field record must never feel like failure, and
+a two-hundred-field statutory inspection must never feel like the norm.
+Progressive disclosure, AI-proposed structure, and mandatory fields
+gated strictly by Compliance capability"* — are real UX architecture
+decisions, not implementation detail, and the mandate's own instruction
+is to document a better UX architecture *before* implementing it. See
+[`WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md`](WP_3_3_SERVICE_RECORD_EDITOR_DESIGN.md)
+for field tiers grounded in the real schema, the one genuinely-required
+new capability found along the way (evidence-photo attachment — no
+`service_record_id` subject exists on `property.document_attachments`
+today, closed by reusing the request-scoped attachment already
+established for pre-job photos, not a new table), why "AI-proposed
+structure" and "Compliance-gated mandatory fields" are correctly
+deferred rather than built now, and the entry-point wiring (reusing
+0164's own two-sided read, already proven on the customer side in
+WP 3.2). Depends on WP 3.0 (done) and WP 3.1 (decided).
 
 ### WP 3.4 — Reputation onto the real engine
 
