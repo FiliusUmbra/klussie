@@ -11,7 +11,7 @@
 // and had no way to reach the personal one on an actual device before this; changing
 // language was equally unreachable.
 import { useState, useEffect, useRef } from "react";
-import { Camera, LogOut, ThumbsUp } from "lucide-react";
+import { Camera, LogOut, ThumbsUp, HelpCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, Button, QuoteCard, TrustBadge, Modal } from "../design-system";
@@ -26,7 +26,7 @@ import { AddTestimonialSheet } from "../profile/AddTestimonialSheet.jsx";
 import { FLEXI_TAX_FREE_THRESHOLD, BOOST_WEEKLY_PRICE, flexiProgressPct } from "../lib/billing.js";
 import { isBoosted, isCategoryLocked, PRO_TYPE_FLEXI } from "../lib/proStatus.js";
 
-export function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, onServicesChange, onProfileSaved, onPauseToggled }) {
+export function ProProfile({ proInfo, completedCount, earnedGross, offeredServiceIds, onServicesChange, onProfileSaved, onPauseToggled, onReplayTour }) {
   const { t, fmt, catName, serviceInfo, proBadgeLabel, CATS, BASE_SERVICES } = useLang();
   const { user, proProfile, refreshProfile, signOut } = useAuth();
   const [selected, setSelected] = useState(offeredServiceIds);
@@ -196,6 +196,17 @@ export function ProProfile({ proInfo, completedCount, earnedGross, offeredServic
       </div>
 
       <div className="fineprint" style={{ marginTop: 14 }}><ThumbsUp size={12} /> {t.proFineprint}</div>
+      {/* Mirrors CustomerProfile.jsx's own "Hulp & uitleg → Rondleiding opnieuw
+          bekijken" — same section title, same reasoning: a tour seen only once is a
+          tour nobody can return to when they actually need it. */}
+      {onReplayTour && (
+        <>
+          <div className="section-title" style={{ marginTop: 18 }}>{t.helpSectionTitle}</div>
+          <button className="btn-secondary" onClick={onReplayTour}>
+            <HelpCircle size={13} /> {t.helpReplayTour}
+          </button>
+        </>
+      )}
       <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => setEditOpen(true)}>{t.editProfileBtn}</button>
       <button className="btn-secondary" style={{ marginTop: 8 }} onClick={signOut}><LogOut size={13} /> {t.authSignOut}</button>
       {editOpen && <EditProfileSheet onClose={() => setEditOpen(false)} onSaved={onProfileSaved} />}

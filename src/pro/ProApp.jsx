@@ -28,6 +28,8 @@ import { ProJobDetailSheet } from "./ProJobDetailSheet.jsx";
 import { ProProfile } from "./ProProfile.jsx";
 import { MyBusinessPanel } from "./MyBusinessPanel.jsx";
 import { SendQuoteSheet } from "./SendQuoteSheet.jsx";
+import { ProOnboarding } from "./ProOnboarding.jsx";
+import { useProTour } from "./useProTour.js";
 import { offeredCategoryIds } from "../lib/proStatus.js";
 import { netEarnings } from "../lib/billing.js";
 import { unreadTotal } from "../lib/conversationSelectors.js";
@@ -44,6 +46,7 @@ export function ProApp({ showToast }) {
   // identifies which side of each conversation is "mine" for computing unreadCount, not a
   // read filter, so it threads into fetchConversations/subscribeToConversationsForUser too.
   const workspaceId = activeWorkspace?.workspace_id;
+  const tour = useProTour();
   const [tab, setTab] = useState("dashboard");
   const [quoteLead, setQuoteLead] = useState(null);
   const [leads, setLeads] = useState(null);
@@ -104,7 +107,7 @@ export function ProApp({ showToast }) {
         {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} onOpenJob={setOpenJob} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && (
-          <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} onPauseToggled={refreshLeads} />
+          <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} onPauseToggled={refreshLeads} onReplayTour={tour.replay} />
         )}
         {tab === "business" && <MyBusinessPanel t={t} fmtDate={fmtDate} />}
       </div>
@@ -116,6 +119,8 @@ export function ProApp({ showToast }) {
         { id: "messages", label: t.navMessages, icon: MessageCircle, badge: unreadTotal(conversations) },
         { id: "profile", label: t.navProfile, icon: User },
       ]} />
+
+      {tour.open && <ProOnboarding t={t} onFinish={tour.finish} />}
 
       {quoteLead && <SendQuoteSheet lead={quoteLead} onClose={() => setQuoteLead(null)} onSubmit={(price, msg) => sendQuote(quoteLead, price, msg)} />}
       {openJob && (() => {
