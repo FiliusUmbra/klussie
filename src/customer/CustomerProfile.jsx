@@ -9,8 +9,18 @@
 // at all on a real device before this — not a demo-only gap, a real dead end; changing
 // language was equally unreachable. Profile is where every other account-level action
 // (edit profile, sign out) already lives; these are the same kind of action.
+//
+// BECOMING A PRO ITSELF HAD THE IDENTICAL GAP, ONE LEVEL EARLIER — UNIFIED_PRODUCT_IA_REVIEW.md §5
+//
+// The switcher and language picker above were unreachable conveniences for someone who
+// already held a second capability. This was worse: BecomeProSheet's only trigger lived
+// behind that same topbar-only control, meaning the on-ramp itself — the literal
+// mechanism behind "capabilities expand as responsibilities grow" — had no real,
+// reachable entry point on an actual phone at all, for anyone who hadn't already
+// expanded. Same fix, same place: an account-level action belongs here with every other
+// one, not behind a control invisible on the app's own primary surface.
 import { useState } from "react";
-import { LogOut, HelpCircle } from "lucide-react";
+import { LogOut, HelpCircle, Briefcase } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Rating, QuoteCard } from "../design-system";
@@ -19,9 +29,9 @@ import { WorkspaceSwitcher } from "../shell/WorkspaceSwitcher.jsx";
 import { LanguageSwitcher } from "../shell/LanguageSwitcher.jsx";
 import { completedCount, reviewedRequests } from "../lib/requestStatus.js";
 
-export function CustomerProfile({ requests, onReplayTour }) {
+export function CustomerProfile({ requests, onReplayTour, onBecomePro }) {
   const { t, serviceInfo } = useLang();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, proProfile, signOut } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const completed = completedCount(requests);
   const reviews = reviewedRequests(requests);
@@ -42,6 +52,17 @@ export function CustomerProfile({ requests, onReplayTour }) {
       {reviews.map((r) => (
         <QuoteCard key={r.id}><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Rating value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></QuoteCard>
       ))}
+      {/* The real, reachable "become a pro" entry point — see this file's own header.
+          Only for someone who hasn't already (proProfile null); a real dual-role person
+          viewing their Personal Workspace already has one and needs no invitation. */}
+      {onBecomePro && !proProfile && (
+        <div className="empty-block" style={{ marginTop: 18 }}>
+          <Briefcase size={22} color="var(--ink-soft)" />
+          <p>{t.becomeProPrompt}</p>
+          <button className="btn-primary" onClick={onBecomePro}>{t.becomeProBtn}</button>
+        </div>
+      )}
+
       {/* Profiel → Hulp & uitleg → Rondleiding opnieuw bekijken. A tour that can only
           ever be seen once is a tour nobody can go back to when they finally need it. */}
       {onReplayTour && (
