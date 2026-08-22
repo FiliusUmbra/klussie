@@ -14,7 +14,12 @@ import { LangContext } from "../../lib/lang";
 import { CustomerProfile } from "../CustomerProfile.jsx";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
-const ctx = { t, serviceInfo: (id) => ({ name: `service:${id}`, blurb: "" }) };
+// langCode/setLangCode/LANGS: CustomerProfile also renders LanguageSwitcher now (the same
+// mobile-reachability fix as WorkspaceSwitcher) — buildLangContext()'s own real shape.
+const ctx = {
+  t, serviceInfo: (id) => ({ name: `service:${id}`, blurb: "" }),
+  langCode: "en", setLangCode: () => {}, LANGS: [{ code: "en", label: "English", locale: "en-GB" }],
+};
 
 function renderProfile(workspaceMemberships) {
   useAuthMock.mockReturnValue({
