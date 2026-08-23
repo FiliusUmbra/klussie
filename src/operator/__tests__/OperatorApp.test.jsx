@@ -2,6 +2,13 @@
 // (WP 0.6), which fetches on mount; supabaseClient is mocked here for the same reason
 // auditRecords.test.js and operatorContext.test.js mock it, not because this file
 // exercises the fetch itself — that behaviour is AuditLog's own test's job.
+//
+// UNIFIED_PRODUCT_IA_REVIEW.md §1/§9.5 — rewritten alongside the shell unification:
+// BottomNav (the same component Customer/Pro share) replaces the old top segmented
+// control, so tabs are switched by their own visible label, not a `role="tab"` query
+// that no longer exists; identity/switcher/sign-out moved into their own Profile tab,
+// matching CustomerProfile.jsx/ProProfile.jsx's own placement exactly, so those tests
+// navigate there first rather than finding them on every screen.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
@@ -37,17 +44,13 @@ beforeEach(() => {
 });
 
 describe("OperatorApp", () => {
-  it("identifies itself as the Operations Workspace, distinctly from Customer/Pro", () => {
+  it("shows three tabs on the same BottomNav Customer/Pro share, Audit selected by default", async () => {
     render(<OperatorApp />);
 
-    expect(screen.getByText("Klussie Operations")).toBeTruthy();
-  });
-
-  it("shows two tabs, Audit selected by default", () => {
-    render(<OperatorApp />);
-
-    expect(screen.getByRole("tab", { name: "Audit" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("tab", { name: "Workspaces" }).getAttribute("aria-selected")).toBe("false");
+    await waitFor(() => expect(screen.getByText("No matching audit records.")).toBeTruthy());
+    expect(screen.getByText("Audit").closest("button").className).toContain("tab-on");
+    expect(screen.getByText("Workspaces").closest("button").className).not.toContain("tab-on");
+    expect(screen.getByText("Profile").closest("button").className).not.toContain("tab-on");
   });
 
   it("renders the real Audit viewer under the Audit tab, not a placeholder", async () => {
@@ -60,7 +63,7 @@ describe("OperatorApp", () => {
   it("renders the real Workspace lookup under the Workspaces tab", async () => {
     render(<OperatorApp />);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Workspaces" }));
+    fireEvent.click(screen.getByText("Workspaces"));
 
     await waitFor(() => expect(screen.getByText("No matching workspaces.")).toBeTruthy());
   });
@@ -90,31 +93,43 @@ describe("OperatorApp", () => {
     });
 
     render(<OperatorApp />);
-    fireEvent.click(screen.getByRole("tab", { name: "Workspaces" }));
+    fireEvent.click(screen.getByText("Workspaces"));
     await waitFor(() => expect(screen.getByText("Cathy Customer")).toBeTruthy());
 
     fireEvent.click(screen.getByRole("button", { name: /view audit trail/i }));
 
-    await waitFor(() => expect(screen.getByRole("tab", { name: "Audit" }).getAttribute("aria-selected")).toBe("true"));
+    await waitFor(() => expect(screen.getByText("Audit").closest("button").className).toContain("tab-on"));
     expect(screen.getByLabelText("Filter by workspace id").value).toBe(workspaceId);
   });
 
   // A real, previously-missing gap — see this component's own header comment: this
-  // screen had no way to leave at all, on any device, before this.
-  it("always shows a way to sign out, even with a single membership", () => {
+  // screen had no way to leave at all, on any device, before this. Now lives in its own
+  // Profile tab, the same place Customer/Pro each keep the identical action.
+  it("Profile always shows a way to sign out, even with a single membership", () => {
     render(<OperatorApp />);
 
+    fireEvent.click(screen.getByText("Profile"));
     fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
     expect(signOut).toHaveBeenCalled();
   });
 
-  it("shows no workspace switcher for a single-membership operator", () => {
+  it("no longer shows a page-dominating 'Klussie Operations' heading on every tab — a small label, Profile only", async () => {
     render(<OperatorApp />);
+    await waitFor(() => expect(screen.getByText("No matching audit records.")).toBeTruthy());
+    expect(screen.queryByText("Klussie Operations")).toBeNull();
 
-    expect(screen.queryAllByText("Klussie Operations")).toHaveLength(1); // the screen's own heading, not a second copy in a switcher
+    fireEvent.click(screen.getByText("Profile"));
+    expect(screen.getByText("Operations")).toBeTruthy();
+    expect(screen.getByText("Signed in as an operator")).toBeTruthy();
   });
 
-  it("shows a real switcher for an operator who is also a real customer or pro — human names, no 'workspace' label (UNIFIED_PRODUCT_IA_REVIEW.md §3)", () => {
+  it("shows no switcher, in Profile, for a single-membership operator", () => {
+    render(<OperatorApp />);
+    fireEvent.click(screen.getByText("Profile"));
+    expect(screen.queryAllByText("Klussie Operations")).toHaveLength(0); // the workspace's own name, not shown when there's nothing to switch between
+  });
+
+  it("shows a real switcher in Profile for an operator who is also a real customer or pro — human names, no 'workspace' label (UNIFIED_PRODUCT_IA_REVIEW.md §3)", () => {
     useAuthMock.mockReturnValue({
       workspaceMemberships: [
         { workspace_id: "ops-ws", workspace_name: "Klussie Operations", workspace_type: "business" },
@@ -126,6 +141,7 @@ describe("OperatorApp", () => {
     });
 
     render(<OperatorApp />);
+    fireEvent.click(screen.getByText("Profile"));
 
     expect(screen.queryByText("Workspace")).toBeNull();
     fireEvent.click(screen.getByText("My Home"));
@@ -144,6 +160,7 @@ describe("OperatorApp", () => {
     });
 
     render(<OperatorApp />);
+    fireEvent.click(screen.getByText("Profile"));
 
     expect(screen.getByText("Business")).toBeTruthy();
     expect(screen.queryByText("business")).toBeNull();

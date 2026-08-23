@@ -1,32 +1,48 @@
-// The Operations Workspace shell (Platform Activation Slice 0, WP 0.5/0.6) — a minimal
-// landing surface distinguishing "you are in Klussie Operations" from every other
-// context, rendered by AppShell.jsx whenever the active workspace holds the
-// platform_operations capability (ADR-0030). Reuses existing shell chrome and CSS
-// classes only — no new design-system component for this shell itself.
+// The Operations shell (Platform Activation Slice 0, WP 0.5/0.6), rendered by
+// AppShell.jsx whenever the active workspace holds the platform_operations capability
+// (ADR-0030). Reuses existing shell chrome and CSS classes only — no new design-system
+// component for this shell itself.
 //
-// NOT ROUTED THROUGH useLang()/appStrings.js
+// UNIFIED_PRODUCT_IA_REVIEW.md §1/§9.5 — THE SAME SHELL PATTERN CUSTOMER AND PRO ALREADY
+// SHARE, NOT A SEPARATE ONE
+//
+// This screen used to be the single biggest "separate application" signal in the
+// product: its own full-page "Klussie Operations" heading (a second product identity),
+// a top segmented control instead of the bottom tab bar every other experience uses, and
+// a "Workspaces" tab with no equivalent of the account-actions row Customer/Pro both
+// keep in their own Profile tab. Fixed to the identical pattern: BottomNav, the same
+// component (src/ui/BottomNav.jsx) Customer and Pro already share, and a Profile tab
+// holding exactly what CustomerProfile.jsx/ProProfile.jsx each hold in the same
+// place — identity, the switcher, sign-out — not a bespoke account-actions row bolted
+// onto the bottom of every tab.
+//
+// A SMALL "Operations" LABEL STAYS, DELIBERATELY, IN PROFILE ONLY — NOT VANITY BRANDING
+//
+// An operator who is also a real customer or pro (ADR-0030) can genuinely lose track of
+// which mode they're in without any signal at all — Customer/Pro don't need one because
+// their own tab icons and content already make that obvious; this screen's own content
+// (an audit log, a workspace lookup tool) is distinctive enough day to day, but Profile
+// — the one tab that's otherwise near-identical in shape to Customer/Pro's own — still
+// benefits from saying so once. Reworded and demoted from a page-dominating heading to
+// a small label, and moved off every tab onto the one where "who am I" already belongs.
+//
+// NOT ROUTED THROUGH useLang()/appStrings.js — A DELIBERATE, STATED EXEMPTION, NOT A
+// SILENT ONE (UNIFIED_PRODUCT_IA_REVIEW.md §1's own open question, resolved here)
 //
 // Every customer- and professional-facing screen in this codebase is localized across
-// ten markets (src/lib/appStrings.js). This screen is not: its audience is company
-// staff operating the platform, not a customer in any market the product serves — the
-// same distinction ROADMAP_C_PLATFORM_OPERATIONS.md draws throughout between the
-// customer/professional experiences and Platform Operations. Revisit this if that
-// audience assumption ever changes.
-//
-// A REAL DEAD END, FOUND AND FIXED HERE — NOT JUST A DESIGN GAP
-//
-// This screen had no way to leave at all: no sign-out, no workspace switch, nothing.
-// AppShell's own topbar (where WorkspaceSwitcher normally renders) is display:none below
-// 460px — every real phone — so an operator who is also a real customer or pro (ADR-0030:
-// "one identity, one login... a second membership the same way anyone gains a second
-// workspace") had no way back to their own personal workspace on an actual device, and no
-// way to sign out at all, on any device. Fixed with a minimal account-actions row, in
-// this screen's own established hardcoded-English convention, not routed through
-// WorkspaceSwitcher.jsx (which takes a localized `t` this screen deliberately has none of).
+// ten markets. This screen is not: its audience is company staff operating the
+// platform, not a customer in any market the product serves — the same distinction
+// ROADMAP_C_PLATFORM_OPERATIONS.md draws throughout between the customer/professional
+// experiences and Platform Operations, and the same reasoning the review's own §2
+// draws when it treats "Workspace Lookup" as legitimate internal vocabulary rather
+// than a word to hide: operators are the internal team, not ordinary users, and
+// precise backend terms are a tool for them, not a leak. Revisit only if that audience
+// assumption changes — an operator surface a customer-facing person could ever see.
 import { useState } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, ScrollText, Search, User } from "lucide-react";
 import { useAuth } from "../lib/auth.jsx";
 import { humanWorkspaceName } from "../lib/workspaceContext.js";
+import { BottomNav } from "../ui/BottomNav.jsx";
 import { AuditLog } from "./AuditLog.jsx";
 import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
 
@@ -38,8 +54,9 @@ import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
 const OPERATOR_FALLBACK_LABELS = { workspaceFallbackHome: "Home", workspaceFallbackBusiness: "Business" };
 
 const TABS = [
-  { id: "audit", label: "Audit" },
-  { id: "workspaces", label: "Workspaces" },
+  { id: "audit", label: "Audit", icon: ScrollText },
+  { id: "lookup", label: "Workspaces", icon: Search },
+  { id: "profile", label: "Profile", icon: User },
 ];
 
 export function OperatorApp() {
@@ -56,55 +73,49 @@ export function OperatorApp() {
   };
 
   return (
-    <div className="pad">
-      <div className="hello" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6, marginBottom: 22 }}>
-        <div className="h1">Klussie Operations</div>
-        <div className="fineprint" style={{ justifyContent: "flex-start" }}>Signed in as an operator.</div>
-      </div>
-
-      {workspaceMemberships.length >= 2 && (
-        <div className="role-switch" style={{ marginBottom: 16 }}>
-          <div className="segmented">
-            {workspaceMemberships.map((m) => (
-              <button
-                key={m.workspace_id}
-                className={activeWorkspace?.workspace_id === m.workspace_id ? "seg-on" : ""}
-                onClick={() => setActiveWorkspaceId(m.workspace_id)}
-              >
-                {humanWorkspaceName(m, OPERATOR_FALLBACK_LABELS)}
-              </button>
-            ))}
+    <div className="view">
+      <div className="content">
+        {tab === "audit" && (
+          <div className="pad">
+            <AuditLog initialWorkspaceId={auditWorkspaceId} />
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="segmented" role="tablist" aria-label="Operations">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={tab === t.id}
-            className={tab === t.id ? "seg-on" : ""}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+        {tab === "lookup" && (
+          <div className="pad">
+            <WorkspaceLookup onViewAudit={viewAuditFor} />
+          </div>
+        )}
+
+        {tab === "profile" && (
+          <div className="pad">
+            <div className="hello" style={{ flexDirection: "column", alignItems: "flex-start", gap: 4, marginBottom: 18 }}>
+              <div className="fineprint" style={{ justifyContent: "flex-start" }}>Operations</div>
+              <div className="h1">Signed in as an operator</div>
+            </div>
+
+            {workspaceMemberships.length >= 2 && (
+              <div className="role-switch" style={{ marginBottom: 16 }}>
+                <div className="segmented">
+                  {workspaceMemberships.map((m) => (
+                    <button
+                      key={m.workspace_id}
+                      className={activeWorkspace?.workspace_id === m.workspace_id ? "seg-on" : ""}
+                      onClick={() => setActiveWorkspaceId(m.workspace_id)}
+                    >
+                      {humanWorkspaceName(m, OPERATOR_FALLBACK_LABELS)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button className="btn-secondary" onClick={signOut}><LogOut size={13} /> Sign out</button>
+          </div>
+        )}
       </div>
 
-      {tab === "audit" && (
-        <div style={{ marginTop: 16 }}>
-          <AuditLog initialWorkspaceId={auditWorkspaceId} />
-        </div>
-      )}
-
-      {tab === "workspaces" && (
-        <div style={{ marginTop: 16 }}>
-          <WorkspaceLookup onViewAudit={viewAuditFor} />
-        </div>
-      )}
-
-      <button className="btn-secondary" style={{ marginTop: 20 }} onClick={signOut}><LogOut size={13} /> Sign out</button>
+      <BottomNav tab={tab} setTab={setTab} items={TABS} />
     </div>
   );
 }
