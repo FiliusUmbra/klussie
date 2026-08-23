@@ -412,7 +412,7 @@ test records don't constitute.
 - **Legacy replaced:** hand-computed trust score; the flat "mark
   complete" action.
 
-### Slice 4 — Conversation & Notification Activation — **WP 4.0 shipped, WP 4.1/4.2 next**
+### Slice 4 — Conversation & Notification Activation — **WP 4.0/4.1 shipped, WP 4.2 next**
 
 Full work-package breakdown and findings:
 `SLICE_4_CONVERSATION_NOTIFICATION_ACTIVATION.md`, written 2026-08-22.
