@@ -1,13 +1,27 @@
-// The application chrome: the simulated phone frame, the language picker, the
-// customer/professional preview switch, the toast, and the decision about which surface
-// is showing.
+// The application chrome: the simulated phone frame, the language picker, the toast, and
+// the decision about which surface is showing.
 //
 // It owns exactly three pieces of state that genuinely span the whole app — locale, the
-// previewed role, and the toast — plus the catalog fetch every screen reads through the
-// lang context. Everything else belongs to a feature (src/customer, src/pro, src/auth).
+// `role` toggle (see below), and the toast — plus the catalog fetch every screen reads
+// through the lang context. Everything else belongs to a feature (src/customer, src/pro,
+// src/auth).
 //
-// The lang context value itself is built by src/lib/langContext.js, so the formatters and
-// catalog lookups are testable without rendering anything.
+// UNIFIED_PRODUCT_IA_REVIEW.md §10 item 2 — THE TOPBAR'S OWN customer/pro TOGGLE, RETIRED
+//
+// This used to render a segmented "Bekijken als" (previewing as) control here for anyone
+// with fewer than two real workspace memberships — the only way, before this session's
+// own PR #83/#84, to reach BecomeProPrompt at all. It is retired now, not merely hidden,
+// because every real reason to keep it is gone: `role` is still real state
+// (deriveEffectiveRole, workspaceContext.js, still consults it for the same population),
+// but nothing sets it away from "customer" any more except BecomeProSheet's own onDone
+// handler below — which only ever fires once a real Professional Workspace already
+// exists (PR #84), at which point multiWorkspace becomes true and the real
+// WorkspaceSwitcher takes over instead. Checked directly against staging before removing
+// this: zero real pro accounts hold fewer than two real memberships (the one case this
+// toggle's own fallback existed for). The `role` state and deriveEffectiveRole()'s own
+// fallback to it stay untouched — real defence-in-depth for an environment without Epic
+// 03's migrations, the same restraint that function's own comment already documents —
+// only the topbar control a real person could tap is gone.
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import { LangContext } from "../lib/lang";
@@ -103,9 +117,9 @@ export function AppShell() {
   // No classification gate anywhere below, deliberately (PLATFORM_DOMAIN_MODEL.md §27:
   // "The platform never asks a person to classify themselves"). Every signed-in session
   // lands straight in CustomerApp — its Personal Workspace — the moment its profile and
-  // catalog are ready. "I offer services" is never a forced first question; it's the
-  // role-switch segmented control above and BecomeProPrompt below, both reachable at any
-  // time, exactly matching "create an account, become a pro later."
+  // catalog are ready. "I offer services" is never a forced first question; it's
+  // CustomerProfile.jsx's own real, reachable invitation (UNIFIED_PRODUCT_IA_REVIEW.md
+  // §5), always available, exactly matching "create an account, become a pro later."
   let body;
   if (authLoading || (session && !catalog && !catalogError) || (session && operatorCheckPending)) {
     body = <LoadingScreen />;
@@ -139,17 +153,7 @@ export function AppShell() {
         <style>{APP_CSS + HOME_CSS}</style>
 
         <div className="topbar">
-          {session && (multiWorkspace ? (
-            <WorkspaceSwitcher t={t} />
-          ) : (
-            <div className="role-switch">
-              <span className="role-switch-label">{t.previewingAs}</span>
-              <div className="segmented">
-                <button className={role === "customer" ? "seg-on" : ""} onClick={() => setRole("customer")}>{t.roleCustomer}</button>
-                <button className={role === "pro" ? "seg-on" : ""} onClick={() => setRole("pro")}>{t.rolePro}</button>
-              </div>
-            </div>
-          ))}
+          {session && multiWorkspace && <WorkspaceSwitcher t={t} />}
           <LanguageSwitcher />
         </div>
 

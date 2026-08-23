@@ -11,7 +11,7 @@
 // to nl but forgotten in ar fails in CI rather than rendering `undefined` to a customer.
 export const APP_STRINGS = {
   nl: {
-    previewingAs:"Bekijken als", roleCustomer:"Klant", rolePro:"Vakman", workspaceFallbackHome:"Thuis", workspaceFallbackBusiness:"Bedrijf",
+    workspaceFallbackHome:"Thuis", workspaceFallbackBusiness:"Bedrijf",
     greeting:"Goedemiddag", heroTitle:"Wat wil je laten doen?", searchPlaceholder:"Zoek een dienst...",
     catAll:"Alles", trendingTitle:"Populair deze week", prosSuffix:"vakmensen",
     noServicesFound:"Geen diensten gevonden.", typicalPrice:"Typische prijs:",
@@ -112,7 +112,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"Leg vast wat je gedaan hebt", srEditorTitle:"Verslag opstellen", srEditorSub:"Wat je gedaan hebt, zodat de klant — en je eigen administratie — het heeft", srWorkPerformedLabel:"Wat heb je gedaan?", srWorkPerformedPlaceholder:"Beschrijf het werk in een paar zinnen…", srPerformedAtLabel:"Datum", srAgreedPriceLabel:"Prijs", srRecommendationsPlaceholder:"Iets om in de gaten te houden?", srEvidenceLabel:"Foto's", srAnnexExpand:"Alleen jouw bedrijf ziet dit — kosten, marge, leverancier", srAnnexCollapse:"Bedrijfsgegevens verbergen", srInternalCostLabel:"Interne kosten", srMarginLabel:"Marge", srSupplierUsedLabel:"Gebruikte leverancier", srSupplierPriceLabel:"Leveranciersprijs", srSchedulingNotesLabel:"Planningsnotities", srInternalCommentaryLabel:"Interne notities", srSaving:"Bezig met opslaan…", srSaveBtn:"Verslag opslaan",
   },
   fr: {
-    previewingAs:"Aperçu en tant que", roleCustomer:"Client", rolePro:"Pro", workspaceFallbackHome:"Maison", workspaceFallbackBusiness:"Entreprise",
+    workspaceFallbackHome:"Maison", workspaceFallbackBusiness:"Entreprise",
     greeting:"Bonjour", heroTitle:"De quoi as-tu besoin ?", searchPlaceholder:"Rechercher un service...",
     catAll:"Tout", trendingTitle:"Tendance cette semaine", prosSuffix:"professionnels",
     noServicesFound:"Aucun service ne correspond.", typicalPrice:"Prix habituel :",
@@ -213,7 +213,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"Rédige ce que tu as fait", srEditorTitle:"Rédiger le compte rendu", srEditorSub:"Ce que tu as fait, pour que le client — et ta propre fiche — en garde la trace", srWorkPerformedLabel:"Qu'as-tu fait ?", srWorkPerformedPlaceholder:"Décris le travail en une ou deux phrases…", srPerformedAtLabel:"Date", srAgreedPriceLabel:"Prix", srRecommendationsPlaceholder:"Quelque chose à surveiller ?", srEvidenceLabel:"Photos", srAnnexExpand:"Seule ton entreprise voit ceci — coût, marge, fournisseur", srAnnexCollapse:"Masquer les infos commerciales", srInternalCostLabel:"Coût interne", srMarginLabel:"Marge", srSupplierUsedLabel:"Fournisseur utilisé", srSupplierPriceLabel:"Prix fournisseur", srSchedulingNotesLabel:"Notes de planification", srInternalCommentaryLabel:"Notes internes", srSaving:"Enregistrement…", srSaveBtn:"Enregistrer la fiche",
   },
   de: {
-    previewingAs:"Vorschau als", roleCustomer:"Kunde", rolePro:"Profi", workspaceFallbackHome:"Zuhause", workspaceFallbackBusiness:"Unternehmen",
+    workspaceFallbackHome:"Zuhause", workspaceFallbackBusiness:"Unternehmen",
     greeting:"Guten Tag", heroTitle:"Was möchtest du erledigen lassen?", searchPlaceholder:"Dienstleistung suchen...",
     catAll:"Alle", trendingTitle:"Beliebt diese Woche", prosSuffix:"Profis",
     noServicesFound:"Keine passenden Dienstleistungen gefunden.", typicalPrice:"Üblicher Preis:",
@@ -314,7 +314,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"Trag ein, was du gemacht hast", srEditorTitle:"Bericht verfassen", srEditorSub:"Was du gemacht hast, damit der Kunde — und dein eigenes Protokoll — es hat", srWorkPerformedLabel:"Was hast du gemacht?", srWorkPerformedPlaceholder:"Beschreibe die Arbeit in ein bis zwei Sätzen…", srPerformedAtLabel:"Datum", srAgreedPriceLabel:"Preis", srRecommendationsPlaceholder:"Etwas, worauf man achten sollte?", srEvidenceLabel:"Fotos", srAnnexExpand:"Nur dein Unternehmen sieht das — Kosten, Marge, Lieferant", srAnnexCollapse:"Geschäftsdetails ausblenden", srInternalCostLabel:"Interne Kosten", srMarginLabel:"Marge", srSupplierUsedLabel:"Verwendeter Lieferant", srSupplierPriceLabel:"Lieferantenpreis", srSchedulingNotesLabel:"Planungsnotizen", srInternalCommentaryLabel:"Interne Notizen", srSaving:"Wird gespeichert…", srSaveBtn:"Protokoll speichern",
   },
   en: {
-    previewingAs:"Previewing as", roleCustomer:"Customer", rolePro:"Pro", workspaceFallbackHome:"Home", workspaceFallbackBusiness:"Business",
+    workspaceFallbackHome:"Home", workspaceFallbackBusiness:"Business",
     greeting:"Good afternoon", heroTitle:"What do you need done?", searchPlaceholder:"Search a service...",
     catAll:"All", trendingTitle:"Trending this week", prosSuffix:"pros",
     noServicesFound:"No services match that search.", typicalPrice:"Typical price:",
@@ -415,7 +415,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"Write up what you did", srEditorTitle:"Write up the job", srEditorSub:"What you did, so the customer — and your own record — has it", srWorkPerformedLabel:"What did you do?", srWorkPerformedPlaceholder:"Describe the work in a sentence or two…", srPerformedAtLabel:"Date", srAgreedPriceLabel:"Price", srRecommendationsPlaceholder:"Anything to keep an eye on?", srEvidenceLabel:"Photos", srAnnexExpand:"Only your business sees this — cost, margin, supplier", srAnnexCollapse:"Hide business details", srInternalCostLabel:"Internal cost", srMarginLabel:"Margin", srSupplierUsedLabel:"Supplier used", srSupplierPriceLabel:"Supplier price", srSchedulingNotesLabel:"Scheduling notes", srInternalCommentaryLabel:"Internal notes", srSaving:"Saving…", srSaveBtn:"Save service record",
   },
   es: {
-    previewingAs:"Vista previa como", roleCustomer:"Cliente", rolePro:"Profesional", workspaceFallbackHome:"Casa", workspaceFallbackBusiness:"Empresa",
+    workspaceFallbackHome:"Casa", workspaceFallbackBusiness:"Empresa",
     greeting:"Buenas tardes", heroTitle:"¿Qué necesitas hacer?", searchPlaceholder:"Buscar un servicio...",
     catAll:"Todo", trendingTitle:"Tendencia esta semana", prosSuffix:"profesionales",
     noServicesFound:"Ningún servicio coincide con esa búsqueda.", typicalPrice:"Precio habitual:",
@@ -516,7 +516,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"Redacta lo que hiciste", srEditorTitle:"Redactar la ficha", srEditorSub:"Lo que hiciste, para que el cliente — y tu propio registro — lo tenga", srWorkPerformedLabel:"¿Qué hiciste?", srWorkPerformedPlaceholder:"Describe el trabajo en una o dos frases…", srPerformedAtLabel:"Fecha", srAgreedPriceLabel:"Precio", srRecommendationsPlaceholder:"¿Algo a lo que haya que estar atento?", srEvidenceLabel:"Fotos", srAnnexExpand:"Solo tu negocio ve esto — coste, margen, proveedor", srAnnexCollapse:"Ocultar datos del negocio", srInternalCostLabel:"Coste interno", srMarginLabel:"Margen", srSupplierUsedLabel:"Proveedor utilizado", srSupplierPriceLabel:"Precio del proveedor", srSchedulingNotesLabel:"Notas de planificación", srInternalCommentaryLabel:"Notas internas", srSaving:"Guardando…", srSaveBtn:"Guardar ficha",
   },
   ar: {
-    previewingAs:"معاينة كـ", roleCustomer:"عميل", rolePro:"محترف", workspaceFallbackHome:"المنزل", workspaceFallbackBusiness:"العمل",
+    workspaceFallbackHome:"المنزل", workspaceFallbackBusiness:"العمل",
     greeting:"مساء الخير", heroTitle:"ما الذي تحتاج إنجازه؟", searchPlaceholder:"ابحث عن خدمة...",
     catAll:"الكل", trendingTitle:"الأكثر طلبًا هذا الأسبوع", prosSuffix:"محترف",
     noServicesFound:"لا توجد خدمات مطابقة.", typicalPrice:"السعر المعتاد:",
@@ -617,7 +617,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"اكتب ما قمت به", srEditorTitle:"كتابة تقرير العمل", srEditorSub:"ما قمت به، ليطّلع عليه العميل — وسجلّك الخاص", srWorkPerformedLabel:"ما الذي قمت به؟", srWorkPerformedPlaceholder:"صف العمل في جملة أو جملتين…", srPerformedAtLabel:"التاريخ", srAgreedPriceLabel:"السعر", srRecommendationsPlaceholder:"هل هناك ما يجب مراقبته؟", srEvidenceLabel:"الصور", srAnnexExpand:"يراها عملك فقط — التكلفة، الهامش، المورّد", srAnnexCollapse:"إخفاء تفاصيل العمل", srInternalCostLabel:"التكلفة الداخلية", srMarginLabel:"الهامش", srSupplierUsedLabel:"المورّد المستخدم", srSupplierPriceLabel:"سعر المورّد", srSchedulingNotesLabel:"ملاحظات الجدولة", srInternalCommentaryLabel:"ملاحظات داخلية", srSaving:"جارٍ الحفظ…", srSaveBtn:"حفظ السجل",
   },
   fa: {
-    previewingAs:"پیش‌نمایش به‌عنوان", roleCustomer:"مشتری", rolePro:"متخصص", workspaceFallbackHome:"خانه", workspaceFallbackBusiness:"کسب‌وکار",
+    workspaceFallbackHome:"خانه", workspaceFallbackBusiness:"کسب‌وکار",
     greeting:"ظهر بخیر", heroTitle:"چه کاری می‌خواهید انجام شود؟", searchPlaceholder:"جست‌وجوی خدمت...",
     catAll:"همه", trendingTitle:"پرطرفدار این هفته", prosSuffix:"متخصص",
     noServicesFound:"خدمتی با این جست‌وجو پیدا نشد.", typicalPrice:"قیمت معمول:",
@@ -718,7 +718,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"بنویسید چه کاری انجام دادید", srEditorTitle:"نوشتن گزارش کار", srEditorSub:"کاری که انجام دادید، تا مشتری — و سوابق خودتان — آن را داشته باشد", srWorkPerformedLabel:"چه کاری انجام دادید؟", srWorkPerformedPlaceholder:"کار را در یکی دو جمله توضیح دهید…", srPerformedAtLabel:"تاریخ", srAgreedPriceLabel:"قیمت", srRecommendationsPlaceholder:"چیزی هست که باید مراقبش بود؟", srEvidenceLabel:"عکس‌ها", srAnnexExpand:"فقط کسب‌وکار شما این را می‌بیند — هزینه، سود، تأمین‌کننده", srAnnexCollapse:"پنهان کردن جزئیات کسب‌وکار", srInternalCostLabel:"هزینه داخلی", srMarginLabel:"سود", srSupplierUsedLabel:"تأمین‌کننده استفاده‌شده", srSupplierPriceLabel:"قیمت تأمین‌کننده", srSchedulingNotesLabel:"یادداشت‌های زمان‌بندی", srInternalCommentaryLabel:"یادداشت‌های داخلی", srSaving:"در حال ذخیره…", srSaveBtn:"ذخیره گزارش",
   },
   tr: {
-    previewingAs:"Şu şekilde önizle", roleCustomer:"Müşteri", rolePro:"Profesyonel", workspaceFallbackHome:"Ev", workspaceFallbackBusiness:"İşletme",
+    workspaceFallbackHome:"Ev", workspaceFallbackBusiness:"İşletme",
     greeting:"İyi günler", heroTitle:"Ne yaptırmak istiyorsun?", searchPlaceholder:"Bir hizmet ara...",
     catAll:"Tümü", trendingTitle:"Bu hafta trend olanlar", prosSuffix:"profesyonel",
     noServicesFound:"Bu aramayla eşleşen hizmet yok.", typicalPrice:"Ortalama fiyat:",
@@ -819,7 +819,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"Ne yaptığını yaz", srEditorTitle:"İş raporunu yaz", srEditorSub:"Ne yaptığın — müşterinin ve kendi kaydının bilmesi için", srWorkPerformedLabel:"Ne yaptın?", srWorkPerformedPlaceholder:"İşi bir iki cümleyle anlat…", srPerformedAtLabel:"Tarih", srAgreedPriceLabel:"Fiyat", srRecommendationsPlaceholder:"Dikkat edilmesi gereken bir şey var mı?", srEvidenceLabel:"Fotoğraflar", srAnnexExpand:"Bunu yalnızca işletmen görür — maliyet, kâr marjı, tedarikçi", srAnnexCollapse:"İşletme bilgilerini gizle", srInternalCostLabel:"İç maliyet", srMarginLabel:"Kâr marjı", srSupplierUsedLabel:"Kullanılan tedarikçi", srSupplierPriceLabel:"Tedarikçi fiyatı", srSchedulingNotesLabel:"Planlama notları", srInternalCommentaryLabel:"İç notlar", srSaving:"Kaydediliyor…", srSaveBtn:"Kaydı kaydet",
   },
   ru: {
-    previewingAs:"Просмотр как", roleCustomer:"Клиент", rolePro:"Профи", workspaceFallbackHome:"Дом", workspaceFallbackBusiness:"Бизнес",
+    workspaceFallbackHome:"Дом", workspaceFallbackBusiness:"Бизнес",
     greeting:"Добрый день", heroTitle:"Что нужно сделать?", searchPlaceholder:"Поиск услуги...",
     catAll:"Все", trendingTitle:"Популярно на этой неделе", prosSuffix:"специалистов",
     noServicesFound:"Услуги не найдены.", typicalPrice:"Обычная цена:",
@@ -920,7 +920,7 @@ export const APP_STRINGS = {
     srWriteItUpBtn:"Опишите, что вы сделали", srEditorTitle:"Составить акт", srEditorSub:"Что вы сделали — чтобы клиент и ваша собственная запись это знали", srWorkPerformedLabel:"Что вы сделали?", srWorkPerformedPlaceholder:"Опишите работу в одном-двух предложениях…", srPerformedAtLabel:"Дата", srAgreedPriceLabel:"Цена", srRecommendationsPlaceholder:"На что стоит обратить внимание?", srEvidenceLabel:"Фото", srAnnexExpand:"Это видит только ваш бизнес — затраты, наценка, поставщик", srAnnexCollapse:"Скрыть данные бизнеса", srInternalCostLabel:"Внутренние затраты", srMarginLabel:"Наценка", srSupplierUsedLabel:"Использованный поставщик", srSupplierPriceLabel:"Цена поставщика", srSchedulingNotesLabel:"Заметки по планированию", srInternalCommentaryLabel:"Внутренние заметки", srSaving:"Сохранение…", srSaveBtn:"Сохранить акт",
   },
   zh: {
-    previewingAs:"预览身份", roleCustomer:"客户", rolePro:"专业人士", workspaceFallbackHome:"家庭", workspaceFallbackBusiness:"企业",
+    workspaceFallbackHome:"家庭", workspaceFallbackBusiness:"企业",
     greeting:"下午好", heroTitle:"你需要什么服务？", searchPlaceholder:"搜索服务...",
     catAll:"全部", trendingTitle:"本周热门", prosSuffix:"位专业人士",
     noServicesFound:"没有找到匹配的服务。", typicalPrice:"参考价格：",
