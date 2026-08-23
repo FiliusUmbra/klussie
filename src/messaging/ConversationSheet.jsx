@@ -10,6 +10,7 @@ import { Send } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Drawer } from "../design-system";
 import { fetchMessages, sendMessage, markConversationRead, saveMessageTranslation, subscribeToMessages } from "../lib/messages";
+import { markConversationNotificationsSeen } from "../lib/notifications.js";
 import { translateMessage } from "../lib/translate";
 import { messagesNeedingTranslation } from "../lib/conversationSelectors.js";
 
@@ -25,6 +26,12 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   useEffect(() => {
     refresh();
     markConversationRead(conversationId);
+    // Slice 4, WP 4.2 — the Notification engine's write contract (WP 4.0) gets its first
+    // real caller here: opening a conversation is the moment any notification naming it
+    // is genuinely "seen" and "acted on," the same real-world event
+    // markConversationRead() above already reacts to. See src/lib/notifications.js's own
+    // header for why this ships instead of a separate, duplicate inbox screen.
+    markConversationNotificationsSeen(conversationId, userId);
     const unsubscribe = subscribeToMessages(conversationId, () => {
       refresh();
       markConversationRead(conversationId);

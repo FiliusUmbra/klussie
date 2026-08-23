@@ -14,14 +14,16 @@ statically tested in
 tested in
 `supabase/migrations/__tests__/conversationMessageNotificationProducer.test.js`)
 — the notification engine has a real producer now; `platform.my_inbox()`
-is no longer permanently empty. WP 4.2 (client inbox surface) is scoped
-below, not yet built — it is next, and only meaningfully non-empty now
-that WP 4.1 actually exists. Originally written under the product-phase
-mandate, after Slice 3's own close (WP 3.0-3.3 shipped and verified
-live, PRs #77-80); WP 3.4 (reputation) is correctly not next — it needs
-real record volume this session's own test data doesn't constitute
-(see Slice 3's own document, §3, WP 3.4's entry). Slice 4 is next in
-the Programme's own sequencing (§5).
+is no longer permanently empty. WP 4.2 shipped too, in a revised,
+smaller shape decided after WP 4.1 landed — see that work package's own
+entry below for why "a real inbox surface" turned out to mean making
+the contract reachable, not building a second, duplicate screen.
+**Slice 4 is complete** as of this revision. Originally written under
+the product-phase mandate, after Slice 3's own close (WP 3.0-3.3
+shipped and verified live, PRs #77-80); WP 3.4 (reputation) is
+correctly not next — it needs real record volume this session's own
+test data doesn't constitute (see Slice 3's own document, §3, WP 3.4's
+entry).
 
 ---
 
@@ -165,17 +167,48 @@ headline. The first, and most obviously valuable, notification source
 `ROADMAP_C`'s obligation-due notifications) is a second producer onto
 the same, now-real engine, not a prerequisite to shipping this one.
 
-### WP 4.2 — Client: a real inbox surface
+### WP 4.2 — Client: reachability, not a second inbox screen — **revised scope, decided 2026-08-23, after WP 4.1 shipped**
 
-Depends on WP 4.0 (and is only meaningfully non-empty once WP 4.1
-ships). A badge (unread count, `BottomNav`'s own established pattern —
-`unreadTotal(conversations)` already does this for Messages) plus a
-list surface. Not scoped in file-and-line detail here — smaller and
-more mechanical than WP 3.3's own editor, but real screen-level
-choices (does it replace or sit beside the Messages tab? does a
-notification's own tap-through resolve `subject_type`/`subject_id`
-back to the right screen?) belong to implementation, informed by
-WP 4.1 actually existing first.
+Originally framed above as "a badge plus a list surface" — the open
+questions named then ("does it replace or sit beside the Messages
+tab?") are answered now that WP 4.1 actually exists, and the answer
+changes the shape of this work package.
+
+**The real finding:** WP 4.1's only producer is
+`conversation.message.sent`. Its entire current content — who
+messaged, when, unread or not — is *already* fully visible, live, on
+the Messages tab: real-time (Realtime subscriptions), translated,
+badge-counted (`unreadTotal(conversations)`). A dedicated
+"Notifications" screen built today would show nothing a customer or
+pro cannot already see one tab over. Building it anyway would fail the
+CPO mandate's own gating questions directly — "does this make the
+platform feel like one cohesive product?" is answered *no* by two
+places a person has to check for the same fact, and "does this reduce
+cognitive load?" is answered *no* by a second unread count next to the
+one that already exists. `ROADMAP_A`/`ROADMAP_B`'s own language — "the
+**one** inbox," singular — argues for the same conclusion: the intent
+was never two inboxes, one of which duplicates the other.
+
+**What this revised WP 4.2 ships instead:** reachability for WP 4.0's
+own write contract, with zero new visible UI. `src/lib/notifications.js`
+(`markConversationNotificationsSeen()`) is called from
+`ConversationSheet.jsx` the moment a conversation opens — the same
+real-world event `markConversationRead()` already reacts to.
+`api.mark_notification_seen`/`mark_notification_acted` (WP 4.0) get a
+real caller for the first time; `platform.my_inbox()` becomes a true
+record of what a person has actually seen and acted on, not a
+correct-but-never-read table. Genuinely closes the "unreached engine"
+gap WP 4.0 opened WP 4.1 to also close (Slice 3's own two-part shape)
+— reachability was always the requirement, not specifically a new
+screen.
+
+**What is still not built, on purpose:** a dedicated inbox list/badge
+UI. It becomes worth building the moment a **second, genuinely
+different** producer exists — `ROADMAP_B` §7's "schedule alerts,"
+`ROADMAP_C`'s obligation-due notifications — because only then does an
+inbox show content no other single tab already shows. Matches WP 3.1's
+own precedent in Slice 3: a reachability decision, documented, not
+silently skipped nor built prematurely.
 
 ### Not scoped — browser push delivery ("no notifications outside an open tab")
 
