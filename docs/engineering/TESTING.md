@@ -255,12 +255,12 @@ does something else worth pinning — see the corrected row below.
 | P4 | Sending a quote moves the request to `quotes_ready` | `SendQuoteSheet` |
 | P5 | Jobs list separates active from completed | `ProJobs` |
 | P6 | A completed job shows the customer's own review, or says plainly that none has arrived yet — never a blank card | `ProJobs` *(automated)* |
-| P7 | Pro profile shows rating, badge and trust signals | `ProProfile` |
+| P7 | Pro profile shows rating, badge and trust signals | `Profile` (pro variant) |
 | P8 | Portfolio items can be added and appear publicly | `PortfolioItemSheet`, `ProPublicProfileSheet` |
 | P9 | Testimonials can be added and appear publicly | `AddTestimonialSheet` |
-| P10 | Pause toggle removes the pro from matching | `ProProfile` |
-| P11 | Flexi tax tracker shows earnings against the threshold | `ProProfile` |
-| P12 | Boost shows its price and expiry | `ProProfile` |
+| P10 | Pause toggle removes the pro from matching | `Profile` (pro variant) |
+| P11 | Flexi tax tracker shows earnings against the threshold | `Profile` (pro variant) |
+| P12 | Boost shows its price and expiry | `Profile` (pro variant) |
 | P13 | My Business reuses the customer physical twin against the pro's own workspace, lazily creating its first property on first open | `MyBusinessPanel` |
 | P14 | Tapping a booked or completed job opens its detail — timeline, a direct link into the conversation, and (once WP 2.4's scoped grant resolves it) the customer's own property twin; a "sent" (quoted, not yet booked) job stays unclickable | `ProJobDetailSheet` |
 | P15 | A completed job with no Service Record yet shows a real "Write up what you did" entry point (WP 3.1's own decided gate); one with a record shows the pro's own read-only summary instead, never a reopened editor | `ProServiceRecordSection` |
@@ -281,9 +281,20 @@ does something else worth pinning — see the corrected row below.
 
 ### 5.7 · Profile
 
+**SLICE_5_UNIFIED_PROFILE_DESIGN.md, 2026-08-23.** `CustomerProfile.jsx`
+and `ProProfile.jsx` — two separate files duplicating five identical
+sections (identity header, switchers, help/replay-tour, edit profile,
+sign out) — are folded into one component, `Profile.jsx`, taking a
+`variant` prop ("customer" | "pro"). Capability-gated sections (a pro's
+services/portfolio/boost, a customer's reviews and become-a-pro
+invitation) stay exactly as audience-specific as before; only the
+shared sections and the file itself are unified. `ProfileIdentityHeader`,
+`StatRow` and `SignOutButton` (§7) are the new shared primitives it's
+built from.
+
 | # | Flow | Surface |
 |---|---|---|
-| F1 | Profile shows the signed-in user's details | `CustomerProfile` |
+| F1 | Profile shows the signed-in user's details | `Profile` |
 | F2 | Editing name and city persists | `EditProfileSheet` |
 | F3 | Avatar upload replaces the image | `EditProfileSheet` |
 | F4 | Contact details stay private until a booking exists | `ProPublicProfileSheet` |
@@ -300,8 +311,8 @@ does something else worth pinning — see the corrected row below.
 | X6 | Modal focus trap and focus restoration work | `overlays.jsx` |
 | X7 | Touch targets stay at least 44px | All surfaces |
 | X8 | No console errors on any surface | All surfaces |
-| X9 | A single-workspace person sees the pre-Epic-03 "Previewing as" toggle and no other workspace chrome | `AppShell` |
-| X10 | A person with two live workspaces (Epic 03 WP12 — today, an existing pro's Personal + Professional pair) sees `WorkspaceSwitcher` instead, listing both by name; picking one switches which app renders and is remembered on reload. Reachable in two places since 2026-08-22 — AppShell's own topbar (desktop-width phone-mockup view only, `display:none` below 460px) and Profile (`CustomerProfile`/`ProProfile`/`OperatorApp`, the real path on an actual phone) — both read the identical `useAuth()` state, so switching from either shows the same result in the other | `WorkspaceSwitcher` |
+| X9 | A single-workspace person sees no workspace chrome at all — the old "Previewing as" demo toggle was retired 2026-08-22 (PR #87) once becoming a pro reliably created a real second membership; `role` state still exists as defence-in-depth but nothing in the UI sets it any more | `AppShell` |
+| X10 | A person with two live workspaces (Epic 03 WP12 — today, an existing pro's Personal + Professional pair) sees `WorkspaceSwitcher` instead, listing both by name; picking one switches which app renders and is remembered on reload. Reachable in two places since 2026-08-22 — AppShell's own topbar (desktop-width phone-mockup view only, `display:none` below 460px) and Profile (`Profile`/`OperatorApp`, the real path on an actual phone) — both read the identical `useAuth()` state, so switching from either shows the same result in the other | `WorkspaceSwitcher` |
 | X11 | The language picker changes `langCode` immediately, every locale's own strings render, and the choice is reachable on an actual phone — not only the desktop-width topbar (`display:none` below 460px), which is where this lived exclusively until 2026-08-22, when it was found unreachable on mobile the same way `WorkspaceSwitcher` was | `LanguageSwitcher` |
 
 ## 6 · Known defects — preserved deliberately
@@ -325,7 +336,7 @@ euro sign, bullet or dash belongs.
 | `u00B7` | 1 | · |
 
 Across `AiIntakeSheet`, `InvoiceSheet`, `QuoteFormSheet`, `ServiceSheet`,
-`ProProfile`, `SendQuoteSheet`, `AppShell` — **including the invoice
+`Profile` (pro variant), `SendQuoteSheet`, `AppShell` — **including the invoice
 totals and quote prices**, which is where a customer is most likely to
 notice.
 
@@ -355,7 +366,11 @@ being flows themselves: `CustomerApp.jsx`, `ProApp.jsx`.
 `panelParts.jsx`, `primitives.jsx`, `overlays.jsx`, `domain.jsx`,
 `tabs.jsx`, `KlussiePanel.jsx`, `HomeHero.jsx`, `HomeTodayCard.jsx`,
 `IntentSuggestions.jsx`, `SafetyNotice.jsx`, `Loading.jsx`,
-`JobDetailsSummary.jsx`.
+`JobDetailsSummary.jsx`, `ProfileIdentityHeader.jsx` (avatar + name +
+audience-specific subtitle, the block `Profile.jsx`'s two variants
+share), `StatRow.jsx` (the `stat-row` markup both variants share),
+`SignOutButton.jsx` (shared by `Profile.jsx` and `OperatorApp.jsx`
+alike — SLICE_5_UNIFIED_PROFILE_DESIGN.md §5 step 4).
 
 ## 8 · Updating this baseline
 

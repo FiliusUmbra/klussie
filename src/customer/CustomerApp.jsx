@@ -34,7 +34,7 @@ import { AiIntakeSheet } from "./AiIntakeSheet.jsx";
 import { RequestsList } from "./RequestsList.jsx";
 import { RequestDetailSheet } from "./RequestDetailSheet.jsx";
 import { ReviewSheet } from "./ReviewSheet.jsx";
-import { CustomerProfile } from "./CustomerProfile.jsx";
+import { Profile } from "../profile/Profile.jsx";
 import { awaitingDecisionCount } from "../lib/requestStatus.js";
 import { unreadTotal } from "../lib/conversationSelectors.js";
 
@@ -166,7 +166,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
         )}
         {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
-        {tab === "profile" && <CustomerProfile requests={requests} onReplayTour={tour.replay} onBecomePro={onBecomePro} />}
+        {tab === "profile" && <Profile variant="customer" requests={requests} onReplayTour={tour.replay} onBecomePro={onBecomePro} />}
       </div>
 
       <BottomNav tab={tab} setTab={setTab} items={[

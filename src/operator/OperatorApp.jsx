@@ -12,9 +12,9 @@
 // a "Workspaces" tab with no equivalent of the account-actions row Customer/Pro both
 // keep in their own Profile tab. Fixed to the identical pattern: BottomNav, the same
 // component (src/ui/BottomNav.jsx) Customer and Pro already share, and a Profile tab
-// holding exactly what CustomerProfile.jsx/ProProfile.jsx each hold in the same
-// place — identity, the switcher, sign-out — not a bespoke account-actions row bolted
-// onto the bottom of every tab.
+// holding exactly what src/profile/Profile.jsx (SLICE_5_UNIFIED_PROFILE_DESIGN.md) holds
+// in the same place — identity, the switcher, sign-out — not a bespoke account-actions row
+// bolted onto the bottom of every tab.
 //
 // A SMALL "Operations" LABEL STAYS, DELIBERATELY, IN PROFILE ONLY — NOT VANITY BRANDING
 //
@@ -39,18 +39,22 @@
 // precise backend terms are a tool for them, not a leak. Revisit only if that audience
 // assumption changes — an operator surface a customer-facing person could ever see.
 import { useState } from "react";
-import { LogOut, ScrollText, Search, User } from "lucide-react";
+import { ScrollText, Search, User } from "lucide-react";
 import { useAuth } from "../lib/auth.jsx";
-import { humanWorkspaceName } from "../lib/workspaceContext.js";
+import { WorkspaceSwitcher } from "../shell/WorkspaceSwitcher.jsx";
+import { SignOutButton } from "../profile/SignOutButton.jsx";
 import { BottomNav } from "../ui/BottomNav.jsx";
 import { AuditLog } from "./AuditLog.jsx";
 import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
 
-// Same helper WorkspaceSwitcher.jsx uses, reused rather than reimplemented — an unnamed
-// membership shown to an operator should read no differently than one shown to anyone
-// else. This screen's own established convention is hardcoded English throughout (see
-// this file's own header), so a plain object stands in for the localized `t` every
-// other surface passes.
+// SLICE_5_UNIFIED_PROFILE_DESIGN.md §5 step 4 — the real WorkspaceSwitcher/SignOutButton,
+// not a hand-written second implementation. The switcher used to reimplement
+// humanWorkspaceName's own segmented-control markup inline here; that was worse than
+// duplicated, it was a *third* independent copy that had already silently drifted once
+// (PR #85 fixed the shared component's fallback label, and this file needed its own,
+// separate fix). This screen's own established convention is hardcoded English throughout
+// (see this file's own header), so a plain object stands in for the localized `t` the
+// shared component otherwise expects.
 const OPERATOR_FALLBACK_LABELS = { workspaceFallbackHome: "Home", workspaceFallbackBusiness: "Business" };
 
 const TABS = [
@@ -65,7 +69,7 @@ export function OperatorApp() {
   // workspace-id filter from it (AuditLog.jsx's own initialWorkspaceId prop) — a plain
   // id string is enough since AuditLog is remounted on every tab switch, never hidden.
   const [auditWorkspaceId, setAuditWorkspaceId] = useState(null);
-  const { workspaceMemberships, activeWorkspace, setActiveWorkspaceId, signOut } = useAuth();
+  const { signOut } = useAuth();
 
   const viewAuditFor = (workspaceId) => {
     setAuditWorkspaceId(workspaceId);
@@ -94,23 +98,11 @@ export function OperatorApp() {
               <div className="h1">Signed in as an operator</div>
             </div>
 
-            {workspaceMemberships.length >= 2 && (
-              <div className="role-switch" style={{ marginBottom: 16 }}>
-                <div className="segmented">
-                  {workspaceMemberships.map((m) => (
-                    <button
-                      key={m.workspace_id}
-                      className={activeWorkspace?.workspace_id === m.workspace_id ? "seg-on" : ""}
-                      onClick={() => setActiveWorkspaceId(m.workspace_id)}
-                    >
-                      {humanWorkspaceName(m, OPERATOR_FALLBACK_LABELS)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div style={{ marginBottom: 16 }}>
+              <WorkspaceSwitcher t={OPERATOR_FALLBACK_LABELS} />
+            </div>
 
-            <button className="btn-secondary" onClick={signOut}><LogOut size={13} /> Sign out</button>
+            <SignOutButton onClick={signOut} label="Sign out" />
           </div>
         )}
       </div>
