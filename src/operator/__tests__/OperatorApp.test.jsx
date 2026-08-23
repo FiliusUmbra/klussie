@@ -111,10 +111,10 @@ describe("OperatorApp", () => {
   it("shows no workspace switcher for a single-membership operator", () => {
     render(<OperatorApp />);
 
-    expect(screen.queryByText("Workspace")).toBeNull();
+    expect(screen.queryAllByText("Klussie Operations")).toHaveLength(1); // the screen's own heading, not a second copy in a switcher
   });
 
-  it("shows a real workspace switcher for an operator who is also a real customer or pro", () => {
+  it("shows a real switcher for an operator who is also a real customer or pro — human names, no 'workspace' label (UNIFIED_PRODUCT_IA_REVIEW.md §3)", () => {
     useAuthMock.mockReturnValue({
       workspaceMemberships: [
         { workspace_id: "ops-ws", workspace_name: "Klussie Operations", workspace_type: "business" },
@@ -127,8 +127,25 @@ describe("OperatorApp", () => {
 
     render(<OperatorApp />);
 
-    expect(screen.getByText("Workspace")).toBeTruthy();
+    expect(screen.queryByText("Workspace")).toBeNull();
     fireEvent.click(screen.getByText("My Home"));
     expect(setActiveWorkspaceId).toHaveBeenCalledWith("personal-ws");
+  });
+
+  it("falls back to a human label, never the raw backend type, for an unnamed membership", () => {
+    useAuthMock.mockReturnValue({
+      workspaceMemberships: [
+        { workspace_id: "ops-ws", workspace_name: null, workspace_type: "business" },
+        { workspace_id: "personal-ws", workspace_name: "My Home", workspace_type: "personal" },
+      ],
+      activeWorkspace: { workspace_id: "ops-ws" },
+      setActiveWorkspaceId,
+      signOut,
+    });
+
+    render(<OperatorApp />);
+
+    expect(screen.getByText("Business")).toBeTruthy();
+    expect(screen.queryByText("business")).toBeNull();
   });
 });

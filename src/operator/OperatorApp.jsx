@@ -26,8 +26,16 @@
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { useAuth } from "../lib/auth.jsx";
+import { humanWorkspaceName } from "../lib/workspaceContext.js";
 import { AuditLog } from "./AuditLog.jsx";
 import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
+
+// Same helper WorkspaceSwitcher.jsx uses, reused rather than reimplemented — an unnamed
+// membership shown to an operator should read no differently than one shown to anyone
+// else. This screen's own established convention is hardcoded English throughout (see
+// this file's own header), so a plain object stands in for the localized `t` every
+// other surface passes.
+const OPERATOR_FALLBACK_LABELS = { workspaceFallbackHome: "Home", workspaceFallbackBusiness: "Business" };
 
 const TABS = [
   { id: "audit", label: "Audit" },
@@ -56,7 +64,6 @@ export function OperatorApp() {
 
       {workspaceMemberships.length >= 2 && (
         <div className="role-switch" style={{ marginBottom: 16 }}>
-          <span className="role-switch-label">Workspace</span>
           <div className="segmented">
             {workspaceMemberships.map((m) => (
               <button
@@ -64,7 +71,7 @@ export function OperatorApp() {
                 className={activeWorkspace?.workspace_id === m.workspace_id ? "seg-on" : ""}
                 onClick={() => setActiveWorkspaceId(m.workspace_id)}
               >
-                {m.workspace_name || m.workspace_type}
+                {humanWorkspaceName(m, OPERATOR_FALLBACK_LABELS)}
               </button>
             ))}
           </div>

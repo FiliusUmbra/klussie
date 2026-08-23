@@ -11,7 +11,7 @@ vi.mock("../../lib/auth.jsx", () => ({
 
 import { WorkspaceSwitcher } from "../WorkspaceSwitcher.jsx";
 
-const t = { workspaceSwitchLabel: "Workspace" };
+const t = { workspaceFallbackHome: "Home", workspaceFallbackBusiness: "Business" };
 
 const PERSONAL = { workspace_id: "ws-personal", workspace_type: "personal", workspace_name: "My Home" };
 const PROFESSIONAL = { workspace_id: "ws-pro", workspace_type: "professional", workspace_name: "Peter Painter" };
@@ -42,14 +42,25 @@ describe("WorkspaceSwitcher", () => {
     expect(screen.getByText("Peter Painter")).toBeTruthy();
   });
 
-  it("falls back to the type when a workspace has no name", () => {
+  it("falls back to a human label, never the raw backend type, when a workspace has no name (UNIFIED_PRODUCT_IA_REVIEW.md §3)", () => {
     authState.workspaceMemberships = [PERSONAL, { ...PROFESSIONAL, workspace_name: null }];
     authState.activeWorkspace = PERSONAL;
     authState.setActiveWorkspaceId = vi.fn();
 
     render(<WorkspaceSwitcher t={t} />);
 
-    expect(screen.getByText("professional")).toBeTruthy();
+    expect(screen.getByText("Business")).toBeTruthy();
+    expect(screen.queryByText("professional")).toBeNull();
+  });
+
+  it("never renders a preceding 'workspace' label — the pills speak for themselves", () => {
+    authState.workspaceMemberships = [PERSONAL, PROFESSIONAL];
+    authState.activeWorkspace = PERSONAL;
+    authState.setActiveWorkspaceId = vi.fn();
+
+    render(<WorkspaceSwitcher t={{ ...t, workspaceSwitchLabel: "Workspace" }} />);
+
+    expect(screen.queryByText("Workspace")).toBeNull();
   });
 
   it("marks the active workspace's button, not the others", () => {

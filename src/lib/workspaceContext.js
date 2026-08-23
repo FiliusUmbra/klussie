@@ -98,3 +98,19 @@ export function deriveEffectiveRole({ multiWorkspace, activeWorkspace, role }) {
   if (!multiWorkspace || !activeWorkspace) return role;
   return activeWorkspace.workspace_type === "professional" ? "pro" : "customer";
 }
+
+/**
+ * The name a switcher shows for one membership — UNIFIED_PRODUCT_IA_REVIEW.md §3's own
+ * finding: `m.workspace_name || m.workspace_type` used to print a raw backend value
+ * ("personal", "professional") straight to the user the moment a workspace had no real
+ * name. Every real workspace does have one (0034/0135's own naming, "My Home" or the
+ * pro's business name/full name) — this fallback exists only for the column's own
+ * nullability (migration 0030), never expected to fire against real data, and must speak
+ * the same human vocabulary as everything else when it does: "Home" for a personal
+ * workspace, "Business" for a professional or business one — never the type string
+ * itself, per the CPO mandate's own "the word workspace should disappear" instruction.
+ */
+export function humanWorkspaceName(membership, t) {
+  if (membership.workspace_name) return membership.workspace_name;
+  return membership.workspace_type === "personal" ? t.workspaceFallbackHome : t.workspaceFallbackBusiness;
+}

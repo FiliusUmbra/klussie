@@ -67,15 +67,17 @@ function renderProfile(workspaceMemberships) {
 describe("ProProfile — workspace switching", () => {
   it("shows no switcher for a single-workspace person", () => {
     renderProfile([{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }]);
-    expect(screen.queryByText("workspaceSwitchLabel")).toBeNull();
+    expect(screen.queryAllByText("Pierre's Painting")).toHaveLength(0);
   });
 
-  it("shows a real switcher, reachable on mobile, for a real pro who also has a personal workspace", () => {
+  it("shows a real switcher, reachable on mobile, for a real pro who also has a personal workspace — human names, no 'workspace' label (UNIFIED_PRODUCT_IA_REVIEW.md §3)", () => {
     renderProfile([
       { workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" },
       { workspace_id: "ws-personal", workspace_name: "My Home", workspace_type: "personal" },
     ]);
-    expect(screen.getByText("workspaceSwitchLabel")).toBeTruthy();
+    expect(screen.getByText("Pierre's Painting")).toBeTruthy();
+    expect(screen.getByText("My Home")).toBeTruthy();
+    expect(screen.queryByText("workspaceSwitchLabel")).toBeNull();
     fireEvent.click(screen.getByText("My Home"));
     expect(setActiveWorkspaceId).toHaveBeenCalledWith("ws-personal");
   });
