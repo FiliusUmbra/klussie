@@ -41,15 +41,19 @@ function renderProfile(workspaceMemberships, { proProfile = null, ...props } = {
 describe("CustomerProfile — workspace switching", () => {
   it("shows no switcher for a single-workspace person — invisible, not merely empty (§27)", () => {
     renderProfile([{ workspace_id: "ws-1", workspace_name: "My Home", workspace_type: "personal" }]);
-    expect(screen.queryByText("workspaceSwitchLabel")).toBeNull();
+    // Only one real render of the name anywhere on the page — the profile header's own
+    // greeting, not a second copy inside a switcher that shouldn't exist.
+    expect(screen.queryAllByText("My Home")).toHaveLength(0);
   });
 
-  it("shows a real switcher, reachable on mobile, for a real multi-workspace person", () => {
+  it("shows a real switcher, reachable on mobile, for a real multi-workspace person — human names, no 'workspace' label (UNIFIED_PRODUCT_IA_REVIEW.md §3)", () => {
     renderProfile([
       { workspace_id: "ws-1", workspace_name: "My Home", workspace_type: "personal" },
       { workspace_id: "ws-2", workspace_name: "Cathy's Cleaning Co", workspace_type: "professional" },
     ]);
-    expect(screen.getByText("workspaceSwitchLabel")).toBeTruthy();
+    expect(screen.getByText("My Home")).toBeTruthy();
+    expect(screen.getByText("Cathy's Cleaning Co")).toBeTruthy();
+    expect(screen.queryByText("workspaceSwitchLabel")).toBeNull();
     fireEvent.click(screen.getByText("Cathy's Cleaning Co"));
     expect(setActiveWorkspaceId).toHaveBeenCalledWith("ws-2");
   });

@@ -15,7 +15,7 @@ vi.mock("../supabaseClient", () => ({
   },
 }));
 
-import { loadWorkspaceMemberships, resolveActiveWorkspace, deriveEffectiveRole } from "../workspaceContext";
+import { loadWorkspaceMemberships, resolveActiveWorkspace, deriveEffectiveRole, humanWorkspaceName } from "../workspaceContext";
 
 const PERSONAL = {
   membership_id: "11111111-1111-4111-8111-000000000010",
@@ -145,5 +145,27 @@ describe("deriveEffectiveRole", () => {
     // The toggle says "pro" (leftover from before Epic 03, or simply unrelated state) but
     // the switcher's own resolution is what must win for this population.
     expect(deriveEffectiveRole({ multiWorkspace: true, activeWorkspace: PERSONAL, role: "pro" })).toBe("customer");
+  });
+});
+
+// UNIFIED_PRODUCT_IA_REVIEW.md §3 — `m.workspace_name || m.workspace_type` used to print
+// a raw backend value ("personal", "professional") straight to the user the moment a
+// workspace had no real name. This is the fix: the same real name always wins, and the
+// fallback speaks human language, never the type string itself.
+describe("humanWorkspaceName", () => {
+  const t = { workspaceFallbackHome: "Home", workspaceFallbackBusiness: "Business" };
+
+  it("uses the real name when one exists", () => {
+    expect(humanWorkspaceName(PERSONAL, t)).toBe("My Home");
+    expect(humanWorkspaceName(PROFESSIONAL, t)).toBe("Peter Painter");
+  });
+
+  it("falls back to a human label for an unnamed personal workspace — never the raw type", () => {
+    expect(humanWorkspaceName({ ...PERSONAL, workspace_name: null }, t)).toBe("Home");
+  });
+
+  it("falls back to a human label for an unnamed professional or business workspace — never the raw type", () => {
+    expect(humanWorkspaceName({ ...PROFESSIONAL, workspace_name: null }, t)).toBe("Business");
+    expect(humanWorkspaceName({ ...PROFESSIONAL, workspace_name: null, workspace_type: "business" }, t)).toBe("Business");
   });
 });
