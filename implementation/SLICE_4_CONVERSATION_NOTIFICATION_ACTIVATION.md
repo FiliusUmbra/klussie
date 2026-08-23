@@ -9,8 +9,14 @@ document applies rather than restates.
 **Status.** WP 4.0 shipped (migration `0166_notification_contract.sql`,
 statically tested in
 `supabase/migrations/__tests__/notificationApiContract.test.js`). WP
-4.1 (producer) and WP 4.2 (client inbox surface) are scoped below, not
-yet built — WP 4.1 is next. Originally written under the product-phase
+4.1 shipped (migration
+`0169_conversation_message_notification_producer.sql`, statically
+tested in
+`supabase/migrations/__tests__/conversationMessageNotificationProducer.test.js`)
+— the notification engine has a real producer now; `platform.my_inbox()`
+is no longer permanently empty. WP 4.2 (client inbox surface) is scoped
+below, not yet built — it is next, and only meaningfully non-empty now
+that WP 4.1 actually exists. Originally written under the product-phase
 mandate, after Slice 3's own close (WP 3.0-3.3 shipped and verified
 live, PRs #77-80); WP 3.4 (reputation) is correctly not next — it needs
 real record volume this session's own test data doesn't constitute
@@ -148,7 +154,7 @@ now: for the one channel this slice's UI will use (`in_app`),
 "delivered" and "seen" collapse into the same moment (opening the
 inbox), so there is no real client action to wire it to yet.
 
-### WP 4.1 — A real producer: the conversation-message notification consumer
+### WP 4.1 — A real producer: the conversation-message notification consumer — **shipped**, 2026-08-23
 
 Depends on WP 4.0. A `pg_cron`-polled background consumer (ADR-0031,
 the canonical pattern WP 2.4 established), reading `platform.events`
