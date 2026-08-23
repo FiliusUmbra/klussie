@@ -1,4 +1,4 @@
-// SLICE_5_UNIFIED_PROFILE_DESIGN.md §3b — the `stat-row`/`stat`/`stat-num`/`stat-label`
+// UNIFIED_PROFILE_DESIGN.md §3b — the `stat-row`/`stat`/`stat-num`/`stat-label`
 // markup CustomerProfile.jsx and ProProfile.jsx each hand-wrote with different data, same
 // structure. Which stats and what they mean stays entirely audience-specific (a customer's
 // requests-sent vs. a pro's trust score are computed from different things and mean

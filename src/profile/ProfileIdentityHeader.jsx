@@ -1,4 +1,4 @@
-// SLICE_5_UNIFIED_PROFILE_DESIGN.md §3a — the avatar+name block CustomerProfile.jsx and
+// UNIFIED_PROFILE_DESIGN.md §3a — the avatar+name block CustomerProfile.jsx and
 // ProProfile.jsx each carried as an identical `profile-head` div, differing only in what
 // rendered below the name (an email line for a customer, TrustBadge for a pro). `subtitle`
 // takes that one real difference as a slot rather than a branching prop, so this component
@@ -10,7 +10,7 @@
 // different CSS shape (`hello`, not `profile-head`). Forcing it through here would either
 // render an empty avatar circle that never existed before or require a `hideAvatar` escape
 // hatch — both changes to Operator's actual visual output, which
-// SLICE_5_UNIFIED_PROFILE_DESIGN.md §4 explicitly rules out. See OperatorApp.jsx's own
+// UNIFIED_PROFILE_DESIGN.md §4 explicitly rules out. See OperatorApp.jsx's own
 // Profile tab for the block this component deliberately does not replace.
 import { Avatar } from "../design-system";
 

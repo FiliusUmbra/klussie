@@ -12,7 +12,7 @@
 // a "Workspaces" tab with no equivalent of the account-actions row Customer/Pro both
 // keep in their own Profile tab. Fixed to the identical pattern: BottomNav, the same
 // component (src/ui/BottomNav.jsx) Customer and Pro already share, and a Profile tab
-// holding exactly what src/profile/Profile.jsx (SLICE_5_UNIFIED_PROFILE_DESIGN.md) holds
+// holding exactly what src/profile/Profile.jsx (UNIFIED_PROFILE_DESIGN.md) holds
 // in the same place — identity, the switcher, sign-out — not a bespoke account-actions row
 // bolted onto the bottom of every tab.
 //
@@ -47,7 +47,7 @@ import { BottomNav } from "../ui/BottomNav.jsx";
 import { AuditLog } from "./AuditLog.jsx";
 import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
 
-// SLICE_5_UNIFIED_PROFILE_DESIGN.md §5 step 4 — the real WorkspaceSwitcher/SignOutButton,
+// UNIFIED_PROFILE_DESIGN.md §5 step 4 — the real WorkspaceSwitcher/SignOutButton,
 // not a hand-written second implementation. The switcher used to reimplement
 // humanWorkspaceName's own segmented-control markup inline here; that was worse than
 // duplicated, it was a *third* independent copy that had already silently drifted once

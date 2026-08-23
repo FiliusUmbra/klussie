@@ -1,4 +1,4 @@
-// SLICE_5_UNIFIED_PROFILE_DESIGN.md — Profile.jsx replaces CustomerProfile.jsx and
+// UNIFIED_PROFILE_DESIGN.md — Profile.jsx replaces CustomerProfile.jsx and
 // ProProfile.jsx (this file replaces their own test files, one variant each, same
 // scenarios and same assertions those files already established: the mobile-reachability
 // fix for WorkspaceSwitcher/LanguageSwitcher, and the "become a pro" invitation).

@@ -1,4 +1,4 @@
-// SLICE_5_UNIFIED_PROFILE_DESIGN.md §1/§3a — the one shared action all three Profile
+// UNIFIED_PROFILE_DESIGN.md §1/§3a — the one shared action all three Profile
 // surfaces already carried, but Operator's own copy was hand-written rather than reused
 // (checked directly: identical `btn-secondary` + LogOut markup, three separate places).
 // `label` stays a prop rather than a localized default so Operator can keep passing its
