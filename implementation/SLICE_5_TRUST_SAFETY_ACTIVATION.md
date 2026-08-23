@@ -8,10 +8,15 @@
 §3.3/§5.1's own product framing, which this document applies rather
 than restates.
 
-**Status.** Scoping. Written after Slice 4's own close (all 3 WPs
-shipped and live-verified, PRs #90/#91/#93, plus infra fixes #92/#94).
-Slice 5 is next in the Programme's own sequencing (§5) — and the last
-one before Beta 1: *"Beta 1 ships at the end of this slice."*
+**Status.** WP 5.0 shipped (migration `0171_trust_safety_contract.sql`,
+statically tested in
+`supabase/migrations/__tests__/trustSafetyContract.test.js`, applied
+live to staging with a real `api.file_case()` call verified end to
+end). WP 5.1 and WP 5.2 are scoped below, not yet built — WP 5.2 is
+next (§5's own recommended order). Originally written after Slice 4's
+own close (all 3 WPs shipped and live-verified, PRs #90/#91/#93, plus
+infra fixes #92/#94). Slice 5 is the last slice before Beta 1:
+*"Beta 1 ships at the end of this slice."*
 
 ---
 
@@ -198,7 +203,7 @@ evidence into `safety`'s own tables.
 
 ## 4 · Work packages
 
-### WP 5.0 — Trust & Safety contract: schema, file/decide write path, operator read path
+### WP 5.0 — Trust & Safety contract: schema, file/decide write path, operator read path — **shipped**, 2026-08-23
 
 - `safety.cases`/`safety.decisions` tables (§3 above), RLS enabled,
   no policy (matching the established "reachable only through
