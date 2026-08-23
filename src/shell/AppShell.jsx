@@ -118,7 +118,7 @@ export function AppShell() {
   // "The platform never asks a person to classify themselves"). Every signed-in session
   // lands straight in CustomerApp — its Personal Workspace — the moment its profile and
   // catalog are ready. "I offer services" is never a forced first question; it's
-  // CustomerProfile.jsx's own real, reachable invitation (UNIFIED_PRODUCT_IA_REVIEW.md
+  // src/profile/Profile.jsx's own real, reachable invitation (UNIFIED_PRODUCT_IA_REVIEW.md
   // §5), always available, exactly matching "create an account, become a pro later."
   let body;
   if (authLoading || (session && !catalog && !catalogError) || (session && operatorCheckPending)) {

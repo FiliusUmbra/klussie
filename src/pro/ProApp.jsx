@@ -25,7 +25,7 @@ import { LoadingScreen } from "../ui/Loading.jsx";
 import { ProDashboard } from "./ProDashboard.jsx";
 import { ProJobs } from "./ProJobs.jsx";
 import { ProJobDetailSheet } from "./ProJobDetailSheet.jsx";
-import { ProProfile } from "./ProProfile.jsx";
+import { Profile } from "../profile/Profile.jsx";
 import { MyBusinessPanel } from "./MyBusinessPanel.jsx";
 import { SendQuoteSheet } from "./SendQuoteSheet.jsx";
 import { ProOnboarding } from "./ProOnboarding.jsx";
@@ -107,7 +107,7 @@ export function ProApp({ showToast }) {
         {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} onOpenJob={setOpenJob} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && (
-          <ProProfile proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} onPauseToggled={refreshLeads} onReplayTour={tour.replay} />
+          <Profile variant="pro" proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} onPauseToggled={refreshLeads} onReplayTour={tour.replay} />
         )}
         {tab === "business" && <MyBusinessPanel t={t} fmtDate={fmtDate} />}
       </div>

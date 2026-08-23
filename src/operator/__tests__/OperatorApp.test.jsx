@@ -7,7 +7,7 @@
 // BottomNav (the same component Customer/Pro share) replaces the old top segmented
 // control, so tabs are switched by their own visible label, not a `role="tab"` query
 // that no longer exists; identity/switcher/sign-out moved into their own Profile tab,
-// matching CustomerProfile.jsx/ProProfile.jsx's own placement exactly, so those tests
+// matching src/profile/Profile.jsx's own placement exactly, so those tests
 // navigate there first rather than finding them on every screen.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";

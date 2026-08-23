@@ -21,7 +21,8 @@ export function useProTour() {
   // reasoning: a pro who dismisses the tour has decided they've seen enough.
   //
   // updateProProfile here is src/lib/pros.js's own existing write (already used by
-  // ProProfile.jsx's setProType()/togglePaused()/boost()) — not a new function; the
+  // src/profile/Profile.jsx's own setProType()/togglePaused()/boost(), pro variant) —
+  // not a new function; the
   // (fields) => ... shape onboardingPrefs.js's own markProTourCompleted() expects is
   // just that same write, closed over the caller's own id, matching updateProfile()'s
   // identical shape in auth.jsx for the customer tour.
