@@ -440,7 +440,20 @@ not scoped as a work package here. See that document's own §2.3.
 - **Legacy replaced:** legacy `conversations`/`messages` tables, once
   the Conversation engine's own tables are the write path.
 
-### Slice 5 — Trust & Safety Activation
+### Slice 5 — Trust & Safety Activation — **Scoped**
+
+Full work-package breakdown and findings:
+`SLICE_5_TRUST_SAFETY_ACTIVATION.md`, written 2026-08-23. Real finding
+along the way: the enforcement primitive this slice needs
+(`workspace.withdraw_capability()`) already exists, correct and
+shipped since Epic 09 — this slice is largely a wiring problem
+(a real schema, a real caller, a real operator screen), not a new
+capability-model problem. Proposes a new `safety` schema (`safety.cases`/
+`safety.decisions`), a fourth Operator tab reusing the existing
+Audit/Workspace Lookup shape, and cutting `ReportSheet.jsx` over from
+the legacy `public.reports` table (real data, zero readers today).
+`is_certified` verification and "operator roles, plural" are both
+named, real, deliberately deferred — see that document's own §2.3/§2.4.
 
 *Beta 1 ships at the end of this slice.*
 
