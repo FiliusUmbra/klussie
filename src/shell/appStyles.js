@@ -25,7 +25,6 @@ export const APP_CSS = `
 .stage{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:radial-gradient(circle at 30% 20%, #24382e 0%, #121b16 70%); padding:32px 16px; font-family:var(--font-body); }
 .topbar{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; }
 .role-switch{ display:flex; align-items:center; gap:10px; }
-.role-switch-label{ color:#c9d6cd; font-size:12px; }
 .segmented{ display:flex; background:rgba(255,255,255,0.08); border-radius:999px; padding:3px; }
 .segmented button{ border:none; background:none; color:#c9d6cd; font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:999px; cursor:pointer; font-family:var(--font-body); }
 .segmented .seg-on{ background:var(--surface); color:var(--forest); }
