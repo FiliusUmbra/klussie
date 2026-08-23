@@ -412,7 +412,24 @@ test records don't constitute.
 - **Legacy replaced:** hand-computed trust score; the flat "mark
   complete" action.
 
-### Slice 4 — Conversation & Notification Activation
+### Slice 4 — Conversation & Notification Activation — **WP 4.0 shipped, WP 4.1/4.2 next**
+
+Full work-package breakdown and findings:
+`SLICE_4_CONVERSATION_NOTIFICATION_ACTIVATION.md`, written 2026-08-22.
+Real finding along the way: Conversation is **not** a gap — `src/lib/
+messages.js`'s own header confirms `work.conversations`/`work.messages`
+is already the live path (Realtime, translation, read receipts all
+real), so this slice's Conversation half is functionally already
+activated. Notification is the real gap, and it is the identical shape
+Slice 3 opened with: Epic 19 (0115-0118) built a complete backend —
+including `platform.my_inbox()`, already correctly `auth.uid()`-scoped
+— that zero client code references and, unlike Service Records,
+**nothing anywhere even calls** (`grep` for `raise_notification` finds
+only its own definition). "No notifications outside an open tab," the
+platform risk named below, is **not** solved by the contract alone —
+that is browser push delivery, a real infrastructure decision
+requiring the platform owner's own approval, named but deliberately
+not scoped as a work package here. See that document's own §2.3.
 
 - **Homeowner:** the one inbox (`ROADMAP_A` §3.2, Phase A3).
 - **Professional:** the same inbox mechanism carries leads, messages
