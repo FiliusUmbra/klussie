@@ -1,4 +1,4 @@
-// The unified "themselves" screen — SLICE_5_UNIFIED_PROFILE_DESIGN.md, implementing
+// The unified "themselves" screen — UNIFIED_PROFILE_DESIGN.md, implementing
 // UNIFIED_PRODUCT_IA_REVIEW.md §2/§9.3: one screen owned by subject, not by backend role,
 // revealing more sections as capability grows rather than three separate files that happen
 // to look similar because one was built by copying the other.

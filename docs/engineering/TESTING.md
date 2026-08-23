@@ -281,7 +281,7 @@ does something else worth pinning — see the corrected row below.
 
 ### 5.7 · Profile
 
-**SLICE_5_UNIFIED_PROFILE_DESIGN.md, 2026-08-23.** `CustomerProfile.jsx`
+**UNIFIED_PROFILE_DESIGN.md, 2026-08-23.** `CustomerProfile.jsx`
 and `ProProfile.jsx` — two separate files duplicating five identical
 sections (identity header, switchers, help/replay-tour, edit profile,
 sign out) — are folded into one component, `Profile.jsx`, taking a
@@ -370,7 +370,7 @@ being flows themselves: `CustomerApp.jsx`, `ProApp.jsx`.
 audience-specific subtitle, the block `Profile.jsx`'s two variants
 share), `StatRow.jsx` (the `stat-row` markup both variants share),
 `SignOutButton.jsx` (shared by `Profile.jsx` and `OperatorApp.jsx`
-alike — SLICE_5_UNIFIED_PROFILE_DESIGN.md §5 step 4).
+alike — UNIFIED_PROFILE_DESIGN.md §5 step 4).
 
 ## 8 · Updating this baseline
 
