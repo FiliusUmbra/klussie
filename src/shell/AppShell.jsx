@@ -40,7 +40,7 @@ export function AppShell() {
   const [becomeProOpen, setBecomeProOpen] = useState(false);
   const [operatorCheck, setOperatorCheck] = useState({ workspaceId: null, result: false });
   const toastTimer = useRef(null);
-  const { session, loading: authLoading, proProfile, workspaceMemberships = [], activeWorkspace } = useAuth();
+  const { session, loading: authLoading, proProfile, workspaceMemberships = [], activeWorkspace, setActiveWorkspaceId } = useAuth();
 
   // Epic 03 WP12 — only a person with two or more REAL, resolved workspaces (today: an
   // existing pro's Personal + Professional pair, WP 03.03/03.04's backfill) gets the real
@@ -160,7 +160,19 @@ export function AppShell() {
           <div className="statusbar"><span>9:41</span><span className="statusbar-dots">\u2022 \u2022 \u2022</span></div>
           <div className="screen">
             {body}
-            {becomeProOpen && <BecomeProSheet onClose={() => setBecomeProOpen(false)} onDone={() => { setBecomeProOpen(false); setRole("pro"); }} />}
+            {becomeProOpen && (
+              <BecomeProSheet
+                onClose={() => setBecomeProOpen(false)}
+                onDone={(workspaceId) => {
+                  setBecomeProOpen(false);
+                  setRole("pro");
+                  // 0168_professional_workspace_provisioning.sql's own consequence — see
+                  // becomePro()'s own comment in auth.jsx for why this is now required,
+                  // not optional, the instant a real second membership exists.
+                  if (workspaceId) setActiveWorkspaceId(workspaceId);
+                }}
+              />
+            )}
           </div>
           {toast && <div className="toast">{toast}</div>}
         </div>

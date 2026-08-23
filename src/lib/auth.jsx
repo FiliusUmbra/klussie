@@ -225,17 +225,47 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   };
 
+  // 0168_professional_workspace_provisioning.sql — a real, atomic write, not the raw
+  // pro_profiles insert this used to be. Found while fixing "become a pro"
+  // discoverability (UNIFIED_PRODUCT_IA_REVIEW.md §5): that raw insert never created a
+  // Professional Workspace at all, so a new pro landed on ProApp with no real
+  // performing_workspace_id to act through. Same identifier discipline
+  // newAccountProvisioningIds() already established for signup itself — the client
+  // mints every id this transaction needs (ADR-0022), api.become_pro() does the rest
+  // atomically. refreshProfile() below already reloads workspaceMemberships (see its
+  // own body).
+  //
+  // RETURNS workspaceId — A REAL, ONE-TURN CONSEQUENCE OF FIXING THE DATA BUG ITSELF
+  //
+  // Once a real second membership exists, deriveEffectiveRole() (workspaceContext.js)
+  // stops consulting the `role` toggle at all and switches to reading activeWorkspace
+  // directly — and resolveActiveWorkspace() defaults a fresh multi-workspace person to
+  // their PERSONAL workspace (§27's own "becomes a pro without losing their customer
+  // view" design). Without this, AppShell's own `setRole("pro")` after BecomeProSheet
+  // closes would silently stop doing anything the instant this fix takes effect, and a
+  // person who just became a pro would land back on their customer view instead of
+  // ProApp. The caller uses this id to set the switcher's own preference explicitly
+  // (setActiveWorkspaceId) — the same mechanism the switcher itself already uses,
+  // applied once, automatically, at the one moment it would otherwise go stale.
   const becomePro = async ({ proType, businessName, vatNumber, bio }) => {
     if (!session?.user) throw new Error("Not signed in.");
-    const { error } = await supabase.from("pro_profiles").insert({
-      profile_id: session.user.id,
-      pro_type: proType,
-      business_name: businessName || null,
-      vat_number: vatNumber || null,
-      bio: bio || null,
+    const workspaceId = uuidv7();
+    const { error } = await supabase.schema("api").rpc("become_pro", {
+      p_workspace_id: workspaceId,
+      p_membership_id: uuidv7(),
+      p_pro_type: proType,
+      p_business_name: businessName || null,
+      p_vat_number: vatNumber || null,
+      p_bio: bio || null,
+      p_workspace_event_id: uuidv7(),
+      p_membership_event_id: uuidv7(),
+      p_correlation_id: uuidv7(),
+      p_actor_type: "person",
+      p_actor_ref: session.user.id,
     });
     if (error) throw error;
     await refreshProfile(session.user.id);
+    return { workspaceId };
   };
 
   const updateProfile = async (fields) => {

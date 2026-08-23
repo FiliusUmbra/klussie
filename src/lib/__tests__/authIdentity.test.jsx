@@ -25,6 +25,7 @@ const signUp = vi.fn();
 const signInWithOtp = vi.fn();
 const signInWithPassword = vi.fn();
 const signInWithOAuth = vi.fn();
+const apiRpc = vi.fn();
 
 // Every table touched and every update payload, so a test can assert not just what was
 // written but that nothing else was.
@@ -70,6 +71,12 @@ vi.mock("../supabaseClient", () => ({
         },
       };
     },
+    // api.become_pro() (0168) — the caller-scoped schema every real api.* write this
+    // codebase makes goes through, distinct from the top-level .rpc() above (which is
+    // only ever current_identity, on the default public schema).
+    schema: (name) => ({
+      rpc: (fn, args) => apiRpc(name, fn, args),
+    }),
   },
 }));
 
@@ -101,6 +108,7 @@ beforeEach(() => {
   signInWithOtp.mockResolvedValue({ error: null });
   signInWithPassword.mockResolvedValue({ error: null });
   signInWithOAuth.mockResolvedValue({ error: null });
+  apiRpc.mockResolvedValue({ error: null });
 });
 
 describe("signup carries an application-generated person reference", () => {
@@ -229,6 +237,78 @@ describe("signing in is not signing up", () => {
     const [options] = signInWithOAuth.mock.calls[0];
     expect(options.provider).toBe("google");
     expect(options.options.data).toBeUndefined();
+  });
+});
+
+// 0168_professional_workspace_provisioning.sql — becomePro() used to be a raw insert
+// into pro_profiles that never created a real Professional Workspace at all
+// (UNIFIED_PRODUCT_IA_REVIEW.md §5's own finding, made while fixing "become a pro"
+// discoverability). Same identifier discipline as signup itself: every id this
+// transaction needs comes from the client, none minted by the database.
+describe("becomePro() — a real, atomic write, not the raw insert it used to be", () => {
+  // apiRpc also sees loadWorkspaceMemberships()'s own api.list_my_workspaces calls (on
+  // mount, and again from becomePro()'s own refreshProfile() at the end) — every
+  // assertion below finds the become_pro call specifically rather than assuming it's
+  // the only one.
+  function becomeProCall() {
+    const call = apiRpc.mock.calls.find(([, fn]) => fn === "become_pro");
+    if (!call) throw new Error("api.become_pro was never called");
+    return call;
+  }
+
+  it("calls api.become_pro (not a raw pro_profiles insert) with every real UUIDv7 id it needs", async () => {
+    const auth = renderAuth();
+    await waitFor(() => expect(auth()?.session).toBeTruthy());
+
+    await auth().becomePro({ proType: "flexi", businessName: "", vatNumber: "", bio: "Handy." });
+
+    const [schemaName, fn, args] = becomeProCall();
+    expect(schemaName).toBe("api");
+    expect(fn).toBe("become_pro");
+    expect(args.p_pro_type).toBe("flexi");
+    expect(args.p_bio).toBe("Handy.");
+    for (const field of ["p_workspace_id", "p_membership_id", "p_workspace_event_id", "p_membership_event_id", "p_correlation_id"]) {
+      expect(args[field], `${field} missing or not a UUIDv7`).toMatch(V7);
+    }
+    // Five distinct ids, not one reused for several fields — a duplicate here would mean
+    // two aggregates the database expects to be independent sharing an identity.
+    const ids = ["p_workspace_id", "p_membership_id", "p_workspace_event_id", "p_membership_event_id", "p_correlation_id"].map((f) => args[f]);
+    expect(new Set(ids).size).toBe(5);
+    // pro_profiles is still read (loadProfile()'s own select, inside the refreshProfile()
+    // this triggers) but never written directly from the client any more — that insert
+    // now happens inside api.become_pro() itself, server-side.
+    expect(writes.some((w) => w.table === "pro_profiles")).toBe(false);
+  });
+
+  it("turns empty strings into null, matching the raw insert's own established behaviour", async () => {
+    const auth = renderAuth();
+    await waitFor(() => expect(auth()?.session).toBeTruthy());
+
+    await auth().becomePro({ proType: "flexi", businessName: "", vatNumber: "", bio: "" });
+
+    const [, , args] = becomeProCall();
+    expect(args.p_business_name).toBeNull();
+    expect(args.p_vat_number).toBeNull();
+    expect(args.p_bio).toBeNull();
+  });
+
+  it("returns the new workspace id — AppShell needs it to set the switcher's own preference", async () => {
+    const auth = renderAuth();
+    await waitFor(() => expect(auth()?.session).toBeTruthy());
+
+    const result = await auth().becomePro({ proType: "flexi", businessName: "", vatNumber: "", bio: "" });
+
+    const [, , args] = becomeProCall();
+    expect(result.workspaceId).toBe(args.p_workspace_id);
+  });
+
+  it("throws the real error rather than swallowing it", async () => {
+    apiRpc.mockResolvedValue({ error: new Error("object_not_in_prerequisite_state") });
+    const auth = renderAuth();
+    await waitFor(() => expect(auth()?.session).toBeTruthy());
+
+    await expect(auth().becomePro({ proType: "flexi", businessName: "", vatNumber: "", bio: "" }))
+      .rejects.toThrow("object_not_in_prerequisite_state");
   });
 });
 
