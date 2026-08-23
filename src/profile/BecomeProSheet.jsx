@@ -21,8 +21,8 @@ export function BecomeProSheet({ onClose, onDone }) {
     setError("");
     setBusy(true);
     try {
-      await becomePro({ proType, businessName, vatNumber, bio });
-      onDone();
+      const { workspaceId } = await becomePro({ proType, businessName, vatNumber, bio });
+      onDone(workspaceId);
     } catch (err) {
       setError(err.message);
     } finally {
