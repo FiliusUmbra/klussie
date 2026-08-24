@@ -9,13 +9,16 @@
 than restates.
 
 **Status.** WP 5.0 shipped (migration `0171_trust_safety_contract.sql`,
-statically tested in
-`supabase/migrations/__tests__/trustSafetyContract.test.js`, applied
-live to staging with a real `api.file_case()` call verified end to
-end). WP 5.1 and WP 5.2 are scoped below, not yet built — WP 5.2 is
-next (§5's own recommended order). Originally written after Slice 4's
-own close (all 3 WPs shipped and live-verified, PRs #90/#91/#93, plus
-infra fixes #92/#94). Slice 5 is the last slice before Beta 1:
+statically tested, applied live to staging with a real `api.file_case()`
+call verified end to end). WP 5.2 shipped too — the operator's own
+Trust & Safety tab (`TrustSafetyQueue.jsx`/`CaseDetailSheet.jsx`,
+`src/lib/trustSafety.js`), 26 new client-side tests, clean lint/build.
+The read/decision UI paths were verified against the real contract's
+exact shape via unit tests, not clicked through live — no standing
+operator test account exists.
+WP 5.1 (`ReportSheet.jsx`'s own cutover) is next and last — small,
+low-risk, safe to land whenever convenient now that both the contract
+and its real consumer exist. Slice 5 is the last slice before Beta 1:
 *"Beta 1 ships at the end of this slice."*
 
 ---
@@ -253,7 +256,7 @@ report is always filed from a real engagement's own detail sheet
 (today's only real entry point) — the workspace is already on hand
 there.
 
-### WP 5.2 — Client: the operator's own Trust & Safety tab
+### WP 5.2 — Client: the operator's own Trust & Safety tab — **shipped**, 2026-08-23
 
 Depends on WP 5.0. A fourth tab on `OperatorApp.jsx`'s existing
 `BottomNav` (Audit / Workspaces / Trust & Safety / Profile), following

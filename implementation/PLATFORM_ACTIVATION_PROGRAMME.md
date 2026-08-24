@@ -440,7 +440,7 @@ not scoped as a work package here. See that document's own §2.3.
 - **Legacy replaced:** legacy `conversations`/`messages` tables, once
   the Conversation engine's own tables are the write path.
 
-### Slice 5 — Trust & Safety Activation — **WP 5.0 shipped, WP 5.2 next**
+### Slice 5 — Trust & Safety Activation — **WP 5.0/5.2 shipped, WP 5.1 next**
 
 Full work-package breakdown and findings:
 `SLICE_5_TRUST_SAFETY_ACTIVATION.md`, written 2026-08-23. Real finding

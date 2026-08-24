@@ -39,13 +39,16 @@
 // precise backend terms are a tool for them, not a leak. Revisit only if that audience
 // assumption changes — an operator surface a customer-facing person could ever see.
 import { useState } from "react";
-import { ScrollText, Search, User } from "lucide-react";
+import { Flag, ScrollText, Search, User } from "lucide-react";
 import { useAuth } from "../lib/auth.jsx";
 import { WorkspaceSwitcher } from "../shell/WorkspaceSwitcher.jsx";
 import { SignOutButton } from "../profile/SignOutButton.jsx";
 import { BottomNav } from "../ui/BottomNav.jsx";
 import { AuditLog } from "./AuditLog.jsx";
 import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
+import { TrustSafetyQueue } from "./TrustSafetyQueue.jsx";
+import { CaseDetailSheet } from "./CaseDetailSheet.jsx";
+import { fetchCaseDetail } from "../lib/trustSafety.js";
 
 // UNIFIED_PROFILE_DESIGN.md §5 step 4 — the real WorkspaceSwitcher/SignOutButton,
 // not a hand-written second implementation. The switcher used to reimplement
@@ -60,6 +63,7 @@ const OPERATOR_FALLBACK_LABELS = { workspaceFallbackHome: "Home", workspaceFallb
 const TABS = [
   { id: "audit", label: "Audit", icon: ScrollText },
   { id: "lookup", label: "Workspaces", icon: Search },
+  { id: "reports", label: "Reports", icon: Flag },
   { id: "profile", label: "Profile", icon: User },
 ];
 
@@ -69,11 +73,33 @@ export function OperatorApp() {
   // workspace-id filter from it (AuditLog.jsx's own initialWorkspaceId prop) — a plain
   // id string is enough since AuditLog is remounted on every tab switch, never hidden.
   const [auditWorkspaceId, setAuditWorkspaceId] = useState(null);
-  const { signOut } = useAuth();
+  // Slice 5, WP 5.2 — Trust & Safety's own queue/detail state. openCaseId is which case's
+  // detail sheet is open (null = closed); queueRefreshKey is bumped after a decision is
+  // recorded so the next TrustSafetyQueue mount re-fetches — the same "remount rather than
+  // thread a refetch callback down" shape AuditLog/WorkspaceLookup already keep simple.
+  const [openCaseId, setOpenCaseId] = useState(null);
+  const [caseDetail, setCaseDetail] = useState(null);
+  const [queueRefreshKey, setQueueRefreshKey] = useState(0);
+  const { user, signOut } = useAuth();
 
   const viewAuditFor = (workspaceId) => {
     setAuditWorkspaceId(workspaceId);
     setTab("audit");
+  };
+
+  const openCase = (caseId) => {
+    setOpenCaseId(caseId);
+    fetchCaseDetail(caseId).then(setCaseDetail);
+  };
+
+  const closeCase = () => {
+    setOpenCaseId(null);
+    setCaseDetail(null);
+  };
+
+  const onDecided = () => {
+    closeCase();
+    setQueueRefreshKey((k) => k + 1);
   };
 
   return (
@@ -88,6 +114,12 @@ export function OperatorApp() {
         {tab === "lookup" && (
           <div className="pad">
             <WorkspaceLookup onViewAudit={viewAuditFor} />
+          </div>
+        )}
+
+        {tab === "reports" && (
+          <div className="pad">
+            <TrustSafetyQueue onOpenCase={openCase} refreshKey={queueRefreshKey} />
           </div>
         )}
 
@@ -108,6 +140,10 @@ export function OperatorApp() {
       </div>
 
       <BottomNav tab={tab} setTab={setTab} items={TABS} />
+
+      {openCaseId && caseDetail && (
+        <CaseDetailSheet caseDetail={caseDetail} actorRef={user.id} onClose={closeCase} onDecided={onDecided} />
+      )}
     </div>
   );
 }
