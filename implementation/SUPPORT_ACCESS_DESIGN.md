@@ -10,14 +10,17 @@ assumed. It does not restate
 [`SYSTEM_ARCHITECTURE.md`](../docs/architecture/SYSTEM_ARCHITECTURE.md)
 §12.3, which govern this and are applied rather than repeated below.
 
-**Status.** WP S.0 shipped (migration `0172_support_access_contract.sql`,
-statically tested, applied live to staging — a non-operator caller
-confirmed live-refused with the exact expected error, proving the full
-`api.grant_support_access()` → `_for_caller` → auth-check chain is
-real and reachable). WP S.1 (client) is next.
-`PLATFORM_ACTIVATION_PROGRAMME.md` marks Slice 0 / Phase C2
-"Complete," and it is, for what it actually built —
-`WorkspaceLookup.jsx`, a real read-only search-and-inspect tool. §3.2's
+**Status: both work packages shipped.** WP S.0 (migration
+`0172_support_access_contract.sql`, statically tested, applied live to
+staging — a non-operator caller confirmed live-refused with the exact
+expected error, proving the full `api.grant_support_access()` →
+`_for_caller` → auth-check chain is real and reachable) and WP S.1 (a
+real "Request access" button on `WorkspaceLookup.jsx`, opening
+`SupportAccessSheet.jsx` — the purpose/duration form, the grant
+history, "End access" on an active grant) both shipped.
+`PLATFORM_ACTIVATION_PROGRAMME.md` marked Slice 0 / Phase C2
+"Complete" for what it had actually built at the time —
+`WorkspaceLookup.jsx`'s own read-only search-and-inspect half. §3.2's
 own second half — *"a button that starts the same time-boxed, scoped,
 consent-governed membership flow a contractor uses"* — was never
 built until now. Named in that same document as *"the single
@@ -219,9 +222,20 @@ chain end to end. The positive (real-operator) path was not separately
 live-exercised — no standing operator test account exists, matching
 every other operator-only contract this programme has shipped.
 
-**WP S.1 — client: the request-access button and active-grants list.**
-Depends on WP S.0. Small, on the existing `WorkspaceLookup.jsx`
-surface — no new tab, no new navigation pattern.
+**WP S.1 — client: the request-access button and active-grants list —
+shipped, 2026-08-24.** A "Request access" button beside "View audit
+trail" on `WorkspaceLookup.jsx`'s own result card, opening
+`SupportAccessSheet.jsx` (`Drawer`) — a purpose/duration form, the
+full grant history for that workspace (active, expired and ended
+alike), and "End access" on any currently-active one. No new tab, no
+new navigation pattern, self-contained within `WorkspaceLookup.jsx`
+rather than threaded up to `OperatorApp.jsx` — unlike "View audit
+trail," granting access never changes what the search results
+themselves show. 18 new tests (`supportAccess.js`'s own client
+library, `SupportAccessSheet.jsx`, `WorkspaceLookup.jsx`'s own
+integration). Not separately live-clicked-through — same standing-
+operator-account constraint as WP S.0; a real console check confirmed
+the new code loads and bundles cleanly with zero errors.
 
 **Not scoped here, named as real future work:**
 - Workspace-configurable consent (§1.4) — blocked on a setting that

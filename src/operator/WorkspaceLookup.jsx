@@ -8,10 +8,17 @@
 // "View audit trail" hands a workspace id to the Audit tab rather than duplicating any
 // of AuditLog's own fetch/render logic here — one read surface per real question, per
 // the same restraint every other panel in this codebase already holds.
+//
+// "Request access" (Support access, WP S.1) opens SupportAccessSheet in place, self-
+// contained here rather than threaded up to OperatorApp.jsx the way "View audit trail"
+// is — unlike that button, granting access never needs to change what this screen's own
+// search results show, so there is no cross-component state to lift.
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Card, Badge } from "../design-system";
+import { useAuth } from "../lib/auth.jsx";
 import { searchWorkspaces, WORKSPACE_LOOKUP_PAGE_SIZE } from "../lib/workspaceLookup";
+import { SupportAccessSheet } from "./SupportAccessSheet.jsx";
 
 function truncateId(id) {
   if (!id) return "—";
@@ -23,8 +30,10 @@ function formatDate(iso) {
 }
 
 export function WorkspaceLookup({ onViewAudit }) {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
+  const [accessWorkspace, setAccessWorkspace] = useState(null);
   // Keyed by the exact `appliedQuery` value the fetch was made for — the same identity/
   // value-comparison shape AuditLog.jsx's own `result` state already uses, avoiding a
   // synchronous setState inside the effect body (react-hooks/set-state-in-effect).
@@ -108,16 +117,16 @@ export function WorkspaceLookup({ onViewAudit }) {
               ))}
             </div>
           )}
-          {onViewAudit && (
-            <button
-              type="button"
-              className="btn-secondary"
-              style={{ marginTop: 8 }}
-              onClick={() => onViewAudit(profile.id)}
-            >
-              View audit trail
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            {onViewAudit && (
+              <button type="button" className="btn-secondary" onClick={() => onViewAudit(profile.id)}>
+                View audit trail
+              </button>
+            )}
+            <button type="button" className="btn-secondary" onClick={() => setAccessWorkspace({ id: profile.id, name: profile.name })}>
+              Request access
             </button>
-          )}
+          </div>
         </Card>
       ))}
 
@@ -125,6 +134,15 @@ export function WorkspaceLookup({ onViewAudit }) {
         <button type="button" className="btn-secondary" onClick={loadMore} style={{ width: "100%" }}>
           Load more
         </button>
+      )}
+
+      {accessWorkspace && (
+        <SupportAccessSheet
+          workspaceId={accessWorkspace.id}
+          workspaceName={accessWorkspace.name}
+          actorRef={user.id}
+          onClose={() => setAccessWorkspace(null)}
+        />
       )}
     </div>
   );
