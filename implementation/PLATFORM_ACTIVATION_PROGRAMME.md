@@ -286,10 +286,13 @@ unmet acceptance criterion: `SLICE_0_ACTIVATION_INFRASTRUCTURE.md` §6.
   `platform.write_audit_record()` today. Closing it is a later slice's
   job (wiring a real audited action — a support-access grant, a
   capability withdrawal — to an actual caller), not Slice 0's.
-  **Scoped, not yet built:** `SUPPORT_ACCESS_DESIGN.md`, written
-  2026-08-24 — the support-access grant `ROADMAP_C` §3.2 names as
-  Phase C2's own second half (never actually built; only the read-only
-  search tool was) is this gap's real, planned first closer.
+  **WP S.0 shipped, 2026-08-24** (`SUPPORT_ACCESS_DESIGN.md`,
+  migration `0172_support_access_contract.sql`) — the support-access
+  grant `ROADMAP_C` §3.2 names as Phase C2's own second half (never
+  actually built; only the read-only search tool was) now has a real
+  contract, and `platform.audit_records` a real first client-reachable
+  caller. WP S.1 (client: the request-access button on
+  `WorkspaceLookup.jsx`) is next.
 
 ### Slice 1 — Property & Asset Activation — **Complete except WP 1.9**
 

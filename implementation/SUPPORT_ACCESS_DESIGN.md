@@ -10,13 +10,18 @@ assumed. It does not restate
 [`SYSTEM_ARCHITECTURE.md`](../docs/architecture/SYSTEM_ARCHITECTURE.md)
 §12.3, which govern this and are applied rather than repeated below.
 
-**Status.** Scoping. `PLATFORM_ACTIVATION_PROGRAMME.md` marks Slice 0 /
-Phase C2 "Complete," and it is, for what it actually built —
+**Status.** WP S.0 shipped (migration `0172_support_access_contract.sql`,
+statically tested, applied live to staging — a non-operator caller
+confirmed live-refused with the exact expected error, proving the full
+`api.grant_support_access()` → `_for_caller` → auth-check chain is
+real and reachable). WP S.1 (client) is next.
+`PLATFORM_ACTIVATION_PROGRAMME.md` marks Slice 0 / Phase C2
+"Complete," and it is, for what it actually built —
 `WorkspaceLookup.jsx`, a real read-only search-and-inspect tool. §3.2's
 own second half — *"a button that starts the same time-boxed, scoped,
 consent-governed membership flow a contractor uses"* — was never
-built. Named in that same document as *"the single highest-priority
-screen for operating Beta 1 responsibly."*
+built until now. Named in that same document as *"the single
+highest-priority screen for operating Beta 1 responsibly."*
 
 ---
 
@@ -152,15 +157,24 @@ workspace) — support access per §3.2 is "capabilities held,
 subscription tier, membership list, property count, recent activity,"
 not a single property the way contractor access is.
 
-**`workspace.grant_support_access_for_caller()`** — `SECURITY
-DEFINER`, mirrors `workspace.grant_engagement_access()`'s own shape:
-resolves the operator's own identity, requires `platform_operations`
-(the same check `safety.record_decision_for_caller()` already uses),
-requires a real, non-blank stated purpose and a real expiry (bounded —
-a maximum duration, matching the 90-day *safety-net* framing WP 2.4's
-own grant uses, though here the cap should be short — hours to a few
-days, not months, since this is an active support session, not a
-standing relationship). Mints the membership row, calls
+**`workspace.grant_support_access_for_caller()`** — like every other
+`_for_caller` function this programme has built, plain (not `SECURITY
+DEFINER` itself — reached through `api.grant_support_access()`'s own
+`SECURITY DEFINER`, whose elevation to `postgres` is what actually
+lets it write into `workspace.memberships` and call
+`platform.write_audit_record()`, the same mechanism the Trust & Safety
+contract's own comment documents in full). Resolves the operator's own
+identity, requires `platform_operations`, requires a real, non-blank
+stated purpose and a bounded duration (shipped as 1-72 hours — an
+active support session, not a standing relationship, unlike WP 2.4's
+own 90-day *safety-net* framing for a different kind of grant). Mints
+the membership row (`role = 'support'`, `scope = null` — unscoped
+within that one workspace), writes the purpose to a new, narrow
+`workspace.support_access_grants` table (keyed 1:1 by the membership's
+own id — a refinement over this section's own original
+`granting_support_request_id` sketch: there is no separate "request"
+entity to reference, so the grant's own extra fact — why — is stored
+directly, without inventing one), calls
 `platform.write_audit_record()` (§1.5), emits
 `workspace.support_access.granted`.
 
@@ -171,13 +185,16 @@ for when an operator finishes early. Also writes an audit record
 (`platform.write_audit_record()`, outcome `'permitted'`) and emits
 `workspace.support_access.ended`.
 
-**Read functions** — new, operator-only, matching §1.3(a)'s own
-resolution: a workspace's own operator-facing profile (exactly
-`search_workspaces()`'s own existing row shape already provides most
-of this — capabilities, membership count, property count, last
-activity — reuse it, do not rebuild it) plus which grants are
-currently active for that workspace, each showing its own purpose,
-operator, granted-at, expires-at.
+**Read function** — `workspace.support_access_grants_for_caller()`,
+new, operator-only, matching §1.3(a)'s own resolution: every grant
+ever made for one workspace (active, expired and ended alike, most
+recent first — real history, not only "what's live now"), each
+showing its own purpose, operator, granted-at, expires-at, and a
+computed status. The workspace's own operator-facing profile itself
+(capabilities, membership count, property count, last activity) needs
+no new function at all — `search_workspaces()`'s own existing row
+shape, queried by workspace id, already provides it; reused, not
+rebuilt.
 
 **Client:** on `WorkspaceLookup.jsx`'s own result card, a "Request
 access" button beside "View audit trail" — the same list-into-action
@@ -189,11 +206,18 @@ question rather than defaulting silently.
 
 ## 3 · Work packages
 
-**WP S.0 — the contract.** `granting_support_request_id` column,
+**WP S.0 — the contract — shipped, 2026-08-24.**
+`workspace.support_access_grants` (the purpose-only table, §2),
 `grant_support_access_for_caller()`/`end_support_access_for_caller()`,
-the two new operator-only reads, `api.*` delegates. Every id
+the one new operator-only read, three `api.*` delegates. Every id
 client-minted (matching `becomePro()`/Trust & Safety's own real-time,
 human-initiated-action precedent, not the consumer-minting pattern).
+25 new structural tests; applied live to staging — a non-operator
+caller confirmed live-refused with the exact expected error, proving
+the real `api.grant_support_access()` → `_for_caller` → auth-check
+chain end to end. The positive (real-operator) path was not separately
+live-exercised — no standing operator test account exists, matching
+every other operator-only contract this programme has shipped.
 
 **WP S.1 — client: the request-access button and active-grants list.**
 Depends on WP S.0. Small, on the existing `WorkspaceLookup.jsx`
