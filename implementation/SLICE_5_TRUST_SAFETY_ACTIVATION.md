@@ -8,18 +8,29 @@
 §3.3/§5.1's own product framing, which this document applies rather
 than restates.
 
-**Status.** WP 5.0 shipped (migration `0171_trust_safety_contract.sql`,
-statically tested, applied live to staging with a real `api.file_case()`
-call verified end to end). WP 5.2 shipped too — the operator's own
-Trust & Safety tab (`TrustSafetyQueue.jsx`/`CaseDetailSheet.jsx`,
-`src/lib/trustSafety.js`), 26 new client-side tests, clean lint/build.
-The read/decision UI paths were verified against the real contract's
-exact shape via unit tests, not clicked through live — no standing
-operator test account exists.
-WP 5.1 (`ReportSheet.jsx`'s own cutover) is next and last — small,
-low-risk, safe to land whenever convenient now that both the contract
-and its real consumer exist. Slice 5 is the last slice before Beta 1:
-*"Beta 1 ships at the end of this slice."*
+**Status: all 3 work packages shipped. Slice 5 is complete.**
+
+WP 5.0 (migration `0171_trust_safety_contract.sql`, statically tested,
+applied live to staging with a real `api.file_case()` call verified end
+to end) and WP 5.2 (the operator's own Trust & Safety tab —
+`TrustSafetyQueue.jsx`/`CaseDetailSheet.jsx`, `src/lib/trustSafety.js`,
+26 client-side tests) both shipped first. WP 5.1 —
+`ReportSheet.jsx`'s own cutover off the legacy `public.reports` table
+— shipped last: `bookedQuote.workspaceId` (a real workspace id,
+`offering_workspace_id`, exposed from `requests.js`'s own reshape for
+the first time) replaces `bookedQuote.proId` (a person) as what gets
+reported, since `safety.file_case_for_caller()` needs a workspace to
+act on, not a person. Live-verified through the real UI end to end —
+filed as `customer@staging.klussie.test`, against a real booked
+engagement, reason "Slechte kwaliteit," the sheet's own real success
+state ("Melding verzonden") confirming `api.file_case()` resolved
+without error.
+
+**Per the Programme's own words — "Beta 1 ships at the end of this
+slice" — this is Beta 1's own gating milestone**, now met from Slice 5's
+own side. Whether the Programme's broader Activation Ratio threshold
+(§4) is also met across Slices 0-5 is a separate determination this
+document does not make.
 
 ---
 
@@ -241,7 +252,7 @@ evidence into `safety`'s own tables.
   deliberately deferred decision, not an oversight — add it if a
   concrete need for it surfaces.
 
-### WP 5.1 — Client: `ReportSheet.jsx` cuts over to the real contract
+### WP 5.1 — Client: `ReportSheet.jsx` cuts over to the real contract — **shipped**, 2026-08-23
 
 Depends on WP 5.0. `src/lib/reports.js`'s `submitReport()` calls
 `api.file_case()` instead of the legacy table insert — same shape as
