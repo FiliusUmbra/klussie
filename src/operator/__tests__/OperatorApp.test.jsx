@@ -36,6 +36,7 @@ beforeEach(() => {
   // Single membership by default; the dedicated test below overrides this to exercise
   // the multi-workspace branch.
   useAuthMock.mockReturnValue({
+    user: { id: "operator-auth-1" },
     workspaceMemberships: [{ workspace_id: "ops-ws", workspace_name: "Klussie Operations", workspace_type: "business" }],
     activeWorkspace: { workspace_id: "ops-ws" },
     setActiveWorkspaceId,
@@ -44,12 +45,13 @@ beforeEach(() => {
 });
 
 describe("OperatorApp", () => {
-  it("shows three tabs on the same BottomNav Customer/Pro share, Audit selected by default", async () => {
+  it("shows four tabs on the same BottomNav Customer/Pro share, Audit selected by default", async () => {
     render(<OperatorApp />);
 
     await waitFor(() => expect(screen.getByText("No matching audit records.")).toBeTruthy());
     expect(screen.getByText("Audit").closest("button").className).toContain("tab-on");
     expect(screen.getByText("Workspaces").closest("button").className).not.toContain("tab-on");
+    expect(screen.getByText("Reports").closest("button").className).not.toContain("tab-on");
     expect(screen.getByText("Profile").closest("button").className).not.toContain("tab-on");
   });
 
@@ -150,6 +152,7 @@ describe("OperatorApp", () => {
 
   it("falls back to a human label, never the raw backend type, for an unnamed membership", () => {
     useAuthMock.mockReturnValue({
+      user: { id: "operator-auth-1" },
       workspaceMemberships: [
         { workspace_id: "ops-ws", workspace_name: null, workspace_type: "business" },
         { workspace_id: "personal-ws", workspace_name: "My Home", workspace_type: "personal" },
@@ -164,5 +167,127 @@ describe("OperatorApp", () => {
 
     expect(screen.getByText("Business")).toBeTruthy();
     expect(screen.queryByText("business")).toBeNull();
+  });
+});
+
+// Slice 5, WP 5.2 — the Trust & Safety tab: a fourth tab on the same shell, following
+// AuditLog/WorkspaceLookup's own established shape (a list that opens into a detail view).
+describe("OperatorApp — Reports tab (Trust & Safety, WP 5.2)", () => {
+  const CASE_ROW = {
+    case_id: "case-1",
+    reporter_name: "Cathy Customer",
+    reported_workspace_id: "pro-ws-1",
+    reported_workspace_name: "Pierre's Painting",
+    category: "poor_quality",
+    status: "open",
+    created_at: "2026-08-01T00:00:00Z",
+  };
+
+  const CASE_DETAIL = {
+    case_id: "case-1",
+    reporter_name: "Cathy Customer",
+    reported_workspace_id: "pro-ws-1",
+    reported_workspace_name: "Pierre's Painting",
+    category: "poor_quality",
+    details: "Never showed up.",
+    subject_type: null,
+    subject_id: null,
+    status: "open",
+    created_at: "2026-08-01T00:00:00Z",
+    decisions: [],
+  };
+
+  function mockTrustSafetyApi({ decisionResult = { data: null, error: null } } = {}) {
+    apiRpc.mockImplementation((_schema, fn) => {
+      if (fn === "trust_safety_queue") return Promise.resolve({ data: [CASE_ROW], error: null });
+      if (fn === "case_detail") return Promise.resolve({ data: [CASE_DETAIL], error: null });
+      if (fn === "record_decision") return Promise.resolve(decisionResult);
+      return Promise.resolve({ data: [], error: null });
+    });
+  }
+
+  it("renders the real triage queue under the Reports tab", async () => {
+    mockTrustSafetyApi();
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Reports"));
+
+    await waitFor(() => expect(screen.getByText("Pierre's Painting")).toBeTruthy());
+    expect(screen.getByText(/reported by Cathy Customer/)).toBeTruthy();
+  });
+
+  it("shows an empty state when there are no open reports", async () => {
+    apiRpc.mockResolvedValue({ data: [], error: null });
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Reports"));
+
+    await waitFor(() => expect(screen.getByText("No open reports.")).toBeTruthy());
+  });
+
+  it("opening a case shows its own detail sheet with the real case_detail contract", async () => {
+    mockTrustSafetyApi();
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Reports"));
+    await waitFor(() => expect(screen.getByText("Pierre's Painting")).toBeTruthy());
+    fireEvent.click(screen.getByText("Pierre's Painting"));
+
+    await waitFor(() => expect(screen.getByText("Never showed up.")).toBeTruthy());
+    expect(screen.getByText("No decisions recorded yet.")).toBeTruthy();
+  });
+
+  it("recording a non-suspend decision calls api.record_decision with the operator's own auth id, then closes and refreshes the queue", async () => {
+    mockTrustSafetyApi();
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Reports"));
+    await waitFor(() => expect(screen.getByText("Pierre's Painting")).toBeTruthy());
+    fireEvent.click(screen.getByText("Pierre's Painting"));
+    await waitFor(() => expect(screen.getByText("Record a decision")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("Warn"));
+    fireEvent.click(screen.getByText("Record decision"));
+
+    await waitFor(() =>
+      expect(apiRpc).toHaveBeenCalledWith(
+        "api",
+        "record_decision",
+        expect.objectContaining({ p_case_id: "case-1", p_action: "warn", p_actor_ref: "operator-auth-1", p_actor_type: "person" })
+      )
+    );
+    // The sheet closes once the decision is recorded.
+    await waitFor(() => expect(screen.queryByText("Record a decision")).toBeNull());
+  });
+
+  it("suspend requires a capability key and a confirming step before it actually submits", async () => {
+    mockTrustSafetyApi();
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Reports"));
+    await waitFor(() => expect(screen.getByText("Pierre's Painting")).toBeTruthy());
+    fireEvent.click(screen.getByText("Pierre's Painting"));
+    await waitFor(() => expect(screen.getByText("Record a decision")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("Suspend a capability"));
+    // Disabled until a capability key is entered.
+    expect(screen.getByText("Record decision").closest("button").disabled).toBe(true);
+
+    fireEvent.change(screen.getByPlaceholderText(/Capability key to withdraw/), { target: { value: "marketplace_participation" } });
+    fireEvent.click(screen.getByText("Record decision"));
+
+    // Confirming modal, not an immediate submit.
+    await waitFor(() => expect(screen.getByText(/This removes behaviour immediately/)).toBeTruthy());
+    expect(apiRpc).not.toHaveBeenCalledWith("api", "record_decision", expect.anything());
+
+    fireEvent.click(screen.getByRole("button", { name: "Suspend" }));
+
+    await waitFor(() =>
+      expect(apiRpc).toHaveBeenCalledWith(
+        "api",
+        "record_decision",
+        expect.objectContaining({ p_action: "suspend", p_capability_key: "marketplace_participation" })
+      )
+    );
   });
 });
