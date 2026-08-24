@@ -280,19 +280,15 @@ unmet acceptance criterion: `SLICE_0_ACTIVATION_INFRASTRUCTURE.md` §6.
   foundation (`ROADMAP_C` Phase C1) — the first screen that product has
   ever had.
 - **Legacy replaced:** none — pure enablement, as scoped.
-- **Known gap, carried forward, not fixed here:** the Audit viewer has
-  nothing real to show yet — `platform.audit_records` holds zero rows
-  on staging, because no engine's live code path calls
-  `platform.write_audit_record()` today. Closing it is a later slice's
-  job (wiring a real audited action — a support-access grant, a
-  capability withdrawal — to an actual caller), not Slice 0's.
-  **WP S.0 shipped, 2026-08-24** (`SUPPORT_ACCESS_DESIGN.md`,
-  migration `0172_support_access_contract.sql`) — the support-access
+- **Gap closed, 2026-08-24** (`SUPPORT_ACCESS_DESIGN.md`, migrations
+  `0172_support_access_contract.sql`, WP S.0/S.1 both shipped): the
+  Audit viewer's own original gap — `platform.audit_records` held zero
+  rows on staging because no engine's live code path called
+  `platform.write_audit_record()` — is closed by the support-access
   grant `ROADMAP_C` §3.2 names as Phase C2's own second half (never
-  actually built; only the read-only search tool was) now has a real
-  contract, and `platform.audit_records` a real first client-reachable
-  caller. WP S.1 (client: the request-access button on
-  `WorkspaceLookup.jsx`) is next.
+  actually built until now; only the read-only search tool was). A
+  real "Request access" button now lives on `WorkspaceLookup.jsx`,
+  writing a real audit record on every grant and end.
 
 ### Slice 1 — Property & Asset Activation — **Complete except WP 1.9**
 

@@ -1,16 +1,23 @@
 // Platform Activation Slice 1, WP 1.1a — WorkspaceLookup's own tests: it fetches on
 // mount, searching resets to a fresh page, and "View audit trail" hands the workspace id
 // up rather than duplicating any of AuditLog's own logic.
+//
+// Support access, WP S.1 — "Request access" opens SupportAccessSheet in place; useAuth()
+// is mocked here for the first time in this file because that sheet needs the operator's
+// own auth id as actorRef.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const apiRpc = vi.fn();
+const useAuthMock = vi.fn();
 
 vi.mock("../../lib/supabaseClient", () => ({
   supabase: {
     schema: (name) => ({ rpc: (...args) => apiRpc(name, ...args) }),
   },
 }));
+
+vi.mock("../../lib/auth.jsx", () => ({ useAuth: () => useAuthMock() }));
 
 import { WorkspaceLookup } from "../WorkspaceLookup.jsx";
 import { WORKSPACE_LOOKUP_PAGE_SIZE } from "../../lib/workspaceLookup";
@@ -40,6 +47,7 @@ const ARCHIVED_PROFILE = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  useAuthMock.mockReturnValue({ user: { id: "operator-auth-1" } });
 });
 
 describe("WorkspaceLookup", () => {
@@ -124,5 +132,33 @@ describe("WorkspaceLookup", () => {
 
     await waitFor(() => expect(screen.getByText("Cathy Customer")).toBeTruthy());
     expect(screen.queryByRole("button", { name: /view audit trail/i })).toBeNull();
+  });
+
+  // Support access, WP S.1
+  describe("Request access (Support access, WP S.1)", () => {
+    it("opens SupportAccessSheet for the right workspace when pressed", async () => {
+      apiRpc.mockImplementation((_schema, fn) => {
+        if (fn === "search_workspaces") return Promise.resolve({ data: [PROFILE], error: null });
+        if (fn === "support_access_grants") return Promise.resolve({ data: [], error: null });
+        return Promise.resolve({ data: [], error: null });
+      });
+
+      render(<WorkspaceLookup />);
+      await waitFor(() => expect(screen.getByText("Cathy Customer")).toBeTruthy());
+
+      fireEvent.click(screen.getByRole("button", { name: /request access/i }));
+
+      expect(screen.getByText("Support access")).toBeTruthy();
+      await waitFor(() =>
+        expect(apiRpc).toHaveBeenCalledWith("api", "support_access_grants", { p_workspace_id: PROFILE.workspace_id })
+      );
+    });
+
+    it("always renders a Request access button, unlike View audit trail which needs a handler", async () => {
+      apiRpc.mockResolvedValue({ data: [PROFILE], error: null });
+      render(<WorkspaceLookup />);
+      await waitFor(() => expect(screen.getByText("Cathy Customer")).toBeTruthy());
+      expect(screen.getByRole("button", { name: /request access/i })).toBeTruthy();
+    });
   });
 });
