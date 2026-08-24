@@ -61,6 +61,12 @@ function reshapeWorkQuote(q, proInfoByWorkspace) {
   return {
     id: q.id,
     proId: pro?.id ?? null,
+    // Slice 5, WP 5.1 — the one field ReportSheet.jsx's own cutover needs and nothing
+    // read before it: q.offering_workspace_id was already fetched (resolveProInfoByWorkspace
+    // uses it two lines up) but never passed through. safety.file_case_for_caller() needs
+    // a real workspace id, not proId (a person) — the exact gap legacy public.reports
+    // could never have grown an enforcement action onto itself without first fixing.
+    workspaceId: q.offering_workspace_id,
     price: Number(q.price),
     message: q.message,
     status: q.status,

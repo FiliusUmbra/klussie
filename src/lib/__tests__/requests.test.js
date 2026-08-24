@@ -250,6 +250,28 @@ describe("fetchCustomerRequests", () => {
     mockApi({ my_requests: () => ({ data: null, error: new Error("denied") }) });
     await expect(fetchCustomerRequests("cust-1", "ws-1")).rejects.toThrow("denied");
   });
+
+  // Slice 5, WP 5.1 — safety.file_case_for_caller() needs a real workspace id, not the
+  // pro's own auth id ReportSheet.jsx used to be handed. offering_workspace_id was
+  // already fetched here (resolveProInfoByWorkspace uses it) but never passed through
+  // until this cutover.
+  it("exposes each quote's own offering workspace id, for ReportSheet.jsx's own cutover", async () => {
+    const rows = [
+      { id: "req-1", category_id: "cleaning", service_id: "svc-1", status: "booked", created_at: "2026-08-01T00:00:00Z", when_pref: "flexible", details: "a", details_json: null, ai_analysis: null, budget: null, city: "Brussels", directed_workspace_id: null, directed_until: null, auto_accept_max: null },
+    ];
+    mockApi({
+      my_requests: () => ({ data: rows, error: null }),
+      quotes_for_request: () => ({
+        data: [{ id: "q-1", offering_workspace_id: "ws-pro-1", price: 80, message: "", sent_at: "2026-08-01T00:00:00Z", status: "accepted" }],
+        error: null,
+      }),
+      resolve_workspace_owner_auth_ids: () => ({ data: [{ workspace_id: "ws-pro-1", auth_user_id: "pro-1" }], error: null }),
+    });
+
+    const [request] = await fetchCustomerRequests("cust-1", "ws-1");
+
+    expect(request.quotes[0].workspaceId).toBe("ws-pro-1");
+  });
 });
 
 // STAYS ON LEGACY, deliberately (see requests.js's own header) — plus the one addition,

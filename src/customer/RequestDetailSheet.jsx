@@ -115,7 +115,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onComplete, onR
       {showReport && bookedQuote && (
         <ReportSheet
           reporterId={user.id}
-          proId={bookedQuote.proId}
+          reportedWorkspaceId={bookedQuote.workspaceId}
           requestId={request.id}
           onClose={() => setShowReport(false)}
         />
