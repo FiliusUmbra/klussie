@@ -237,12 +237,31 @@ integration). Not separately live-clicked-through — same standing-
 operator-account constraint as WP S.0; a real console check confirmed
 the new code loads and bundles cleanly with zero errors.
 
+**§1.3(b) begun, 2026-08-24** (migration
+`0173_exclude_support_role_from_marketplace_writes.sql`) —
+`work.accept_quote_for_caller()`/`work.submit_quote_for_caller()`,
+checked directly and confirmed vulnerable (both authorized on "any
+live membership in this workspace," no role check — a support-access
+grant could accept or submit a quote as someone else's business, a
+real financial action, not merely a read), each gained one `and
+m.role <> 'support'` clause. Bodies otherwise byte-for-byte identical
+to their last shipped version, verified by a direct string
+comparison in the migration's own test. Also checked in the same
+pass and confirmed **not** vulnerable:
+`work.send_message_for_caller()` (0147) authorizes on
+`work.conversation_participants` membership by `person_ref`, never on
+`workspace.current_memberships()` at all — a support grant confers no
+message-sending ability by itself. **The rest of the codebase's write
+paths were not re-checked** — property/asset/document writes, service
+records, workflow, and more remain a real, still-open audit, not
+assumed safe.
+
 **Not scoped here, named as real future work:**
 - Workspace-configurable consent (§1.4) — blocked on a setting that
   does not exist yet.
-- The full existing-write-path role audit (§1.3(b)) — real, not
-  blocking this work package's own correctness given §1.3(a)'s
-  resolution, but should not be forgotten indefinitely either.
+- The remainder of the existing-write-path role audit (§1.3(b)) —
+  two of the highest-stakes instances are fixed; the rest is real,
+  not blocking, but should not be forgotten indefinitely either.
 - Auto-ending a grant at `expires_at` (a background sweep, matching
   the `pg_cron` consumer pattern WP 2.4/4.1 both established) — v1
   relies on every read correctly checking `expires_at > now()` at
