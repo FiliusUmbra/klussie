@@ -237,31 +237,62 @@ integration). Not separately live-clicked-through — same standing-
 operator-account constraint as WP S.0; a real console check confirmed
 the new code loads and bundles cleanly with zero errors.
 
-**§1.3(b) begun, 2026-08-24** (migration
-`0173_exclude_support_role_from_marketplace_writes.sql`) —
-`work.accept_quote_for_caller()`/`work.submit_quote_for_caller()`,
-checked directly and confirmed vulnerable (both authorized on "any
-live membership in this workspace," no role check — a support-access
-grant could accept or submit a quote as someone else's business, a
-real financial action, not merely a read), each gained one `and
-m.role <> 'support'` clause. Bodies otherwise byte-for-byte identical
-to their last shipped version, verified by a direct string
-comparison in the migration's own test. Also checked in the same
-pass and confirmed **not** vulnerable:
-`work.send_message_for_caller()` (0147) authorizes on
+**§1.3(b) complete, 2026-08-24/25** — every client-reachable write
+function that authorizes via `workspace.current_memberships()` has
+been walked and fixed where vulnerable, across six migrations:
+
+- `0173` — `work.accept_quote_for_caller()` /
+  `work.submit_quote_for_caller()` (marketplace: accepting/submitting
+  a quote).
+- `0174` — `property.create_asset()` / `update_asset()` /
+  `retire_asset()` / `dispose_asset()` / `create_location()` /
+  `create_document()` / `create_document_for_request()` /
+  `create_document_for_service_record()` (property/asset/document
+  writes).
+- `0175` — `work.create_request_for_caller()` /
+  `withdraw_request_for_caller()` / `decline_quote_for_caller()` /
+  `complete_engagement_for_caller()` / `cancel_engagement_for_caller()`
+  / `mark_request_reviewed_for_caller()` / `submit_review_for_request()`
+  (the remaining request/engagement/review writes).
+- `0176` — `safety.file_case_for_caller()` (this session's own Slice 5
+  code — checked on the same footing as everything else, not assumed
+  safe because it was newly written).
+- `0177` — `work.create_service_record_for_caller()` /
+  `record_service_record_approval_for_caller()` /
+  `write_performing_annex_for_caller()` /
+  `write_property_annex_for_caller()` /
+  `amend_service_record_for_caller()` (service records).
+- `0178` — `property.create_property_for_caller()` /
+  `work.create_manual_maintenance_obligation()` — two functions the
+  earlier passes' own naming-convention search missed (neither
+  migration file name matched the pattern being grepped for); caught
+  by a final pass that walked every migration referencing
+  `workspace.current_memberships()` at all, not just files matching an
+  engine's usual naming.
+
+Each fix is the same one-line shape: `and m.role <> 'support'` added
+to the existing membership check, body otherwise byte-for-byte
+identical to its last shipped version, verified by a direct string
+comparison in that migration's own test. `work.send_message_for_caller()`
+(0147) was checked and confirmed **not** vulnerable — it authorizes on
 `work.conversation_participants` membership by `person_ref`, never on
-`workspace.current_memberships()` at all — a support grant confers no
-message-sending ability by itself. **The rest of the codebase's write
-paths were not re-checked** — property/asset/document writes, service
-records, workflow, and more remain a real, still-open audit, not
-assumed safe.
+`workspace.current_memberships()` at all. Commerce, Knowledge, the
+notification engine, the capability engine, and workspace provisioning
+(`become_pro`, `bootstrap_operator`) were also walked in the final
+pass — every write there is either not client-reachable at all (no
+`api.*` delegate, granted only to an internal engine role) or already
+scoped to the caller's own identity/ownership rather than raw
+membership, so none needed a fix.
+
+This is believed to be a complete sweep, not a partial one — but it
+was a manual audit across a large codebase, not an automated
+guarantee. If a new write function is ever added that joins
+`workspace.current_memberships()` without also excluding `role =
+'support'`, it reopens this exact class of gap.
 
 **Not scoped here, named as real future work:**
 - Workspace-configurable consent (§1.4) — blocked on a setting that
   does not exist yet.
-- The remainder of the existing-write-path role audit (§1.3(b)) —
-  two of the highest-stakes instances are fixed; the rest is real,
-  not blocking, but should not be forgotten indefinitely either.
 - Auto-ending a grant at `expires_at` (a background sweep, matching
   the `pg_cron` consumer pattern WP 2.4/4.1 both established) — v1
   relies on every read correctly checking `expires_at > now()` at
