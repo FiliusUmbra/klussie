@@ -238,8 +238,10 @@ operator-account constraint as WP S.0; a real console check confirmed
 the new code loads and bundles cleanly with zero errors.
 
 **§1.3(b) complete, 2026-08-24/25** — every client-reachable write
-function that authorizes via `workspace.current_memberships()` has
-been walked and fixed where vulnerable, across six migrations:
+function that authorizes via `workspace.current_memberships()`, and
+every one that authorizes via the `workspace_has_capability(...,
+'platform_operations')` operator-check pattern, has been walked and
+fixed where vulnerable, across seven migrations:
 
 - `0173` — `work.accept_quote_for_caller()` /
   `work.submit_quote_for_caller()` (marketplace: accepting/submitting
@@ -269,20 +271,40 @@ been walked and fixed where vulnerable, across six migrations:
   by a final pass that walked every migration referencing
   `workspace.current_memberships()` at all, not just files matching an
   engine's usual naming.
+- `0179` — **the most serious finding of the whole audit**: a real
+  privilege-escalation loop inside Platform Operations itself.
+  `workspace.grant_support_access_for_caller()` (0172) never refused
+  the operations workspace as a grant target, and three functions
+  decided "is this caller an operator" via
+  `workspace_has_capability(m.workspace_id, 'platform_operations')`
+  without excluding `role = 'support'`:
+  `workspace.grant_support_access_for_caller()`,
+  `workspace.end_support_access_for_caller()`, and
+  `safety.record_decision_for_caller()`. Put together, a support-access
+  grant minted on the operations workspace — a membership this whole
+  design describes as strictly read-only — became a full,
+  indefinitely-renewable pseudo-operator: able to decide Trust & Safety
+  cases (including suspending a business) and mint or end support
+  grants on any workspace. The read functions sharing the identical
+  capability-check shape (`platform.list_audit_records()`,
+  `safety.trust_safety_queue_for_caller()`,
+  `safety.case_detail_for_caller()`) were deliberately left untouched
+  — a support grant reading the audit trail or the T&S queue is the
+  intended shape, not a gap.
 
 Each fix is the same one-line shape: `and m.role <> 'support'` added
-to the existing membership check, body otherwise byte-for-byte
-identical to its last shipped version, verified by a direct string
-comparison in that migration's own test. `work.send_message_for_caller()`
-(0147) was checked and confirmed **not** vulnerable — it authorizes on
-`work.conversation_participants` membership by `person_ref`, never on
-`workspace.current_memberships()` at all. Commerce, Knowledge, the
-notification engine, the capability engine, and workspace provisioning
-(`become_pro`, `bootstrap_operator`) were also walked in the final
-pass — every write there is either not client-reachable at all (no
-`api.*` delegate, granted only to an internal engine role) or already
-scoped to the caller's own identity/ownership rather than raw
-membership, so none needed a fix.
+to the existing membership or capability check, body otherwise
+byte-for-byte identical to its last shipped version, verified by a
+direct string comparison in that migration's own test.
+`work.send_message_for_caller()` (0147) was checked and confirmed
+**not** vulnerable — it authorizes on `work.conversation_participants`
+membership by `person_ref`, never on `workspace.current_memberships()`
+at all. Commerce, Knowledge, the notification engine, the capability
+engine (`grant_capability`/`withdraw_capability` — no client caller
+exists at all), and workspace provisioning (`become_pro`,
+`bootstrap_operator`) were also walked — every write there is either
+not client-reachable at all or already scoped to the caller's own
+identity/ownership rather than raw membership, so none needed a fix.
 
 This is believed to be a complete sweep, not a partial one — but it
 was a manual audit across a large codebase, not an automated
