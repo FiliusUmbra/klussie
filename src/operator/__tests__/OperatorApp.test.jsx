@@ -45,18 +45,31 @@ beforeEach(() => {
 });
 
 describe("OperatorApp", () => {
-  it("shows four tabs on the same BottomNav Customer/Pro share, Audit selected by default", async () => {
+  it("shows five tabs on the same BottomNav Customer/Pro share, Overview selected by default", async () => {
     render(<OperatorApp />);
 
-    await waitFor(() => expect(screen.getByText("No matching audit records.")).toBeTruthy());
-    expect(screen.getByText("Audit").closest("button").className).toContain("tab-on");
+    await waitFor(() => expect(screen.getByText("Property/asset recorded")).toBeTruthy());
+    expect(screen.getByText("Overview").closest("button").className).toContain("tab-on");
+    expect(screen.getByText("Audit").closest("button").className).not.toContain("tab-on");
     expect(screen.getByText("Workspaces").closest("button").className).not.toContain("tab-on");
     expect(screen.getByText("Reports").closest("button").className).not.toContain("tab-on");
     expect(screen.getByText("Profile").closest("button").className).not.toContain("tab-on");
   });
 
+  it("renders the real Overview under its own tab, all five Activation Ratio journeys", async () => {
+    render(<OperatorApp />);
+
+    await waitFor(() => expect(screen.getByText("Property/asset recorded")).toBeTruthy());
+    expect(screen.getByText("Request → booking")).toBeTruthy();
+    expect(screen.getByText("Work performed → Service Record")).toBeTruthy();
+    expect(screen.getByText("Conversation")).toBeTruthy();
+    expect(screen.getByText("Report / dispute")).toBeTruthy();
+    expect(apiRpc).toHaveBeenCalledWith("api", "activation_ratios", expect.objectContaining({ p_window_days: 30 }));
+  });
+
   it("renders the real Audit viewer under the Audit tab, not a placeholder", async () => {
     render(<OperatorApp />);
+    fireEvent.click(screen.getByText("Audit"));
 
     await waitFor(() => expect(screen.getByText("No matching audit records.")).toBeTruthy());
   });
@@ -117,7 +130,7 @@ describe("OperatorApp", () => {
 
   it("no longer shows a page-dominating 'Klussie Operations' heading on every tab — a small label, Profile only", async () => {
     render(<OperatorApp />);
-    await waitFor(() => expect(screen.getByText("No matching audit records.")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Property/asset recorded")).toBeTruthy());
     expect(screen.queryByText("Klussie Operations")).toBeNull();
 
     fireEvent.click(screen.getByText("Profile"));

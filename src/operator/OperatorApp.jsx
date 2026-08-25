@@ -39,11 +39,12 @@
 // precise backend terms are a tool for them, not a leak. Revisit only if that audience
 // assumption changes — an operator surface a customer-facing person could ever see.
 import { useState } from "react";
-import { Flag, ScrollText, Search, User } from "lucide-react";
+import { Flag, LayoutDashboard, ScrollText, Search, User } from "lucide-react";
 import { useAuth } from "../lib/auth.jsx";
 import { WorkspaceSwitcher } from "../shell/WorkspaceSwitcher.jsx";
 import { SignOutButton } from "../profile/SignOutButton.jsx";
 import { BottomNav } from "../ui/BottomNav.jsx";
+import { Overview } from "./Overview.jsx";
 import { AuditLog } from "./AuditLog.jsx";
 import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
 import { TrustSafetyQueue } from "./TrustSafetyQueue.jsx";
@@ -61,6 +62,7 @@ import { fetchCaseDetail } from "../lib/trustSafety.js";
 const OPERATOR_FALLBACK_LABELS = { workspaceFallbackHome: "Home", workspaceFallbackBusiness: "Business" };
 
 const TABS = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "audit", label: "Audit", icon: ScrollText },
   { id: "lookup", label: "Workspaces", icon: Search },
   { id: "reports", label: "Reports", icon: Flag },
@@ -68,7 +70,9 @@ const TABS = [
 ];
 
 export function OperatorApp() {
-  const [tab, setTab] = useState("audit");
+  // Overview (ROADMAP_C §3.1's own "front door" framing) is the default landing tab,
+  // not Audit — the same reasoning that made this the first tab in TABS above.
+  const [tab, setTab] = useState("overview");
   // Bumped by WorkspaceLookup's "View audit trail" so the next Audit mount seeds its
   // workspace-id filter from it (AuditLog.jsx's own initialWorkspaceId prop) — a plain
   // id string is enough since AuditLog is remounted on every tab switch, never hidden.
@@ -105,6 +109,12 @@ export function OperatorApp() {
   return (
     <div className="view">
       <div className="content">
+        {tab === "overview" && (
+          <div className="pad">
+            <Overview />
+          </div>
+        )}
+
         {tab === "audit" && (
           <div className="pad">
             <AuditLog initialWorkspaceId={auditWorkspaceId} />
