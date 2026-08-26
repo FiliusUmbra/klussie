@@ -86,6 +86,36 @@ describe("RequestDetailSheet — Message pro", () => {
 // its real host here, matching this file's own established convention (no dedicated
 // src/requests/__tests__ directory exists — every summary component is covered through
 // the sheet that actually renders it).
+// Beta-completion slice (0182/0183) — the mandatory disclosure-consent card. Quote
+// acceptance alone no longer books the job; this is the one screen that gets the customer
+// from "accepted" to actually sharing their address with the pro they picked.
+describe("RequestDetailSheet — disclosure-consent card (0182/0183)", () => {
+  const PENDING_DISCLOSURE_REQUEST = { ...BOOKED_REQUEST, status: "accepted_pending_location_approval" };
+
+  it("renders the consent card with the booked pro's name and price, not the ordinary booked ticket", () => {
+    renderSheet({ request: PENDING_DISCLOSURE_REQUEST });
+    expect(screen.getByText("Pierre Pro")).toBeTruthy();
+    expect(screen.getByText("disclosureConsentApproveBtn")).toBeTruthy();
+    // The booked-state markCompleteBtn must not also render for this status.
+    expect(screen.queryByText("markCompleteBtn")).toBeNull();
+  });
+
+  it("calls onApproveDisclosure when the customer confirms", async () => {
+    const onApproveDisclosure = vi.fn(() => Promise.resolve());
+    renderSheet({ request: PENDING_DISCLOSURE_REQUEST, onApproveDisclosure });
+
+    fireEvent.click(screen.getByText("disclosureConsentApproveBtn"));
+
+    expect(onApproveDisclosure).toHaveBeenCalledTimes(1);
+    await screen.findByText("disclosureConsentApproveBtn"); // settles back after the promise resolves
+  });
+
+  it("does not render the card, or a booked ticket, before a quote is actually accepted", () => {
+    renderSheet({ request: { ...PENDING_DISCLOSURE_REQUEST, bookedProId: null, quotes: [] } });
+    expect(screen.queryByText("disclosureConsentApproveBtn")).toBeNull();
+  });
+});
+
 describe("RequestDetailSheet — ServiceRecordSummary (WP 3.2)", () => {
   const COMPLETED_REQUEST = { ...BOOKED_REQUEST, status: "completed", review: null };
   const REVIEWED_REQUEST = {

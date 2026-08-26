@@ -20,6 +20,13 @@ describe("statusPresentation", () => {
     expect(statusPresentation("reviewed")).toEqual({ labelKey: "statusReviewed", tone: "sage" });
   });
 
+  it("names the disclosure-consent status (0182/0183) sitting between quotes_ready and booked", () => {
+    expect(statusPresentation("accepted_pending_location_approval")).toEqual({
+      labelKey: "statusAcceptedPendingLocation",
+      tone: "amber",
+    });
+  });
+
   it("degrades to a neutral badge for a status this client doesn't know", () => {
     // A migration can add a status before the client ships. Showing the raw value is
     // honest; throwing, or rendering an empty badge, is not.
@@ -38,8 +45,8 @@ describe("timelineSteps", () => {
   it("marks everything before the current status done and nothing after", () => {
     const steps = timelineSteps("booked");
     expect(steps.map((s) => s.key)).toEqual(REQUEST_STATUS_ORDER);
-    expect(steps.map((s) => s.done)).toEqual([true, true, false, false, false]);
-    expect(steps.map((s) => s.active)).toEqual([false, false, true, false, false]);
+    expect(steps.map((s) => s.done)).toEqual([true, true, true, false, false, false]);
+    expect(steps.map((s) => s.active)).toEqual([false, false, false, true, false, false]);
   });
 
   it("treats the first status as active rather than already done", () => {
@@ -76,6 +83,15 @@ describe("request counts", () => {
       req({ status: "quotes_ready" }),
       req({ status: "quotes_ready" }),
       req({ status: "collecting" }),
+      req({ status: "booked" }),
+    ];
+    expect(awaitingDecisionCount(requests)).toBe(2);
+  });
+
+  it("also counts a request waiting on disclosure-consent approval — a real customer action too", () => {
+    const requests = [
+      req({ status: "quotes_ready" }),
+      req({ status: "accepted_pending_location_approval" }),
       req({ status: "booked" }),
     ];
     expect(awaitingDecisionCount(requests)).toBe(2);

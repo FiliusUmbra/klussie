@@ -14,6 +14,7 @@ import {
   createServiceRequest,
   fetchCustomerRequests,
   acceptQuote as acceptQuoteApi,
+  approveLocationDisclosure as approveLocationDisclosureApi,
   markComplete as markCompleteApi,
   submitReview as submitReviewApi,
   subscribeToCustomerRequests,
@@ -99,7 +100,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
     }
   };
 
-  const createRequest = async (service, { whenPref, details, detailsJson, budget, city, photos }) => {
+  const createRequest = async (service, { whenPref, details, detailsJson, budget, city, location, photos }) => {
     const created = await createServiceRequest({
       customerId: user.id,
       workspaceId,
@@ -110,6 +111,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
       whenPref,
       budget: numericBudget(budget),
       city: city || null,
+      location,
     });
     await attachPhotos(created.id, photos);
     await refresh();
@@ -118,7 +120,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
   // AI intake already resolves its own serviceId/categoryId (with the user able to
   // override the AI's guess before submitting), so this bypasses createRequest's
   // `service` object indirection rather than reshaping the payload to fit it.
-  const createRequestFromAi = async ({ serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, photos }) => {
+  const createRequestFromAi = async ({ serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, location, photos }) => {
     const created = await createServiceRequest({
       customerId: user.id,
       workspaceId,
@@ -130,6 +132,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
       whenPref,
       budget: numericBudget(budget),
       city: city || null,
+      location,
     });
     await attachPhotos(created.id, photos);
     await refresh();
@@ -137,6 +140,15 @@ export function CustomerApp({ showToast, onBecomePro }) {
 
   const acceptQuote = async (quoteId) => {
     await acceptQuoteApi(quoteId, user.id);
+    await refresh();
+    showToast(t.toastBooked);
+  };
+
+  // Beta-completion slice (0182/0183) — the disclosure-consent action. Separate from
+  // acceptQuote() above: quote acceptance alone no longer books anything, this is what
+  // actually does.
+  const approveLocationDisclosure = async (requestId) => {
+    await approveLocationDisclosureApi(requestId, user.id);
     await refresh();
     showToast(t.toastBooked);
   };
@@ -212,6 +224,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
             request={openRequestObj}
             onClose={() => setOpenRequest(null)}
             onAccept={acceptQuote}
+            onApproveDisclosure={() => approveLocationDisclosure(openRequestObj.id)}
             onComplete={() => markComplete(openRequestObj.id)}
             onReview={() => { setOpenRequest(null); setReviewFor(openRequestObj.id); }}
             onMessage={requestConversation ? () => { setOpenConversation(requestConversation); setOpenRequest(null); } : undefined}

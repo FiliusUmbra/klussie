@@ -26,6 +26,7 @@ import {
   fetchProJobs,
   sendQuote,
   acceptQuote,
+  approveLocationDisclosure,
   markComplete,
   submitReview,
   subscribeToCustomerRequests,
@@ -139,6 +140,68 @@ describe("createServiceRequest", () => {
     mockApi({ create_request: () => ({ error: new Error("denied") }), ...noQuotesNoReview });
 
     await expect(createServiceRequest(args)).rejects.toThrow("denied");
+  });
+
+  // Beta-completion slice (0182/0185) — the service-location picker's own write side,
+  // resolved before either the legacy or work.requests insert.
+  describe("with a service location (0182/0185)", () => {
+    it("passes an already-confirmed My Home property straight through, writing nothing new", async () => {
+      vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+      const rpc = mockApi({ create_request: () => ({ error: null }), ...noQuotesNoReview });
+
+      await createServiceRequest({ ...args, location: { type: "home", propertyId: "prop-1" } });
+
+      expect(rpc).not.toHaveBeenCalledWith("set_property_address", expect.anything());
+      const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+      expect(createCall[1].p_property_id).toBe("prop-1");
+    });
+
+    it("confirms My Home's address first, then passes its property id, when one is supplied", async () => {
+      vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+      const rpc = mockApi({
+        create_request: () => ({ error: null }),
+        set_property_address: () => ({ error: null }),
+        ...noQuotesNoReview,
+      });
+
+      await createServiceRequest({
+        ...args,
+        location: { type: "home", propertyId: "prop-1", address: { street: "Kerkstraat", postcode: "2000", municipality: "Antwerpen" } },
+      });
+
+      const addressCall = rpc.mock.calls.find(([name]) => name === "set_property_address");
+      expect(addressCall[1]).toMatchObject({ p_property_id: "prop-1", p_street: "Kerkstraat", p_municipality: "Antwerpen" });
+      const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+      expect(createCall[1].p_property_id).toBe("prop-1");
+      // Address confirmed before the request is created, not after.
+      expect(rpc.mock.invocationCallOrder[rpc.mock.calls.indexOf(addressCall)])
+        .toBeLessThan(rpc.mock.invocationCallOrder[rpc.mock.calls.indexOf(createCall)]);
+    });
+
+    it("creates a fresh one-time property, addresses it, then creates the request against it", async () => {
+      vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+      const rpc = mockApi({
+        create_property: () => ({ error: null }),
+        set_property_address: () => ({ error: null }),
+        create_request: () => ({ error: null }),
+        ...noQuotesNoReview,
+      });
+
+      await createServiceRequest({
+        ...args,
+        location: { type: "one_time_address", address: { street: "Zeedijk", postcode: "8400", municipality: "Oostende" } },
+      });
+
+      const propertyCall = rpc.mock.calls.find(([name]) => name === "create_property");
+      expect(propertyCall[1]).toMatchObject({ p_steward_workspace_id: "ws-1", p_actor_ref: "cust-1" });
+      const newPropertyId = propertyCall[1].p_property_id;
+
+      const addressCall = rpc.mock.calls.find(([name]) => name === "set_property_address");
+      expect(addressCall[1]).toMatchObject({ p_property_id: newPropertyId, p_street: "Zeedijk", p_municipality: "Oostende" });
+
+      const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+      expect(createCall[1].p_property_id).toBe(newPropertyId);
+    });
   });
 });
 
@@ -585,6 +648,39 @@ describe("acceptQuote", () => {
   it("throws on a Supabase error", async () => {
     mockApi({ accept_quote: () => ({ error: new Error("update failed") }) });
     await expect(acceptQuote("quote-1", "cust-1")).rejects.toThrow("update failed");
+  });
+});
+
+// Beta-completion slice (0182/0183) — the disclosure-consent action. Same resolve-then-act
+// shape as markComplete() below, matching its own "resolved at action time" restraint.
+describe("approveLocationDisclosure", () => {
+  it("resolves the engagement for the request, then approves disclosure for it", async () => {
+    const rpc = mockApi({
+      resolve_engagement_for_request: (a) => (a.p_request_id === "req-1" ? { data: "eng-1", error: null } : { data: null, error: null }),
+      approve_location_disclosure: () => ({ error: null }),
+    });
+
+    await approveLocationDisclosure("req-1", "cust-1");
+
+    const call = rpc.mock.calls.find(([name]) => name === "approve_location_disclosure");
+    expect(call[1]).toMatchObject({ p_engagement_id: "eng-1", p_actor_type: "person", p_actor_ref: "cust-1" });
+    expect(call[1].p_disclosure_id).toBeTruthy();
+  });
+
+  it("throws rather than approving when no engagement is found", async () => {
+    const rpc = mockApi({ resolve_engagement_for_request: () => ({ data: null, error: null }) });
+
+    await expect(approveLocationDisclosure("req-1", "cust-1")).rejects.toThrow(/no engagement/i);
+    expect(rpc).not.toHaveBeenCalledWith("approve_location_disclosure", expect.anything());
+  });
+
+  it("throws the real Supabase error from the approval call itself", async () => {
+    mockApi({
+      resolve_engagement_for_request: () => ({ data: "eng-1", error: null }),
+      approve_location_disclosure: () => ({ error: new Error("insufficient_privilege") }),
+    });
+
+    await expect(approveLocationDisclosure("req-1", "cust-1")).rejects.toThrow("insufficient_privilege");
   });
 });
 

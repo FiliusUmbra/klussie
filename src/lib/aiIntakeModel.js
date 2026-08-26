@@ -103,6 +103,12 @@ export function buildIntakeRequest({ edited, result, baseServices, photos }) {
     whenPref: edited.when,
     budget: edited.budget,
     city: edited.city,
+    // Beta-completion slice (0182/0185) — the service location chosen in
+    // ServiceLocationField.jsx, passed straight through to createServiceRequest()'s own
+    // location-resolution step. Absent from `edited` on any call site that hasn't been
+    // updated to gate on it yet, same optional-and-null-safe shape requests.js already
+    // gives resolveRequestLocation().
+    location: edited.location ?? null,
     photos,
   };
 }

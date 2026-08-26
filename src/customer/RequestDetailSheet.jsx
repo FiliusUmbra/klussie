@@ -5,7 +5,7 @@
 // The timeline and the commission breakdown both come from src/lib — the lifecycle from
 // requestStatus.js, the fee and payout from billing.js.
 import { useState } from "react";
-import { Check, Clock, MessageCircle, ShieldCheck } from "lucide-react";
+import { Check, Clock, MessageCircle, ShieldCheck, MapPin, Loader2 } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, Button, Rating, PriceTag, QuoteCard, TrustBadge, Timeline, Drawer } from "../design-system";
@@ -17,12 +17,13 @@ import { ReportSheet } from "./ReportSheet.jsx";
 import { timelineSteps } from "../lib/requestStatus.js";
 import { platformFee, netPayout } from "../lib/billing.js";
 
-export function RequestDetailSheet({ request, onClose, onAccept, onComplete, onReview, onMessage }) {
+export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
   const { user } = useAuth();
   const [showInvoice, setShowInvoice] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [openProId, setOpenProId] = useState(null);
+  const [approving, setApproving] = useState(false);
   const info = serviceInfo(request.serviceId);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
   const steps = timelineSteps(request.status);
@@ -71,6 +72,41 @@ export function RequestDetailSheet({ request, onClose, onAccept, onComplete, onR
           })}
         </>
       )}
+
+      {/* Beta-completion slice (0182/0183) — the mandatory disclosure-consent step.
+          Quote acceptance alone no longer books the job; the request sits here until the
+          customer explicitly shares the exact address with bookedQuote's own pro. */}
+      {request.status === "accepted_pending_location_approval" && bookedQuote && (() => {
+        const pro = bookedQuote.pro;
+        return (
+          <>
+          <div className="section-title" style={{ marginTop: 6 }}>{t.disclosureConsentTitle}</div>
+          <QuoteCard>
+            <div className="quote-top">
+              <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
+                <Avatar url={pro.avatarUrl} initials={pro.initials} />
+                <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
+              </button>
+              <PriceTag amount={bookedQuote.price} fmt={fmt} />
+            </div>
+            <div className="ticket-divider" />
+            <div className="quote-msg" style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+              <MapPin size={14} style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>{t.disclosureConsentBody.replace("{name}", pro.name)}</span>
+            </div>
+            <button
+              className="btn-primary"
+              style={{ marginTop: 12 }}
+              disabled={approving}
+              onClick={async () => { setApproving(true); try { await onApproveDisclosure(); } finally { setApproving(false); } }}
+            >
+              {approving ? <Loader2 size={15} className="spin" /> : <MapPin size={15} />} {t.disclosureConsentApproveBtn}
+            </button>
+            <div className="fineprint" style={{ marginTop: 10 }}><ShieldCheck size={12} /> {t.disclosureConsentNote}</div>
+          </QuoteCard>
+          </>
+        );
+      })()}
 
       {request.status === "booked" && bookedQuote && (() => {
         const pro = bookedQuote.pro;
