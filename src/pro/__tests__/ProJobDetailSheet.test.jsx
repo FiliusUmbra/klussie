@@ -171,4 +171,17 @@ describe("ProJobDetailSheet — ProServiceRecordSection (WP 3.1 + WP 3.3)", () =
     expect(screen.getByText("srEditorTitle")).toBeTruthy();
     expect(screen.getByPlaceholderText("srWorkPerformedPlaceholder")).toBeTruthy();
   });
+
+  // A real bug, found live 2026-08-28: work.engagements has no 'reviewed' status at all
+  // (0182's own constraint) — it stays 'completed' forever once complete. job.status here
+  // is the *request's* own status, which keeps progressing after a customer reviews. The
+  // gate used to check only "completed", so the moment a customer left a review the write-
+  // it-up entry point vanished permanently, even with no record ever authored.
+  it("still shows the entry point for a 'reviewed' job with no record yet — a review must never lock the pro out", async () => {
+    fetchServiceRecordForRequest.mockResolvedValue(null);
+    renderSheet({ job: { status: "reviewed" } });
+
+    expect(fetchServiceRecordForRequest).toHaveBeenCalledWith("req-1");
+    await waitFor(() => expect(screen.getByText("srWriteItUpBtn")).toBeTruthy());
+  });
 });

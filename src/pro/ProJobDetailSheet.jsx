@@ -115,7 +115,16 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
         </>
       )}
 
-      {job.status === "completed" && (
+      {/* A real bug, found live 2026-08-28: WP 3.1's own decision (SLICE_3_..._ACTIVATION.md
+          §WP 3.1) gates authoring on the *engagement* reaching 'completed' — a fact that
+          stays true forever, work.engagements has no 'reviewed' status at all (0182's own
+          constraint: pending_disclosure/active/completed/cancelled). job.status here is
+          the *request's* own status, which keeps progressing after that — the moment a
+          customer leaves a review, job.status becomes 'reviewed' and this check (checking
+          only "completed") permanently hid the entry point, even though the design intent
+          was for it to stay reachable until a record actually exists. Matches ProJobs.jsx's
+          own "Klaar" bucket, which already treats completed/reviewed as the same segment. */}
+      {(job.status === "completed" || job.status === "reviewed") && (
         <ProServiceRecordSection job={job} workspaceId={workspaceId} actorRef={actorRef} onRecordSaved={onRecordSaved} />
       )}
     </Drawer>
