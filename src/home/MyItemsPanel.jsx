@@ -23,6 +23,7 @@ import { groupByCategory } from "../lib/itemCategories.js";
 import { ItemFormSheet } from "./ItemFormSheet.jsx";
 import { LocationFormSheet } from "./LocationFormSheet.jsx";
 import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
+import { documentTypeLabelKey } from "../lib/documents.js";
 import { interpolate } from "../lib/homeStrings.js";
 import { Badge } from "../design-system";
 import { HomeSection } from "./panelParts.jsx";
@@ -109,7 +110,19 @@ function DocumentList({ t, fmtDate, documents }) {
         const expired = doc.validUntil && new Date(doc.validUntil) < today;
         return (
           <li key={doc.id} className="document-row">
-            <span className="document-row-caption">{doc.caption || doc.typeKey}</span>
+            <span className="document-row-caption">
+              {doc.caption || (() => {
+                // A real bug, found live 2026-08-28: DocumentUploadSheet.jsx has no
+                // caption field at all, so doc.caption is always empty for every
+                // document created through this app's own UI -- the fallback below used
+                // to render the raw, untranslated typeKey ("warranty") instead of the
+                // real localized label ("Garantie"/"Warranty"/...) every single time,
+                // matching the idiom ProJobDetailSheet.jsx's own twin section and
+                // DocumentUploadSheet.jsx's own dropdown already use correctly.
+                const labelKey = documentTypeLabelKey(doc.typeKey);
+                return labelKey ? t[labelKey] : doc.typeKey;
+              })()}
+            </span>
             {doc.validUntil && (
               <span className="document-row-validity">
                 {expired ? (
