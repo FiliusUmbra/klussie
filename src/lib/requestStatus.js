@@ -8,12 +8,24 @@
 // Copy stays out of here on purpose (same rule as homeIntents.js): this module returns
 // `labelKey` values into `t`, never literal strings, so all 10 locales stay real.
 
-/** The lifecycle, in order. Index position drives the timeline on a request. */
-export const REQUEST_STATUS_ORDER = ["collecting", "quotes_ready", "booked", "completed", "reviewed"];
+/**
+ * The lifecycle, in order. Index position drives the timeline on a request.
+ *
+ * `accepted_pending_location_approval` (migrations 0182/0183 — the mandatory
+ * disclosure-consent flow) sits between `quotes_ready` and `booked`: quote acceptance no
+ * longer jumps straight to a booked engagement, it opens a real intermediate step where
+ * the exact address has not yet been shared with the professional. A request only reaches
+ * `booked` once the customer explicitly approves that disclosure
+ * (RequestDetailSheet.jsx's own consent card, `approveLocationDisclosure()`).
+ */
+export const REQUEST_STATUS_ORDER = [
+  "collecting", "quotes_ready", "accepted_pending_location_approval", "booked", "completed", "reviewed",
+];
 
 const PRESENTATION = {
   collecting: { labelKey: "statusCollecting", tone: "amber" },
   quotes_ready: { labelKey: "statusQuotesReady", tone: "forest" },
+  accepted_pending_location_approval: { labelKey: "statusAcceptedPendingLocation", tone: "amber" },
   booked: { labelKey: "statusBooked", tone: "forest" },
   completed: { labelKey: "statusCompleted", tone: "sage" },
   reviewed: { labelKey: "statusReviewed", tone: "sage" },
@@ -56,9 +68,15 @@ export const WHEN_LABEL_KEYS = {
   flexible: "whenFlexible",
 };
 
-/** Requests waiting on the customer to choose a quote — the Requests tab's badge count. */
+/**
+ * Requests waiting on a real customer action — choosing a quote, or (0182/0183)
+ * approving exact-location disclosure so the accepted booking can actually go through.
+ * Both are "your move" states; the Requests tab's badge count treats them the same.
+ */
 export function awaitingDecisionCount(requests) {
-  return (requests || []).filter((r) => r.status === "quotes_ready").length;
+  return (requests || []).filter(
+    (r) => r.status === "quotes_ready" || r.status === "accepted_pending_location_approval"
+  ).length;
 }
 
 /** Requests the customer has seen through to the end — their profile's "jobs completed". */

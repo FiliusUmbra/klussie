@@ -29,9 +29,43 @@
 import { supabase } from "./supabaseClient";
 import { uuidv7 } from "./ids.js";
 import { initialsFrom, fetchPublicProInfo } from "./pros";
+import { createPropertyForCaller, setPropertyAddress } from "./homeInventory.js";
 
 function firstOrNull(x) {
   return Array.isArray(x) ? (x[0] ?? null) : (x ?? null);
+}
+
+// Beta-completion slice (0182/0185) — the service-location picker's own write side.
+// `location` comes from ServiceLocationField.jsx: `{ type: 'home' | 'saved_property' |
+// 'one_time_address', propertyId, address? }`. `address` is present only when that
+// property's own address still needs confirming — homeInventory.js's
+// hasConfirmedAddress() is what the picker checks first. 'one_time_address' gets a fresh
+// property row, the same shape work.confirm_legacy_request_location()'s own 0184 legacy
+// path creates, built here for every new request going forward instead of retroactively.
+//
+// work.requests.location_selection_type (0182) is not written from this path — no
+// version of work.create_request_for_caller() through 0184 accepts it as a parameter,
+// and adding one would mean overloading a signature 0173-0179 have each re-published
+// unchanged. A real, deliberately deferred follow-up (purely descriptive bookkeeping,
+// not read by any enforcement path — api.matching_requests_for_pro() and the disclosure
+// trigger both key off property_id alone), not silently worked around.
+async function resolveRequestLocation(location, { workspaceId, actorRef }) {
+  if (!location) return { propertyId: null };
+
+  if (location.type === "one_time_address") {
+    const { id: propertyId } = await createPropertyForCaller({
+      workspaceId, actorRef, name: "Eenmalig serviceadres",
+    });
+    await setPropertyAddress({ propertyId, ...location.address });
+    return { propertyId };
+  }
+
+  // 'home' or 'saved_property' — an already-real property; only write its address when
+  // this is the first time it's being confirmed.
+  if (location.address) {
+    await setPropertyAddress({ propertyId: location.propertyId, ...location.address });
+  }
+  return { propertyId: location.propertyId };
 }
 
 // Resolves a batch of offering_workspace_id values to real, displayable pro info —
@@ -145,8 +179,9 @@ async function fetchQuotesAndReviewsForRequests(rows) {
 // work.requests row (this platform's own lifecycle system of record from here on),
 // correlated via service_request_id. See this file's own header for why both.
 export async function createServiceRequest({
-  customerId, workspaceId, serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city,
+  customerId, workspaceId, serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, location,
 }) {
+  const { propertyId } = await resolveRequestLocation(location, { workspaceId, actorRef: customerId });
   const legacyId = uuidv7();
   const { error: legacyError } = await supabase.from("service_requests").insert({
     id: legacyId,
@@ -166,7 +201,7 @@ export async function createServiceRequest({
   const { error } = await supabase.schema("api").rpc("create_request", {
     p_request_id: requestId,
     p_requesting_workspace_id: workspaceId,
-    p_property_id: null,
+    p_property_id: propertyId,
     p_asset_id: null,
     p_location_id: null,
     p_category_id: categoryId,
@@ -208,10 +243,12 @@ export async function createServiceRequest({
 // uses), so no caller needs to know the new schema deals in workspaces at all.
 export async function createDirectedRequest({
   customerId, workspaceId, serviceId, categoryId, proId, autoAcceptMax,
-  details, detailsJson, aiAnalysis, whenPref, city,
+  details, detailsJson, aiAnalysis, whenPref, city, location,
 }) {
   if (!proId) throw new Error("createDirectedRequest requires a professional to direct to");
   if (!(autoAcceptMax > 0)) throw new Error("createDirectedRequest requires a positive ceiling");
+
+  const { propertyId } = await resolveRequestLocation(location, { workspaceId, actorRef: customerId });
 
   const { data: proWorkspaceId, error: proWorkspaceError } = await supabase
     .schema("api")
@@ -240,7 +277,7 @@ export async function createDirectedRequest({
   const { error } = await supabase.schema("api").rpc("create_request", {
     p_request_id: requestId,
     p_requesting_workspace_id: workspaceId,
-    p_property_id: null,
+    p_property_id: propertyId,
     p_asset_id: null,
     p_location_id: null,
     p_category_id: categoryId,
@@ -462,6 +499,31 @@ export async function acceptQuote(quoteId, customerId) {
     p_conversation_event_id: uuidv7(),
     p_customer_participant_event_id: uuidv7(),
     p_pro_participant_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: customerId,
+  });
+  if (error) throw error;
+}
+
+// Beta-completion slice (0182/0183) — the disclosure-consent action itself.
+// requestId is a work.requests id (the customer's own reshaped request), same restraint
+// as markComplete() below: the engagement id is resolved here, at action time, rather
+// than carried on every read. api.approve_location_disclosure() is the one and only
+// place the engagement reaches 'active' and marketplace.engagement.created fires
+// (0183's own header) — this is what actually completes the booking after quote
+// acceptance, not acceptQuote() above.
+export async function approveLocationDisclosure(requestId, customerId) {
+  const { data: engagementId, error: resolveError } = await supabase
+    .schema("api")
+    .rpc("resolve_engagement_for_request", { p_request_id: requestId });
+  if (resolveError) throw resolveError;
+  if (!engagementId) throw new Error("approveLocationDisclosure: no engagement found for this request");
+
+  const { error } = await supabase.schema("api").rpc("approve_location_disclosure", {
+    p_engagement_id: engagementId,
+    p_disclosure_id: uuidv7(),
+    p_engagement_event_id: uuidv7(),
     p_correlation_id: uuidv7(),
     p_actor_type: "person",
     p_actor_ref: customerId,

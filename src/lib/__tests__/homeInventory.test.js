@@ -12,7 +12,10 @@ vi.mock("../supabaseClient", () => ({
   },
 }));
 
-import { fetchHomeProfile, knownFactsFrom, buildLocationTree, createPropertyForCaller } from "../homeInventory";
+import {
+  fetchHomeProfile, knownFactsFrom, buildLocationTree, createPropertyForCaller,
+  fetchMyProperties, setPropertyAddress, hasConfirmedAddress,
+} from "../homeInventory";
 
 const PROPERTY_ROW = {
   id: "11111111-1111-4111-8111-000000000030",
@@ -35,12 +38,47 @@ describe("fetchHomeProfile", () => {
     expect(apiRpc).toHaveBeenCalledWith("api", "my_properties");
   });
 
-  it("resolves the property, taking only the id and name", async () => {
+  it("resolves the property, including the address/quote-prep columns migration 0185 added", async () => {
     apiRpc.mockResolvedValue({ data: [PROPERTY_ROW], error: null });
 
     const profile = await fetchHomeProfile();
 
-    expect(profile.property).toEqual({ id: PROPERTY_ROW.id, name: "My Home" });
+    expect(profile.property).toEqual({
+      id: PROPERTY_ROW.id,
+      name: "My Home",
+      street: "",
+      houseNumber: "",
+      postcode: "",
+      municipality: "",
+      country: "BE",
+      propertyType: null,
+      quotePrepNotes: "",
+    });
+  });
+
+  it("shapes a fully-addressed property row (0182's own columns) into the client's own field names", async () => {
+    apiRpc.mockResolvedValue({
+      data: [{
+        ...PROPERTY_ROW,
+        street: "Kerkstraat", house_number: "12", postcode: "2000", municipality: "Antwerpen",
+        country: "BE", property_type: "apartment", quote_prep_notes: "Bel aan bij nr. 4",
+      }],
+      error: null,
+    });
+
+    const profile = await fetchHomeProfile();
+
+    expect(profile.property).toEqual({
+      id: PROPERTY_ROW.id,
+      name: "My Home",
+      street: "Kerkstraat",
+      houseNumber: "12",
+      postcode: "2000",
+      municipality: "Antwerpen",
+      country: "BE",
+      propertyType: "apartment",
+      quotePrepNotes: "Bel aan bij nr. 4",
+    });
   });
 
   it("falls back to a null property when the resolver is unavailable", async () => {
@@ -258,5 +296,67 @@ describe("createPropertyForCaller", () => {
 
     await expect(createPropertyForCaller({ workspaceId: "ws-1", actorRef: "owner-1", name: "My Business" }))
       .rejects.toThrow("insufficient_privilege");
+  });
+});
+
+// Migration 0185 — the service-location picker's own data source: the full list of
+// properties the caller stewards, not just the first one fetchHomeProfile() picks.
+describe("fetchMyProperties", () => {
+  it("shapes every row the caller stewards, not only the first", async () => {
+    apiRpc.mockResolvedValue({
+      data: [
+        PROPERTY_ROW,
+        { ...PROPERTY_ROW, id: "p2", name: "Vakantiehuis", street: "Zeedijk", house_number: "1", postcode: "8400", municipality: "Oostende" },
+      ],
+      error: null,
+    });
+
+    const properties = await fetchMyProperties();
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "my_properties");
+    expect(properties.map((p) => p.id)).toEqual([PROPERTY_ROW.id, "p2"]);
+    expect(properties[1]).toMatchObject({ name: "Vakantiehuis", street: "Zeedijk", municipality: "Oostende" });
+  });
+
+  it("throws the real Supabase error instead of swallowing it", async () => {
+    apiRpc.mockResolvedValue({ data: null, error: new Error("boom") });
+    await expect(fetchMyProperties()).rejects.toThrow("boom");
+  });
+});
+
+describe("setPropertyAddress", () => {
+  it("calls api.set_property_address with every field, defaulting country to BE", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await setPropertyAddress({
+      propertyId: "p1", street: "Kerkstraat", houseNumber: "12", postcode: "2000", municipality: "Antwerpen",
+      propertyType: "apartment", quotePrepNotes: "Bel aan bij nr. 4",
+    });
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "set_property_address", {
+      p_property_id: "p1",
+      p_street: "Kerkstraat",
+      p_house_number: "12",
+      p_postcode: "2000",
+      p_municipality: "Antwerpen",
+      p_country: "BE",
+      p_property_type: "apartment",
+      p_quote_prep_notes: "Bel aan bij nr. 4",
+    });
+  });
+
+  it("throws the real Supabase error instead of swallowing it", async () => {
+    apiRpc.mockResolvedValue({ error: new Error("insufficient_privilege") });
+    await expect(setPropertyAddress({ propertyId: "p1", street: "x", postcode: "y", municipality: "z" }))
+      .rejects.toThrow("insufficient_privilege");
+  });
+});
+
+describe("hasConfirmedAddress", () => {
+  it("requires street, postcode and municipality — house number and country alone are not enough", () => {
+    expect(hasConfirmedAddress({ street: "Kerkstraat", postcode: "2000", municipality: "Antwerpen" })).toBe(true);
+    expect(hasConfirmedAddress({ street: "Kerkstraat", postcode: "2000" })).toBe(false);
+    expect(hasConfirmedAddress(null)).toBe(false);
+    expect(hasConfirmedAddress({})).toBe(false);
   });
 });

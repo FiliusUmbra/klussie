@@ -50,11 +50,68 @@ async function loadProperty() {
       return null;
     }
     const property = Array.isArray(data) ? data[0] : null;
-    return property ? { id: property.id, name: property.name } : null;
+    return property ? shapeProperty(property) : null;
   } catch (err) {
     console.warn("property context unavailable, continuing without it:", err.message);
     return null;
   }
+}
+
+// Migration 0185 grew api.my_properties() with the address/quote-prep columns 0182
+// added to property.properties. Shaped here once so loadProperty() (My Home) and
+// fetchMyProperties() (the service-location picker, below) return the identical shape.
+function shapeProperty(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    street: row.street || "",
+    houseNumber: row.house_number || "",
+    postcode: row.postcode || "",
+    municipality: row.municipality || "",
+    country: row.country || "BE",
+    propertyType: row.property_type || null,
+    quotePrepNotes: row.quote_prep_notes || "",
+  };
+}
+
+/** Whether a property's address is confirmed enough to be usable as a service location. */
+export function hasConfirmedAddress(property) {
+  return Boolean(property?.street && property?.postcode && property?.municipality);
+}
+
+/**
+ * Every property the caller currently stewards (`api.my_properties()`, migration 0185).
+ * Unlike `loadProperty()`/`fetchHomeProfile()`, which pick the first row for the My Home
+ * surface, this returns the full list — the input to the service-location picker's
+ * "My Home / another saved property" choice (`ServiceLocationField.jsx`). A workspace with
+ * exactly one property (today's common case) simply renders that one choice.
+ */
+export async function fetchMyProperties() {
+  const { data, error } = await supabase.schema("api").rpc("my_properties");
+  if (error) throw error;
+  return (data || []).map(shapeProperty);
+}
+
+/**
+ * Sets a property's own address (`api.set_property_address()`, migration 0185) — the
+ * write path the disclosure-consent flow (0182/0183) needs a real address to disclose.
+ * Whole-value replace, not a sparse patch (the function's own comment) — callers always
+ * send the full current set, matching `setEngagementAccessNotes()`'s own upsert shape.
+ */
+export async function setPropertyAddress({
+  propertyId, street, houseNumber, postcode, municipality, country, propertyType, quotePrepNotes,
+}) {
+  const { error } = await supabase.schema("api").rpc("set_property_address", {
+    p_property_id: propertyId,
+    p_street: street || null,
+    p_house_number: houseNumber || null,
+    p_postcode: postcode || null,
+    p_municipality: municipality || null,
+    p_country: country || "BE",
+    p_property_type: propertyType || null,
+    p_quote_prep_notes: quotePrepNotes || null,
+  });
+  if (error) throw error;
 }
 
 // WP 1.3. `null` on any failure, the same fallback idiom as loadProperty() above — a

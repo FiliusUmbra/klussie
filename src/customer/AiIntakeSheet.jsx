@@ -22,6 +22,7 @@ import { useAuth } from "../lib/auth.jsx";
 import { Badge, Drawer } from "../design-system";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "../lib/aiIntake";
 import { WHEN_PREFS } from "../lib/requestStatus.js";
+import { ServiceLocationField } from "./ServiceLocationField.jsx";
 import {
   editableFromResult,
   initialStage,
@@ -34,7 +35,7 @@ import {
 
 export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos = [], initialResult = null }) {
   const { t, langCode, BASE_SERVICES, serviceInfo, whenLabel } = useLang();
-  const { profile } = useAuth();
+  const { profile, activeWorkspace } = useAuth();
   const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
 
   const [text, setText] = useState(initialText);
@@ -57,6 +58,7 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
   const [editBudget, setEditBudget] = useState(seeded.budget);
   const [editCity, setEditCity] = useState(profile?.city || "");
   const [editWhen, setEditWhen] = useState(seeded.when);
+  const [location, setLocation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -149,14 +151,29 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
     setStage("review");
   };
 
-  const canSubmit = canSubmitIntake({ serviceId: editServiceId, description: editDescription }) && !submitting;
+  // C8, docs/engineering/TESTING.md §5.2 — "AI failure degrades to the manual form, no
+  // dead end." Previously aspirational: the compose stage only ever showed the error
+  // text, with no button to actually reach the manual form — and ServiceSheet.jsx's own
+  // trigger (CustomerApp.jsx's setActiveService) is itself unreachable from any current
+  // screen (the old services grid was replaced by this conversation canvas), so a
+  // customer whose analysis failed had no way to create a request at all. The review
+  // stage already *is* the manual form (a service picker, description, when/city/budget,
+  // now also ServiceLocationField) — reused here rather than routing through
+  // ServiceSheet/QuoteFormSheet, which nothing in the current UI can reach.
+  const useManualForm = () => {
+    setResult({});
+    applyResultToEditable({});
+    setStage("review");
+  };
+
+  const canSubmit = canSubmitIntake({ serviceId: editServiceId, description: editDescription }) && !!location && !submitting;
 
   const handleFinalSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
       await onSubmitted(buildIntakeRequest({
-        edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, city: editCity, when: editWhen },
+        edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, city: editCity, when: editWhen, location },
         result,
         baseServices: BASE_SERVICES,
         photos: photos.map((p) => p.file),
@@ -214,6 +231,11 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
           >
             {loading ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />} {loading ? t.aiAnalyzing : t.aiAnalyzeBtn}
           </button>
+          {error && (
+            <button className="btn-secondary" style={{ marginTop: 8 }} onClick={useManualForm}>
+              {t.aiFillManuallyBtn}
+            </button>
+          )}
         </>
       )}
 
@@ -268,6 +290,8 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
               <button key={w} type="button" className={"chip" + (editWhen === w ? " chip-on" : "")} onClick={() => setEditWhen(w)}>{whenLabel(w)}</button>
             ))}
           </div>
+
+          <ServiceLocationField workspaceId={activeWorkspace?.workspace_id} onChange={setLocation} />
 
           <label className="field-label">{t.cityLabel}</label>
           <div className="search" style={{ marginBottom: 14 }}>

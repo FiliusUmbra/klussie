@@ -200,6 +200,7 @@ automated (§4) or listed here. Walk the rows relevant to what changed.
 | C8 | AI failure degrades to the manual form, no dead end | `AiIntakeSheet`, `ServiceSheet` |
 | C9 | Structured per-service questions render for the chosen service | `ServiceSheet` |
 | C10 | Submitting creates a request in `collecting` | `ServiceSheet` |
+| C10a | Every request requires a real service location — My Home (confirming its address the first time, if unset), another saved property, or a fresh one-time address — before it can be sent (migrations 0182/0185) | `ServiceLocationField` *(automated)* |
 | C11 | One-tap booking creates a directed request | `ConversationHome` *(automated)* |
 
 ### 5.3 · Customer — requests, quotes and completion
@@ -211,7 +212,8 @@ automated (§4) or listed here. Walk the rows relevant to what changed.
 | C14 | Request detail shows the timeline for its status | `RequestDetailSheet` |
 | C15 | Photos and AI summary render on the detail sheet | `RequestPhotosStrip`, `AiAnalysisSummary` |
 | C16 | Incoming quotes are listed with price and pro | `RequestDetailSheet` |
-| C17 | **Accepting a quote books the request, declines the others, and opens a conversation** | `RequestDetailSheet` |
+| C17 | **Accepting a quote declines the others, opens a conversation, and moves the request to `accepted_pending_location_approval`** — it no longer books the engagement directly (migrations 0182/0183: the founder's mandatory disclosure-consent decision) | `RequestDetailSheet` |
+| C17a | **Approving location disclosure is the one and only step that actually books the engagement** — shares the exact address with the accepted pro and moves the request to `booked` | `RequestDetailSheet` *(automated)* |
 | C18 | Marking complete moves the request to `completed` | `RequestDetailSheet` |
 | C18a | A completed/reviewed request's Service Record shows the pro's own write-up once one exists, or an educating empty state ("your pro will write this up") for every request until WP 3.3 ships an authoring UI — plus a real Approve action against WP 3.0's write contract | `ServiceRecordSummary` *(automated)* |
 | C19 | Leaving a review updates the pro's rating | `ReviewSheet` |

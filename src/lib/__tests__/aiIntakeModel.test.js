@@ -162,6 +162,12 @@ describe("buildIntakeRequest", () => {
     expect(buildIntakeRequest({ edited, result: null, baseServices, photos: [] }).detailsJson).toEqual({});
   });
 
+  it("passes the chosen service location straight through, defaulting to null", () => {
+    expect(buildIntakeRequest({ edited, result: {}, baseServices, photos: [] }).location).toBeNull();
+    const location = { type: "home", propertyId: "p1" };
+    expect(buildIntakeRequest({ edited: { ...edited, location }, result: {}, baseServices, photos: [] }).location).toBe(location);
+  });
+
   it("leaves categoryId undefined when the catalog has no such service", () => {
     // Better an absent category than a wrong one — it routes the lead to the wrong pros.
     const payload = buildIntakeRequest({ edited: { ...edited, serviceId: "unknown" }, result: {}, baseServices, photos: [] });

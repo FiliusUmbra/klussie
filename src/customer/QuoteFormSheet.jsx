@@ -11,10 +11,11 @@ import { useAuth } from "../lib/auth.jsx";
 import { Drawer } from "../design-system";
 import { SERVICE_QUESTIONS } from "../lib/serviceQuestions";
 import { WHEN_PREFS } from "../lib/requestStatus.js";
+import { ServiceLocationField } from "./ServiceLocationField.jsx";
 
 export function QuoteFormSheet({ service, onClose, onSubmit }) {
   const { t, serviceInfo, whenLabel } = useLang();
-  const { profile } = useAuth();
+  const { profile, activeWorkspace } = useAuth();
   const info = serviceInfo(service.id);
   const questions = SERVICE_QUESTIONS[service.id];
   const [details, setDetails] = useState("");
@@ -23,6 +24,7 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
   const [city, setCity] = useState(profile?.city || "");
   const [fields, setFields] = useState({});
   const [photos, setPhotos] = useState([]);
+  const [location, setLocation] = useState(null);
   const photoInputRef = useRef(null);
 
   const setField = (key, value) => setFields((f) => ({ ...f, [key]: value }));
@@ -97,6 +99,8 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
         <input ref={photoInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={addPhotos} />
       </div>
 
+      <ServiceLocationField workspaceId={activeWorkspace?.workspace_id} onChange={setLocation} />
+
       <label className="field-label">{t.cityLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
         <input value={city} onChange={(e) => setCity(e.target.value)} />
@@ -109,7 +113,13 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
         <input placeholder={t.budgetPlaceholder} value={budget} onChange={(e) => setBudget(e.target.value)} />
       </div>
 
-      <button className="btn-primary" onClick={() => onSubmit({ whenPref, details: details || "—", detailsJson: fields, budget, city, photos: photos.map((p) => p.file) })}><Send size={15} /> {t.sendRequestBtn}</button>
+      <button
+        className="btn-primary"
+        disabled={!location}
+        onClick={() => onSubmit({ whenPref, details: details || "—", detailsJson: fields, budget, city, location, photos: photos.map((p) => p.file) })}
+      >
+        <Send size={15} /> {t.sendRequestBtn}
+      </button>
       <div className="fineprint"><ShieldCheck size={12} /> {t.privacyNote}</div>
     </Drawer>
   );
