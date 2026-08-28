@@ -363,6 +363,63 @@ slice's own end state requires retiring a live system, not only
 adding beside one — still its defining structural difference
 from Slice 1.
 
+**WP 2.8 — mandatory disclosure-consent, added to the booking
+transition after Slice 2 otherwise closed — DONE, client cutover
+2026-08-27.** `84bb1ad`/`97f32b8` shipped a real founder decision as a
+pure backend addition (migrations `0181`-`0184`): quote acceptance no
+longer creates an active engagement directly — it creates one
+`pending_disclosure` and moves the request to
+`accepted_pending_location_approval`; only the customer's own explicit
+`api.approve_location_disclosure()` call reaches `active` and fires
+`marketplace.engagement.created`. Zero client code referenced any of
+it at that point — every booking accepted after that PR was
+structurally stuck, undetected because nothing exercises the live UI
+routinely. Closed end to end this session:
+- Backend gap closed: `api.my_properties()` never returned the
+  address columns `0182` added, and no write path existed for them at
+  all — `0185_property_address_write_path.sql` adds both.
+- A second, independent, previously-undiscovered bug found by
+  exercising the real create-request path live for the first time
+  since migration `0014` (2026-08 vintage): `0014`'s own unconditional
+  column default on `service_requests.directed_until` broke every
+  *ordinary* (non-directed) request insert against
+  `service_requests_directed_complete` (`0013`). Nobody had hit it —
+  the AI Gateway is blocked on staging and `ServiceSheet.jsx`'s own
+  trigger (`CustomerApp.jsx`'s `setActiveService`) has been dead code
+  since the conversation-canvas redesign, so `createServiceRequest()`
+  had never actually run against a real database before. Fixed by
+  `0186`, a conditional `BEFORE INSERT` trigger replacing the column
+  default.
+- Client: `ServiceLocationField.jsx` (My Home / another saved property
+  / one-time address, confirming My Home's address inline the first
+  time it's needed) wired into both request-creation forms; a real
+  disclosure-consent card in `RequestDetailSheet.jsx` for
+  `accepted_pending_location_approval`; the new status takes its place
+  in the 6-step lifecycle (`requestStatus.js`). Also closed in passing:
+  `AiIntakeSheet.jsx`'s own C8 promise ("AI failure degrades to the
+  manual form, no dead end") was documented in `TESTING.md` but never
+  actually built — a failed analysis was a genuine dead end until a
+  "Vul handmatig in" fallback was added; this is currently the *only*
+  reachable way to create a request on staging at all, given the two
+  gaps just named.
+- **Live-verified end to end on staging**, both sides, real UI: Cathy
+  created a request through the manual-fallback form (My Home's
+  address confirmed inline for the first time), Pierre quoted it from
+  his own dashboard, Cathy accepted, the disclosure-consent card
+  rendered with Pierre's real name/price interpolated, approving it
+  flipped the request to `booked` and rendered the ordinary booked
+  ticket — the complete transition, not a partial slice.
+- **Named, deliberately deferred, not built this pass:** the
+  professional's own approximate-location view during quoting
+  (`api.matching_requests_for_pro()`, shipped in `0183`, has no client
+  caller yet — `fetchProLeads()` stays on legacy and carries no
+  municipality/property-type/prep-notes fields today); engagement
+  access instructions (`work.set_engagement_access_notes()`, real
+  backend, no client screen). Both real, both safe to defer — the
+  privacy guarantee holds either way, since a quoting pro's RLS
+  already denies the base `property.properties` row entirely until a
+  real membership is granted post-disclosure.
+
 *The single riskiest slice in the programme — worked in full in §2's
 example above. Not compressed or parallelized; the two sides of a live
 transaction ship as one PR.*
