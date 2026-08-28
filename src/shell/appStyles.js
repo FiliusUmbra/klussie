@@ -80,7 +80,20 @@ export const APP_CSS = `
 
 .chiprow{ display:flex; gap:8px; overflow-x:auto; padding-bottom:14px; margin-bottom:2px; }
 .chiprow::-webkit-scrollbar{ display:none; }
-.chip{ display:flex; align-items:center; gap:5px; white-space:nowrap; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); padding:7px 12px; border-radius:999px; font-size:12.5px; font-weight:500; cursor:pointer; font-family:var(--font-body); transition:background var(--motion-base), color var(--motion-base), border-color var(--motion-base); }
+/* Real box growth, not hit-slop -- tried the pseudo-element technique live first
+   (2026-08-28, same as .sheet-close/.modal-close/.photo-remove-btn), confirmed it
+   cannot work here: .chiprow itself sets overflow-x:auto with no overflow-y, so the
+   same CSS Overflow spec coercion that blocked .chat-input-row button forces
+   overflow-y to compute as "auto" too and clips any vertical bleed -- measured live,
+   a pseudo-element extending above a chip resolved to .sheet-scroll, not the chip.
+   min-height:44px (was ~31px real height at padding:7px 12px) is the only fix that
+   actually reaches the 44px target from docs/design/ACCESSIBILITY.md's own "Touch
+   targets" section -- a real, visible size increase, not an invisible one. Horizontal
+   padding grown slightly too (12px -> 14px) so the larger pill stays proportioned
+   rather than looking squashed. .chiprow's own row height grows to match (flex rows
+   auto-size to their tallest child) -- a real, visible layout change across every
+   screen with a chip row, by design, not a side effect to work around. */
+.chip{ display:flex; align-items:center; justify-content:center; gap:5px; white-space:nowrap; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); padding:7px 14px; min-height:44px; box-sizing:border-box; border-radius:999px; font-size:12.5px; font-weight:500; cursor:pointer; font-family:var(--font-body); transition:background var(--motion-base), color var(--motion-base), border-color var(--motion-base); }
 .chip-on{ background:var(--forest); border-color:var(--forest); color:#fff; }
 .chip-locked{ opacity:0.45; cursor:not-allowed; }
 
