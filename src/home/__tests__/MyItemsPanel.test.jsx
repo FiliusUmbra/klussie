@@ -130,12 +130,27 @@ describe("MyItemsPanel — Documents (WP 1.3)", () => {
     expect(screen.getByText("Valid until 2099-01-01")).toBeTruthy();
   });
 
-  it("falls back to the document's type key when it has no caption", () => {
+  // A real bug, found live 2026-08-28: DocumentUploadSheet.jsx has no caption field at
+  // all, so every document created through this app's own UI has caption: null — this
+  // fallback path is not an edge case, it is the normal case. It used to render the raw,
+  // untranslated typeKey ("warranty") instead of the real localized label, in every
+  // locale, for every document, always. documentTypeLabelKey() was already imported and
+  // mocked in this very file (used nowhere until now) — the fix was reaching for it.
+  it("falls back to the document's real localized type label, never the raw type key, when it has no caption", () => {
     const documents = [{ id: "doc-3", caption: null, typeKey: "warranty", validUntil: null }];
 
     render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={documents} maintenance={[]} />);
 
-    expect(screen.getByText("warranty")).toBeTruthy();
+    expect(screen.getByText("Warranty")).toBeTruthy();
+    expect(screen.queryByText("warranty")).toBeNull();
+  });
+
+  it("falls back to the raw type key only for a type this codebase has no label for", () => {
+    const documents = [{ id: "doc-4", caption: null, typeKey: "some_future_type", validUntil: null }];
+
+    render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={documents} maintenance={[]} />);
+
+    expect(screen.getByText("some_future_type")).toBeTruthy();
   });
 });
 
