@@ -53,6 +53,13 @@ describe("ServiceLocationField — no property yet", () => {
     await screen.findByText("serviceLocationOneTimeHint");
     expect(onChange).toHaveBeenLastCalledWith(null);
 
+    // Every address field is reachable by its accessible name, not just its
+    // placeholder — a screen reader announces aria-label, and a placeholder alone
+    // disappears the moment the field has a value.
+    expect(screen.getByRole("textbox", { name: "addressStreetLabel" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "addressPostcodeLabel" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "addressMunicipalityLabel" })).toBeTruthy();
+
     fireEvent.change(screen.getByPlaceholderText("addressStreetLabel"), { target: { value: "Zeedijk" } });
     fireEvent.change(screen.getByPlaceholderText("addressPostcodeLabel"), { target: { value: "8400" } });
     fireEvent.change(screen.getByPlaceholderText("addressMunicipalityLabel"), { target: { value: "Oostende" } });
