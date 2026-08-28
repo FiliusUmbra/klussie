@@ -48,6 +48,16 @@ export function CustomerApp({ showToast, onBecomePro }) {
   const { user, activeWorkspace } = useAuth();
   const workspaceId = activeWorkspace?.workspace_id;
   const [tab, setTab] = useState("discover");
+  // activeService/quoteForm — checked directly, 2026-08-28: setActiveService is never
+  // called anywhere in this codebase. Discover.jsx (the only screen with a real
+  // onOpenService trigger) is itself deliberately unrendered — its own header explains
+  // why (EXPERIENCE_VISION.md §10 retired the category grid as an *entry point* but left
+  // "where this browse UI lives afterward" an open question, not yet answered). This
+  // state, and the ServiceSheet/QuoteFormSheet render below it, are consequently also
+  // unreachable — the same documented limbo, not a separate oversight. Not removed
+  // for the same reason Discover.jsx itself wasn't: no agreed replacement home exists yet.
+  // AiIntakeSheet's own "Vul handmatig in" fallback (added the same day this was found)
+  // is today's only reachable way to create a request without the AI Gateway.
   const [activeService, setActiveService] = useState(null);
   const [quoteForm, setQuoteForm] = useState(null);
   const [aiIntakeOpen, setAiIntakeOpen] = useState(false);
