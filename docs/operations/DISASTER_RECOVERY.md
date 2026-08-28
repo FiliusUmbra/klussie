@@ -103,6 +103,19 @@ different cloud account, or an external drive kept elsewhere.
 
 ## 5 · Taking a backup
 
+> **Corrected 2026-08-28, after a real drill — read before using `--schema=`
+> below.** This section originally hardcoded `--schema=public`. That is
+> now wrong and has been for a long time: the real application lives
+> across 12 schemas (`identity`, `workspace`, `property`, `work`,
+> `platform`, `commerce`, `knowledge`, `derived`, `analytics_ws`,
+> `analytics_pf`, `safety`, `public`) **plus `api`** — `api` holds no
+> tables but does hold every client-facing delegate function, and
+> excluding it left ~400 functions unrestorable when a real drill
+> cascaded them away. Confirm the real schema list before every backup
+> (`select nspname from pg_namespace where nspname not like 'pg\_%'`),
+> don't trust the list here going stale again. See §8's own drill record
+> for the full finding.
+
 Set the connection once per session. Details and the password source are
 in [`POSTGRES_TOOLS_WINDOWS.md`](POSTGRES_TOOLS_WINDOWS.md) §5.
 
@@ -173,9 +186,29 @@ Tables, types and functions. No triggers, no constraints.
 ```bash
 pg_dump -w --schema-only --section=pre-data \
         --no-owner --no-privileges --quote-all-identifiers \
-        --schema=public \
+        --schema=identity --schema=workspace --schema=property --schema=work \
+        --schema=platform --schema=commerce --schema=knowledge --schema=derived \
+        --schema=analytics_ws --schema=analytics_pf --schema=safety --schema=public \
+        --schema=api \
         -f "$DEST/01-schema-pre.sql"
 ```
+
+**Restoring this file into a database where `public` already has
+objects will fail** — `CREATE SCHEMA "public"` errors because Postgres
+always provisions `public` by default, a real bug this document itself
+had until a 2026-08-28 drill found it live. If restoring in place (not
+into a genuinely fresh project), `drop schema public cascade; ` — and
+every other schema this file creates — **before** running it, not after
+it fails partway through.
+
+**This file alone does not make the application work**, found the same
+day: `--no-privileges` means no `GRANT` a role needs is in here at all,
+and even a corrected schema list can't save you from that — see the box
+above §5 and §8's own drill record for the full finding and the actual
+fix (grants and `api`'s ~400 delegate functions are more reliably
+reconstructed from the migrations themselves — `supabase db push` — than
+from a `pg_dump` capture that was never designed to be portable role
+metadata in the first place).
 
 ### 5.2 · Platform data — accounts and buckets
 
@@ -196,9 +229,16 @@ must exist before objects can be uploaded back into them (§5.4).
 ```bash
 pg_dump -w --data-only --no-owner --column-inserts \
         --on-conflict-do-nothing \
-        --schema=public \
+        --schema=identity --schema=workspace --schema=property --schema=work \
+        --schema=platform --schema=commerce --schema=knowledge --schema=derived \
+        --schema=analytics_ws --schema=analytics_pf --schema=safety --schema=public \
         -f "$DEST/03-data-public.sql"
 ```
+
+**No `--schema=api`** — confirmed live, 2026-08-28: it holds zero base
+tables, so a data-only dump of it is legitimately empty. The schema
+*itself* still needs backing up in §5.1/§5.4 (its functions), just not
+here.
 
 `--column-inserts` is slower and larger than COPY, and is chosen
 deliberately: the output is readable, diffable, and survives a partial
@@ -214,7 +254,10 @@ none of them act on the data as it loads.
 ```bash
 pg_dump -w --schema-only --section=post-data \
         --no-owner --no-privileges --quote-all-identifiers \
-        --schema=public \
+        --schema=identity --schema=workspace --schema=property --schema=work \
+        --schema=platform --schema=commerce --schema=knowledge --schema=derived \
+        --schema=analytics_ws --schema=analytics_pf --schema=safety --schema=public \
+        --schema=api \
         -f "$DEST/04-schema-post.sql"
 ```
 
@@ -232,18 +275,38 @@ command, a script, or a terminal history.
 
 ### 5.6 · Storage objects
 
+**Broken as documented, found 2026-08-28 — do not rely on this command
+without re-verifying it first.** The command below is what this section
+has said since 2026-08-12; run against the current Supabase CLI it fails
+immediately on every bucket, including an empty one, before any real
+transfer starts:
+
+```
+{"_tag":"Error","error":{"code":"LegacyStorageUnsupportedOperationError","message":"Unsupported operation","suggestion":"Run cp -r <src> <dst> to copy between local directories."}}
+```
+
+Neither `--project-ref` nor `--linked` changed the result. Not
+root-caused — the CLI's own `storage cp --help` still documents this
+exact invocation shape as its own example, so this is either a genuine
+regression or a subtlety this document hasn't found yet. **Treat storage
+backup as unverified until this is resolved and re-tested for real**,
+not as a solved problem this section's confident tone implies.
+
 No Docker; talks to the Storage API rather than the database:
 
 ```bash
-for b in avatars portfolio request-photos item-photos; do
+for b in avatars portfolio request-photos item-photos documents; do
   npx supabase storage cp -r "ss:///$b" "$DEST/storage/$b" \
       --project-ref <project-ref> --experimental
 done
 ```
 
-The four buckets above are the current set. Confirm with
-`npx supabase storage ls --project-ref <ref> --experimental` — a new
-bucket added by a future epic must be added here.
+**Five buckets, not four** — `documents` (the Document engine, Epic 08)
+was missing from this list until the 2026-08-28 drill found it via
+`storage ls`, which returned five paths, not the four this section
+claimed. Confirm with
+`npx supabase storage ls --project-ref <ref> --experimental` every time,
+not from this list — it has already gone stale once.
 
 ### 5.7 · Environment variables
 
@@ -453,42 +516,121 @@ this box.
 
 ### Not verified — and what that means
 
-| Unknown | Consequence if wrong |
-|---|---|
-| That a restore reproduces production | Recovery fails at the moment it is needed |
-| Whether restored `profiles` keep their values or are overwritten by `handle_new_user` defaults (§5.0) | Silent data corruption — the application works, the names and avatars are wrong |
-| Storage object round-trip | Photos and avatars missing after recovery |
-| **Actual RTO** | The 4-hour target in §3 is an estimate, not a measurement |
+| Unknown | Consequence if wrong | Status after the 2026-08-28 drill |
+|---|---|---|
+| That a restore reproduces production | Recovery fails at the moment it is needed | **Data itself: proven.** Schema+data restore reproduces exact row counts and exact values (real address, real document, real disclosure record all round-tripped correctly). **Functional completeness: proven false as originally documented** — see the drill record below, three real gaps found |
+| Whether restored `profiles` keep their values or are overwritten by `handle_new_user` defaults (§5.0) | Silent data corruption — the application works, the names and avatars are wrong | **Not actually exercised by this drill** — see the drill record's own honest caveat: `auth.users` was deliberately preserved, not wiped, so the trigger never fired. Still open |
+| Storage object round-trip | Photos and avatars missing after recovery | **Not exercised** — the documented backup command (`supabase storage cp -r ss:///bucket ...`) no longer works against the current CLI version (`LegacyStorageUnsupportedOperationError`), a real, separate finding. Root cause not yet diagnosed |
+| **Actual RTO** | The 4-hour target in §3 is an estimate, not a measurement | Still an estimate — this drill was stopped mid-recovery (see below), so no real end-to-end timing exists yet |
 
-**The middle row is the one to watch.** It is the only known defect in
-the design, it is invisible without a drill, and it produces a database
-that looks healthy.
+**Three real, previously-unknown defects in this document's own
+procedure**, found only by actually running it, not by re-reading it:
+
+1. **§5's backup commands only ever covered `--schema=public`.** Written
+   before almost all of the platform's real schemas existed. By
+   2026-08-28, staging alone held 12 real application schemas
+   (`identity`, `workspace`, `property`, `work`, `platform`, `commerce`,
+   `knowledge`, `derived`, `analytics_ws`, `analytics_pf`, `safety`, plus
+   `public`) — a backup following this document's own §5 exactly would
+   have silently captured a small fraction of the real database.
+2. **`--no-owner --no-privileges` (§5.1/§5.4) means no backup taken by
+   this procedure has ever captured role GRANTs.** A schema/data restore
+   using only these files reproduces the *shape* and *content* of the
+   database but leaves every application role (`anon`, `authenticated`,
+   the per-engine `klussie_engine_*` roles) with none of its actual
+   permissions — the application is completely broken
+   (`permission denied for schema public`) the moment the restore
+   finishes, until every `GRANT`/`REVOKE` across every migration is
+   manually reconstructed. Not named anywhere in this document before now.
+3. **The `api` schema was excluded from the schema list entirely** (its
+   own reasoning at the time: "it holds no base tables, nothing to back
+   up") — missing that Postgres tracks function-to-function dependencies
+   for `language sql` functions: dropping `work`/`property`/etc. during a
+   restore rehearsal correctly cascade-drops every `api.*` delegate that
+   calls into them, and none of those ~400 delegate definitions were ever
+   in the backup to restore. The fix (rebuilding `api.*` from the
+   migration source directly, since it was never actually backed up) is
+   itself non-trivial: replaying historical versions of a function in
+   file order conflicts with whichever later signature happened to
+   survive the cascade by accident, the same "cannot change return type
+   of existing function" class of bug this session's own migration work
+   (0185) hit independently the same day.
+
+**A fourth, separate, non-data finding**: the documented storage backup
+command (§5.6) no longer works against the currently-installed Supabase
+CLI — `LegacyStorageUnsupportedOperationError` on every bucket, including
+an empty one, before any real content transfer is attempted. Not yet
+root-caused.
 
 ### Drill record
 
 | Date | Source | Target | Verified against | Duration | Result |
 |---|---|---|---|---|---|
-| — | — | — | — | — | Deferred — see above |
+| 2026-08-28 | `klussie-staging` | `klussie-staging` (in-place — see below) | Real row counts + real data values (property address, uploaded document, disclosure approval, profile names) across 11 real application tables | Stopped mid-recovery, not completed | **Partial — see below.** Schema+data restore proven correct. Functional restore (grants + the `api` schema) proven broken as documented, one gap fixed live (grants), one identified with a proven fix ready but not yet applied (`api` schema — see next steps) |
 
-### An option that does not need a third project
+**What actually happened**, in order: full backup taken (`pg_dump`,
+corrected schema list, §5.1–§5.4, ~1.2MB); staging's 11 application
+schemas wiped (`DROP SCHEMA ... CASCADE`, deliberately **not** touching
+`auth`/`storage`/`api`/`supabase_migrations`); restored from the backup
+— schema-pre and schema-post applied cleanly on the second attempt (the
+first hit a real bug: the dump's own `CREATE SCHEMA "public"` fails
+because Postgres always has a `public` schema, a gap in this document's
+own §5.1 never named before); data restore succeeded with zero errors,
+`--on-conflict-do-nothing` correctly absorbing rows the real
+`handle_new_user` trigger would create in a true from-empty disaster
+(inert here specifically because `auth.users` was preserved, not
+wiped — see the caveat above); **every row count and every checked data
+value matched the pre-drill baseline exactly.** The application was then
+found broken (finding 2, above); fixed live by extracting and replaying
+every `GRANT`/`REVOKE` statement from all 187 migration files, in order
+(idempotent, no schema/data risk). The `api` schema gap (finding 3) was
+found immediately after, a fix was engineered and proven partially (its
+final step — dropping the now-inconsistent `api` schema and replaying
+the extraction into a clean one — was queued and ready) but **the drill
+was deliberately stopped before that last step**, a founder decision
+made mid-drill, not a failure.
 
-Not adopted, recorded so the constraint is not mistaken for
-impossibility: **staging can be its own drill target.**
+**Staging's real state as of this stopping point**: schema and data are
+fully correct and restored (verified above). `api` schema is in a known,
+partially-broken state — roughly 19 delegate functions
+(`api.my_documents`, `api.my_requests`, `api.list_audit_records`,
+`api.approve_location_disclosure`, and others — full list in the
+drill's own working log) are missing or carry a stale signature from
+before the drill, meaning **the live staging application is currently
+degraded**: document/request reads, the audit viewer, and the
+disclosure-approval flow will fail for real users of staging until this
+is finished. The fix is proven and ready, not theoretical:
 
-WP 00.06 proved the migration chain rebuilds staging from empty in
-minutes, so staging is cheap to destroy and recreate — its value is the
-*recorded fact* that it replayed, plus the migrations in git, neither of
-which is lost by reusing it. Dump staging, wipe it, restore it, rebuild
-with `db push` if anything goes wrong.
+```bash
+# Against klussie-staging ONLY. The extraction file already exists from
+# the 2026-08-28 drill; regenerate via the script in this drill's own
+# session record if it has been cleaned up.
+psql -c "drop schema api cascade; create schema api;"
+psql -f replay-api-functions.sql
+```
 
-That would exercise the backup commands, the restore ordering, the
-storage round-trip, **and the `handle_new_user` hazard** — staging has
-seeded accounts, so the trigger fires there too. It would not produce a
-production-scale RTO, and it involves **no production data**, so it
-breaks no rule in §9 or `ENVIRONMENTS.md` §6.
+**This is now the immediate next step of the (still paused) production
+migration effort** — not because production was touched (it was not),
+but because §5–§7 of this document must be corrected before they can be
+trusted for a real production disaster, and that correction is now
+written from a real, live-verified drill rather than from re-reading the
+original procedure. See `implementation/PRODUCTION_MIGRATION_0018_0187.md`
+for how these findings carry forward into the actual production plan.
 
-It is a CTO decision, not an engineering one, and is offered rather than
-assumed.
+### An option that does not need a third project — now exercised
+
+**Adopted and run, 2026-08-28** (previously recorded here as offered but
+not adopted): staging as its own drill target, in place, no third
+project. Confirmed real value exactly as predicted — it caught three
+genuine defects in this document's own procedure that no amount of
+re-reading would have found, at the cost of temporarily degrading
+staging rather than any production risk. The one predicted benefit *not*
+realized: the `handle_new_user` hazard (§5.0) was not actually exercised,
+because this specific drill preserved `auth.users` rather than wiping it
+(a deliberate choice to avoid needing to reconstruct real test-account
+logins) — a **true** from-scratch drill, wiping `auth` too, remains a
+separate, still-open exercise if that specific hazard needs to be
+proven closed.
 
 ### The backup path is verified — 2026-08-12
 

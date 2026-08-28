@@ -678,3 +678,24 @@ from here forward.
 | 8 | Remove beta-blocking dead paths | `ServiceSheet`/`QuoteFormSheet`/`Discover.jsx` orphaning documented (PR #114), not removed — no agreed replacement home yet (pre-existing decision, `EXPERIENCE_VISION.md` §10). **Swept the rest of `src/` for further orphans, 2026-08-28**: every other exported component traces back to a real entry point with an actual render — nothing else found |
 | 9 | End-to-end staging validation, fresh synthetic accounts | Fresh signup attempted live — form and validation work correctly, blocked from completing by the SMTP rate limit just found (item 6). Every other verification this session reused the two seeded accounts (`customer@`/`pro@staging.klussie.test`), not fresh ones |
 | 10 | Final beta-readiness report | **Done, 2026-08-28** — `implementation/BETA_READINESS_REPORT_2026-08-28.md`. Verdict: ready for a controlled beta, not a public launch; two accepted, external, founder-owned limitations (SMTP, OAuth) named with concrete mitigations, everything else in the mandate's own "Definition of beta-ready" checklist met and evidenced |
+
+**Addendum, same day — the production-reset track, resumed at the
+founder's own instruction now that the beta gate above is reached.**
+Not part of the ten priorities (a separate, later decision named in the
+mandate itself); recorded here rather than a new tracker. Planning only
+— `implementation/PRODUCTION_MIGRATION_0018_0187.md` replaces the old,
+170-migrations-stale v1.0 runbook with the real current scope. A real
+restore drill was run against **staging** (never production) to prove
+the disaster-recovery procedure this whole effort depends on, per the
+founder's own explicit approval — and found it genuinely broken in three
+ways nobody had ever caught (`DISASTER_RECOVERY.md` §8's own drill
+record has the full account): the documented backup never covered most
+of the platform's real schemas, never captured role grants at all, and
+excluded the `api` schema entirely. Data+schema restore itself is now
+proven correct (exact row counts, exact real data values). The drill was
+deliberately stopped mid-recovery at the founder's own call, leaving
+staging in a known, documented, partially-degraded state (roughly 19
+`api.*` delegate functions missing or stale — full list and the proven
+fix are in the drill record) — **not production, and not silent.**
+Nothing was linked, migrated, or deployed against production this
+session.

@@ -1,5 +1,14 @@
 # Production migration runbook — `0018`–`0029`
 
+> **Superseded 2026-08-28 by
+> [`../../implementation/PRODUCTION_MIGRATION_0018_0187.md`](../../implementation/PRODUCTION_MIGRATION_0018_0187.md).**
+> 170 migrations now exist beyond this document's own `0018`–`0029`
+> scope, written the day Epic 02 closed. Retained as history, matching
+> this repository's own convention for superseded documents (e.g.
+> `EXECUTION_ROADMAP.md`) — its own §3 reconciliation approach and risk
+> table for `0026`/`0027` are still accurate and still referenced by the
+> document that replaces it.
+
 **This document owns:** the one-time procedure for bringing Epics 01 and
 02 to production. It does not own environment configuration
 ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)), backups
