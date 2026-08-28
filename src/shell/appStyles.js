@@ -156,7 +156,14 @@ export const APP_CSS = `
 .sheet-overlay{ position:absolute; inset:0; background:rgba(13,21,18,0.45); display:flex; align-items:flex-end; z-index:20; }
 .sheet{ position:relative; width:100%; max-height:88%; background:var(--paper); border-radius:24px 24px 0 0; padding:10px 20px 26px; box-shadow:0 -10px 30px rgba(0,0,0,0.2); }
 .sheet-grabber{ width:36px; height:4px; background:var(--line-strong); border-radius:99px; margin:0 auto 10px; }
+/* docs/design/ACCESSIBILITY.md's own "Touch targets" finding: 28x28px, real
+   measurement, below the 44x44px minimum. Its own prescribed fix -- "expanding the
+   invisible hit-area via padding or a pseudo-element while keeping the visual icon the
+   same size" -- applied here: a transparent ::after grows only the tappable zone, never
+   the visible circle. Safe in this spot -- top:12px/inset-inline-end:16px places it in
+   open space at the corner of a full-screen Drawer, nothing else nearby to overlap. */
 .sheet-close{ position:absolute; top:12px; inset-inline-end:16px; background:var(--surface); border:1px solid var(--line); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); }
+.sheet-close::after{ content:""; position:absolute; inset:-8px; }
 .sheet-scroll{ overflow-y:auto; max-height:calc(88vh - 40px); padding-top:8px; }
 .sheet-icon-lg{ width:44px; height:44px; border-radius:13px; background:var(--sage-bg); display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
 .sheet-title{ font-family:var(--font-display); font-size:19px; font-weight:600; color:var(--ink); margin-bottom:4px; }
@@ -184,6 +191,19 @@ export const APP_CSS = `
 .chat-bubble-them .chat-translate-toggle{ color:var(--ink-soft); }
 .chat-input-row{ display:flex; gap:8px; align-items:center; }
 .chat-input-row input{ flex:1; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); outline:none; }
+/* 38x38px, below the 44x44px minimum (docs/design/ACCESSIBILITY.md) -- and, unlike
+   .sheet-close/.modal-close, hit-slop genuinely cannot fix it here. Tried the same
+   pseudo-element technique live, 2026-08-28: this button lives inside a Drawer's own
+   .sheet-scroll (overflow-y:auto), and CSS's own overflow spec forces overflow-x to
+   compute as "auto" too whenever the other axis isn't "visible" -- explicitly setting
+   overflow-x:visible on .sheet-scroll does not override this; the browser coerces it
+   back, confirmed against the real computed style, not just the source. A hit-slop
+   pseudo-element bleeding outside this button's own box is clipped by that same
+   computed overflow, same as any other content would be. A real fix exists (move
+   .chat-input-row outside Drawer's scrolling children) but is a structural change to
+   every conversation sheet in the app, not a touch-target tweak -- named here rather
+   than attempted under this pass's scope, the same restraint this file's own
+   .photo-remove-btn comment already uses. */
 .chat-input-row button{ width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
 
 .avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
@@ -194,7 +214,18 @@ export const APP_CSS = `
 .portfolio-thumb{ position:relative; width:100%; aspect-ratio:1; border-radius:10px; overflow:hidden; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); background:var(--surface); padding:0; cursor:pointer; }
 .portfolio-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
 .portfolio-add{ display:flex; align-items:center; justify-content:center; color:var(--ink-soft); background:var(--sage-bg); border-style:dashed; }
+/* 20x20px, the smallest of the four controls this doc's own audit measured, and
+   deliberately NOT taken to the full 44px hit-slop the other three get: its parent
+   .portfolio-thumb clips overflow, so extending inward (toward the thumbnail's own
+   center, away from the top-right corner it sits in) is the only direction with room --
+   and reaching the full 44px that way would turn roughly a third of a small thumbnail
+   into an invisible "remove this photo" zone, exactly the destructive mis-tap risk this
+   file's own audit named as the reason not to touch this control mechanically. A smaller
+   4px hit-slop (28x28px, still short of 44px but a real 40% larger tap area) is the
+   proportionate fix here -- the "real design decision per control" the audit called for,
+   not a one-line copy of the other three. */
 .photo-remove-btn{ position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; border:none; background:rgba(0,0,0,0.55); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+.photo-remove-btn::after{ content:""; position:absolute; inset:-4px; }
 .quote-top-link{ display:flex; align-items:center; gap:10px; flex:1; border:none; background:none; padding:0; margin:0; cursor:pointer; text-align:start; font-family:var(--font-body); min-width:0; }
 
 .job-field{ margin-bottom:12px; }
@@ -465,7 +496,10 @@ button.ds-card{ cursor:pointer; }
 
 .modal-overlay{ position:fixed; inset:0; background:rgba(22,35,28,0.45); display:flex; align-items:center; justify-content:center; padding:20px; z-index:60; }
 .modal-panel{ position:relative; background:var(--surface); border-radius:16px; padding:24px 22px; max-width:360px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+/* Same 28x28px gap and same fix as .sheet-close above -- open corner of a centered
+   modal panel, nothing nearby to overlap. */
 .modal-close{ position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:50%; border:none; background:var(--surface-2, var(--sage-bg)); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.modal-close::after{ content:""; position:absolute; inset:-8px; }
 
 .timeline{ display:flex; align-items:flex-start; gap:0; margin:14px 0; }
 .timeline-step{ flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; }

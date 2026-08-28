@@ -134,24 +134,49 @@ feedback, not because it was overlooked.
 ## Touch targets
 
 Real measurements against the common 44×44px (iOS) / 48×48dp (Android)
-minimum recommended touch target size — **none of the four measured
-icon-only controls meet it:**
+minimum recommended touch target size — originally, **none of the four
+measured icon-only controls met it:**
 
-| Control | Real size | Meets 44px? |
-|---|---|---|
-| `.sheet-close` (`Drawer`) | 28×28px | No |
-| `.modal-close` (`Modal`) | 28×28px | No |
-| `.chat-input-row button` (send) | 38×38px | No |
-| `.photo-remove-btn` | 20×20px | No |
+| Control | Visible size | Real tap area | Meets 44px? |
+|---|---|---|---|
+| `.sheet-close` (`Drawer`) | 28×28px | 44×44px (fixed, 2026-08-28) | Yes |
+| `.modal-close` (`Modal`) | 28×28px | 44×44px (fixed, 2026-08-28) | Yes |
+| `.chat-input-row button` (send) | 38×38px | 38×38px — attempted, genuinely can't be hit-slopped, see below | No |
+| `.photo-remove-btn` | 20×20px | 28×28px (fixed, 2026-08-28) | No — deliberately partial, see below |
 
-**Not fixed here.** Unlike the label/aria fixes above, resizing these has
-real layout consequences — `.photo-remove-btn` is absolutely positioned
-over a small thumbnail, and simply growing it to 44px would cover too
-much of the image it sits on. The correct fix (expanding the invisible
-hit-area via padding or a pseudo-element while keeping the visual icon
-the same size — standard "hit-slop" practice) is a real design decision
-per control, not a one-line change, so it's named here with real numbers
-rather than attempted under this pass's scope.
+**Fixed via hit-slop** (`src/shell/appStyles.js`): a transparent
+`::after{ content:""; position:absolute; inset:-Npx; }` per control,
+which enlarges only the invisible tappable zone — the visible icon never
+grows. `.sheet-close`/`.modal-close` sit in open space at a drawer/modal
+corner with nothing nearby to overlap, so both reach the full 44px —
+verified by measuring the real hit-test (`document.elementFromPoint()`)
+at a point just outside the visible circle, live, not just by reading
+the CSS.
+
+**`.chat-input-row button` (the message-send button) genuinely cannot be
+hit-slopped, tried live, 2026-08-28** — a real CSS constraint, not an
+oversight: this button lives inside a `Drawer`'s own `.sheet-scroll`
+(`overflow-y:auto`), and the CSS Overflow spec forces `overflow-x` to
+compute as `auto` too whenever the other axis isn't `visible` — setting
+`overflow-x:visible` explicitly does not override this; the browser
+coerces it back, confirmed against the real computed style live, not
+just the source. Any hit-slop pseudo-element bleeding outside this
+button's own box gets clipped by that same computed overflow, exactly
+like any other content would be. A real fix exists — move
+`.chat-input-row` outside the Drawer's scrolling children — but that is
+a structural change to every conversation sheet in the app, not a
+touch-target tweak, so it's named here rather than attempted under this
+pass's scope.
+
+**`.photo-remove-btn` stays a deliberately partial fix, exactly the
+"real design decision per control" this section originally called for
+instead of a one-line copy of the other three.** Its parent
+(`.portfolio-thumb`) clips overflow, so the only direction with room to
+extend is inward, toward the thumbnail's own center — and reaching the
+full 44px that way would turn roughly a third of a small thumbnail into
+an invisible "remove this photo" zone, a real mis-tap risk for a
+destructive-feeling action. A smaller 4px hit-slop (28×28px, a real 40%
+larger tap area) is the proportionate fix instead.
 
 ## Right-to-left (Arabic)
 
