@@ -157,6 +157,38 @@ Supabase-side setting.
 
 ---
 
+## A separate, real gap found the same way — Supabase's own signup email is rate-limited
+
+**Found live, 2026-08-28, staging:** attempting a genuinely fresh email/
+password signup (not one of the seeded test accounts, which are inserted
+directly into `auth.users` by `supabase/seed/staging_test_accounts.sql`
+and never go through Supabase's own signup-email path at all) hit
+`"email rate limit exceeded"` on the third attempt within a few minutes.
+Checked directly: no SMTP provider is configured anywhere in this
+repository or its docs — Supabase Auth is sending confirmation emails
+through its own built-in service, which carries a hard, low rate limit
+by design (it exists to stop abuse, not to carry real signup volume).
+
+**This means a controlled beta with more than a handful of real signups
+in the same window will produce exactly this failure for real users** —
+a confusing, silent-looking dead end at the single most important first
+impression the product has. Not code work, same category as the OAuth
+providers above: register a transactional-email provider (Resend,
+Postmark, SendGrid — any of them) and configure it under **Supabase
+Dashboard → Authentication → Email → SMTP Settings**. Requires an
+external account under your (or Klussie's) name, same as the four
+providers above — not something this session can provision.
+
+Separately worth deciding before beta: whether **Confirm email** stays
+required at all (Supabase Dashboard → Authentication → Providers →
+Email) — every test account this session has used skips it by being
+seeded directly, so the real confirm-email experience (what the email
+looks like, whether the redirect back into the app works) has never
+actually been exercised end to end. A cheap, valuable check once SMTP is
+configured.
+
+---
+
 ## Realistic sequencing
 
 Not all four need to land at once — Google and Microsoft are typically

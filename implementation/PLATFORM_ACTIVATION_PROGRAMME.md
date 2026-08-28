@@ -432,6 +432,28 @@ routinely. Closed end to end this session:
   instructions (`work.set_engagement_access_notes()`, real backend, no
   client screen yet). Real, safe to defer — nothing currently reads or
   needs it before a booking is active.
+- **A real bug found and fixed the same week, PR #115:** `work.engagements`
+  has no `'reviewed'` status at all (`0182`'s own constraint) — it stays
+  `'completed'` forever. `ProJobDetailSheet.jsx`'s own Service Record
+  gate checked the *request's* status instead, which advances past
+  `'completed'` the moment a customer reviews — permanently hiding the
+  pro's own "write it up" entry point for any job reviewed before a
+  record was authored. Fixed and live-verified: authored a record for
+  the exact job this broke, read it back on the customer side, approved
+  it.
+- **Negative-authorization spot-check on the new write surface, 2026-08-28**
+  (`founder mandate §5, "close RLS and negative-authorization gaps"`):
+  live against staging, using each test account's own real auth token
+  (not the UI) — Pierre's own token calling `api.set_property_address()`
+  against Cathy's real property id was refused (`403`,
+  `insufficient_privilege`), her address confirmed unchanged afterward;
+  `api.my_properties()` under Pierre's token returned only his own
+  property, never Cathy's; a direct PostgREST read of `property.properties`
+  (bypassing `api.*` entirely) was refused at the schema level —
+  `property` (and `work`) are simply not among the schemas PostgREST
+  exposes at all (`public`, `graphql_public`, `api` only), the same
+  defense-in-depth every other engine schema in this codebase already
+  relies on.
 
 *The single riskiest slice in the programme — worked in full in §2's
 example above. Not compressed or parallelized; the two sides of a live
@@ -634,3 +656,25 @@ disqualified — some slices are legitimately asymmetric (Slice 5's
 Trust & Safety weight, Slice 8's operator-only authoring) — but the
 asymmetry must be a stated finding, not a silent gap the way the
 original three-roadmap structure allowed it to become.
+
+---
+
+## 8 · Beta-completion checklist — the founder's own 2026-08-28 mandate
+
+The single tracker for the ten beta priorities named directly by the
+founder, in that order. Updated in place as each closes — this section,
+not a new document, is where "is the beta candidate ready" gets answered
+from here forward.
+
+| # | Priority | Status |
+|---|---|---|
+| 1 | Service-location and address-disclosure experience, end to end | **Done**, PRs #112/#113, live-verified on staging both sides |
+| 2 | Booking transition / `accepted_pending_location_approval` | **Done**, same PRs — quote acceptance → disclosure consent → active engagement all verified live |
+| 3 | Customer and professional critical journeys | **Core loop done and live-verified**: create → quote → accept → disclose → book → complete → review → author/read/approve Service Record, both sides. Real gap found and fixed along the way (PR #115, a review permanently hid the Service Record entry point). Not yet exercised live: a completed real file upload (tooling limits this session, not a known defect — `DocumentUploadSheet` renders and is reachable), voice capture |
+| 4 | Conversation, messaging, upload, notification integration | Messaging live-verified (real message sent and received, staging). Upload sheet reachable, not upload-completed. Notifications not re-verified this pass — Slice 4 marked Complete previously, no code touched since |
+| 5 | RLS / negative-authorization gaps | **This session's new write surface spot-checked live** (2026-08-28): cross-tenant write blocked, list reads correctly isolated per caller, `property`/`work` schemas confirmed unexposed to PostgREST directly. Broader re-audit of Slice 5's own older surfaces not repeated |
+| 6 | Auth/onboarding for providers actually configured | Email/password is the only configured provider (confirmed) — OAuth buttons are real but genuinely unconfigured, `AUTH_PROVIDER_SETUP.md`'s own long-standing finding, not new. **New finding this session**: no SMTP provider is configured either — Supabase's own signup email hit `"email rate limit exceeded"` on the third fresh-signup attempt in a few minutes. Real beta-blocker if left as-is; external account setup, not code — see `AUTH_PROVIDER_SETUP.md`'s new section |
+| 7 | Mobile, accessibility, localization, error-state quality | Not yet swept this pass. Every new screen this session (`ServiceLocationField`, the disclosure-consent card) was built and live-tested at the mobile viewport (375×812) and reuses existing design-system primitives, but no dedicated accessibility/localization audit has run |
+| 8 | Remove beta-blocking dead paths | `ServiceSheet`/`QuoteFormSheet`/`Discover.jsx` orphaning documented (PR #114), not removed — no agreed replacement home yet (pre-existing decision, `EXPERIENCE_VISION.md` §10). Not otherwise swept for further dead code |
+| 9 | End-to-end staging validation, fresh synthetic accounts | Fresh signup attempted live — form and validation work correctly, blocked from completing by the SMTP rate limit just found (item 6). Every other verification this session reused the two seeded accounts (`customer@`/`pro@staging.klussie.test`), not fresh ones |
+| 10 | Final beta-readiness report | Not started — priorities above aren't closed yet |
