@@ -409,16 +409,29 @@ routinely. Closed end to end this session:
   rendered with Pierre's real name/price interpolated, approving it
   flipped the request to `booked` and rendered the ordinary booked
   ticket — the complete transition, not a partial slice.
-- **Named, deliberately deferred, not built this pass:** the
-  professional's own approximate-location view during quoting
-  (`api.matching_requests_for_pro()`, shipped in `0183`, has no client
-  caller yet — `fetchProLeads()` stays on legacy and carries no
-  municipality/property-type/prep-notes fields today); engagement
-  access instructions (`work.set_engagement_access_notes()`, real
-  backend, no client screen). Both real, both safe to defer — the
-  privacy guarantee holds either way, since a quoting pro's RLS
-  already denies the base `property.properties` row entirely until a
-  real membership is granted post-disclosure.
+- **The professional's own approximate-location view during
+  quoting — closed the next day, 2026-08-28.** `api.matching_requests_for_pro()`
+  (`0183`) had no client caller; `fetchProLeads()` stays on legacy
+  (WP 2.6's own decision) and carried no municipality/property-type/
+  prep-notes fields at all. `0187_matching_request_locations_for_pro_by_legacy_ids.sql`
+  is the bridge — same shape `request_lifecycle_statuses()` (`0150`)
+  already established for status: a batch of legacy ids in, each
+  correlated `work.requests` row's approximate location out, keyed
+  back by the legacy id `fetchProLeads()` already has. `ProDashboard.jsx`'s
+  lead cards now show the real municipality (falling back to legacy's
+  own free-text city only when no correlated property exists yet) and
+  property type/quote-prep notes — never street, postcode or
+  coordinates; `distance_band` is deliberately not rendered, since
+  `0183`'s own placeholder always resolves to the literal string
+  `"unknown"`, not a real calculation, and showing that to a customer
+  would read as broken rather than honest. Live-verified on staging:
+  Cathy created a second request without typing a city, Pierre's own
+  lead card showed "Antwerpen" — the real municipality from her
+  property, not an empty legacy field.
+- **Still named, deliberately deferred:** engagement access
+  instructions (`work.set_engagement_access_notes()`, real backend, no
+  client screen yet). Real, safe to defer — nothing currently reads or
+  needs it before a booking is active.
 
 *The single riskiest slice in the programme — worked in full in §2's
 example above. Not compressed or parallelized; the two sides of a live

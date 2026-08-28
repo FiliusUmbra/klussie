@@ -31,20 +31,35 @@ export function ProDashboard({ leads, onQuote, proInfo }) {
 
       <div className="section-title">{t.newLeadsTitle}</div>
       {leads.length === 0 && <div className="empty-block"><TrendingUp size={22} color="var(--ink-soft)" /><p>{t.noLeadsMsg}</p></div>}
-      {leads.map((r) => (
-        <JobCard
-          key={r.id}
-          title={serviceInfo(r.serviceId).name}
-          badge={<Badge tone="amber">{t.newBadge}</Badge>}
-          subtitle={`${whenLabel(r.answers.when)} · ${r.answers.budget ? `€${r.answers.budget}` : t.budgetFlexible}${r.answers.city ? ` · ${r.answers.city}` : ""}`}
-          footer={<button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>}
-        >
-          <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
-          <JobDetailsSummary serviceId={r.serviceId} fields={r.answers.fields} />
-          <AiAnalysisSummary aiAnalysis={r.answers.aiAnalysis} />
-          <RequestPhotosStrip requestId={r.id} legacy />
-        </JobCard>
-      ))}
+      {leads.map((r) => {
+        // Beta priority: approximate location during quoting (migration 0187) —
+        // r.location.municipality, when a correlated work.requests row with a real
+        // property exists, takes precedence over legacy's own free-text city. Never
+        // street, postcode or coordinates — this data never reaches the client with
+        // more precision than that (api.matching_request_locations_for_pro()'s own
+        // select list is the enforcement, not this component).
+        const municipality = r.location?.municipality || r.answers.city;
+        const propertyTypeLabel = r.location?.propertyType && t[`propertyType_${r.location.propertyType}`];
+        return (
+          <JobCard
+            key={r.id}
+            title={serviceInfo(r.serviceId).name}
+            badge={<Badge tone="amber">{t.newBadge}</Badge>}
+            subtitle={`${whenLabel(r.answers.when)} · ${r.answers.budget ? `€${r.answers.budget}` : t.budgetFlexible}${municipality ? ` · ${municipality}` : ""}`}
+            footer={<button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>}
+          >
+            <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
+            {(propertyTypeLabel || r.location?.quotePrepNotes) && (
+              <p className="fineprint" style={{ justifyContent: "flex-start" }}>
+                {[propertyTypeLabel, r.location?.quotePrepNotes].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            <JobDetailsSummary serviceId={r.serviceId} fields={r.answers.fields} />
+            <AiAnalysisSummary aiAnalysis={r.answers.aiAnalysis} />
+            <RequestPhotosStrip requestId={r.id} legacy />
+          </JobCard>
+        );
+      })}
       {proProfile.pro_type === PRO_TYPE_FLEXI && (
         <div className="fineprint" style={{ marginTop: 4 }}><BadgeCheck size={12} /> {t.flexiHiddenNote}</div>
       )}

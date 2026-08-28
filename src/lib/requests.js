@@ -358,7 +358,39 @@ export async function fetchProLeads(proId) {
   for (const row of statuses || []) {
     if (row.status !== "collecting") stillOpenOrUncorrelated.delete(row.service_request_id);
   }
-  return candidates.filter((r) => stillOpenOrUncorrelated.has(r.id));
+  const open = candidates.filter((r) => stillOpenOrUncorrelated.has(r.id));
+
+  return attachLeadLocations(open);
+}
+
+// Beta priority: "the professional sees only approximate location information during
+// quotation" — api.matching_request_locations_for_pro() (0187) bridges fetchProLeads()'s
+// own legacy-keyed candidates to api.matching_requests_for_pro()'s (0183) location
+// fields, mirroring how request_lifecycle_statuses() already bridges status above. A
+// candidate with no correlated work.requests row (predates dual-write) or no property
+// selected on it yet simply gets `location: null` — ProDashboard.jsx's own rendering
+// already treats an absent location the same as it always has: legacy's free-text city.
+async function attachLeadLocations(candidates) {
+  const { data: locations, error } = await supabase.schema("api").rpc("matching_request_locations_for_pro", {
+    p_service_request_ids: candidates.map((r) => r.id),
+  });
+  if (error) throw error;
+
+  const byLegacyId = new Map((locations || []).map((row) => [row.service_request_id, row]));
+  return candidates.map((r) => {
+    const row = byLegacyId.get(r.id);
+    if (!row) return { ...r, location: null };
+    return {
+      ...r,
+      location: {
+        municipality: row.municipality,
+        country: row.country,
+        distanceBand: row.distance_band,
+        propertyType: row.property_type,
+        quotePrepNotes: row.quote_prep_notes,
+      },
+    };
+  });
 }
 
 // The read cutover. workspaceId is the pro's own Professional Workspace — required, the
