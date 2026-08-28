@@ -253,6 +253,7 @@ does something else worth pinning — see the corrected row below.
 |---|---|---|
 | P1 | Becoming a pro creates a pro profile | `BecomeProSheet`, `BecomeProPrompt` |
 | P2 | Dashboard shows matching leads for the pro's services and city | `ProDashboard` |
+| P2a | A lead shows the real municipality/property type/quote-prep notes from a correlated property, falling back to legacy's own free-text city when none is correlated yet — never street, postcode, coordinates or a placeholder distance band (migration 0187) | `ProDashboard`, `requests.js` *(automated)* |
 | P3 | A flexi pro cannot see specialist-category leads | `ProDashboard` |
 | P4 | Sending a quote moves the request to `quotes_ready` | `SendQuoteSheet` |
 | P5 | Jobs list separates active from completed | `ProJobs` |

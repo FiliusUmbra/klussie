@@ -372,6 +372,7 @@ describe("fetchProLeads", () => {
         data: [{ service_request_id: "req-1", status: "booked" }, { service_request_id: "req-2", status: "collecting" }],
         error: null,
       }),
+      matching_request_locations_for_pro: () => ({ data: [], error: null }),
     });
 
     const result = await fetchProLeads("pro-9");
@@ -382,7 +383,10 @@ describe("fetchProLeads", () => {
 
   it("keeps a lead that has no correlation at all — a lead predating dual-write", async () => {
     vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row({ id: "req-1" })], error: null }));
-    mockApi({ request_lifecycle_statuses: () => ({ data: [], error: null }) });
+    mockApi({
+      request_lifecycle_statuses: () => ({ data: [], error: null }),
+      matching_request_locations_for_pro: () => ({ data: [], error: null }),
+    });
 
     const result = await fetchProLeads("pro-9");
     expect(result.map((r) => r.id)).toEqual(["req-1"]);
@@ -394,6 +398,51 @@ describe("fetchProLeads", () => {
 
     await fetchProLeads("pro-9");
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  // Beta priority: approximate location during quoting (migration 0187).
+  describe("with a correlated location (0187)", () => {
+    it("attaches municipality/country/distanceBand/propertyType/quotePrepNotes for a matched lead", async () => {
+      vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row({ id: "req-1" })], error: null }));
+      const rpc = mockApi({
+        request_lifecycle_statuses: () => ({ data: [], error: null }),
+        matching_request_locations_for_pro: () => ({
+          data: [{
+            service_request_id: "req-1", municipality: "Antwerpen", country: "BE",
+            distance_band: "unknown", property_type: "apartment", quote_prep_notes: "Bel aan bij nr. 4",
+          }],
+          error: null,
+        }),
+      });
+
+      const result = await fetchProLeads("pro-9");
+
+      expect(rpc).toHaveBeenCalledWith("matching_request_locations_for_pro", { p_service_request_ids: ["req-1"] });
+      expect(result[0].location).toEqual({
+        municipality: "Antwerpen", country: "BE", distanceBand: "unknown", propertyType: "apartment", quotePrepNotes: "Bel aan bij nr. 4",
+      });
+    });
+
+    it("gives a lead with no correlated location row location: null, not a missing field", async () => {
+      vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row({ id: "req-1" })], error: null }));
+      mockApi({
+        request_lifecycle_statuses: () => ({ data: [], error: null }),
+        matching_request_locations_for_pro: () => ({ data: [], error: null }),
+      });
+
+      const result = await fetchProLeads("pro-9");
+      expect(result[0].location).toBeNull();
+    });
+
+    it("throws the real Supabase error instead of swallowing it", async () => {
+      vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ data: [row({ id: "req-1" })], error: null }));
+      mockApi({
+        request_lifecycle_statuses: () => ({ data: [], error: null }),
+        matching_request_locations_for_pro: () => ({ data: null, error: new Error("denied") }),
+      });
+
+      await expect(fetchProLeads("pro-9")).rejects.toThrow("denied");
+    });
   });
 });
 
