@@ -178,6 +178,40 @@ an invisible "remove this photo" zone, a real mis-tap risk for a
 destructive-feeling action. A smaller 4px hit-slop (28×28px, a real 40%
 larger tap area) is the proportionate fix instead.
 
+### Chips — the shared primitive, fixed 2026-08-28
+
+`.chip` (every service picker, when/where selector, category filter, and
+property-type choice in the app — dozens of screens, hundreds of real
+instances) measured at **~119×31px, below the 44px minimum**, same as
+the four controls above. Named at the time as a separate, much
+wider-blast-radius gap this section didn't attempt — resizing a shared
+primitive used everywhere carries real risk of breaking something on a
+screen not checked.
+
+**Hit-slop, tried first, genuinely doesn't work here either** — verified
+live before writing a single line of the real fix: `.chiprow` itself
+sets `overflow-x:auto` with no `overflow-y` declared, so the identical
+CSS Overflow spec coercion that blocked `.chat-input-row button` forces
+`overflow-y` to compute as `auto` too. A pseudo-element extending above
+a chip resolved (`document.elementFromPoint`) to `.sheet-scroll`, not
+the chip — clipped, not a coincidence.
+
+**Fixed instead with a real box size increase** — `min-height:44px`,
+horizontal padding grown from 12px to 14px so the larger pill stays
+proportioned, `justify-content:center` added so icon+text stay centered
+in the taller box. Measured live afterward: exactly 44.0px. `.chiprow`'s
+own row height grows to match (58px, was ~45px) since flex rows size to
+their tallest child — a real, visible layout change on every screen with
+a chip row, by design, not a side effect to explain away.
+
+**Checked across the highest-density chip screen in the app** before
+shipping — the pro's own "Diensten die je aanbiedt" (services offered)
+screen, six category groups, each its own horizontally-scrolling chip
+row, the most chips and the most rows anywhere in the codebase. No
+overlap, no broken wrapping, no visual regression; if anything the
+larger pills read as more confident, not less, matching the "warm,
+premium" design direction rather than fighting it.
+
 ## Right-to-left (Arabic)
 
 **Confirmed real and working**, correcting `COPY_GUIDELINES.md`'s earlier
