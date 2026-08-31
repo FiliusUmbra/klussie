@@ -197,6 +197,7 @@ export const APP_CSS = `
 .flexi-bar-fill{ height:100%; background:var(--forest); border-radius:99px; }
 
 .chat-scroll{ display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; padding:4px 2px 14px; }
+.chat-empty-state{ text-align:center; color:var(--ink-soft); font-size:13px; padding:24px 12px; margin:0; }
 .chat-bubble{ max-width:78%; padding:9px 13px; border-radius:16px; font-size:13px; line-height:1.45; }
 .chat-bubble-them{ align-self:flex-start; background:var(--surface); border:1px solid var(--line); color:var(--ink); border-bottom-left-radius:4px; }
 .chat-bubble-me{ align-self:flex-end; background:var(--forest); color:#fff; border-bottom-right-radius:4px; }

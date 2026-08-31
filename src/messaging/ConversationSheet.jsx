@@ -88,6 +88,9 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     <Drawer onClose={onClose}>
       <div className="sheet-title">{otherName}</div>
       <div className="chat-scroll">
+        {messages && messages.length === 0 && (
+          <p className="chat-empty-state">{t.messagesConversationEmpty}</p>
+        )}
         {(messages || []).map((m) => {
           const isMine = m.senderId === userId;
           const translated = !isMine ? m.translations?.[langCode] : null;
