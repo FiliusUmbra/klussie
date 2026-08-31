@@ -80,7 +80,10 @@ export function useHomeContext({ t, profile, requests }) {
 
   // My Home V1: everything below is derived from requests the customer already has.
   // Nothing here reads a table that does not exist (HOME_OPERATING_SYSTEM.md §2).
-  const property = useMemo(() => propertySummary(profile, requests), [profile, requests]);
+  const property = useMemo(
+    () => propertySummary(profile, requests, homeProfile?.property),
+    [profile, requests, homeProfile]
+  );
   const open = useMemo(() => openWork(requests), [requests]);
   const finished = useMemo(() => finishedWork(requests), [requests]);
   const trustedPros = useMemo(() => trustedProfessionals(requests), [requests]);
