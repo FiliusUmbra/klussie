@@ -39,7 +39,13 @@ export function DocumentUploadSheet({ t, propertyId, workspaceId, actorRef, onCl
       await onSaved();
       onClose();
     } catch (err) {
-      setError(err.message || String(err));
+      // A raw err.message here is a raw Postgres/Storage error -- "new row violates
+      // row-level security policy" for the RLS gap found live 2026-08-31, but the same
+      // idiom every other failure would hit too. t.documentFormSaveFailed already existed,
+      // fully localized in all 10 languages, and was never used. See aiIntake.js's own
+      // header (2026-08-31) for the identical pattern found and fixed there first.
+      console.warn("createDocument failed:", err.message);
+      setError(t.documentFormSaveFailed);
       setBusy(false);
     }
   };

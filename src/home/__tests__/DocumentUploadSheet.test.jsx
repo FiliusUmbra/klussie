@@ -20,6 +20,7 @@ const t = {
   documentFormTypeLabel: "Type", documentTypeWarranty: "Warranty", documentTypeCertificate: "Certificate",
   documentTypeManual: "Manual", documentTypeOther: "Other",
   documentFormIssuerLabel: "Issuer", documentFormValidUntilLabel: "Valid until", documentFormSaveNew: "Save document",
+  documentFormSaveFailed: "Couldn't save the document. Please try again.",
 };
 
 const FILE = new File(["content"], "warranty.pdf", { type: "application/pdf" });
@@ -73,7 +74,12 @@ describe("DocumentUploadSheet", () => {
     await waitFor(() => expect(createDocument).toHaveBeenCalledWith(expect.objectContaining({ validUntil: null })));
   });
 
-  it("shows the real error and stays open when the save fails", async () => {
+  // Found live, 2026-08-31: this used to assert the raw error surfaced verbatim -- exactly
+  // the bug (a raw Postgres/Storage exception, e.g. "new row violates row-level security
+  // policy", shown straight to the customer) that this file's own submit() handler no
+  // longer allows. The always-localized generic message is the only thing shown now,
+  // regardless of what the underlying failure actually was.
+  it("shows the localized generic error and stays open when the save fails", async () => {
     createDocument.mockRejectedValue(new Error("insufficient_privilege"));
     const onClose = vi.fn();
     render(<DocumentUploadSheet t={t} propertyId="prop-1" workspaceId="ws-1" actorRef="owner-1" onClose={onClose} onSaved={() => {}} />);
@@ -81,7 +87,8 @@ describe("DocumentUploadSheet", () => {
     fireEvent.change(fileInput(), { target: { files: [FILE] } });
     fireEvent.click(screen.getByText("Save document"));
 
-    await waitFor(() => expect(screen.getByText("insufficient_privilege")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Couldn't save the document. Please try again.")).toBeTruthy());
+    expect(screen.queryByText("insufficient_privilege")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
   });
 });
