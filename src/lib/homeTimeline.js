@@ -27,24 +27,30 @@ const byNewest = (a, b) => b.createdAt - a.createdAt;
 /**
  * What klussie actually knows about the property itself.
  *
- * Almost nothing, and it says so by returning nulls rather than filling gaps: there is no
- * rooms table, no floor area, no construction year (ADR-0008). City comes from the
- * customer's own profile, and the counts are of real requests. `since` is the first
- * request rather than the account creation date, because the first job is when klussie
- * genuinely started knowing this home — an account opened and never used has no property
- * history to date.
+ * Almost nothing beyond the real property record, and it says so by returning nulls
+ * rather than filling gaps: there is no rooms table, no floor area, no construction year
+ * (ADR-0008). City prefers the confirmed property's own municipality (`api.my_properties()`,
+ * migration 0185) over the customer's legacy free-text profile city — the same correction
+ * WP 2.8 already made for the professional's own lead card
+ * (`0187_matching_request_locations_for_pro_by_legacy_ids.sql`'s header). Before that
+ * migration existed there was no structured address to prefer, so `profile.city` was the
+ * only source; it now stays only as a fallback for an account with no confirmed property
+ * yet. The counts are of real requests. `since` is the first request rather than the
+ * account creation date, because the first job is when klussie genuinely started knowing
+ * this home — an account opened and never used has no property history to date.
  */
-export function propertySummary(profile, requests) {
+export function propertySummary(profile, requests, property) {
   const list = requests || [];
   const oldest = list.length ? Math.min(...list.map((r) => r.createdAt)) : null;
+  const city = property?.municipality || profile?.city || null;
   return {
-    city: profile?.city || null,
+    city,
     since: oldest,
     totalJobs: list.length,
     completedJobs: list.filter((r) => FINISHED.includes(r.status)).length,
     // True when there is genuinely nothing to show. The panel renders an invitation
     // rather than an empty header — never a blank page.
-    isEmpty: list.length === 0 && !profile?.city,
+    isEmpty: list.length === 0 && !city,
   };
 }
 
