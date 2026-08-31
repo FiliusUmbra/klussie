@@ -1,4 +1,4 @@
-// AI-guided alternative to QuoteFormSheet: describe a job by speaking, typing, and/or
+// The request intake: describe a job by speaking, typing, and/or
 // attaching photos; one Claude call classifies it against klussie's real service
 // catalog and returns the same shape as the manual form (details/detailsJson/city/
 // budget/whenPref), plus an ai_analysis record for the review screen and, later, the
@@ -134,8 +134,12 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
         applyResultToEditable(res);
         setStage("review");
       }
-    } catch (err) {
-      setError(err.message || t.aiGenericError);
+    } catch {
+      // analyzeJobRequest() only ever throws AI_INTAKE_FAILED, a code -- never a display
+      // string. The localized generic message is the only thing shown, on purpose (see
+      // that module's own header for why trusting err.message here used to leak a raw
+      // browser parser exception straight to the user).
+      setError(t.aiGenericError);
     } finally {
       setLoading(false);
     }
@@ -153,13 +157,12 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
 
   // C8, docs/engineering/TESTING.md §5.2 — "AI failure degrades to the manual form, no
   // dead end." Previously aspirational: the compose stage only ever showed the error
-  // text, with no button to actually reach the manual form — and ServiceSheet.jsx's own
-  // trigger (CustomerApp.jsx's setActiveService) is itself unreachable from any current
-  // screen (the old services grid was replaced by this conversation canvas), so a
+  // text, with no button to actually reach the manual form. The old services grid was
+  // already replaced by this conversation canvas, so a
   // customer whose analysis failed had no way to create a request at all. The review
   // stage already *is* the manual form (a service picker, description, when/city/budget,
   // now also ServiceLocationField) — reused here rather than routing through
-  // ServiceSheet/QuoteFormSheet, which nothing in the current UI can reach.
+  // the retired category-grid flow, which no longer exists in the current UI.
   const useManualForm = () => {
     setResult({});
     applyResultToEditable({});
@@ -300,8 +303,7 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
 
           <label className="field-label">{t.budgetLabel}</label>
           <div className="search" style={{ marginBottom: 18 }}>
-            {/* Literal escape sequence preserved verbatim — see the note in ServiceSheet.jsx. */}
-            <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>\u20ac</span>
+            <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>€</span>
             <input placeholder={t.budgetPlaceholder} value={editBudget} onChange={(e) => setEditBudget(e.target.value)} />
           </div>
 
