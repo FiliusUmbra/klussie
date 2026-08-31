@@ -71,6 +71,25 @@ describe("propertySummary", () => {
   it("survives an account whose requests have not loaded", () => {
     expect(propertySummary(null, undefined).totalJobs).toBe(0);
   });
+
+  // The confirmed property's own municipality (api.my_properties(), migration 0185) is a
+  // more current, structured source than the legacy free-text profile city — the same
+  // correction WP 2.8 already made for the professional's own lead card. Real accounts can
+  // disagree between the two (an old profile city set at signup, a property address
+  // confirmed later), and the confirmed address must win.
+  it("prefers the confirmed property's municipality over the legacy profile city", () => {
+    const summary = propertySummary({ city: "Brussels" }, [req({})], { municipality: "Antwerpen" });
+    expect(summary.city).toBe("Antwerpen");
+  });
+
+  it("falls back to the legacy profile city when no property is confirmed yet", () => {
+    expect(propertySummary({ city: "Ghent" }, [req({})], null).city).toBe("Ghent");
+    expect(propertySummary({ city: "Ghent" }, [req({})], { municipality: "" }).city).toBe("Ghent");
+  });
+
+  it("is not empty when only the confirmed property (no legacy city) is known", () => {
+    expect(propertySummary(null, [], { municipality: "Antwerpen" }).isEmpty).toBe(false);
+  });
 });
 
 describe("openWork / finishedWork", () => {
