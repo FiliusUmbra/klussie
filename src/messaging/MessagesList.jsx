@@ -21,7 +21,11 @@ export function MessagesList({ conversations, onOpen }) {
           badge={c.unreadCount > 0 && <Badge tone="amber">{c.unreadCount}</Badge>}
           subtitle={c.serviceId ? serviceInfo(c.serviceId).name : ""}
         >
-          {c.lastMessage && <p className="quote-msg" style={{ margin: "8px 0 0" }}>"{c.lastMessage.body}"</p>}
+          {c.lastMessage ? (
+            <p className="quote-msg" style={{ margin: "8px 0 0" }}>"{c.lastMessage.body}"</p>
+          ) : (
+            <p className="quote-msg" style={{ margin: "8px 0 0", color: "var(--ink-soft)" }}>{t.messagesConversationEmpty}</p>
+          )}
         </JobCard>
       ))}
     </div>
