@@ -169,9 +169,24 @@ export function CustomerApp({ showToast, onBecomePro }) {
   };
 
   const submitReview = async (request, review) => {
-    await submitReviewApi({ requestId: request.id, customerId: user.id, stars: review.stars, text: review.text });
-    await refresh();
-    showToast(t.toastThanks);
+    // Found live, 2026-08-31: this call was fire-and-forget from its own JSX call site
+    // (no await, no catch) and had none of its own either, so any failure --
+    // work.submit_review_for_request() raising for any reason, a network error, an RLS
+    // denial -- became an unhandled promise rejection. The sheet had already closed by
+    // then (setReviewFor(null) runs synchronously alongside this call), so the customer
+    // saw nothing: no error, no confirmation, and the request silently stayed
+    // un-reviewed forever. work.submit_review_for_request() (0156) runs the review
+    // insert and work.mark_request_reviewed() in one transaction, so a caught failure
+    // here means genuinely nothing was written -- "Laat een beoordeling achter" simply
+    // reappears, exactly as if the attempt had never happened.
+    try {
+      await submitReviewApi({ requestId: request.id, customerId: user.id, stars: review.stars, text: review.text });
+      await refresh();
+      showToast(t.toastThanks);
+    } catch (err) {
+      console.warn("submitReview failed:", err.message);
+      showToast(t.toastReviewFailed);
+    }
   };
 
   return (
