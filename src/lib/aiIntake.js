@@ -41,12 +41,26 @@ function fileToCompressedBase64(file) {
   });
 }
 
+// A stable code, never a display string -- AiIntakeSheet.jsx's own catch always shows its
+// localized t.aiGenericError instead of trusting err.message, for two real reasons found
+// live, 2026-08-31: (1) a non-JSON response (this route is unreachable under plain `npm
+// run dev`, so a 404 HTML page is the common case on staging today) makes res.json() throw
+// its own raw parser exception -- "Failed to execute 'json' on 'Response': Unexpected end
+// of JSON input" -- straight into the UI, completely unlocalized and meaningless to a real
+// user; (2) api/ai-intake.js's own error strings ("AI analysis failed. Please try again.",
+// "Missing service catalog.", a raw err.message from whatever failed server-side) are all
+// hardcoded English with no locale handling of their own, so surfacing them verbatim would
+// be wrong in every other one of this app's 9 other languages regardless. One honest,
+// already-localized message covers every failure this function can have; the real recovery
+// path either way is the sheet's own "Vul handmatig in" fallback, not the wording of why.
+export const AI_INTAKE_FAILED = "AI_INTAKE_FAILED";
+
 // { text, voiceTranscript, photos: File[], priorQA: [{question, answer}], services: [{id,name,category,blurb}], locale }
 export async function analyzeJobRequest({ text, voiceTranscript, photos, priorQA, services, locale }) {
   const encodedPhotos = await Promise.all((photos || []).map(fileToCompressedBase64));
 
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Please sign in to use AI intake.");
+  if (!session) throw new Error(AI_INTAKE_FAILED);
 
   const res = await fetch("/api/ai-intake", {
     method: "POST",
@@ -54,8 +68,13 @@ export async function analyzeJobRequest({ text, voiceTranscript, photos, priorQA
     body: JSON.stringify({ text, voiceTranscript, photos: encodedPhotos, priorQA, services, locale }),
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "AI analysis failed");
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(AI_INTAKE_FAILED);
+  }
+  if (!res.ok) throw new Error(AI_INTAKE_FAILED);
   return data;
 }
 
