@@ -4,6 +4,13 @@
 -- the real customer and pro auth ids resolved correctly (never caller-supplied), and
 -- work.requests.status advances to 'reviewed' in the same call. A stranger cannot.
 --
+-- Updated for 0181-0184 (WP 2.8, disclosure-consent redesign): work.accept_quote() no
+-- longer activates the engagement directly — it lands in 'pending_disclosure', and only
+-- the customer's own api.approve_location_disclosure() call moves it to 'active' (and is
+-- what now emits marketplace.engagement.created). work.complete_engagement() genuinely
+-- refuses a non-active engagement, so that approval call belongs here in setup, run as
+-- the real customer, before completion — not as a review-submission check of its own.
+--
 --   psql -w -h <pooler-host> -p 5432 -U postgres.<project-ref> -d postgres \
 --        -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_SUBMIT_REVIEW_FOR_REQUEST.sql
 
@@ -81,6 +88,21 @@ begin
     p_event_id => gen_random_uuid(), p_engagement_event_id => gen_random_uuid(), p_declined_event_id => null,
     p_correlation_id => gen_random_uuid(), p_actor_type => 'person', p_actor_ref => v_customer_auth::text
   );
+
+  -- 0182's own trigger refuses to let engagements.status reach 'active' without a matching
+  -- work.location_disclosures row, and that row can only be inserted by the real customer's
+  -- own call (it checks workspace.current_memberships() against the requesting workspace) —
+  -- api.approve_location_disclosure() is the client-facing delegate; work.* itself is
+  -- granted to nobody.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_customer_auth)::text, true);
+  perform api.approve_location_disclosure(
+    p_engagement_id => v_engagement, p_disclosure_id => gen_random_uuid(),
+    p_engagement_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
+    p_actor_type => 'person', p_actor_ref => v_customer_auth::text
+  );
+  reset role;
+
   perform work.complete_engagement(
     p_engagement_id => v_engagement,
     p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
