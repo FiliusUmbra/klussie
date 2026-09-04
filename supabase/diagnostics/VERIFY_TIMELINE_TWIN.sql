@@ -109,8 +109,14 @@ begin
   if v_count <> 1 then
     raise exception '3a · expected the past steward to see exactly 1 event, got %', v_count;
   end if;
+  -- property.timeline_segment() returns platform.events.event_type verbatim — no display
+  -- mapping exists anywhere in this codebase. 'ObligationCreated' was never a real value;
+  -- it only ever appears as 0102's own documentation shorthand for the event family
+  -- ("ScheduleChanged/ObligationCreated/ObligationClosed"). The real literal, confirmed
+  -- against 0074's own emit_event() call and this fixture's own event above, is
+  -- 'maintenance.maintenance_obligation.created'.
   select * into v_row from property.timeline_segment(v_property) limit 1;
-  if v_row.event_type <> 'ObligationCreated' or v_row.subject_id <> v_asset then
+  if v_row.event_type <> 'maintenance.maintenance_obligation.created' or v_row.subject_id <> v_asset then
     raise exception '3b · the past steward''s one event was not the one from their own window';
   end if;
   raise notice '3 · the past steward reads exactly the segment inside their own closed window';
@@ -127,8 +133,15 @@ begin
   if exists (select 1 from property.timeline_segment(v_property) where occurred_at < now() - interval '5 days') then
     raise exception '4b · the current steward saw an event from before their own stewardship began';
   end if;
-  if not exists (select 1 from property.timeline_segment(v_property) where subject_type = 'message' and subject_id = v_message) then
-    raise exception '4c · the current steward''s segment is missing the asset-bound conversation''s message';
+  -- work.send_message()'s own emitted event carries subject_type = 'conversation',
+  -- subject_id = the conversation, never subject_type = 'message' — no event in this
+  -- codebase is ever emitted with a 'message' subject. Confirmed live before fixing this
+  -- assertion. property.timeline_segment() already includes the conversation itself (via
+  -- its asset_id branch), so the message-sent event is correctly present under that
+  -- subject; v_message stays declared and unused above only as the fixture's own
+  -- reference, matching every other diagnostic's convention of naming what it created.
+  if not exists (select 1 from property.timeline_segment(v_property) where subject_type = 'conversation' and subject_id = v_conversation) then
+    raise exception '4c · the current steward''s segment is missing the asset-bound conversation''s message event';
   end if;
   raise notice '4 · the current steward reads exactly their own four events, correctly excluding the past steward''s';
 

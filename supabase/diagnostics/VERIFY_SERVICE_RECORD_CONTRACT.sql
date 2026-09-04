@@ -8,6 +8,13 @@
 -- the request-keyed read WP 3.2's own client needs — each adversarial case attempted and
 -- asserted denied.
 --
+-- Updated for 0181-0184 (WP 2.8, disclosure-consent redesign): api.accept_quote() no
+-- longer activates an engagement directly — it lands in 'pending_disclosure'. Only the
+-- customer's own api.approve_location_disclosure() call moves it to 'active' (0182's own
+-- trigger enforces this), which api.complete_engagement() then requires. The fixture below
+-- inserts a real, impersonated approval for both engagements between acceptance and
+-- completion, matching how the client itself drives this flow now.
+--
 --   psql -w -h <pooler-host> -p 5432 -U postgres.<project-ref> -d postgres \
 --        -v ON_ERROR_STOP=1 -f supabase/diagnostics/VERIFY_SERVICE_RECORD_CONTRACT.sql
 
@@ -103,6 +110,16 @@ begin
     gen_random_uuid(), gen_random_uuid(), gen_random_uuid(),
     gen_random_uuid(), gen_random_uuid(), gen_random_uuid(),
     gen_random_uuid(), 'person', v_customer_auth::text
+  );
+  perform api.approve_location_disclosure(
+    p_engagement_id => v_engagement_a, p_disclosure_id => gen_random_uuid(),
+    p_engagement_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
+    p_actor_type => 'person', p_actor_ref => v_customer_auth::text
+  );
+  perform api.approve_location_disclosure(
+    p_engagement_id => v_engagement_b, p_disclosure_id => gen_random_uuid(),
+    p_engagement_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
+    p_actor_type => 'person', p_actor_ref => v_customer_auth::text
   );
   perform api.complete_engagement(v_engagement_a, gen_random_uuid(), gen_random_uuid(), 'person', v_customer_auth::text);
   perform api.complete_engagement(v_engagement_b, gen_random_uuid(), gen_random_uuid(), 'person', v_customer_auth::text);
