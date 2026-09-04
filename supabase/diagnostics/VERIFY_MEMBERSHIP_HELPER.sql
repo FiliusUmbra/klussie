@@ -12,40 +12,73 @@
 \set ON_ERROR_STOP on
 
 -- =========================================================================
--- 1 · Only authenticated reaches api, and only for the one function
+-- 1 · Only authenticated reaches api.current_workspace_memberships() specifically, and
+-- anon's own reach into schema api stays exactly a known, deliberate, individually
+-- tested allowlist — not an absolute zero
 --
 -- Mirrors VERIFY_IDENTITY_READ_PATH.sql check 3 exactly, extended to the schema grant.
+--
+-- Updated: schema-level USAGE for anon is not itself a violation. Four functions —
+-- api.resolve_public_professional_workspace() (0065), api.resolve_document() (0062),
+-- api.resolve_workspace_owner_auth_ids() (0151), api.review_for_request() (0152) — are
+-- each deliberately granted to anon by their own migration, each with its own dedicated
+-- test asserting the grant ("a deliberate, explained exception" —
+-- resolvePublicProfessionalWorkspace.test.js), backing the public portfolio/professional-
+-- profile showcase signed-out visitors need. PostgreSQL requires schema USAGE to call any
+-- function inside it, so anon genuinely needs USAGE on api for those four grants to work
+-- at all — this check used to treat that USAGE itself as disqualifying, which would fail
+-- it forever against working, intended functionality (confirmed live, 2026-09-04: not
+-- staleness in the usual sense — every one of the four grants this check now allowlists
+-- is real, current, and covered by its own test). What actually matters, and what this
+-- checks instead: anon's EXECUTE grants in schema api are exactly this known set, no
+-- more — any function anon can newly reach here is the real finding.
 
 do $$
 declare
   problems text[] := '{}';
   r text;
+  extra text;
+  allowed_anon_functions text[] := array[
+    'resolve_public_professional_workspace',
+    'resolve_document',
+    'resolve_workspace_owner_auth_ids',
+    'review_for_request'
+  ];
 begin
   foreach r in array array['anon', 'service_role'] loop
-    if has_schema_privilege(r, 'api', 'USAGE') then
-      problems := problems || format('%s has USAGE on schema api', r);
-    end if;
     if has_function_privilege(r, 'api.current_workspace_memberships()', 'EXECUTE') then
       problems := problems || format('%s can execute api.current_workspace_memberships()', r);
     end if;
   end loop;
 
   if has_function_privilege('public', 'api.current_workspace_memberships()', 'EXECUTE') then
-    problems := problems || 'PUBLIC can execute api.current_workspace_memberships()';
+    problems := problems || 'PUBLIC can execute api.current_workspace_memberships()'::text;
+  end if;
+
+  for extra in
+    select routine_name from information_schema.role_routine_grants
+    where grantee = 'anon' and routine_schema = 'api'
+      and routine_name <> all (allowed_anon_functions)
+  loop
+    problems := problems || format('anon can newly execute api.%s — not one of the known, deliberately-granted exceptions', extra);
+  end loop;
+
+  if has_schema_privilege('service_role', 'api', 'USAGE') then
+    problems := problems || 'service_role has USAGE on schema api'::text;
   end if;
 
   if not has_schema_privilege('authenticated', 'api', 'USAGE') then
-    problems := problems || 'authenticated cannot use schema api';
+    problems := problems || 'authenticated cannot use schema api'::text;
   end if;
   if not has_function_privilege('authenticated', 'api.current_workspace_memberships()', 'EXECUTE') then
-    problems := problems || 'authenticated cannot execute api.current_workspace_memberships()';
+    problems := problems || 'authenticated cannot execute api.current_workspace_memberships()'::text;
   end if;
 
   if array_length(problems, 1) is not null then
     raise exception 'api grant posture wrong: %', array_to_string(problems, '; ');
   end if;
 
-  raise notice '1 · only authenticated reaches api.current_workspace_memberships()';
+  raise notice '1 · only authenticated reaches api.current_workspace_memberships(); anon''s own reach into schema api stays exactly the known, deliberate allowlist';
 end;
 $$;
 
@@ -68,7 +101,7 @@ begin
   end loop;
 
   if has_schema_privilege('authenticated', 'workspace', 'USAGE') then
-    problems := problems || 'authenticated has USAGE on schema workspace — ADR-0026''s whole point is that it must not';
+    problems := problems || 'authenticated has USAGE on schema workspace — ADR-0026''s whole point is that it must not'::text;
   end if;
 
   if array_length(problems, 1) is not null then
