@@ -49,7 +49,14 @@ export function buildLangContext(langCode, catalog, setLangCode) {
     LANGS,
     setLangCode,
     dir: RTL_LANGS.has(langCode) ? "rtl" : "ltr",
-    fmt: (n) => Number(n).toLocaleString(langMeta.locale),
+    // `options` passes straight through to toLocaleString — omitted, this is the same
+    // bare thousands-separator formatting every existing caller (review counts, the
+    // flexi-job ceiling) already relies on. PriceTag (design-system/primitives.jsx) is
+    // the one caller that needs more: money always shown to the cent, never trailing a
+    // dropped zero the way a bare toLocaleString() does for amounts like the platform
+    // fee on a round quote (25.2 renders "25,2", not "25,20" — found live on the demo
+    // invoice, Beta UX polish).
+    fmt: (n, options) => Number(n).toLocaleString(langMeta.locale, options),
     fmtDate: (ts) => new Date(ts).toLocaleDateString(langMeta.locale),
     CATS: catalog?.CATS ?? [],
     BASE_SERVICES: catalog?.BASE_SERVICES ?? [],
