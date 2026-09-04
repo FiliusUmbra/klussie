@@ -75,7 +75,13 @@ export function Card({ children, onClick, className = "", ...props }) {
 // budgets. `fmt` is the same number-formatting function useLang() already exposes
 // (locale-aware thousands separators) — passed in rather than imported, since
 // PriceTag is a presentation-only primitive with no context dependency of its own.
+//
+// Always exactly two decimals: money, never a bare toLocaleString()'s dropped trailing
+// zero (a 25.2 VAT line rendering "€25,2" instead of "€25,20" — every real caller of
+// this component is a quote, fee, payout, or budget figure, never a count or rating).
+const MONEY_FORMAT_OPTIONS = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
 export function PriceTag({ amount, fmt, size = "md" }) {
-  const formatted = fmt ? fmt(amount) : amount;
+  const formatted = fmt ? fmt(amount, MONEY_FORMAT_OPTIONS) : amount;
   return <span className={`price-tag price-tag-${size}`}>€{formatted}</span>;
 }

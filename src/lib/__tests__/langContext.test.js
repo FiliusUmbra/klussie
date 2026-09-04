@@ -33,6 +33,16 @@ describe("buildLangContext", () => {
     expect(fmtDate(ts)).toBe(new Date(ts).toLocaleDateString("nl-BE"));
   });
 
+  it("passes an optional second argument straight through to toLocaleString — what PriceTag needs for money to always show two decimals", () => {
+    const { fmt } = buildLangContext("nl", catalog);
+    expect(fmt(25.2, { minimumFractionDigits: 2, maximumFractionDigits: 2 })).toBe(
+      (25.2).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    );
+    // Every existing caller passes no second argument — must keep behaving exactly as
+    // before, not silently gain a default.
+    expect(fmt(25.2)).toBe((25.2).toLocaleString("nl-BE"));
+  });
+
   it("survives being built before the catalog has loaded", () => {
     // AppShell renders its loading state in this window, but nothing may throw if a
     // component reads through the context first.
