@@ -1,0 +1,42 @@
+-- Revokes anon/authenticated's direct CRUD grant on public.audit_log and
+-- public.domain_events, restoring the posture 0010_phase1_foundation.sql's own comments
+-- say was always intended.
+--
+-- WHAT'S WRONG, AND HOW IT DIFFERS FROM THE OTHER FINDINGS THIS PROGRAMME HAS REPAIRED
+--
+-- 0010's own text: audit_log is "Deliberately no RLS policies at all... nothing in the
+-- client should ever write directly to an audit trail." domain_events is "No direct table
+-- policies... written only by trusted server code" -- reachable only through
+-- public.emit_domain_event(), a SECURITY DEFINER function owned by postgres.
+--
+-- Both tables genuinely have zero RLS policies, exactly as intended. But live on staging,
+-- both tables also carry a direct grant of INSERT/SELECT/UPDATE/DELETE to `anon` and
+-- `authenticated` (confirmed via `\dp` / pg_class.relacl) -- and no migration in this
+-- repository ever grants that. 0019_grants.sql, the migration that establishes this
+-- project's own grant discipline, explicitly disclaims responsibility for `public`
+-- ("Nothing to public. The running product's access to public is untouched") and states
+-- outright that `anon`/`authenticated` reaching a schema they were never granted "is a
+-- finding, not a grant." No `alter default privileges` is currently in effect on schema
+-- public (checked live: zero rows), so this is not an ongoing leak mechanism -- it is an
+-- ACL baked directly onto these two tables, almost certainly inherited from a
+-- platform-level default that predates this project's own engine-schema hardening.
+--
+-- The intended design was two layers deep: no grant, and no policy. Live, it had quietly
+-- become one layer: a grant exists, and RLS's default-deny (zero policies) is the only
+-- thing between an unauthenticated request and full read/write/delete on the audit trail
+-- and the event log. This migration restores the second layer.
+--
+-- WHY THIS IS SAFE -- NOTHING LEGITIMATE USES THE GRANT BEING REMOVED
+--
+-- Checked live before writing this: zero functions write to public.audit_log (the table
+-- itself has zero rows -- it appears to have gone fully unused since 0010, superseded by
+-- the platform.events backbone's own real audit trail). Exactly one function writes to
+-- public.domain_events -- public.emit_domain_event(), SECURITY DEFINER, owned by postgres
+-- -- which runs with the table owner's privileges regardless of the caller's own grants,
+-- so it needs no direct grant on the table to keep working. Checked src/ for any direct
+-- client reference to either table name: none.
+--
+-- Pure revoke -- no table, function, RLS setting, or other grant touched.
+
+revoke all on public.audit_log from anon, authenticated;
+revoke all on public.domain_events from anon, authenticated;
