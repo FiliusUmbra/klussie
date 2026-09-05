@@ -31,14 +31,14 @@ import { uuidv7 } from "./ids.js";
 // counterpart_workspace_id -> auth id (api.resolve_conversation_counterpart_auth_ids(),
 // gated by real, active co-participation, 0157) -> name/avatar
 // (public.resolve_identity_display(), already generic and already erasure-safe).
-async function resolveCounterpartNames(workspaceIds) {
+async function resolveCounterpartNames(workspaceIds, myWorkspaceId) {
   const ids = [...new Set(workspaceIds)].filter(Boolean);
   const map = new Map();
   if (ids.length === 0) return map;
 
   const { data: resolved, error } = await supabase
     .schema("api")
-    .rpc("resolve_conversation_counterpart_auth_ids", { p_workspace_ids: ids });
+    .rpc("resolve_conversation_counterpart_auth_ids", { p_workspace_ids: ids, p_my_workspace_id: myWorkspaceId });
   if (error) throw error;
 
   const authIds = (resolved || []).map((row) => row.auth_user_id);
@@ -80,18 +80,20 @@ function reshapeConversation(row, messages, otherName) {
 export async function fetchConversations(userId, workspaceId) {
   if (!workspaceId) return [];
 
-  const { data: rows, error } = await supabase.schema("api").rpc("my_conversations");
+  const { data: rows, error } = await supabase
+    .schema("api")
+    .rpc("my_conversations", { p_workspace_id: workspaceId });
   if (error) throw error;
   if (!rows || rows.length === 0) return [];
 
-  const counterpartNames = await resolveCounterpartNames(rows.map((r) => r.counterpart_workspace_id));
+  const counterpartNames = await resolveCounterpartNames(rows.map((r) => r.counterpart_workspace_id), workspaceId);
 
   const messagesByConversation = new Map();
   await Promise.all(
     rows.map(async (row) => {
       const { data, error: messagesError } = await supabase
         .schema("api")
-        .rpc("conversation_messages", { p_conversation_id: row.id });
+        .rpc("conversation_messages", { p_conversation_id: row.id, p_workspace_id: workspaceId });
       if (messagesError) throw messagesError;
       messagesByConversation.set(row.id, data || []);
     })
@@ -107,10 +109,10 @@ export async function fetchConversations(userId, workspaceId) {
   return reshaped.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function fetchMessages(conversationId) {
+export async function fetchMessages(conversationId, workspaceId) {
   const { data, error } = await supabase
     .schema("api")
-    .rpc("conversation_messages", { p_conversation_id: conversationId });
+    .rpc("conversation_messages", { p_conversation_id: conversationId, p_workspace_id: workspaceId });
   if (error) throw error;
   return (data || []).map((m) => ({
     id: m.id,
@@ -129,11 +131,12 @@ export async function fetchMessages(conversationId) {
 // (see ConversationSheet) — unchanged read-modify-write shape, now via
 // api.save_message_translation, which reads the message itself server-side rather than
 // trusting a client-supplied existing-translations blob.
-export async function saveMessageTranslation(messageId, locale, translatedText, userId) {
+export async function saveMessageTranslation(messageId, locale, translatedText, userId, workspaceId) {
   const { error } = await supabase.schema("api").rpc("save_message_translation", {
     p_message_id: messageId,
     p_locale: locale,
     p_text: translatedText,
+    p_workspace_id: workspaceId,
     p_event_id: uuidv7(),
     p_correlation_id: uuidv7(),
     p_actor_type: "person",
@@ -159,9 +162,10 @@ export async function sendMessage({ conversationId, senderId, senderWorkspaceId,
   if (error) throw error;
 }
 
-export async function markConversationRead(conversationId) {
+export async function markConversationRead(conversationId, workspaceId) {
   const { error } = await supabase.schema("api").rpc("mark_conversation_read", {
     p_conversation_id: conversationId,
+    p_workspace_id: workspaceId,
   });
   if (error) throw error;
 }
