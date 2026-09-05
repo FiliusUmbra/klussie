@@ -23,10 +23,9 @@ import { groupByCategory } from "../lib/itemCategories.js";
 import { ItemFormSheet } from "./ItemFormSheet.jsx";
 import { LocationFormSheet } from "./LocationFormSheet.jsx";
 import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
-import { documentTypeLabelKey } from "../lib/documents.js";
 import { interpolate } from "../lib/homeStrings.js";
 import { Badge } from "../design-system";
-import { HomeSection } from "./panelParts.jsx";
+import { HomeSection, DocumentList } from "./panelParts.jsx";
 
 // Platform Activation Slice 1, WP 1.3 wired the real read side of all five engines into
 // one panel, Locations/Maintenance/Documents deliberately read-only until their own
@@ -104,46 +103,6 @@ function MaintenanceList({ t, fmtDate, maintenance }) {
           )}
         </li>
       ))}
-    </ul>
-  );
-}
-
-// property.my_documents() requires exactly one subject and homeInventory.js's
-// loadDocuments() scopes this to property-level attachments only — see that function's
-// own header for why a location's or an asset's own documents are a later, separate view.
-function DocumentList({ t, fmtDate, documents }) {
-  const today = new Date();
-  return (
-    <ul className="document-list">
-      {documents.map((doc) => {
-        const expired = doc.validUntil && new Date(doc.validUntil) < today;
-        return (
-          <li key={doc.id} className="document-row">
-            <span className="document-row-caption">
-              {doc.caption || (() => {
-                // A real bug, found live 2026-08-28: DocumentUploadSheet.jsx has no
-                // caption field at all, so doc.caption is always empty for every
-                // document created through this app's own UI -- the fallback below used
-                // to render the raw, untranslated typeKey ("warranty") instead of the
-                // real localized label ("Garantie"/"Warranty"/...) every single time,
-                // matching the idiom ProJobDetailSheet.jsx's own twin section and
-                // DocumentUploadSheet.jsx's own dropdown already use correctly.
-                const labelKey = documentTypeLabelKey(doc.typeKey);
-                return labelKey ? t[labelKey] : doc.typeKey;
-              })()}
-            </span>
-            {doc.validUntil && (
-              <span className="document-row-validity">
-                {expired ? (
-                  <Badge tone="amber">{t.myItemsDocumentExpired}</Badge>
-                ) : (
-                  interpolate(t.myItemsDocumentValidUntil, { date: fmtDate(doc.validUntil) })
-                )}
-              </span>
-            )}
-          </li>
-        );
-      })}
     </ul>
   );
 }
@@ -268,6 +227,8 @@ export function MyItemsPanel({
           t={t}
           ownerId={ownerId}
           propertyId={propertyId}
+          workspaceId={workspaceId}
+          fmtDate={fmtDate}
           rooms={rooms || []}
           initialLocationId={activeSheet.initialRoom?.id}
           item={activeSheet.item}

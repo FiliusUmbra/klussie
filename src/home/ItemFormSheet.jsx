@@ -31,20 +31,37 @@
 // location_id parameter yet, a real, separate gap this slice does not extend (see
 // householdItems.js's own note), so changing which real room an item sits in is not a
 // promise this form can keep once the row already exists.
-import { useState, useRef } from "react";
-import { Camera, X, Trash2 } from "lucide-react";
+//
+// "Ask Klussie" slice (0199) — EDITING A REAL ITEM ALSO OFFERS ITS OWN DOCUMENTS AND A
+// GROUNDED QUESTION
+//
+// Both new sections require `editing && usingRealContract`: a document can only attach
+// to a real property.assets row (0199's own migration), and api/ask-about-item.js reads
+// the item back through api.resolve_asset() — neither exists for the legacy
+// household_items path, which predates the Asset engine entirely. Documents load lazily
+// on open rather than being passed in, since MyItemsPanel.jsx/MyHomePanel.jsx (this
+// sheet's two callers) hold each item's own rooms and photos already, but never its
+// documents — fetching only the one item actually opened avoids an N+1 fetch for every
+// row in the list.
+import { useState, useRef, useEffect } from "react";
+import { Camera, X, Trash2, Plus } from "lucide-react";
 import { Drawer, Modal, Button } from "../design-system";
 import { ITEM_CATEGORIES, SUGGESTED_ROOMS, DEFAULT_ITEM_CATEGORY, canSaveItem } from "../lib/itemCategories.js";
 import { createHouseholdItem, updateHouseholdItem, setHouseholdItemPhoto, deleteHouseholdItem, createAsset, updateAsset, retireAsset } from "../lib/householdItems.js";
 import { flattenLocationsForPicker } from "../lib/homeInventory.js";
+import { fetchDocumentsForAsset } from "../lib/documents.js";
+import { DocumentList } from "./panelParts.jsx";
+import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
+import { askAboutItem } from "../lib/askAboutItem.js";
 
-export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId, item, onClose, onSaved }) {
+export function ItemFormSheet({ t, ownerId, propertyId, workspaceId, fmtDate, rooms, initialLocationId, item, onClose, onSaved }) {
   const editing = !!item;
   // The caller's own auth id doubles as ADR-0019's actor_ref — public.profiles.id
   // references auth.users.id directly (0001), so ownerId already IS that value; no
   // separate prop is threaded down just to carry the same id under a second name.
   const usingRealContract = !!propertyId;
   const actorRef = ownerId;
+  const canManageDocumentsAndAsk = editing && usingRealContract;
   const roomOptions = flattenLocationsForPicker(rooms || []);
   const initialRoomOption = roomOptions.find((opt) => opt.id === initialLocationId);
   const [name, setName] = useState(item?.name || "");
@@ -62,6 +79,48 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const photoInputRef = useRef(null);
+
+  // Documents: null while resolving (never shown as "no documents yet" prematurely,
+  // the same convention useHomeContext.js's own rooms/documents already use).
+  const [documents, setDocuments] = useState(null);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
+
+  useEffect(() => {
+    if (!canManageDocumentsAndAsk) return;
+    let cancelled = false;
+    fetchDocumentsForAsset(item.id).then((docs) => { if (!cancelled) setDocuments(docs); });
+    return () => { cancelled = true; };
+  }, [canManageDocumentsAndAsk, item?.id]);
+
+  const refreshDocuments = async () => {
+    const docs = await fetchDocumentsForAsset(item.id);
+    setDocuments(docs);
+  };
+
+  // "Ask Klussie about this" — a short, grounded question/answer, independent of the
+  // save/delete busy state above so asking a question never disables the form.
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [askBusy, setAskBusy] = useState(false);
+  const [askError, setAskError] = useState("");
+
+  const submitQuestion = async () => {
+    if (!question.trim() || askBusy) return;
+    setAskError("");
+    setAnswer("");
+    setAskBusy(true);
+    try {
+      const result = await askAboutItem({ itemId: item.id, question: question.trim() });
+      setAnswer(result);
+    } catch {
+      // Never the raw error -- matches aiIntake.js's own established reasoning (a 404
+      // under plain `npm run dev`, or the server's own hardcoded-English strings, would
+      // both be wrong to show verbatim in any of this app's other 9 languages).
+      setAskError(t.itemAskFailed);
+    } finally {
+      setAskBusy(false);
+    }
+  };
 
   const pickPhoto = (e) => {
     const file = e.target.files?.[0];
@@ -237,6 +296,48 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
         </button>
       )}
 
+      {canManageDocumentsAndAsk && (
+        <>
+          <label className="field-label" style={{ marginTop: 18 }}>{t.itemDocumentsTitle}</label>
+          {documents === null ? (
+            <p className="home-group-empty">{t.myItemsLoading}</p>
+          ) : documents.length === 0 ? (
+            <p className="home-group-empty">{t.itemDocumentsEmpty}</p>
+          ) : (
+            <DocumentList t={t} fmtDate={fmtDate} documents={documents} />
+          )}
+          <button
+            type="button"
+            className="home-panel-action"
+            style={{ marginTop: 10, marginBottom: 18 }}
+            onClick={() => setShowDocumentUpload(true)}
+          >
+            <Plus size={15} aria-hidden="true" /> {t.documentFormAddTitle}
+          </button>
+
+          <label className="field-label">{t.itemAskTitle}</label>
+          <p className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 8 }}>{t.itemAskHint}</p>
+          <div className="search" style={{ marginBottom: 8 }}>
+            <input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder={t.itemAskPlaceholder}
+              onKeyDown={(e) => { if (e.key === "Enter") submitQuestion(); }}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={askBusy || !question.trim()}
+            onClick={submitQuestion}
+          >
+            {askBusy ? t.itemAskThinking : t.itemAskButton}
+          </button>
+          {answer && <p className="home-group-empty" style={{ color: "var(--ink)", marginTop: 8 }} role="status">{answer}</p>}
+          {askError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{askError}</div>}
+        </>
+      )}
+
       {confirmDelete && (
         <Modal onClose={() => setConfirmDelete(false)}>
           <p style={{ marginTop: 8 }}>{t.itemDeleteConfirm}</p>
@@ -245,6 +346,17 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
             <Button variant="primary" disabled={busy} onClick={remove}>{t.itemDelete}</Button>
           </div>
         </Modal>
+      )}
+
+      {showDocumentUpload && (
+        <DocumentUploadSheet
+          t={t}
+          assetId={item.id}
+          workspaceId={workspaceId}
+          actorRef={actorRef}
+          onClose={() => setShowDocumentUpload(false)}
+          onSaved={refreshDocuments}
+        />
       )}
     </Drawer>
   );

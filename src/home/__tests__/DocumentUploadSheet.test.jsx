@@ -74,6 +74,17 @@ describe("DocumentUploadSheet", () => {
     await waitFor(() => expect(createDocument).toHaveBeenCalledWith(expect.objectContaining({ validUntil: null })));
   });
 
+  // "Ask Klussie" slice (0199) — attaching to one specific item instead of the property.
+  it("passes assetId through to createDocument when given", async () => {
+    const onSaved = vi.fn(() => Promise.resolve());
+    render(<DocumentUploadSheet t={t} assetId="asset-1" workspaceId="ws-1" actorRef="owner-1" onClose={() => {}} onSaved={onSaved} />);
+
+    fireEvent.change(fileInput(), { target: { files: [FILE] } });
+    fireEvent.click(screen.getByText("Save document"));
+
+    await waitFor(() => expect(createDocument).toHaveBeenCalledWith(expect.objectContaining({ assetId: "asset-1" })));
+  });
+
   // Found live, 2026-08-31: this used to assert the raw error surfaced verbatim -- exactly
   // the bug (a raw Postgres/Storage exception, e.g. "new row violates row-level security
   // policy", shown straight to the customer) that this file's own submit() handler no

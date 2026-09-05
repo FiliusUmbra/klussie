@@ -5,6 +5,12 @@
 // foreign key (0141's own header). validFrom is not collected: WP 1.3's own DocumentList
 // only ever renders validUntil for its expiry badge, and the contract itself treats it as
 // optional.
+//
+// "Ask Klussie" slice (0199) — an `assetId` prop attaches the document to one specific
+// appliance/item instead of the property as a whole (the two are exclusive, matching
+// create_document()'s own "exactly one subject" contract). Every existing property-only
+// call site is unchanged; the generic error handling below already covers both paths'
+// failures identically, so no extra branching was needed there.
 import { useState } from "react";
 import { FileText } from "lucide-react";
 import { Drawer } from "../design-system";
@@ -15,7 +21,7 @@ import { createDocument, documentTypeLabelKey } from "../lib/documents.js";
 // system-attached, never picked from this dropdown).
 const DOCUMENT_TYPES = ["warranty", "certificate", "manual", "other"];
 
-export function DocumentUploadSheet({ t, propertyId, workspaceId, actorRef, onClose, onSaved }) {
+export function DocumentUploadSheet({ t, propertyId, assetId, workspaceId, actorRef, onClose, onSaved }) {
   const [file, setFile] = useState(null);
   const [typeKey, setTypeKey] = useState(DOCUMENT_TYPES[0]);
   const [issuer, setIssuer] = useState("");
@@ -35,7 +41,7 @@ export function DocumentUploadSheet({ t, propertyId, workspaceId, actorRef, onCl
     setError("");
     setBusy(true);
     try {
-      await createDocument({ propertyId, workspaceId, actorRef, typeKey, issuer, validUntil: validUntil || null, file });
+      await createDocument({ propertyId, assetId, workspaceId, actorRef, typeKey, issuer, validUntil: validUntil || null, file });
       await onSaved();
       onClose();
     } catch (err) {
