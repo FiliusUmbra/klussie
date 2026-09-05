@@ -166,6 +166,22 @@ export function flattenLocationsForPicker(rooms, depth = 0) {
   ]);
 }
 
+// Item Detail slice (0201) — property.move_asset_for_caller() only ever updates
+// property.assets.location_id, never the free-text room_label column (there is no
+// reason it should: room_label is display-only, and a real move has a real room to name
+// instead). Everywhere an item's room is SHOWN must therefore prefer resolving the real
+// current locationId against the actual room tree, falling back to the stored free-text
+// label only when no real location is set (an item created before any real room
+// existed, or one deliberately left unplaced) — otherwise a moved item keeps showing
+// wherever it used to be, or nothing at all, even though the move itself succeeded.
+export function resolveItemRoomName(rooms, locationId, fallbackLabel) {
+  if (locationId) {
+    const match = flattenLocationsForPicker(rooms || []).find((opt) => opt.id === locationId);
+    if (match) return match.name;
+  }
+  return fallbackLabel || null;
+}
+
 // WP 1.3. Property-level documents only — api.my_documents() (Epic 08) requires exactly
 // one subject (property.my_documents()'s own "exactly one subject must be given" rule),
 // and a document attached directly to a specific location or asset is a real, distinct

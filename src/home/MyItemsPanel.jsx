@@ -20,7 +20,9 @@
 import { useState } from "react";
 import { Plus, Pencil } from "lucide-react";
 import { groupByCategory } from "../lib/itemCategories.js";
+import { resolveItemRoomName } from "../lib/homeInventory.js";
 import { ItemFormSheet } from "./ItemFormSheet.jsx";
+import { ItemDetailSheet } from "./ItemDetailSheet.jsx";
 import { LocationFormSheet } from "./LocationFormSheet.jsx";
 import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
 import { interpolate } from "../lib/homeStrings.js";
@@ -107,20 +109,29 @@ function MaintenanceList({ t, fmtDate, maintenance }) {
   );
 }
 
-function ItemCard({ item, onEdit }) {
+// Item Detail slice — tapping a card now opens Item Detail (a real asset) rather than
+// jumping straight to the edit form; the legacy household_items path (no real property
+// yet) has no asset for Item Detail's own sections to read, so it keeps going straight to
+// the form exactly as before (usingRealContract, decided by the caller below).
+function ItemCard({ item, rooms, onOpen }) {
   // Brand and model are the two facts a professional would ask for first, so they form the
   // subtitle when present. Absent, the card simply does not have one — no "Unknown brand".
   const subtitle = [item.brand, item.model].filter(Boolean).join(" ");
+  // Item Detail slice (0201) — same staleness fix as ItemDetailSheet.jsx's own Identity
+  // view: move_asset_for_caller() only ever updates locationId, never the free-text
+  // room_label this card used to read directly, so a moved item's card kept showing its
+  // old room (or none) even though the move itself succeeded.
+  const roomName = resolveItemRoomName(rooms, item.locationId, item.room);
   return (
     <li>
-      <button type="button" className="item-card" onClick={() => onEdit(item)}>
+      <button type="button" className="item-card" onClick={() => onOpen(item)}>
         <span className="item-card-photo">
           {item.photoUrl ? <img src={item.photoUrl} alt="" /> : <span className="item-card-initial" aria-hidden="true">{item.name[0]}</span>}
         </span>
         <span className="item-card-text">
           <span className="item-card-name">{item.name}</span>
           {subtitle && <span className="item-card-sub">{subtitle}</span>}
-          {item.room && <span className="item-card-room">{item.room}</span>}
+          {roomName && <span className="item-card-room">{roomName}</span>}
         </span>
         <Pencil className="item-card-edit" size={14} aria-hidden="true" />
       </button>
@@ -135,10 +146,19 @@ export function MyItemsPanel({
   // for ProApp.jsx's "My Business" reuse (MyBusinessPanel.jsx), which has no My Home
   // equivalent and must not lose it.
   showRoomsSection = true,
+  // Item Detail slice — optional: MyBusinessPanel.jsx (the pro's own reuse) has no
+  // conversational "report a problem" flow, so Item Detail simply omits that action
+  // when this is not given, rather than wiring a button to nothing.
+  onReportProblem,
 }) {
-  // null | { type: "item", item, initialRoom } | { type: "location", room } | { type: "document" }
+  // null | { type: "item", item, initialRoom } | { type: "itemDetail", item }
+  // | { type: "location", room } | { type: "document" }
   const [activeSheet, setActiveSheet] = useState(null);
   const canAddRoomsOrDocuments = !!propertyId;
+  // Item Detail needs a real asset for its Documents/Maintenance/History/Move sections
+  // to read anything real — the legacy household_items path (no propertyId yet) has none
+  // of that, so it keeps opening straight into the edit form, exactly as before this slice.
+  const usingRealContract = !!propertyId;
 
   const groups = groupByCategory(items);
   const loading = items === null && !itemsError;
@@ -205,7 +225,12 @@ export function MyItemsPanel({
           </h3>
           <ul className="item-grid">
             {group.items.map((item) => (
-              <ItemCard key={item.id} item={item} onEdit={(i) => setActiveSheet({ type: "item", item: i })} />
+              <ItemCard
+                key={item.id}
+                item={item}
+                rooms={rooms}
+                onOpen={(i) => setActiveSheet(usingRealContract ? { type: "itemDetail", item: i } : { type: "item", item: i })}
+              />
             ))}
           </ul>
         </section>
@@ -227,13 +252,27 @@ export function MyItemsPanel({
           t={t}
           ownerId={ownerId}
           propertyId={propertyId}
-          workspaceId={workspaceId}
-          fmtDate={fmtDate}
           rooms={rooms || []}
           initialLocationId={activeSheet.initialRoom?.id}
           item={activeSheet.item}
           onClose={() => setActiveSheet(null)}
           onSaved={onRefresh}
+        />
+      )}
+
+      {activeSheet?.type === "itemDetail" && (
+        <ItemDetailSheet
+          t={t}
+          ownerId={ownerId}
+          workspaceId={workspaceId}
+          rooms={rooms || []}
+          fmtDate={fmtDate}
+          item={activeSheet.item}
+          maintenance={maintenance}
+          onReportProblem={onReportProblem}
+          onClose={() => setActiveSheet(null)}
+          onSaved={onRefresh}
+          onEdit={() => setActiveSheet({ type: "item", item: activeSheet.item })}
         />
       )}
 

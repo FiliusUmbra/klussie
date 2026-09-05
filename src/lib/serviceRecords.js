@@ -34,6 +34,31 @@ function reshapeServiceRecord(row) {
   };
 }
 
+// Item Detail slice (0201) — an item's own service history. api.my_service_records()
+// existed since 0084 but had never gained a real client caller (grep-confirmed before
+// writing this); its own p_asset_id filter is this same migration's addition. Never
+// throws — a workspace with no real membership, or an asset with no history yet, both
+// read as an empty list, matching every other read-switch's own established restraint.
+export async function fetchServiceRecordsForAsset(workspaceId, assetId) {
+  if (!workspaceId || !assetId) return [];
+  const { data, error } = await supabase.schema("api").rpc("my_service_records", {
+    p_workspace_id: workspaceId,
+    p_asset_id: assetId,
+  });
+  if (error) {
+    console.warn("service records unavailable, continuing without them:", error.message);
+    return [];
+  }
+  return (data ?? [])
+    .map((row) => ({
+      id: row.id,
+      performedAt: row.performed_at,
+      workPerformed: row.work_performed,
+      warrantyUntil: row.warranty_until,
+    }))
+    .sort((a, b) => new Date(b.performedAt) - new Date(a.performedAt));
+}
+
 export async function fetchServiceRecordForRequest(requestId) {
   const { data, error } = await supabase
     .schema("api")

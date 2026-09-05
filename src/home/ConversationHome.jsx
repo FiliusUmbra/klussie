@@ -125,6 +125,10 @@ export function ConversationHome({ onStart, requests = [], section = "klussie", 
             // ProApp.jsx's own "My Business" reuse (MyBusinessPanel.jsx), which has no
             // My Home equivalent.
             showRoomsSection={false}
+            // Item Detail slice — "Report a problem" on an item hands back to the
+            // conversation, the same way MyHomePanel.jsx's own top-level action already
+            // does (ADR-0007).
+            onReportProblem={() => setSection("klussie")}
           />
         </TabPanel>
 

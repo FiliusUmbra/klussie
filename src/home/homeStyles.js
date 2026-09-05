@@ -364,6 +364,26 @@ export const HOME_CSS = `
 .item-card-room{ font-size:10.5px; color:var(--ink-faint); }
 .item-card-edit{ flex:none; color:var(--ink-faint); }
 
+/* ---- Item Detail (the icon+fact identity block, and the tappable document rows) ---- */
+.item-detail-photo{
+  width:88px; height:88px; border-radius:16px; overflow:hidden; background:var(--sage-bg);
+  display:flex; align-items:center; justify-content:center; margin-bottom:var(--space-3);
+}
+.item-detail-photo img{ width:100%; height:100%; object-fit:cover; }
+.item-detail-photo .item-card-initial{ font-size:28px; }
+.item-detail-document-open{
+  display:flex; align-items:center; gap:var(--space-2); width:100%; min-height:44px;
+  padding:var(--space-2) var(--space-1); text-align:start; cursor:pointer;
+  background:none; border:none; border-radius:8px; font-family:var(--font-body);
+  transition:background var(--motion-base);
+}
+.item-detail-document-open:active{ background:var(--sage-bg); }
+.item-detail-document-open:disabled{ opacity:0.6; cursor:default; }
+.item-detail-document-icon{ flex:none; color:var(--forest-dark); }
+.item-detail-document-content{ flex:1; min-width:0; display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-2); }
+.item-detail-document-chevron{ flex:none; color:var(--ink-faint); }
+[dir="rtl"] .item-detail-document-chevron{ transform:scaleX(-1); }
+
 .item-photo-picker{ display:flex; }
 .item-photo-add{
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-1);

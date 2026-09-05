@@ -14,10 +14,24 @@ import { render, screen, fireEvent } from "@testing-library/react";
 vi.mock("../../lib/locations.js", () => ({ createLocation: vi.fn(() => Promise.resolve({ id: "loc-new" })) }));
 vi.mock("../../lib/documents.js", () => ({
   createDocument: vi.fn(() => Promise.resolve({ id: "doc-new" })),
+  fetchDocumentsForAsset: vi.fn(() => Promise.resolve([])),
+  getDocumentUrl: vi.fn(() => Promise.resolve("https://staging.example/signed-url")),
   documentTypeLabelKey: (typeKey) => ({
     warranty: "documentTypeWarranty", certificate: "documentTypeCertificate",
     manual: "documentTypeManual", other: "documentTypeOther",
   })[typeKey] ?? null,
+}));
+// Item Detail slice — ItemDetailSheet.jsx's own dependencies, mocked the same way its own
+// test file mocks them, since a real property/asset item now opens that sheet first.
+vi.mock("../../lib/householdItems.js", () => ({
+  moveAsset: vi.fn(() => Promise.resolve()),
+  retireAsset: vi.fn(() => Promise.resolve()),
+}));
+vi.mock("../../lib/serviceRecords.js", () => ({
+  fetchServiceRecordsForAsset: vi.fn(() => Promise.resolve([])),
+}));
+vi.mock("../../lib/askAboutItem.js", () => ({
+  askAboutItem: vi.fn(() => Promise.resolve({ answer: "a", groundedIn: [] })),
 }));
 
 import { MyItemsPanel } from "../MyItemsPanel.jsx";
@@ -49,6 +63,31 @@ const t = {
   documentFormTypeLabel: "Type", documentTypeWarranty: "Warranty", documentTypeCertificate: "Certificate",
   documentTypeManual: "Manual", documentTypeOther: "Other",
   documentFormIssuerLabel: "Issuer", documentFormValidUntilLabel: "Valid until", documentFormSaveNew: "Save document",
+  // Item Detail slice — ItemDetailSheet.jsx's own strings, needed once a real item opens it.
+  itemRoomLabel: "Room", itemRoomNone: "No room selected", cancelBtn: "Cancel",
+  itemAskTitle: "Ask Klussie about this", itemAskHint: "hint", itemAskPlaceholder: "placeholder",
+  itemAskButton: "Ask", itemAskThinking: "...", itemAskFailed: "failed",
+  itemAskSourceLabel: "Source", itemAskSourceDetails: "details", itemAskSourceDocument: "document",
+  itemAskSourceMaintenance: "maintenance", itemAskSourceHistory: "history",
+  itemDocumentsTitle: "Documents", itemDocumentsEmpty: "No documents added for this item yet.",
+  itemDetailDocumentOpenFailed: "failed",
+  itemDetailHistoryTitle: "History", itemDetailHistoryEmpty: "No completed work recorded for this item yet.",
+  itemDetailEditAction: "Edit details",
+  itemDetailMoveAction: "Move to another room", itemDetailMoveTitle: "Move item", itemDetailMoveSave: "Save",
+  itemDetailMoveFailed: "failed",
+  itemDetailReportProblem: "Report a problem",
+  itemDetailRetireAction: "Retire item", itemDetailRetireConfirm: "Retire this item?", itemDetailRetireFailed: "failed",
+  itemDetailWarrantyCovered: "Covered until {date}", itemDetailWarrantyExpired: "Expired {date}",
+  itemDetailWarrantyUnknown: "No warranty date saved",
+  // ItemFormSheet.jsx's own strings — needed once "Edit details" opens the real edit form.
+  itemEditTitle: "Edit item",
+  itemNameLabel: "Name", itemNamePlaceholder: "e.g. washing machine",
+  itemCategoryLabel: "Category", itemRoomPlaceholder: "e.g. kitchen",
+  itemBrandLabel: "Brand", itemModelLabel: "Model",
+  itemPhotoLabel: "Photo", itemPhotoAdd: "Add photo", itemPhotoRemove: "Remove photo",
+  itemPurchasedLabel: "Purchased on", itemNotesLabel: "Notes",
+  itemSaveNew: "Save item", itemSaveChanges: "Save changes",
+  itemDelete: "Delete item", itemDeleteConfirm: "Delete this item?",
 };
 
 const fmtDate = (iso) => iso;
@@ -223,5 +262,78 @@ describe("MyItemsPanel — adding a room or document (WP 1.8)", () => {
   it("does not offer maintenance creation — no client caller is named in this work package's scope", () => {
     render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" />);
     expect(screen.queryByLabelText(/maintenance/i)).toBeNull();
+  });
+});
+
+// Item Detail slice — tapping an existing item now opens Item Detail (a real read-first
+// view) rather than jumping straight to the edit form, but only on the real-contract
+// path: the legacy household_items path has no asset for Item Detail's own
+// Documents/Maintenance/History/Move sections to read, so it is unaffected.
+describe("MyItemsPanel — Item Detail (real items only)", () => {
+  const ITEM = { id: "asset-1", name: "Washing machine", category: "appliance", room: "Kitchen", photoUrl: null };
+
+  it("opens Item Detail, not the edit form, when a real property/asset item is tapped", () => {
+    render(<MyItemsPanel {...BASE_PROPS} items={[ITEM]} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" />);
+
+    fireEvent.click(screen.getByText("Washing machine").closest("button"));
+
+    // Item Detail's own read-first identity view, not the edit form's "Name" field.
+    expect(screen.getByText("Edit details")).toBeTruthy();
+    expect(screen.queryByLabelText("Name")).toBeNull();
+  });
+
+  it("goes straight to the edit form, unchanged, on the legacy household_items path (no propertyId)", () => {
+    render(<MyItemsPanel {...BASE_PROPS} items={[ITEM]} rooms={[]} documents={[]} maintenance={[]} />);
+
+    fireEvent.click(screen.getByText("Washing machine").closest("button"));
+
+    expect(screen.getByLabelText("Name")).toBeTruthy();
+    expect(screen.queryByText("Edit details")).toBeNull();
+  });
+
+  it("opens the edit form from Item Detail's own 'Edit details' action", () => {
+    render(<MyItemsPanel {...BASE_PROPS} items={[ITEM]} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" />);
+
+    fireEvent.click(screen.getByText("Washing machine").closest("button"));
+    fireEvent.click(screen.getByText("Edit details"));
+
+    expect(screen.getByLabelText("Name")).toBeTruthy();
+  });
+
+  it("passes onReportProblem through to Item Detail when given", () => {
+    const onReportProblem = vi.fn();
+    render(<MyItemsPanel {...BASE_PROPS} items={[ITEM]} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" onReportProblem={onReportProblem} />);
+
+    fireEvent.click(screen.getByText("Washing machine").closest("button"));
+    fireEvent.click(screen.getByText("Report a problem"));
+
+    expect(onReportProblem).toHaveBeenCalled();
+  });
+});
+
+// Item Detail slice (0201) — move_asset_for_caller() only ever updates an asset's
+// locationId, never its free-text room_label, so the item card must resolve the room it
+// shows against the real room tree rather than trusting the (possibly stale) label.
+describe("MyItemsPanel — item card room display", () => {
+  const ROOMS = [
+    { id: "loc-1", name: "Kitchen", type: "kitchen", children: [] },
+    { id: "loc-2", name: "Garage", type: null, children: [] },
+  ];
+
+  it("shows the real current room, not a stale free-text label, once the item has a real location", () => {
+    const item = { id: "asset-1", name: "Washing machine", category: "appliance", room: "Kitchen", locationId: "loc-2", photoUrl: null };
+    // showRoomsSection: false — the rooms section would otherwise also render "Kitchen"
+    // and "Garage" as room names, which is not what this test is checking.
+    render(<MyItemsPanel {...BASE_PROPS} items={[item]} rooms={ROOMS} documents={[]} maintenance={[]} showRoomsSection={false} />);
+
+    expect(screen.getByText("Garage")).toBeTruthy();
+    expect(screen.queryByText("Kitchen")).toBeNull();
+  });
+
+  it("falls back to the stored free-text room label when the item has no real location", () => {
+    const item = { id: "asset-1", name: "Washing machine", category: "appliance", room: "Attic", locationId: null, photoUrl: null };
+    render(<MyItemsPanel {...BASE_PROPS} items={[item]} rooms={ROOMS} documents={[]} maintenance={[]} showRoomsSection={false} />);
+
+    expect(screen.getByText("Attic")).toBeTruthy();
   });
 });

@@ -235,6 +235,10 @@ something it depends on.
 | C26 | Item categories render and filter | *(automated)* |
 | C27 | Adding a room persists it under the property, nested under a chosen parent | `LocationFormSheet` |
 | C28 | Adding a document uploads its file and persists it attached to the property | `DocumentUploadSheet` |
+| C29 | Opening a real item shows its identity, documents, maintenance and history, and offers Edit/Move/Retire/Ask Klussie/Report-a-problem | `ItemDetailSheet` *(automated)* |
+| C30 | A document attached to one item opens via a real signed URL, is never visible under another item or another workspace, and survives a reload | `ItemDetailSheet` |
+| C31 | Moving an item to another room persists the change and closes any earlier room's placement into history | `ItemDetailSheet` *(automated)* |
+| C32 | Asking Klussie about an item answers only from that item's own facts, document, maintenance and service history, and cites which of those it used | `ItemDetailSheet` |
 
 ### 5.5 · Professional
 

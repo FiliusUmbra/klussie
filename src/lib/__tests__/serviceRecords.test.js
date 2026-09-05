@@ -19,6 +19,7 @@ import {
   fetchServiceRecordForRequest, approveServiceRecord,
   createServiceRecord, writePerformingAnnex,
   uploadServiceRecordEvidence, fetchServiceRecordEvidence,
+  fetchServiceRecordsForAsset,
 } from "../serviceRecords.js";
 
 beforeEach(() => {
@@ -220,5 +221,40 @@ describe("fetchServiceRecordEvidence — filters the same request-scoped read do
   it("throws the real read error", async () => {
     rpcMock.mockResolvedValue({ data: null, error: new Error("denied") });
     await expect(fetchServiceRecordEvidence("req-1")).rejects.toThrow("denied");
+  });
+});
+
+// Item Detail slice (0201) — the first real client caller of api.my_service_records();
+// grep-confirmed to have had none before this. Never throws — a workspace with no real
+// membership, or an asset with no history yet, both read as an empty list.
+describe("fetchServiceRecordsForAsset", () => {
+  it("calls my_service_records with both the workspace and the asset filter, reshaped and sorted newest first", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        { id: "sr-1", performed_at: "2026-01-01T00:00:00Z", work_performed: "First fix.", warranty_until: null },
+        { id: "sr-2", performed_at: "2026-06-01T00:00:00Z", work_performed: "Second fix.", warranty_until: "2028-01-01" },
+      ],
+      error: null,
+    });
+
+    const records = await fetchServiceRecordsForAsset("ws-1", "asset-1");
+
+    expect(supabase.schema).toHaveBeenCalledWith("api");
+    expect(rpcMock).toHaveBeenCalledWith("my_service_records", { p_workspace_id: "ws-1", p_asset_id: "asset-1" });
+    expect(records).toEqual([
+      { id: "sr-2", performedAt: "2026-06-01T00:00:00Z", workPerformed: "Second fix.", warrantyUntil: "2028-01-01" },
+      { id: "sr-1", performedAt: "2026-01-01T00:00:00Z", workPerformed: "First fix.", warrantyUntil: null },
+    ]);
+  });
+
+  it("returns an empty list without calling the RPC when workspaceId or assetId is missing", async () => {
+    expect(await fetchServiceRecordsForAsset(null, "asset-1")).toEqual([]);
+    expect(await fetchServiceRecordsForAsset("ws-1", null)).toEqual([]);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("returns an empty list, not a throw, when the read fails", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: new Error("network error") });
+    expect(await fetchServiceRecordsForAsset("ws-1", "asset-1")).toEqual([]);
   });
 });
