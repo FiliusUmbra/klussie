@@ -17,8 +17,9 @@
 // back to the legacy household_items functions, the same two-tier shape
 // fetchHouseholdItems() already established for reads. "Delete" on the real path is
 // retire_asset() (active -> retired, never a hard delete) rather than deleteHouseholdItem
-// — api.my_assets() (0054) already excludes retired assets, so the item disappears from
-// this list exactly as a delete would, while its history is kept.
+// — api.my_assets() excludes retired assets (0054, silently regressed by 0161's own
+// rewrite of the same WHERE clause, restored in 0200), so the item disappears from this
+// list exactly as a delete would, while its history is kept.
 //
 // Home Builder slice — THE ROOM FIELD IS A REAL PICKER ON CREATE, UNCHANGED FREE TEXT ON
 // EDIT
