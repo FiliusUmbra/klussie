@@ -55,7 +55,7 @@ describe("fetchConversations", () => {
       workspace_id: null, closed_at: null, created_at: "2026-08-10T00:00:00Z",
       service_id: "svc-1", request_id: "req-1", counterpart_workspace_id: "pro-ws-1", last_read_at: "2026-08-10T09:00:00Z",
     };
-    mockApi({
+    const rpc = mockApi({
       my_conversations: () => ({ data: [row], error: null }),
       resolve_conversation_counterpart_auth_ids: () => ({ data: [{ workspace_id: "pro-ws-1", auth_user_id: "pro-auth-1" }], error: null }),
       conversation_messages: () => ({
@@ -79,6 +79,17 @@ describe("fetchConversations", () => {
     // Only "after read" and from the counterpart counts — the pre-read message and the
     // caller's own post-read message are both excluded.
     expect(result[0].unreadCount).toBe(1);
+
+    // Beta context-isolation fix: the active workspace is the one thing that must reach
+    // every one of these three calls -- omitting it is exactly the bug that let a
+    // person's conversation leak into their OTHER workspace.
+    expect(rpc.mock.calls.find(([name]) => name === "my_conversations")[1]).toEqual({ p_workspace_id: "cust-ws-1" });
+    expect(rpc.mock.calls.find(([name]) => name === "conversation_messages")[1]).toEqual({
+      p_conversation_id: "convo-1", p_workspace_id: "cust-ws-1",
+    });
+    expect(rpc.mock.calls.find(([name]) => name === "resolve_conversation_counterpart_auth_ids")[1]).toEqual({
+      p_workspace_ids: ["pro-ws-1"], p_my_workspace_id: "cust-ws-1",
+    });
   });
 
   it("falls back to a generic name when the identity resolver has nothing for this counterpart", async () => {
@@ -122,15 +133,22 @@ describe("fetchMessages", () => {
           : { data: [], error: null },
     });
 
-    const result = await fetchMessages("convo-1");
+    const result = await fetchMessages("convo-1", "ws-1");
     expect(result).toEqual([
       { id: "m-1", senderId: "auth-1", body: "hi", createdAt: new Date("2026-08-10T00:00:00Z").getTime(), readAt: null, translations: { fr: "salut" } },
     ]);
   });
 
+  it("passes the active workspace through to api.conversation_messages", async () => {
+    const rpc = mockApi({ conversation_messages: () => ({ data: [], error: null }) });
+    await fetchMessages("convo-1", "ws-1");
+    const call = rpc.mock.calls.find(([name]) => name === "conversation_messages");
+    expect(call[1]).toEqual({ p_conversation_id: "convo-1", p_workspace_id: "ws-1" });
+  });
+
   it("throws the real error instead of swallowing it", async () => {
     mockApi({ conversation_messages: () => ({ data: null, error: new Error("denied") }) });
-    await expect(fetchMessages("convo-1")).rejects.toThrow("denied");
+    await expect(fetchMessages("convo-1", "ws-1")).rejects.toThrow("denied");
   });
 });
 
@@ -154,34 +172,34 @@ describe("sendMessage", () => {
 });
 
 describe("saveMessageTranslation", () => {
-  it("calls api.save_message_translation with the real caller identity, never null", async () => {
+  it("calls api.save_message_translation with the real caller identity and active workspace, never null", async () => {
     const rpc = mockApi({ save_message_translation: () => ({ error: null }) });
 
-    await saveMessageTranslation("m-1", "fr", "salut", "auth-1");
+    await saveMessageTranslation("m-1", "fr", "salut", "auth-1", "ws-1");
 
     const call = rpc.mock.calls.find(([name]) => name === "save_message_translation");
-    expect(call[1]).toMatchObject({ p_message_id: "m-1", p_locale: "fr", p_text: "salut", p_actor_ref: "auth-1" });
+    expect(call[1]).toMatchObject({ p_message_id: "m-1", p_locale: "fr", p_text: "salut", p_workspace_id: "ws-1", p_actor_ref: "auth-1" });
   });
 
   it("throws on a Supabase error", async () => {
     mockApi({ save_message_translation: () => ({ error: new Error("denied") }) });
-    await expect(saveMessageTranslation("m-1", "fr", "salut", "auth-1")).rejects.toThrow("denied");
+    await expect(saveMessageTranslation("m-1", "fr", "salut", "auth-1", "ws-1")).rejects.toThrow("denied");
   });
 });
 
 describe("markConversationRead", () => {
-  it("calls api.mark_conversation_read with no caller-supplied identity — resolved server-side", async () => {
+  it("calls api.mark_conversation_read with the active workspace, no caller-supplied identity — resolved server-side", async () => {
     const rpc = mockApi({ mark_conversation_read: () => ({ error: null }) });
 
-    await markConversationRead("convo-1");
+    await markConversationRead("convo-1", "ws-1");
 
     const call = rpc.mock.calls.find(([name]) => name === "mark_conversation_read");
-    expect(call[1]).toEqual({ p_conversation_id: "convo-1" });
+    expect(call[1]).toEqual({ p_conversation_id: "convo-1", p_workspace_id: "ws-1" });
   });
 
   it("throws on a Supabase error", async () => {
     mockApi({ mark_conversation_read: () => ({ error: new Error("denied") }) });
-    await expect(markConversationRead("convo-1")).rejects.toThrow("denied");
+    await expect(markConversationRead("convo-1", "ws-1")).rejects.toThrow("denied");
   });
 });
 
