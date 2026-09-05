@@ -46,10 +46,12 @@ function fakeReqRes({ method = "POST", body = {} } = {}) {
   return { req, res };
 }
 
-function supabaseStub({ assetRows = [ASSET], documentRows = [], download = null } = {}) {
+function supabaseStub({ assetRows = [ASSET], documentRows = [], obligationRows = [], recordRows = [], download = null } = {}) {
   const rpc = vi.fn((name) => {
     if (name === "resolve_asset") return Promise.resolve({ data: assetRows, error: null });
     if (name === "my_documents") return Promise.resolve({ data: documentRows, error: null });
+    if (name === "my_maintenance_obligations") return Promise.resolve({ data: obligationRows, error: null });
+    if (name === "my_service_records") return Promise.resolve({ data: recordRows, error: null });
     return Promise.resolve({ data: null, error: new Error(`unexpected rpc ${name}`) });
   });
   return {
@@ -62,7 +64,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   verifyAuthMock.mockResolvedValue({ user: { id: "user-1" }, supabase: supabaseStub() });
   checkAndLogUsageMock.mockResolvedValue();
-  reasonMock.mockResolvedValue({ answer: "The warranty expires on 2029-01-20." });
+  reasonMock.mockResolvedValue({ answer: "The warranty expires on 2029-01-20.", groundedIn: ["item_details"] });
 });
 
 describe("ask-about-item handler", () => {
@@ -178,5 +180,72 @@ describe("ask-about-item handler", () => {
 
     expect(res.statusCode).toBe(500);
     expect(res.body.error).not.toMatch(/upstream 500/);
+  });
+});
+
+// Item Detail slice — grounding widened to this item's own maintenance and service
+// history, both scoped by workspaceId (client-supplied only to say WHICH of the
+// caller's own real memberships to query; the RPCs themselves still check
+// workspace.current_memberships() server-side), plus the groundedIn citation.
+describe("ask-about-item handler — maintenance and service history grounding", () => {
+  it("does not fetch maintenance or service history when workspaceId is not given -- unchanged from before this widening", async () => {
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });
+    await handler(req, res);
+
+    const systemPrompt = reasonMock.mock.calls[0][0].systemPrompt;
+    expect(systemPrompt).toMatch(/No maintenance has been scheduled or logged/);
+    expect(systemPrompt).toMatch(/No completed work has been recorded/);
+  });
+
+  it("includes this item's own open/overdue maintenance, filtered from the workspace's full list", async () => {
+    verifyAuthMock.mockResolvedValue({
+      user: { id: "user-1" },
+      supabase: supabaseStub({
+        obligationRows: [
+          { asset_id: "asset-1", title: "Descale", status: "open", due_on: "2030-01-01" },
+          { asset_id: "some-other-asset", title: "Filter change", status: "open", due_on: "2030-01-01" },
+        ],
+      }),
+    });
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q", workspaceId: "ws-1" } });
+
+    await handler(req, res);
+
+    const systemPrompt = reasonMock.mock.calls[0][0].systemPrompt;
+    expect(systemPrompt).toMatch(/Descale/);
+    expect(systemPrompt).not.toMatch(/Filter change/);
+  });
+
+  it("includes this item's own service history, already scoped server-side by p_asset_id", async () => {
+    verifyAuthMock.mockResolvedValue({
+      user: { id: "user-1" },
+      supabase: supabaseStub({
+        recordRows: [{ performed_at: "2026-08-01T00:00:00Z", work_performed: "Replaced the drain pump.", warranty_until: null }],
+      }),
+    });
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q", workspaceId: "ws-1" } });
+
+    await handler(req, res);
+
+    expect(reasonMock.mock.calls[0][0].systemPrompt).toMatch(/Replaced the drain pump/);
+  });
+
+  it("returns the model's own groundedIn citation, filtered to the real closed set of source names", async () => {
+    reasonMock.mockResolvedValue({ answer: "Yes, still covered.", groundedIn: ["item_details", "not_a_real_source"] });
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });
+
+    await handler(req, res);
+
+    expect(res.body.groundedIn).toEqual(["item_details"]);
+  });
+
+  it("returns an empty groundedIn array, not a throw, when the model omits it", async () => {
+    reasonMock.mockResolvedValue({ answer: "Yes, still covered." });
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.groundedIn).toEqual([]);
   });
 });

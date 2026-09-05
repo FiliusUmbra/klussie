@@ -10,7 +10,7 @@ vi.mock("../supabaseClient", () => ({
 }));
 
 import { supabase } from "../supabaseClient";
-import { createDocument, fetchDocumentsForAsset } from "../documents";
+import { createDocument, fetchDocumentsForAsset, getDocumentUrl } from "../documents";
 
 function createStorageBuilder({ uploadError = null, removeError = null } = {}) {
   return {
@@ -124,9 +124,12 @@ describe("createDocument", () => {
 });
 
 describe("fetchDocumentsForAsset", () => {
-  it("calls my_documents with p_asset_id and reshapes the result", async () => {
+  it("calls my_documents with p_asset_id and reshapes the result, including storage location for opening later", async () => {
     rpcMock.mockResolvedValue({
-      data: [{ id: "doc-1", type_key: "manual", issuer: "Vaillant", valid_from: null, valid_until: "2030-01-01", caption: null }],
+      data: [{
+        id: "doc-1", type_key: "manual", issuer: "Vaillant", valid_from: null, valid_until: "2030-01-01", caption: null,
+        storage_bucket: "documents", storage_path: "ws-1/doc-1/manual.pdf",
+      }],
       error: null,
     });
 
@@ -134,7 +137,10 @@ describe("fetchDocumentsForAsset", () => {
 
     expect(supabase.schema).toHaveBeenCalledWith("api");
     expect(rpcMock).toHaveBeenCalledWith("my_documents", { p_asset_id: "asset-1" });
-    expect(docs).toEqual([{ id: "doc-1", typeKey: "manual", issuer: "Vaillant", validFrom: null, validUntil: "2030-01-01", caption: null }]);
+    expect(docs).toEqual([{
+      id: "doc-1", typeKey: "manual", issuer: "Vaillant", validFrom: null, validUntil: "2030-01-01", caption: null,
+      storageBucket: "documents", storagePath: "ws-1/doc-1/manual.pdf",
+    }]);
   });
 
   it("returns an empty list, not a throw, when the read fails", async () => {
@@ -143,5 +149,30 @@ describe("fetchDocumentsForAsset", () => {
     const docs = await fetchDocumentsForAsset("asset-1");
 
     expect(docs).toEqual([]);
+  });
+});
+
+// Item Detail slice — the first real "open/download" path for an already-attached
+// document; every other private bucket in this app already used createSignedUrl(s), only
+// documents had none until now.
+describe("getDocumentUrl", () => {
+  it("returns a real signed URL for the given bucket and path", async () => {
+    const createSignedUrl = vi.fn(() => Promise.resolve({ data: { signedUrl: "https://staging.example/signed" }, error: null }));
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrl });
+
+    const url = await getDocumentUrl("documents", "ws-1/doc-1/manual.pdf");
+
+    expect(supabase.storage.from).toHaveBeenCalledWith("documents");
+    expect(createSignedUrl).toHaveBeenCalledWith("ws-1/doc-1/manual.pdf", 3600);
+    expect(url).toBe("https://staging.example/signed");
+  });
+
+  it("returns null, not a throw, when signing fails", async () => {
+    const createSignedUrl = vi.fn(() => Promise.resolve({ data: null, error: new Error("not found") }));
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrl });
+
+    const url = await getDocumentUrl("documents", "ws-1/doc-1/missing.pdf");
+
+    expect(url).toBeNull();
   });
 });

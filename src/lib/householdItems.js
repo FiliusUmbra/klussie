@@ -66,16 +66,19 @@ function reshapeAsset(row) {
     name: row.name,
     category: row.type,
     room: row.room_label,
-    // The real room this item is placed in (Home Builder slice) — null for every item
-    // created before this slice, or created without picking one. Display-only today:
-    // property.update_asset() has no location_id parameter yet, so nothing can change
-    // this once set (see createAsset()'s own header).
+    // The real room this item is placed in — property.move_asset_for_caller() (Item
+    // Detail slice, 0201) is the first real writer of this after creation; before it,
+    // this was set once at creation and never changed again.
     locationId: row.location_id,
     brand: row.make,
     model: row.model,
+    serialNumber: row.serial_number,
     photoPath: row.photo_path,
     photoUrl: null, // filled in by withSignedPhotos
     purchasedOn: row.acquired_on,
+    installedOn: row.installed_on,
+    warrantyExpiresOn: row.warranty_expires_on,
+    condition: row.condition,
     notes: row.notes,
     source: row.source,
     aiSuggestion: row.ai_suggestion,
@@ -332,11 +335,29 @@ export async function updateAsset(assetId, { ownerId, actorRef, previousPhotoPat
 }
 
 /** Retires a real asset (active -> retired, api.retire_asset()) — never a hard delete.
- * api.my_assets() (0054) already excludes retired assets, so the item disappears from
- * "Mijn spullen" exactly as a delete would appear to, while its history is kept. */
+ * api.my_assets() (0054, restored by 0200) already excludes retired assets, so the item
+ * disappears from "Mijn spullen" exactly as a delete would appear to, while its history
+ * is kept. */
 export async function retireAsset(assetId, actorRef) {
   const { error } = await supabase.schema("api").rpc("retire_asset", {
     p_asset_id: assetId,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
+}
+
+/** Item Detail slice (0201) — moves a real asset to another room in the same property,
+ * or unplaces it (`locationId: null`). The first real client caller of
+ * property.asset_placements' own history (0048's own header: "nothing does that yet"
+ * until this). Throws the real error (a foreign room, a stranger's item) for the caller
+ * to show — matching this file's own `retireAsset()`, never swallowed. */
+export async function moveAsset(assetId, locationId, actorRef) {
+  const { error } = await supabase.schema("api").rpc("move_asset", {
+    p_asset_id: assetId,
+    p_location_id: locationId || null,
     p_event_id: uuidv7(),
     p_correlation_id: uuidv7(),
     p_actor_type: "person",

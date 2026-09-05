@@ -14,7 +14,7 @@ vi.mock("../supabaseClient", () => ({
 }));
 
 import { supabase } from "../supabaseClient";
-import { fetchHouseholdItems, createAsset, updateAsset, retireAsset } from "../householdItems";
+import { fetchHouseholdItems, createAsset, updateAsset, retireAsset, moveAsset } from "../householdItems";
 
 function createQueryBuilder(result) {
   const builder = {
@@ -295,5 +295,35 @@ describe("retireAsset", () => {
     rpcMock.mockResolvedValue({ error: new Error("object_not_in_prerequisite_state") });
 
     await expect(retireAsset("asset-1", "owner-1")).rejects.toThrow("object_not_in_prerequisite_state");
+  });
+});
+
+// Item Detail slice (0201) — the first real client caller of property.move_asset_for_
+// caller(), closing the gap property.asset_placements' own header (0048) named:
+// "nothing does that yet."
+describe("moveAsset", () => {
+  it("calls api.move_asset with the asset id, target room and actor ref", async () => {
+    rpcMock.mockResolvedValue({ error: null });
+
+    await moveAsset("asset-1", "loc-2", "owner-1");
+
+    expect(supabase.schema).toHaveBeenCalledWith("api");
+    expect(rpcMock).toHaveBeenCalledWith("move_asset", expect.objectContaining({
+      p_asset_id: "asset-1", p_location_id: "loc-2", p_actor_type: "person", p_actor_ref: "owner-1",
+    }));
+  });
+
+  it("sends a null p_location_id when unplacing (locationId falsy)", async () => {
+    rpcMock.mockResolvedValue({ error: null });
+
+    await moveAsset("asset-1", null, "owner-1");
+
+    expect(rpcMock).toHaveBeenCalledWith("move_asset", expect.objectContaining({ p_location_id: null }));
+  });
+
+  it("throws the real Supabase error instead of swallowing it", async () => {
+    rpcMock.mockResolvedValue({ error: new Error("insufficient_privilege") });
+
+    await expect(moveAsset("asset-1", "loc-2", "owner-1")).rejects.toThrow("insufficient_privilege");
   });
 });

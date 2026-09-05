@@ -19,6 +19,11 @@
 import { supabase } from "./supabaseClient";
 import { uuidv7 } from "./ids.js";
 
+// Matches the TTL every other private-bucket signed-URL caller in this codebase already
+// uses (src/lib/householdItems.js, requestPhotos.js, serviceRecords.js) — one convention,
+// not a value picked fresh per file.
+const SIGNED_URL_TTL_SECONDS = 3600;
+
 /**
  * Uploads `file` and creates a real document attached to a property or, since
  * migration 0199 (Home Builder's own next slice), one specific asset — exactly one of
@@ -82,7 +87,26 @@ export async function fetchDocumentsForAsset(assetId) {
     validFrom: row.valid_from,
     validUntil: row.valid_until,
     caption: row.caption,
+    storageBucket: row.storage_bucket,
+    storagePath: row.storage_path,
   }));
+}
+
+/**
+ * Item Detail slice — "Open/download" for an already-attached document. Every other
+ * private bucket in this app (item photos, request photos, service-record evidence)
+ * already opens through a real signed URL, never a permanent public one; documents had
+ * no opening path at all until now. Returns null (never throws) on failure — matching
+ * every other signed-URL caller's own "a missing photo/document is a gap in the list,
+ * not a crash" convention — so the caller can show a disabled/failed state instead.
+ */
+export async function getDocumentUrl(storageBucket, storagePath) {
+  const { data, error } = await supabase.storage.from(storageBucket).createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
+  if (error) {
+    console.warn("document signed URL unavailable:", error.message);
+    return null;
+  }
+  return data?.signedUrl || null;
 }
 
 // The label key for a document's type_key — one source of truth (PRODUCT_CONSTITUTION.md
