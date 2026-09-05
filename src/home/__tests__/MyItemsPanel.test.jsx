@@ -79,6 +79,31 @@ describe("MyItemsPanel — Locations (WP 1.3)", () => {
   });
 });
 
+// Home Builder slice — rooms now live prominently in My Home instead (MyHomePanel.jsx's
+// own HomeBuilderSection); ConversationHome.jsx passes showRoomsSection={false} on the
+// customer path so the room list is not shown twice. The default stays true, unchanged,
+// so ProApp.jsx's own "My Business" reuse (MyBusinessPanel.jsx, no My Home equivalent)
+// keeps its Rooms section exactly as before without needing to pass anything new.
+describe("MyItemsPanel — showRoomsSection (Home Builder slice)", () => {
+  it("shows the Rooms section by default, unchanged — this is what My Business reuse relies on", () => {
+    render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} />);
+    expect(screen.getByText("Rooms")).toBeTruthy();
+    expect(screen.getByText("No rooms added yet.")).toBeTruthy();
+  });
+
+  it("hides the Rooms section entirely when showRoomsSection is false", () => {
+    render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} showRoomsSection={false} />);
+    expect(screen.queryByText("Rooms")).toBeNull();
+    expect(screen.queryByText("No rooms added yet.")).toBeNull();
+  });
+
+  it("still hides real rooms, not just the empty state, when showRoomsSection is false", () => {
+    const rooms = [{ id: "loc-1", name: "Kitchen", type: "kitchen", children: [] }];
+    render(<MyItemsPanel {...BASE_PROPS} rooms={rooms} documents={[]} maintenance={[]} showRoomsSection={false} />);
+    expect(screen.queryByText("Kitchen")).toBeNull();
+  });
+});
+
 describe("MyItemsPanel — Maintenance (WP 1.3)", () => {
   it("shows the empty state when there is nothing scheduled or overdue", () => {
     render(<MyItemsPanel {...BASE_PROPS} rooms={[]} documents={[]} maintenance={[]} />);

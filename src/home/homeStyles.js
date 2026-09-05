@@ -198,6 +198,17 @@ export const HOME_CSS = `
 .location-node .location-tree{ margin-inline-start:var(--space-4); padding-block-start:var(--space-1); font-weight:400; }
 .location-node-name{ display:flex; align-items:baseline; gap:var(--space-2); font-size:13px; color:var(--ink); }
 .location-node-type{ font-size:11px; color:var(--ink-faint); }
+/* Home Builder slice: every room is now a real, tappable row — never a bare name next
+   to an icon nobody was told means "edit". Full-width and 44px tall so the whole row is
+   the target, not just the small pencil glyph. */
+.location-node-btn{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--space-2);
+  width:100%; min-height:44px; padding:var(--space-2) var(--space-1);
+  text-align:start; cursor:pointer; background:none; border:none; border-radius:8px;
+  font-family:var(--font-body); transition:background var(--motion-base);
+}
+.location-node-btn:active{ background:var(--sage-bg); }
+.location-node-edit{ flex:none; color:var(--ink-faint); }
 
 .maintenance-list, .document-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
 .maintenance-row, .document-row{
@@ -243,6 +254,18 @@ export const HOME_CSS = `
   background:var(--surface); border:1px solid var(--line-strong); border-radius:999px;
   font-family:var(--font-body); font-size:12.5px; font-weight:600; color:var(--ink); cursor:pointer;
 }
+
+/* ---- Home Builder: "start building your home" ----
+   The one moment a brand-new homeowner sees before anything else in My Home. Deliberately
+   heavier than .items-empty's dashed box (larger title, an explicit hint sentence) since
+   this is the very first thing the journey asks the customer to do, not a section that
+   merely happens to be empty right now. */
+.home-builder-empty{
+  display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-2);
+  background:var(--surface); border:1px dashed var(--line-strong); border-radius:14px; padding:var(--space-5);
+}
+.home-builder-empty-line{ margin:0; font-size:14px; font-weight:700; color:var(--ink); }
+.home-builder-empty-hint{ margin:0; font-size:12.5px; line-height:1.5; color:var(--ink-soft); }
 
 /* The timeline's spine: a hairline behind the cards with a dot per event. Drawn with a
    pseudo-element on the list so no card has to know its position. */

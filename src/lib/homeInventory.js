@@ -155,6 +155,17 @@ export function buildLocationTree(flatLocations) {
   return roots;
 }
 
+// A location tree (buildLocationTree()'s own shape), flattened into a picker list,
+// indented by depth so a nested room still reads as nested. Shared by LocationFormSheet
+// (picking a parent room) and ItemFormSheet (picking which room an item is in, Home
+// Builder slice) — one flattening, not two copies drifting apart.
+export function flattenLocationsForPicker(rooms, depth = 0) {
+  return rooms.flatMap((node) => [
+    { id: node.id, name: node.name, label: `${"— ".repeat(depth)}${node.name}` },
+    ...flattenLocationsForPicker(node.children, depth + 1),
+  ]);
+}
+
 // WP 1.3. Property-level documents only — api.my_documents() (Epic 08) requires exactly
 // one subject (property.my_documents()'s own "exactly one subject must be given" rule),
 // and a document attached directly to a specific location or asset is a real, distinct

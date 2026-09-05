@@ -98,6 +98,7 @@ export function ConversationHome({ onStart, requests = [], section = "klussie", 
           <MyHomePanel
             t={t}
             homeCtx={homeCtx}
+            ownerId={profile?.id}
             requests={requests}
             serviceInfo={serviceInfo}
             fmtDate={fmtDate}
@@ -119,6 +120,11 @@ export function ConversationHome({ onStart, requests = [], section = "klussie", 
             maintenance={homeCtx.maintenance}
             propertyId={homeCtx.propertyId}
             workspaceId={homeCtx.workspaceId}
+            // Home Builder slice: rooms now live prominently in My Home instead (see
+            // MyHomePanel.jsx's own HomeBuilderSection) — kept here, defaulted on, for
+            // ProApp.jsx's own "My Business" reuse (MyBusinessPanel.jsx), which has no
+            // My Home equivalent.
+            showRoomsSection={false}
           />
         </TabPanel>
 

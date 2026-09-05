@@ -40,6 +40,11 @@ const t = {
 
 const ITEM = { id: "asset-1", name: "Boiler", category: "appliance", room: "Kitchen", photoPath: "owner-1/asset-1/old", photoUrl: null };
 
+const ROOMS = [
+  { id: "loc-1", name: "Kitchen", type: "kitchen", children: [] },
+  { id: "loc-2", name: "Garage", type: null, children: [] },
+];
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -72,6 +77,62 @@ describe("ItemFormSheet — create, real contract vs legacy", () => {
 
     await waitFor(() => expect(createHouseholdItem).toHaveBeenCalledWith(expect.objectContaining({ ownerId: "owner-1", name: "Boiler" })));
     expect(createAsset).not.toHaveBeenCalled();
+  });
+});
+
+// Home Builder slice — property.create_asset() always accepted a real location_id; this
+// form previously hardcoded it to null. Creating now offers the customer's own actual
+// rooms, once any exist, alongside the create/legacy split above.
+describe("ItemFormSheet — room picker (Home Builder slice)", () => {
+  it("offers a real room picker on create when real rooms exist, instead of the free-text/suggested-chips UI", () => {
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" rooms={ROOMS} item={null} onClose={() => {}} onSaved={() => {}} />);
+
+    expect(screen.getByLabelText("Room")).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Kitchen" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Garage" })).toBeTruthy();
+    // The free-text fallback's suggested chips must not also render — one room UI, not two.
+    expect(screen.queryByRole("button", { name: t.itemRoomBedroom })).toBeNull();
+  });
+
+  it("sends the picked room's id as locationId, and its name for display, when creating", async () => {
+    const onSaved = vi.fn(() => Promise.resolve());
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" rooms={ROOMS} item={null} onClose={() => {}} onSaved={onSaved} />);
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Boiler" } });
+    fireEvent.change(screen.getByLabelText("Room"), { target: { value: "loc-2" } });
+    fireEvent.click(screen.getByText("Save item"));
+
+    await waitFor(() => expect(createAsset).toHaveBeenCalledWith(expect.objectContaining({
+      locationId: "loc-2", room: "Garage",
+    })));
+  });
+
+  it("sends null locationId when no room is picked, the default selection", async () => {
+    const onSaved = vi.fn(() => Promise.resolve());
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" rooms={ROOMS} item={null} onClose={() => {}} onSaved={onSaved} />);
+
+    await fillNameAndSave("Save item");
+
+    await waitFor(() => expect(createAsset).toHaveBeenCalledWith(expect.objectContaining({ locationId: null })));
+  });
+
+  it("pre-selects the room passed as initialLocationId (arriving via 'add something to this room')", () => {
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" rooms={ROOMS} initialLocationId="loc-1" item={null} onClose={() => {}} onSaved={() => {}} />);
+
+    expect(screen.getByLabelText("Room").value).toBe("loc-1");
+  });
+
+  it("falls back to the free-text/suggested-chips UI when editing, even though real rooms exist", () => {
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" rooms={ROOMS} item={ITEM} onClose={() => {}} onSaved={() => {}} />);
+
+    expect(screen.queryByRole("option", { name: "Kitchen" })).toBeNull();
+    expect(screen.getByText(t.itemRoomKitchen)).toBeTruthy();
+  });
+
+  it("falls back to the free-text/suggested-chips UI when no real rooms exist yet, even on create", () => {
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" rooms={[]} item={null} onClose={() => {}} onSaved={() => {}} />);
+
+    expect(screen.getByText(t.itemRoomKitchen)).toBeTruthy();
   });
 });
 

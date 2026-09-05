@@ -47,17 +47,24 @@ function SectionAddButton({ label, onClick }) {
 // rendered recursively. `type` is a configurable, unconstrained taxonomy value (migration
 // 0043 — "kitchen, plant room, cold storage... never hardcoded"), so it is shown as-is,
 // the same restraint ItemCard already holds for brand/model: a real field, never a lookup.
-function LocationNode({ node }) {
+//
+// Home Builder slice: a room is now a real button, opening the same LocationFormSheet in
+// edit mode (rename/retire/add-something-here) — the same "tap the card to edit it"
+// convention ItemCard already established below.
+function LocationNode({ node, onEdit }) {
   return (
     <li className="location-node">
-      <span className="location-node-name">
-        {node.name}
-        {node.type && <span className="location-node-type">{node.type}</span>}
-      </span>
+      <button type="button" className="location-node-btn" onClick={() => onEdit(node)}>
+        <span className="location-node-name">
+          {node.name}
+          {node.type && <span className="location-node-type">{node.type}</span>}
+        </span>
+        <Pencil className="location-node-edit" size={14} aria-hidden="true" />
+      </button>
       {node.children.length > 0 && (
         <ul className="location-tree">
           {node.children.map((child) => (
-            <LocationNode key={child.id} node={child} />
+            <LocationNode key={child.id} node={child} onEdit={onEdit} />
           ))}
         </ul>
       )}
@@ -65,11 +72,13 @@ function LocationNode({ node }) {
   );
 }
 
-function LocationTree({ rooms }) {
+// Exported for MyHomePanel.jsx (Home Builder slice) — the customer's own rooms now
+// render there too, the same tree, the same edit entry point, not a second copy.
+export function LocationTree({ rooms, onEdit }) {
   return (
     <ul className="location-tree location-tree-root">
       {rooms.map((node) => (
-        <LocationNode key={node.id} node={node} />
+        <LocationNode key={node.id} node={node} onEdit={onEdit} />
       ))}
     </ul>
   );
@@ -162,8 +171,13 @@ function ItemCard({ item, onEdit }) {
 
 export function MyItemsPanel({
   t, ownerId, items, itemsError, onRefresh, fmtDate, rooms, documents, maintenance, propertyId, workspaceId,
+  // Home Builder slice: the customer's own rooms now live prominently in My Home
+  // instead (ConversationHome.jsx passes false there); Mijn spullen keeps the section
+  // for ProApp.jsx's "My Business" reuse (MyBusinessPanel.jsx), which has no My Home
+  // equivalent and must not lose it.
+  showRoomsSection = true,
 }) {
-  // null | { type: "item", item } | { type: "location" } | { type: "document" }
+  // null | { type: "item", item, initialRoom } | { type: "location", room } | { type: "document" }
   const [activeSheet, setActiveSheet] = useState(null);
   const canAddRoomsOrDocuments = !!propertyId;
 
@@ -186,16 +200,18 @@ export function MyItemsPanel({
           The "+" action is withheld until a real property exists (canAddRoomsOrDocuments)
           — create_location()/create_document() both require one, and a customer without
           one yet has nowhere for a new room or document to attach to. */}
-      <HomeSection
-        title={t.myItemsRoomsTitle}
-        emptyText={t.myItemsRoomsEmpty}
-        isEmpty={!rooms?.length}
-        action={canAddRoomsOrDocuments && (
-          <SectionAddButton label={t.locationFormAddTitle} onClick={() => setActiveSheet({ type: "location" })} />
-        )}
-      >
-        <LocationTree rooms={rooms || []} />
-      </HomeSection>
+      {showRoomsSection && (
+        <HomeSection
+          title={t.myItemsRoomsTitle}
+          emptyText={t.myItemsRoomsEmpty}
+          isEmpty={!rooms?.length}
+          action={canAddRoomsOrDocuments && (
+            <SectionAddButton label={t.locationFormAddTitle} onClick={() => setActiveSheet({ type: "location", room: null })} />
+          )}
+        >
+          <LocationTree rooms={rooms || []} onEdit={(room) => setActiveSheet({ type: "location", room })} />
+        </HomeSection>
+      )}
 
       <HomeSection
         title={t.myItemsMaintenanceTitle}
@@ -252,6 +268,8 @@ export function MyItemsPanel({
           t={t}
           ownerId={ownerId}
           propertyId={propertyId}
+          rooms={rooms || []}
+          initialLocationId={activeSheet.initialRoom?.id}
           item={activeSheet.item}
           onClose={() => setActiveSheet(null)}
           onSaved={onRefresh}
@@ -264,8 +282,10 @@ export function MyItemsPanel({
           propertyId={propertyId}
           actorRef={ownerId}
           rooms={rooms || []}
+          room={activeSheet.room}
           onClose={() => setActiveSheet(null)}
           onSaved={onRefresh}
+          onAddItemHere={(room) => setActiveSheet({ type: "item", item: null, initialRoom: room })}
         />
       )}
 

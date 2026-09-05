@@ -66,6 +66,11 @@ function reshapeAsset(row) {
     name: row.name,
     category: row.type,
     room: row.room_label,
+    // The real room this item is placed in (Home Builder slice) — null for every item
+    // created before this slice, or created without picking one. Display-only today:
+    // property.update_asset() has no location_id parameter yet, so nothing can change
+    // this once set (see createAsset()'s own header).
+    locationId: row.location_id,
     brand: row.make,
     model: row.model,
     photoPath: row.photo_path,
@@ -222,10 +227,16 @@ export async function deleteHouseholdItem(itemId, photoPath = null) {
 // uploads to it, and the create call already carries the final path — one fewer step,
 // one fewer window.
 //
-// ONLY THE FIELDS THE FORM COLLECTS ARE EVER SENT — serial_number, parent_asset_id,
-// location_id, installed_on, expected_service_life_months, warranty_expires_on and
-// condition all go through as null. The contract has room for all seven; this form does
-// not grow new fields in this pass (WP 1.8's own scope is the cutover, not a redesign).
+// serial_number, parent_asset_id, installed_on, expected_service_life_months,
+// warranty_expires_on and condition still go through as null — the contract has room
+// for all seven; this form does not grow those fields (WP 1.8's own scope was the
+// cutover, not a redesign, and nothing in the Home Builder slice needs them either).
+//
+// location_id IS now sent on create (Home Builder slice) — property.create_asset()
+// (0139) always accepted it; only this client ever hardcoded it to null.
+// property.update_asset() has no location_id parameter at all yet (a real, separate gap
+// this slice does not extend — see householdItems.test.js's own note), so roomLabel
+// stays the only room-shaped field an edit can change, exactly as it already could.
 function assetFieldsFromForm({ name, category, room, brand, model, purchasedOn, notes }) {
   return {
     name: (name || "").trim(),
@@ -247,8 +258,12 @@ async function uploadAssetPhoto(assetId, ownerId, file) {
 
 /** Creates a real asset (property.assets) under a real property. `actorRef` is the
  * caller's own auth id (ADR-0019 — the same value ConversationHome.jsx already passes
- * as `ownerId`, since public.profiles.id references auth.users.id directly). */
-export async function createAsset({ propertyId, ownerId, actorRef, name, category, room, brand, model, purchasedOn, notes, photoFile }) {
+ * as `ownerId`, since public.profiles.id references auth.users.id directly).
+ * `locationId` (Home Builder slice) is the real room the item is placed in — property.
+ * create_asset() always accepted this; it was hardcoded to null here until now.
+ * `room` stays the display label (unchanged): when a real room was picked, the caller
+ * passes that room's own name as `room` too, so the two never drift apart. */
+export async function createAsset({ propertyId, ownerId, actorRef, locationId, name, category, room, brand, model, purchasedOn, notes, photoFile }) {
   const assetId = uuidv7();
   const photoPath = photoFile ? await uploadAssetPhoto(assetId, ownerId, photoFile) : null;
   const fields = assetFieldsFromForm({ name, category, room, brand, model, purchasedOn, notes });
@@ -262,7 +277,7 @@ export async function createAsset({ propertyId, ownerId, actorRef, name, categor
     p_model: fields.model,
     p_serial_number: null,
     p_parent_asset_id: null,
-    p_location_id: null,
+    p_location_id: locationId || null,
     p_room_label: fields.roomLabel,
     p_acquired_on: fields.acquiredOn,
     p_installed_on: null,
