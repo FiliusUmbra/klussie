@@ -26,16 +26,21 @@ function getAnthropicClient() {
 }
 
 /**
- * Capability: reason — structured classification/analysis, optionally over images.
- * Backs job-intake understanding today. Params are capability-level (system prompt,
- * text, images, the tool schema describing the expected output shape) — nothing here
- * is Claude-specific except this function's own implementation.
+ * Capability: reason — structured classification/analysis, optionally over images
+ * and/or documents (PDFs — Claude reads them natively, no separate OCR/extraction step).
+ * Backs job-intake understanding and "ask Klussie about this appliance" today. Params
+ * are capability-level (system prompt, text, images, documents, the tool schema
+ * describing the expected output shape) — nothing here is Claude-specific except this
+ * function's own implementation.
  */
-export async function reason({ systemPrompt, text, images = [], toolSchema, model = DEFAULT_REASONING_MODEL, maxTokens = 1536 }) {
+export async function reason({ systemPrompt, text, images = [], documents = [], toolSchema, model = DEFAULT_REASONING_MODEL, maxTokens = 1536 }) {
   const anthropic = getAnthropicClient();
   const content = [{ type: "text", text }];
   for (const img of images) {
     content.push({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.data } });
+  }
+  for (const doc of documents) {
+    content.push({ type: "document", source: { type: "base64", media_type: doc.mediaType, data: doc.data } });
   }
 
   const response = await anthropic.messages.create({

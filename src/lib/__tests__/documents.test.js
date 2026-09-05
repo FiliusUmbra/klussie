@@ -10,7 +10,7 @@ vi.mock("../supabaseClient", () => ({
 }));
 
 import { supabase } from "../supabaseClient";
-import { createDocument } from "../documents";
+import { createDocument, fetchDocumentsForAsset } from "../documents";
 
 function createStorageBuilder({ uploadError = null, removeError = null } = {}) {
   return {
@@ -89,5 +89,59 @@ describe("createDocument", () => {
 
     await expect(createDocument({ propertyId: "prop-1", workspaceId: "ws-1", actorRef: "owner-1", typeKey: "warranty", file }))
       .rejects.toThrow("insufficient_privilege");
+  });
+
+  // "Ask Klussie" slice (0199) — attaching a document to one specific asset instead of
+  // the property as a whole.
+  it("sends p_asset_id and a null p_property_id when assetId is given, not both subjects", async () => {
+    const storage = createStorageBuilder();
+    vi.mocked(supabase.storage.from).mockReturnValue(storage);
+    rpcMock.mockResolvedValue({ error: null });
+    const file = { name: "manual.pdf", type: "application/pdf" };
+
+    await createDocument({ assetId: "asset-1", workspaceId: "ws-1", actorRef: "owner-1", typeKey: "manual", file });
+
+    expect(rpcMock).toHaveBeenCalledWith("create_document", expect.objectContaining({
+      p_property_id: null,
+      p_asset_id: "asset-1",
+      p_type_key: "manual",
+    }));
+  });
+
+  it("sends a null p_asset_id when only propertyId is given, unchanged from before", async () => {
+    const storage = createStorageBuilder();
+    vi.mocked(supabase.storage.from).mockReturnValue(storage);
+    rpcMock.mockResolvedValue({ error: null });
+    const file = { name: "warranty.pdf", type: "application/pdf" };
+
+    await createDocument({ propertyId: "prop-1", workspaceId: "ws-1", actorRef: "owner-1", typeKey: "warranty", file });
+
+    expect(rpcMock).toHaveBeenCalledWith("create_document", expect.objectContaining({
+      p_property_id: "prop-1",
+      p_asset_id: null,
+    }));
+  });
+});
+
+describe("fetchDocumentsForAsset", () => {
+  it("calls my_documents with p_asset_id and reshapes the result", async () => {
+    rpcMock.mockResolvedValue({
+      data: [{ id: "doc-1", type_key: "manual", issuer: "Vaillant", valid_from: null, valid_until: "2030-01-01", caption: null }],
+      error: null,
+    });
+
+    const docs = await fetchDocumentsForAsset("asset-1");
+
+    expect(supabase.schema).toHaveBeenCalledWith("api");
+    expect(rpcMock).toHaveBeenCalledWith("my_documents", { p_asset_id: "asset-1" });
+    expect(docs).toEqual([{ id: "doc-1", typeKey: "manual", issuer: "Vaillant", validFrom: null, validUntil: "2030-01-01", caption: null }]);
+  });
+
+  it("returns an empty list, not a throw, when the read fails", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: new Error("network error") });
+
+    const docs = await fetchDocumentsForAsset("asset-1");
+
+    expect(docs).toEqual([]);
   });
 });

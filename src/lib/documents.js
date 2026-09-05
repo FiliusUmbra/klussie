@@ -20,13 +20,14 @@ import { supabase } from "./supabaseClient";
 import { uuidv7 } from "./ids.js";
 
 /**
- * Uploads `file` and creates a real document attached to a property
- * (`api.create_document()`, WP 1.6). `typeKey` must be one of the catalog's real values
- * (`warranty`/`certificate`/`manual`/`other`, per 0141's own seed) — the form offers only
- * those, and the database's own foreign key is the backstop if it ever doesn't.
- * `actorRef` is the caller's own auth id (ADR-0019).
+ * Uploads `file` and creates a real document attached to a property or, since
+ * migration 0199 (Home Builder's own next slice), one specific asset — exactly one of
+ * `propertyId`/`assetId` (`api.create_document()`, WP 1.6 + 0199). `typeKey` must be one
+ * of the catalog's real values (`warranty`/`certificate`/`manual`/`other`, per 0141's own
+ * seed) — the form offers only those, and the database's own foreign key is the backstop
+ * if it ever doesn't. `actorRef` is the caller's own auth id (ADR-0019).
  */
-export async function createDocument({ propertyId, workspaceId, actorRef, typeKey, issuer, validUntil, file }) {
+export async function createDocument({ propertyId, assetId, workspaceId, actorRef, typeKey, issuer, validUntil, file }) {
   const documentId = uuidv7();
   const attachmentId = uuidv7();
   const storagePath = `${workspaceId}/${documentId}/${file.name}`;
@@ -39,7 +40,8 @@ export async function createDocument({ propertyId, workspaceId, actorRef, typeKe
   const { error } = await supabase.schema("api").rpc("create_document", {
     p_document_id: documentId,
     p_attachment_id: attachmentId,
-    p_property_id: propertyId,
+    p_property_id: propertyId || null,
+    p_asset_id: assetId || null,
     p_type_key: typeKey,
     p_storage_path: storagePath,
     p_issuer: issuer || null,
@@ -59,6 +61,28 @@ export async function createDocument({ propertyId, workspaceId, actorRef, typeKe
   }
 
   return { id: documentId };
+}
+
+/**
+ * Every document attached to one asset (`api.my_documents(p_asset_id => ...)`, already
+ * asset-aware since migration 0059 — only the write side, closed above, was ever
+ * property-only). Same reshape as homeInventory.js's own property-level loadDocuments(),
+ * so DocumentList renders either list identically.
+ */
+export async function fetchDocumentsForAsset(assetId) {
+  const { data, error } = await supabase.schema("api").rpc("my_documents", { p_asset_id: assetId });
+  if (error) {
+    console.warn("asset documents unavailable, continuing without them:", error.message);
+    return [];
+  }
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    typeKey: row.type_key,
+    issuer: row.issuer,
+    validFrom: row.valid_from,
+    validUntil: row.valid_until,
+    caption: row.caption,
+  }));
 }
 
 // The label key for a document's type_key — one source of truth (PRODUCT_CONSTITUTION.md

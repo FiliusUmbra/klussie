@@ -6,6 +6,9 @@
 // has storage (0016) and My Home is derived from real requests. They are deleted rather
 // than left unused, because a component that says "not built yet" is exactly the kind of
 // stale claim that outlives the condition it described.
+import { documentTypeLabelKey } from "../lib/documents.js";
+import { interpolate } from "../lib/homeStrings.js";
+import { Badge } from "../design-system";
 
 // A section that shows a plain-language line when it holds nothing, and its real
 // content when it does. Progressive disclosure (DESIGN_SYSTEM.md): a customer opening
@@ -28,5 +31,47 @@ export function HomeSection({ title, emptyText, children, isEmpty, action }) {
       </h3>
       {isEmpty ? <p className="home-group-empty">{emptyText}</p> : children}
     </section>
+  );
+}
+
+// Renders any subject's document list identically — property, or (0199, "Ask Klussie"
+// slice) one specific asset. Moved out of MyItemsPanel.jsx, which held the only caller
+// until ItemFormSheet.jsx's own Documents section (asset-scoped) became the second, so
+// the "real bug found live 2026-08-28" caption fallback below stays fixed in one place
+// rather than risking a second, independently-drifting copy.
+export function DocumentList({ t, fmtDate, documents }) {
+  const today = new Date();
+  return (
+    <ul className="document-list">
+      {documents.map((doc) => {
+        const expired = doc.validUntil && new Date(doc.validUntil) < today;
+        return (
+          <li key={doc.id} className="document-row">
+            <span className="document-row-caption">
+              {doc.caption || (() => {
+                // A real bug, found live 2026-08-28: DocumentUploadSheet.jsx has no
+                // caption field at all, so doc.caption is always empty for every
+                // document created through this app's own UI -- the fallback below used
+                // to render the raw, untranslated typeKey ("warranty") instead of the
+                // real localized label ("Garantie"/"Warranty"/...) every single time,
+                // matching the idiom ProJobDetailSheet.jsx's own twin section and
+                // DocumentUploadSheet.jsx's own dropdown already use correctly.
+                const labelKey = documentTypeLabelKey(doc.typeKey);
+                return labelKey ? t[labelKey] : doc.typeKey;
+              })()}
+            </span>
+            {doc.validUntil && (
+              <span className="document-row-validity">
+                {expired ? (
+                  <Badge tone="amber">{t.myItemsDocumentExpired}</Badge>
+                ) : (
+                  interpolate(t.myItemsDocumentValidUntil, { date: fmtDate(doc.validUntil) })
+                )}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
