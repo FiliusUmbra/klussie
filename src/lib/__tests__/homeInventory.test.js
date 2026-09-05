@@ -13,8 +13,8 @@ vi.mock("../supabaseClient", () => ({
 }));
 
 import {
-  fetchHomeProfile, knownFactsFrom, buildLocationTree, createPropertyForCaller,
-  fetchMyProperties, setPropertyAddress, hasConfirmedAddress,
+  fetchHomeProfile, knownFactsFrom, buildLocationTree, flattenLocationsForPicker,
+  createPropertyForCaller, fetchMyProperties, setPropertyAddress, hasConfirmedAddress,
 } from "../homeInventory";
 
 const PROPERTY_ROW = {
@@ -260,6 +260,49 @@ describe("buildLocationTree", () => {
     const flat = [{ id: "orphan", parentId: "missing-parent", name: "Orphan", type: null }];
 
     expect(buildLocationTree(flat)).toEqual([{ id: "orphan", name: "Orphan", type: null, children: [] }]);
+  });
+});
+
+// Home Builder slice — the room picker shared by LocationFormSheet (picking a parent
+// room) and ItemFormSheet (picking which room an item is in). One flattening of
+// buildLocationTree()'s own output, not two copies drifting apart.
+describe("flattenLocationsForPicker", () => {
+  it("returns an empty list for an empty tree", () => {
+    expect(flattenLocationsForPicker([])).toEqual([]);
+  });
+
+  it("flattens a tree into id/name/label entries, depth-first, parent before its children", () => {
+    const tree = [
+      {
+        id: "a", name: "Kitchen", children: [
+          { id: "b", name: "Pantry", children: [] },
+        ],
+      },
+      { id: "c", name: "Garage", children: [] },
+    ];
+
+    expect(flattenLocationsForPicker(tree)).toEqual([
+      { id: "a", name: "Kitchen", label: "Kitchen" },
+      { id: "b", name: "Pantry", label: "— Pantry" },
+      { id: "c", name: "Garage", label: "Garage" },
+    ]);
+  });
+
+  it("indents each level by one more dash-prefix than its parent", () => {
+    const tree = [
+      {
+        id: "a", name: "Attic", children: [
+          {
+            id: "b", name: "Loft", children: [
+              { id: "c", name: "Storage box", children: [] },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const labels = flattenLocationsForPicker(tree).map((entry) => entry.label);
+    expect(labels).toEqual(["Attic", "— Loft", "— — Storage box"]);
   });
 });
 

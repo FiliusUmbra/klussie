@@ -19,22 +19,38 @@
 // retire_asset() (active -> retired, never a hard delete) rather than deleteHouseholdItem
 // — api.my_assets() (0054) already excludes retired assets, so the item disappears from
 // this list exactly as a delete would, while its history is kept.
+//
+// Home Builder slice — THE ROOM FIELD IS A REAL PICKER ON CREATE, UNCHANGED FREE TEXT ON
+// EDIT
+//
+// property.create_asset() always accepted a real location_id; only this form ever
+// hardcoded it to null (see createAsset()'s own header). Creating now offers the
+// customer's own actual rooms, when any real ones exist, alongside the free-text field
+// for anyone without one yet (or the legacy path, which has no rooms concept at all).
+// Editing keeps today's behaviour exactly as it was — property.update_asset() has no
+// location_id parameter yet, a real, separate gap this slice does not extend (see
+// householdItems.js's own note), so changing which real room an item sits in is not a
+// promise this form can keep once the row already exists.
 import { useState, useRef } from "react";
 import { Camera, X, Trash2 } from "lucide-react";
 import { Drawer, Modal, Button } from "../design-system";
 import { ITEM_CATEGORIES, SUGGESTED_ROOMS, DEFAULT_ITEM_CATEGORY, canSaveItem } from "../lib/itemCategories.js";
 import { createHouseholdItem, updateHouseholdItem, setHouseholdItemPhoto, deleteHouseholdItem, createAsset, updateAsset, retireAsset } from "../lib/householdItems.js";
+import { flattenLocationsForPicker } from "../lib/homeInventory.js";
 
-export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }) {
+export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId, item, onClose, onSaved }) {
   const editing = !!item;
   // The caller's own auth id doubles as ADR-0019's actor_ref — public.profiles.id
   // references auth.users.id directly (0001), so ownerId already IS that value; no
   // separate prop is threaded down just to carry the same id under a second name.
   const usingRealContract = !!propertyId;
   const actorRef = ownerId;
+  const roomOptions = flattenLocationsForPicker(rooms || []);
+  const initialRoomOption = roomOptions.find((opt) => opt.id === initialLocationId);
   const [name, setName] = useState(item?.name || "");
   const [category, setCategory] = useState(item?.category || DEFAULT_ITEM_CATEGORY);
-  const [room, setRoom] = useState(item?.room || "");
+  const [room, setRoom] = useState(item?.room || initialRoomOption?.name || "");
+  const [locationId, setLocationId] = useState(editing ? null : initialLocationId || "");
   const [brand, setBrand] = useState(item?.brand || "");
   const [model, setModel] = useState(item?.model || "");
   const [purchasedOn, setPurchasedOn] = useState(item?.purchasedOn || "");
@@ -66,7 +82,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
         if (editing) {
           await updateAsset(item.id, { ownerId, actorRef, previousPhotoPath: item.photoPath, photoFile, ...fields });
         } else {
-          await createAsset({ propertyId, ownerId, actorRef, photoFile, ...fields });
+          await createAsset({ propertyId, ownerId, actorRef, locationId: locationId || null, photoFile, ...fields });
         }
       } else {
         const saved = editing
@@ -126,23 +142,47 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
       </div>
 
       <label className="field-label" htmlFor="item-room">{t.itemRoomLabel}</label>
-      {/* Suggestions, not a closed list — the column is free text because no rooms table
-          exists, and a fixed vocabulary would refuse "zolderkamer". */}
-      <div className="chiprow">
-        {SUGGESTED_ROOMS.map((r) => (
-          <button
-            key={r.id}
-            type="button"
-            className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
-            onClick={() => setRoom(room === t[r.labelKey] ? "" : t[r.labelKey])}
+      {!editing && roomOptions.length > 0 ? (
+        // A real room, once any exist — the exact rooms this same customer just built
+        // in My Home, not a fixed suggestion list standing in for them.
+        <div className="search" style={{ marginBottom: 14 }}>
+          <select
+            id="item-room"
+            value={locationId}
+            onChange={(e) => {
+              const picked = roomOptions.find((opt) => opt.id === e.target.value);
+              setLocationId(e.target.value);
+              setRoom(picked?.name || "");
+            }}
           >
-            {t[r.labelKey]}
-          </button>
-        ))}
-      </div>
-      <div className="search" style={{ marginBottom: 14 }}>
-        <input id="item-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder={t.itemRoomPlaceholder} />
-      </div>
+            <option value="">{t.itemRoomNone}</option>
+            {roomOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <>
+          {/* No real rooms yet, or editing an existing item: free text, with suggestions
+              — the column itself has always accepted anything, so a fixed vocabulary
+              would still refuse "zolderkamer" here regardless. */}
+          <div className="chiprow">
+            {SUGGESTED_ROOMS.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
+                onClick={() => setRoom(room === t[r.labelKey] ? "" : t[r.labelKey])}
+              >
+                {t[r.labelKey]}
+              </button>
+            ))}
+          </div>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <input id="item-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder={t.itemRoomPlaceholder} />
+          </div>
+        </>
+      )}
 
       <label className="field-label" htmlFor="item-brand">{t.itemBrandLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>

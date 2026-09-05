@@ -28,7 +28,7 @@
 // whole always renders something — a brand-new account gets an invitation, never a blank
 // page.
 import { useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Plus } from "lucide-react";
 import { HomeSection } from "./panelParts.jsx";
 import {
   PropertyHeader,
@@ -39,13 +39,89 @@ import {
   ReviewRow,
 } from "./myHomeParts.jsx";
 import { ProPublicProfileSheet } from "../profile/ProPublicProfileSheet.jsx";
+import { LocationTree } from "./MyItemsPanel.jsx";
+import { LocationFormSheet } from "./LocationFormSheet.jsx";
+import { ItemFormSheet } from "./ItemFormSheet.jsx";
 import { reviewsGiven, aiSummaries } from "../lib/homeTimeline.js";
 
+// Home Builder vertical slice — "building your home" belongs here, in My Home, not
+// tucked inside My Items where a homeowner has no reason to look for it (found live:
+// the only entry point was a bare, unlabeled "+" beside a "Rooms" heading in My Items).
+// ADR-0008 still holds — no new bottom-nav destination — this is a new section of the
+// same existing "My Home" tab, exactly the shape that ADR already sanctions.
+function HomeBuilderSection({ t, homeCtx, ownerId, onAddItem }) {
+  const [activeSheet, setActiveSheet] = useState(null); // null | { room: existingRoom | null }
+  const { homeProfile, propertyId, refreshItems } = homeCtx;
+  const rooms = homeProfile?.rooms || [];
+  const loading = homeProfile === null;
+  const hasProperty = !!propertyId;
+
+  if (loading) {
+    return (
+      <section className="home-group home-builder">
+        <h3 className="home-group-title">{t.homeBuilderTitle}</h3>
+        <p className="home-group-empty">{t.homeBuilderLoading}</p>
+      </section>
+    );
+  }
+
+  // A real, useful recovery state, never a bare empty room list indistinguishable from
+  // "you haven't added anything yet" — the two mean very different things, and only one
+  // of them is fixed by adding a room.
+  if (!hasProperty) {
+    return (
+      <section className="home-group home-builder">
+        <h3 className="home-group-title">{t.homeBuilderTitle}</h3>
+        <p className="home-group-empty" role="status">{t.homeBuilderNoPropertyYet}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="home-group home-builder">
+      <h3 className="home-group-title">{t.homeBuilderTitle}</h3>
+
+      {rooms.length === 0 ? (
+        <div className="home-builder-empty">
+          <p className="home-builder-empty-line">{t.homeBuilderEmptyTitle}</p>
+          <p className="home-builder-empty-hint">{t.homeBuilderEmptyHint}</p>
+          <button type="button" className="btn-primary" onClick={() => setActiveSheet({ room: null })}>
+            <Plus size={16} aria-hidden="true" /> {t.homeBuilderAddFirstRoom}
+          </button>
+        </div>
+      ) : (
+        <>
+          <LocationTree rooms={rooms} onEdit={(room) => setActiveSheet({ room })} />
+          <button type="button" className="home-panel-action" style={{ marginTop: 10 }} onClick={() => setActiveSheet({ room: null })}>
+            <Plus size={15} aria-hidden="true" /> {t.homeBuilderAddAnotherRoom}
+          </button>
+        </>
+      )}
+
+      {activeSheet && (
+        <LocationFormSheet
+          t={t}
+          propertyId={propertyId}
+          actorRef={ownerId}
+          rooms={rooms}
+          room={activeSheet.room}
+          onClose={() => setActiveSheet(null)}
+          onSaved={refreshItems}
+          onAddItemHere={(room) => { setActiveSheet(null); onAddItem(room); }}
+        />
+      )}
+    </section>
+  );
+}
+
 export function MyHomePanel({
-  t, homeCtx, serviceInfo, fmtDate, onReportProblem, onOpenRequest, requests,
+  t, homeCtx, ownerId, serviceInfo, fmtDate, onReportProblem, onOpenRequest, requests,
 }) {
   const [openProId, setOpenProId] = useState(null);
-  const { property, openWork, trustedPros, history, photoSources } = homeCtx;
+  // null | existingRoom — opens ItemFormSheet pre-filled with that room, the direct
+  // "add something to this room" next action a freshly-built room needs.
+  const [addItemToRoom, setAddItemToRoom] = useState(undefined);
+  const { property, openWork, trustedPros, history, photoSources, propertyId, refreshItems } = homeCtx;
 
   const reviews = reviewsGiven(requests);
   const analyses = aiSummaries(requests);
@@ -61,6 +137,8 @@ export function MyHomePanel({
       <button type="button" className="home-panel-action" onClick={onReportProblem}>
         <AlertTriangle size={15} aria-hidden="true" /> {t.homeReportProblem}
       </button>
+
+      <HomeBuilderSection t={t} homeCtx={homeCtx} ownerId={ownerId} onAddItem={setAddItemToRoom} />
 
       <HomeSection title={t.myHomeActiveTitle} emptyText={t.myHomeActiveEmpty} isEmpty={openWork.length === 0}>
         <ul className="home-timeline">
@@ -128,6 +206,19 @@ export function MyHomePanel({
       </section>
 
       {openProId && <ProPublicProfileSheet proId={openProId} onClose={() => setOpenProId(null)} />}
+
+      {addItemToRoom !== undefined && (
+        <ItemFormSheet
+          t={t}
+          ownerId={ownerId}
+          propertyId={propertyId}
+          rooms={homeCtx.homeProfile?.rooms || []}
+          initialLocationId={addItemToRoom?.id}
+          item={null}
+          onClose={() => setAddItemToRoom(undefined)}
+          onSaved={refreshItems}
+        />
+      )}
     </div>
   );
 }
