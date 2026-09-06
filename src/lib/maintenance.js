@@ -45,6 +45,10 @@ export async function fetchMaintenanceObligations(workspaceId) {
       isOverdue: row.is_overdue,
       completedAt: row.completed_at,
       cancelledAt: row.cancelled_at,
+      // Maintenance resolution slice (0203) — present in the table since 0072, never
+      // read back until now (§16: "Cancelled ones retain their cancellation and its
+      // reason" only means something if the reason can actually be shown again).
+      cancellationReason: row.cancellation_reason,
     }));
     return rows.sort((a, b) => {
       if (a.status === "open" && b.status !== "open") return -1;
@@ -77,6 +81,45 @@ export async function createMaintenanceObligation({ workspaceId, assetId, actorR
     p_title: title,
     p_description: description || null,
     p_due_on: dueOn,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
+}
+
+/**
+ * Marks an open maintenance obligation done (`api.complete_maintenance_obligation()`,
+ * migration 0203) — the first real client caller. That contract's own work-layer
+ * function (0074) does no authorization check at all by itself; 0203's own
+ * *_for_caller() wrapper is what makes calling this safe (see that migration's header).
+ * Throws the real error (already settled, not the caller's obligation) for the caller to
+ * show, matching every other write in this codebase — never swallowed.
+ */
+export async function completeMaintenanceObligation(obligationId, actorRef) {
+  const { error } = await supabase.schema("api").rpc("complete_maintenance_obligation", {
+    p_obligation_id: obligationId,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
+}
+
+/**
+ * Cancels an open maintenance obligation with a required reason
+ * (`api.cancel_maintenance_obligation()`, migration 0203) — the first real client
+ * caller. `reason` is required at the contract level (work.cancel_maintenance_
+ * obligation()'s own check, 0074) before it ever reaches the table's own
+ * not-null-when-cancelled constraint (0072); this function does not duplicate that
+ * validation, matching completeMaintenanceObligation()'s own restraint.
+ */
+export async function cancelMaintenanceObligation(obligationId, reason, actorRef) {
+  const { error } = await supabase.schema("api").rpc("cancel_maintenance_obligation", {
+    p_obligation_id: obligationId,
+    p_reason: reason,
     p_event_id: uuidv7(),
     p_correlation_id: uuidv7(),
     p_actor_type: "person",

@@ -243,6 +243,7 @@ something it depends on.
 | C34 | A suggested maintenance recommendation, once confirmed, creates one real maintenance obligation with a concrete due date — never a recurring schedule | `ItemDetailSheet` *(automated)* |
 | C35 | An unreadable file (wrong type, too large) shows a plain-language message and never reaches the AI, and any other failure shows the generic localized error, never a raw one | `ItemDetailSheet` *(automated)* |
 | C36 | Adding maintenance for an item requires a task name and a due date, creates one real obligation scoped to that item and workspace, and shows the generic localized error, never a raw one, on failure | `ItemDetailSheet` *(automated)* |
+| C37 | Marking a task done, or cancelling one with a required reason, calls the real contract, reflects the change immediately without closing the sheet, and shows the generic localized error, never a raw one, on failure | `ItemDetailSheet` *(automated)* |
 
 ### 5.5 · Professional
 
