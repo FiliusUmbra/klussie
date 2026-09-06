@@ -12,10 +12,11 @@ import { Drawer } from "../design-system";
 import { SERVICE_QUESTIONS } from "../lib/serviceQuestions";
 import { WHEN_PREFS } from "../lib/requestStatus.js";
 import { ServiceLocationField } from "./ServiceLocationField.jsx";
+import { ItemAssociationField } from "./ItemAssociationField.jsx";
 
 export function QuoteFormSheet({ service, onClose, onSubmit }) {
   const { t, serviceInfo, whenLabel } = useLang();
-  const { profile, activeWorkspace } = useAuth();
+  const { user, profile, activeWorkspace } = useAuth();
   const info = serviceInfo(service.id);
   const questions = SERVICE_QUESTIONS[service.id];
   const [details, setDetails] = useState("");
@@ -25,6 +26,7 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
   const [fields, setFields] = useState({});
   const [photos, setPhotos] = useState([]);
   const [location, setLocation] = useState(null);
+  const [assetId, setAssetId] = useState(null);
   const photoInputRef = useRef(null);
 
   const setField = (key, value) => setFields((f) => ({ ...f, [key]: value }));
@@ -101,6 +103,8 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
 
       <ServiceLocationField workspaceId={activeWorkspace?.workspace_id} onChange={setLocation} />
 
+      <ItemAssociationField ownerId={user?.id} workspaceId={activeWorkspace?.workspace_id} onChange={setAssetId} />
+
       <label className="field-label">{t.cityLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
         <input value={city} onChange={(e) => setCity(e.target.value)} />
@@ -116,7 +120,7 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
       <button
         className="btn-primary"
         disabled={!location}
-        onClick={() => onSubmit({ whenPref, details: details || "—", detailsJson: fields, budget, city, location, photos: photos.map((p) => p.file) })}
+        onClick={() => onSubmit({ whenPref, details: details || "—", detailsJson: fields, budget, city, location, assetId, photos: photos.map((p) => p.file) })}
       >
         <Send size={15} /> {t.sendRequestBtn}
       </button>
