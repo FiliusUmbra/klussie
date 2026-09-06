@@ -11,6 +11,7 @@
 // keeps separate for exactly this reason (see how `items`/fetchHouseholdItems() is its
 // own effect there, not part of fetchHomeProfile()).
 import { supabase } from "./supabaseClient";
+import { uuidv7 } from "./ids.js";
 
 /**
  * Every open and recently-settled obligation for a workspace, is_overdue already computed
@@ -55,4 +56,31 @@ export async function fetchMaintenanceObligations(workspaceId) {
     console.warn("maintenance obligations unavailable, continuing without them:", err.message);
     return [];
   }
+}
+
+/**
+ * Creates one manual maintenance obligation for an asset (`api.create_maintenance_
+ * obligation()`, migration 0142) — the first real client caller of a contract that has
+ * existed since WP 1.7 with none named. `dueOn` is a single concrete date: nothing in
+ * this schema can hold a recurring interval ("every 6 months"), so the Document
+ * Understanding slice's own suggestion flow always resolves a stated interval to one
+ * upcoming date before this is ever called, rather than this function inventing
+ * recurrence. Throws the real error for the caller to show, matching every other write
+ * in this codebase (moveAsset, retireAsset) — never swallowed.
+ */
+export async function createMaintenanceObligation({ workspaceId, assetId, actorRef, title, description, dueOn }) {
+  const { error } = await supabase.schema("api").rpc("create_maintenance_obligation", {
+    p_obligation_id: uuidv7(),
+    p_workspace_id: workspaceId,
+    p_asset_id: assetId,
+    p_location_id: null,
+    p_title: title,
+    p_description: description || null,
+    p_due_on: dueOn,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
 }

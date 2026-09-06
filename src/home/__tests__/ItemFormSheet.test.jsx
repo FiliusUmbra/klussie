@@ -152,6 +152,22 @@ describe("ItemFormSheet — edit, real contract vs legacy", () => {
     expect(updateHouseholdItem).not.toHaveBeenCalled();
   });
 
+  // Document Understanding slice — this form has no inputs for these five fields; it
+  // must pass the item's own current values through so updateAsset() doesn't erase them
+  // (its own default is null, meant only for a genuinely blank field).
+  it("passes the item's own serialNumber/installedOn/warrantyExpiresOn/condition through, preserving whatever this form has no input for", async () => {
+    const onSaved = vi.fn(() => Promise.resolve());
+    const item = { ...ITEM, serialNumber: "SN-9", installedOn: "2024-03-01", expectedServiceLifeMonths: 120, warrantyExpiresOn: "2029-01-20", condition: "good" };
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" item={item} onClose={() => {}} onSaved={onSaved} />);
+
+    fireEvent.click(screen.getByText("Save changes"));
+
+    await waitFor(() => expect(updateAsset).toHaveBeenCalledWith("asset-1", expect.objectContaining({
+      serialNumber: "SN-9", installedOn: "2024-03-01", expectedServiceLifeMonths: 120,
+      warrantyExpiresOn: "2029-01-20", condition: "good",
+    })));
+  });
+
   it("calls updateHouseholdItem(item.id, ...) when propertyId is absent", async () => {
     const onSaved = vi.fn(() => Promise.resolve());
     render(<ItemFormSheet t={t} ownerId="owner-1" item={ITEM} onClose={() => {}} onSaved={onSaved} />);

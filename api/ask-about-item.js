@@ -44,21 +44,10 @@ import { verifyAuth, AuthError } from "./_lib/auth.js";
 import { checkAndLogUsage, RateLimitError } from "./_lib/rateLimit.js";
 import { reason } from "./_lib/aiGateway.js";
 import { emitEvent } from "./_lib/events.js";
+import { fetchDocumentAttachment } from "./_lib/documentAttachment.js";
 
 const MAX_QUESTION_LENGTH = 300;
 const ENDPOINT = "ask-about-item";
-
-// Anthropic's own documented content-block media types for a PDF; anything else found
-// on a document's storage_path is skipped (grounded in the item's own fields only)
-// rather than sent as a mislabeled attachment. property.documents has no stored
-// mime-type column (0055) — the file's own extension is the only signal available.
-const EXTENSION_MEDIA_TYPES = {
-  pdf: "application/pdf",
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-};
-const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 
 const GROUND_SOURCES = ["item_details", "attached_document", "maintenance_records", "service_history", "none"];
 
@@ -83,11 +72,6 @@ const ANSWER_TOOL = {
     required: ["answer", "groundedIn"],
   },
 };
-
-function extensionOf(storagePath) {
-  const match = /\.([a-z0-9]+)$/i.exec(storagePath || "");
-  return match ? match[1].toLowerCase() : null;
-}
 
 function describeAsset(asset) {
   // Only real, present fields — an absent brand is omitted, never "Brand: unknown", the
@@ -179,18 +163,15 @@ export default async function handler(req, res) {
   let documentAttachment = null;
   let documentNote = "No warranty or manual document is attached to this item.";
   if (chosenDoc) {
-    const mediaType = EXTENSION_MEDIA_TYPES[extensionOf(chosenDoc.storage_path)];
-    if (mediaType) {
-      const { data: fileBlob, error: downloadError } = await auth.supabase.storage
-        .from(chosenDoc.storage_bucket)
-        .download(chosenDoc.storage_path);
-      if (!downloadError && fileBlob && fileBlob.size <= MAX_DOCUMENT_BYTES) {
-        const buffer = Buffer.from(await fileBlob.arrayBuffer());
-        documentAttachment = { mediaType, data: buffer.toString("base64") };
-        documentNote = `The item's own "${chosenDoc.type_key}" document is attached below — use it.`;
-      } else if (downloadError) {
-        console.warn("ask-about-item document download failed, answering from item facts only:", downloadError.message);
-      }
+    const { attachment, reason: skipReason } = await fetchDocumentAttachment(auth.supabase, {
+      storageBucket: chosenDoc.storage_bucket,
+      storagePath: chosenDoc.storage_path,
+    });
+    if (attachment) {
+      documentAttachment = attachment;
+      documentNote = `The item's own "${chosenDoc.type_key}" document is attached below — use it.`;
+    } else if (skipReason === "download_failed") {
+      console.warn("ask-about-item document download failed, answering from item facts only");
     }
   }
 
@@ -229,10 +210,18 @@ export default async function handler(req, res) {
   ].join("\n");
 
   try {
+    // Route by the attachment's own kind — a scanned warranty card saved as a photo is
+    // an image content block, not a PDF one; sending it as `documents` (Anthropic's PDF
+    // block type) would not be understood the way an `images` block is. Fixed here as
+    // part of pulling this logic into fetchDocumentAttachment(), which is the first place
+    // that actually distinguishes the two; before, every attachment went through
+    // `documents` regardless of its real type, untested because every real attachment
+    // used for live verification so far has been a PDF.
     const result = await reason({
       systemPrompt,
       text: question,
-      documents: documentAttachment ? [documentAttachment] : [],
+      documents: documentAttachment?.kind === "document" ? [documentAttachment] : [],
+      images: documentAttachment?.kind === "image" ? [documentAttachment] : [],
       toolSchema: ANSWER_TOOL,
       maxTokens: 512,
     });

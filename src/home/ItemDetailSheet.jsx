@@ -30,16 +30,115 @@
 // slice teaches intake to ask "which item is this about" — that is correct behaviour for
 // what has actually happened, not a bug to hide.
 import { useEffect, useState } from "react";
-import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight } from "lucide-react";
+import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight, Sparkles } from "lucide-react";
 import { Drawer, Modal, Button, Badge } from "../design-system";
 import { DocumentRowContent } from "./panelParts.jsx";
 import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
 import { fetchDocumentsForAsset, getDocumentUrl } from "../lib/documents.js";
 import { fetchServiceRecordsForAsset } from "../lib/serviceRecords.js";
-import { moveAsset, retireAsset } from "../lib/householdItems.js";
+import { moveAsset, retireAsset, updateAsset } from "../lib/householdItems.js";
 import { askAboutItem } from "../lib/askAboutItem.js";
+import { createMaintenanceObligation } from "../lib/maintenance.js";
+import { suggestItemDetailsFromDocument, DOCUMENT_UNREADABLE } from "../lib/documentUnderstanding.js";
 import { flattenLocationsForPicker, resolveItemRoomName } from "../lib/homeInventory.js";
 import { interpolate } from "../lib/homeStrings.js";
+
+// Document Understanding slice — maps the suggestion tool's own field names
+// (api/suggest-item-details.js's SUGGEST_TOOL) to the asset field updateAsset() expects,
+// and to the translated label/current-value each shows in the confirmation list.
+const SUGGEST_DATE_FIELDS = ["purchaseDate", "installDate", "warrantyEndDate"];
+const SUGGEST_FIELD_TO_ASSET_KEY = {
+  manufacturer: "brand",
+  model: "model",
+  serialNumber: "serialNumber",
+  purchaseDate: "purchasedOn",
+  installDate: "installedOn",
+  warrantyEndDate: "warrantyExpiresOn",
+};
+const SUGGEST_FIELD_LABEL_KEYS = {
+  manufacturer: "itemDetailSuggestFieldManufacturer",
+  model: "itemDetailSuggestFieldModel",
+  serialNumber: "itemDetailSuggestFieldSerialNumber",
+  purchaseDate: "itemDetailSuggestFieldPurchaseDate",
+  installDate: "itemDetailSuggestFieldInstallDate",
+  warrantyEndDate: "itemDetailSuggestFieldWarrantyEndDate",
+};
+
+// The confirmation list itself — no Modal of its own (ItemDetailSheet's single Modal
+// wraps this and its loading/error siblings, one open/close lifecycle instead of two).
+// Every checkbox starts UNCHECKED: "never treat model output as authoritative" means
+// opt-in per field, not opt-out from a batch.
+function SuggestDetailsFields({ t, fmtDate, item, suggestions, busy, error, onCancel, onConfirm }) {
+  const fieldKeys = Object.keys(SUGGEST_FIELD_LABEL_KEYS).filter((key) => suggestions[key]);
+  const maintenanceSuggestion = suggestions.maintenanceSuggestion || null;
+  const [checked, setChecked] = useState({});
+  const toggle = (key) => setChecked((c) => ({ ...c, [key]: !c[key] }));
+  const anyChecked = fieldKeys.some((key) => checked[key]) || (!!maintenanceSuggestion && checked.maintenance);
+
+  if (fieldKeys.length === 0 && !maintenanceSuggestion) {
+    return (
+      <>
+        <p className="home-group-empty">{t.itemDetailSuggestEmpty}</p>
+        <Button variant="secondary" onClick={onCancel}>{t.cancelBtn}</Button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 10 }}>{t.itemDetailSuggestIntro}</p>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        {fieldKeys.map((key) => {
+          const currentValue = item[SUGGEST_FIELD_TO_ASSET_KEY[key]];
+          const isDate = SUGGEST_DATE_FIELDS.includes(key);
+          return (
+            <li key={key} style={{ marginBottom: 10 }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <input type="checkbox" checked={!!checked[key]} onChange={() => toggle(key)} style={{ marginTop: 3, minWidth: 20, minHeight: 20 }} />
+                <span>
+                  <strong>{t[SUGGEST_FIELD_LABEL_KEYS[key]]}:</strong> {isDate ? fmtDate(suggestions[key]) : suggestions[key]}
+                  {currentValue && (
+                    <span className="fineprint" style={{ display: "block", justifyContent: "flex-start" }}>
+                      {interpolate(t.itemDetailSuggestCurrentValue, { value: isDate ? fmtDate(currentValue) : currentValue })}
+                    </span>
+                  )}
+                </span>
+              </label>
+            </li>
+          );
+        })}
+        {maintenanceSuggestion && (
+          <li style={{ marginBottom: 10 }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <input type="checkbox" checked={!!checked.maintenance} onChange={() => toggle("maintenance")} style={{ marginTop: 3, minWidth: 20, minHeight: 20 }} />
+              <span>
+                <strong>{t.itemDetailSuggestMaintenanceTitle}:</strong> {maintenanceSuggestion.title}
+                <span className="fineprint" style={{ display: "block", justifyContent: "flex-start" }}>
+                  {interpolate(t.myItemsMaintenanceDueOn, { date: fmtDate(maintenanceSuggestion.dueOn) })}
+                </span>
+              </span>
+            </label>
+          </li>
+        )}
+      </ul>
+      {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{error}</div>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <Button variant="secondary" onClick={onCancel} disabled={busy}>{t.cancelBtn}</Button>
+        <Button
+          variant="primary"
+          disabled={busy || !anyChecked}
+          onClick={() => {
+            const selectedFields = {};
+            for (const key of fieldKeys) if (checked[key]) selectedFields[key] = suggestions[key];
+            onConfirm(selectedFields, !!maintenanceSuggestion && !!checked.maintenance);
+          }}
+        >
+          {t.itemDetailSuggestSave}
+        </Button>
+      </div>
+    </>
+  );
+}
 
 function WarrantyLine({ t, fmtDate, warrantyExpiresOn }) {
   if (!warrantyExpiresOn) {
@@ -105,6 +204,16 @@ export function ItemDetailSheet({
 
   const [history, setHistory] = useState(null);
 
+  // Document Understanding slice. suggestDoc is which document row triggered this (null
+  // = modal closed); suggestions stays null while loading or after a load failure, so
+  // "loading" and "loaded with nothing found" are never confused with each other.
+  const [suggestDoc, setSuggestDoc] = useState(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState(null);
+  const [suggestLoadError, setSuggestLoadError] = useState("");
+  const [suggestSaveError, setSuggestSaveError] = useState("");
+  const [suggestSaving, setSuggestSaving] = useState(false);
+
   const [showMove, setShowMove] = useState(false);
   const [moveBusy, setMoveBusy] = useState(false);
   const [moveError, setMoveError] = useState("");
@@ -142,6 +251,64 @@ export function ItemDetailSheet({
       setDocumentError(t.itemDetailDocumentOpenFailed);
     } finally {
       setOpeningDocId(null);
+    }
+  };
+
+  const closeSuggest = () => {
+    setSuggestDoc(null);
+    setSuggestions(null);
+    setSuggestLoadError("");
+    setSuggestSaveError("");
+  };
+
+  const startSuggest = async (doc) => {
+    setSuggestDoc(doc);
+    setSuggestions(null);
+    setSuggestLoadError("");
+    setSuggestSaveError("");
+    setSuggestLoading(true);
+    try {
+      const result = await suggestItemDetailsFromDocument({ itemId: item.id, documentId: doc.id });
+      setSuggestions(result.suggestions);
+    } catch (err) {
+      setSuggestLoadError(err.message === DOCUMENT_UNREADABLE ? t.itemDetailSuggestUnreadable : t.itemDetailSuggestFailed);
+    } finally {
+      setSuggestLoading(false);
+    }
+  };
+
+  // Closes the whole detail sheet on success, same as Move/Retire below -- `item` is a
+  // snapshot prop, so the confirmed brand/model/dates would otherwise keep showing their
+  // pre-confirmation values until the caller re-fetches and re-opens it anyway.
+  const confirmSuggestions = async (selectedFields, includeMaintenance) => {
+    setSuggestSaving(true);
+    setSuggestSaveError("");
+    try {
+      const merged = { ...item };
+      for (const [field, value] of Object.entries(selectedFields)) {
+        merged[SUGGEST_FIELD_TO_ASSET_KEY[field]] = value;
+      }
+      await updateAsset(item.id, {
+        ownerId, actorRef, previousPhotoPath: item.photoPath,
+        name: merged.name, category: merged.category, room: merged.room,
+        brand: merged.brand, model: merged.model, purchasedOn: merged.purchasedOn, notes: merged.notes,
+        serialNumber: merged.serialNumber, installedOn: merged.installedOn,
+        expectedServiceLifeMonths: merged.expectedServiceLifeMonths,
+        warrantyExpiresOn: merged.warrantyExpiresOn, condition: merged.condition,
+      });
+      if (includeMaintenance && suggestions?.maintenanceSuggestion) {
+        await createMaintenanceObligation({
+          workspaceId, assetId: item.id, actorRef,
+          title: suggestions.maintenanceSuggestion.title,
+          description: suggestions.maintenanceSuggestion.description,
+          dueOn: suggestions.maintenanceSuggestion.dueOn,
+        });
+      }
+      await onSaved();
+      onClose();
+    } catch {
+      setSuggestSaveError(t.itemDetailSuggestSaveFailed);
+      setSuggestSaving(false);
     }
   };
 
@@ -274,6 +441,9 @@ export function ItemDetailSheet({
                 <span className="item-detail-document-content"><DocumentRowContent t={t} fmtDate={fmtDate} doc={doc} /></span>
                 <ChevronRight size={14} aria-hidden="true" className="item-detail-document-chevron" />
               </button>
+              <button type="button" className="item-detail-document-suggest" onClick={() => startSuggest(doc)}>
+                <Sparkles size={13} aria-hidden="true" /> {t.itemDetailSuggestAction}
+              </button>
             </li>
           ))}
         </ul>
@@ -336,6 +506,31 @@ export function ItemDetailSheet({
           <Trash2 size={13} aria-hidden="true" /> {t.itemDetailRetireAction}
         </button>
       </div>
+
+      {suggestDoc && (
+        <Modal onClose={closeSuggest}>
+          <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailSuggestTitle}</div>
+          {suggestLoading ? (
+            <p className="home-group-empty">{t.myItemsLoading}</p>
+          ) : suggestLoadError ? (
+            <>
+              <p className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{suggestLoadError}</p>
+              <Button variant="secondary" onClick={closeSuggest}>{t.cancelBtn}</Button>
+            </>
+          ) : (
+            <SuggestDetailsFields
+              t={t}
+              fmtDate={fmtDate}
+              item={item}
+              suggestions={suggestions}
+              busy={suggestSaving}
+              error={suggestSaveError}
+              onCancel={closeSuggest}
+              onConfirm={confirmSuggestions}
+            />
+          )}
+        </Modal>
+      )}
 
       {showMove && (
         <MoveItemModal

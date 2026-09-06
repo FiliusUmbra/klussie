@@ -91,7 +91,18 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       const fields = { name, category, room, brand, model, purchasedOn, notes };
       if (usingRealContract) {
         if (editing) {
-          await updateAsset(item.id, { ownerId, actorRef, previousPhotoPath: item.photoPath, photoFile, ...fields });
+          // This form has no inputs for serial number/installed date/expected service
+          // life/warranty end/condition — passing the item's OWN current values for them
+          // (rather than leaving updateAsset()'s null defaults) is what stops an ordinary
+          // rename or note edit from silently erasing a fact the Document Understanding
+          // slice's own suggestion-confirmation flow (or any future capability) has set.
+          await updateAsset(item.id, {
+            ownerId, actorRef, previousPhotoPath: item.photoPath, photoFile,
+            serialNumber: item.serialNumber, installedOn: item.installedOn,
+            expectedServiceLifeMonths: item.expectedServiceLifeMonths,
+            warrantyExpiresOn: item.warrantyExpiresOn, condition: item.condition,
+            ...fields,
+          });
         } else {
           await createAsset({ propertyId, ownerId, actorRef, locationId: locationId || null, photoFile, ...fields });
         }
