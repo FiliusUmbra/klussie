@@ -19,16 +19,20 @@
 // inventing a second "label: value" convention — a detail view reads calmer as a short
 // list of plain facts than as an unfillable form.
 //
-// MAINTENANCE AND HISTORY ARE READ-ONLY, ON PURPOSE
+// MAINTENANCE GAINED A REAL "ADD" ACTION; HISTORY STAYS READ-ONLY
 //
-// api.create_manual_maintenance_obligation() (0142) has no client caller anywhere in this
-// app, matching MyItemsPanel.jsx's own long-standing restraint ("no client caller is
-// named in this work package's scope") — adding one here would be new capability well
-// beyond this slice's own "combine what already exists" mandate. History is genuinely
-// often empty today: work.requests.asset_id exists but nothing in the current intake flow
-// ever sets it, so most real items will show History's honest empty state until a later
-// slice teaches intake to ask "which item is this about" — that is correct behaviour for
-// what has actually happened, not a bug to hide.
+// api.create_maintenance_obligation() (0142) got its first real client caller in the
+// Document Understanding slice (confirming a suggested maintenance interval), but only
+// reachable behind reading a document — this slice adds the plain, unconditional "Add
+// maintenance" action the comment here used to say was out of scope. Marking a task
+// complete or cancelling one is a real, separate gap: work.complete_maintenance_
+// obligation()/work.cancel_maintenance_obligation() (0074) both exist with zero api.*
+// delegates anywhere — unreachable from any client, named here rather than silently
+// worked around, and deliberately not built as part of adding creation. History is
+// genuinely often empty today: work.requests.asset_id exists but nothing in the current
+// intake flow ever sets it, so most real items will show History's honest empty state
+// until a later slice teaches intake to ask "which item is this about" — that is correct
+// behaviour for what has actually happened, not a bug to hide.
 import { useEffect, useState } from "react";
 import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight, Sparkles } from "lucide-react";
 import { Drawer, Modal, Button, Badge } from "../design-system";
@@ -182,6 +186,55 @@ function MoveItemModal({ t, rooms, currentLocationId, busy, onCancel, onConfirm 
   );
 }
 
+// A due date is required at the contract level (work.maintenance_obligations.due_on is
+// not-null, 0072) — "someday" is not a real task Save can express, so the button stays
+// disabled until one is actually picked, the same honest-validation idiom canSaveItem()
+// already holds for a name.
+// The error renders INSIDE the modal itself, unlike MoveItemModal's own error (rendered
+// as a sibling after {showMove && <MoveItemModal/>}, which sits behind Modal's own fixed,
+// full-viewport overlay and so is invisible for as long as the modal stays open on a
+// failure) — a real, pre-existing placement bug, flagged separately rather than
+// replicated here or fixed as a drive-by in an unrelated PR.
+function AddMaintenanceModal({ t, busy, error, onCancel, onConfirm }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueOn, setDueOn] = useState("");
+  const canSave = !!title.trim() && !!dueOn;
+  return (
+    <Modal onClose={onCancel}>
+      <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailAddMaintenanceAction}</div>
+      <label className="field-label" htmlFor="maintenance-title">{t.itemDetailAddMaintenanceTitleLabel}</label>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input
+          id="maintenance-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t.itemDetailAddMaintenanceTitlePlaceholder}
+        />
+      </div>
+      <label className="field-label" htmlFor="maintenance-description">{t.itemDetailAddMaintenanceDescriptionLabel}</label>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input id="maintenance-description" value={description} onChange={(e) => setDescription(e.target.value)} />
+      </div>
+      <label className="field-label" htmlFor="maintenance-due">{t.itemDetailAddMaintenanceDueLabel}</label>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input id="maintenance-due" type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} />
+      </div>
+      {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 8 }}>{error}</div>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <Button variant="secondary" onClick={onCancel} disabled={busy}>{t.cancelBtn}</Button>
+        <Button
+          variant="primary"
+          disabled={busy || !canSave}
+          onClick={() => onConfirm({ title: title.trim(), description: description.trim(), dueOn })}
+        >
+          {t.itemDetailAddMaintenanceSave}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 export function ItemDetailSheet({
   t, ownerId, workspaceId, rooms, fmtDate, item, maintenance, onClose, onEdit, onSaved, onReportProblem,
 }) {
@@ -203,6 +256,10 @@ export function ItemDetailSheet({
   const [documentError, setDocumentError] = useState("");
 
   const [history, setHistory] = useState(null);
+
+  const [showAddMaintenance, setShowAddMaintenance] = useState(false);
+  const [addMaintenanceBusy, setAddMaintenanceBusy] = useState(false);
+  const [addMaintenanceError, setAddMaintenanceError] = useState("");
 
   // Document Understanding slice. suggestDoc is which document row triggered this (null
   // = modal closed); suggestions stays null while loading or after a load failure, so
@@ -326,6 +383,23 @@ export function ItemDetailSheet({
     } catch {
       setMoveError(t.itemDetailMoveFailed);
       setMoveBusy(false);
+    }
+  };
+
+  // Closes the whole detail sheet on success, same reasoning as confirmMove() above --
+  // unlike documents (its own local state, refreshed in place by refreshDocuments()),
+  // `maintenance` is a prop the parent fetches once for the whole workspace and passes
+  // down; there is no "refresh just this one list" call to make from here.
+  const confirmAddMaintenance = async ({ title, description, dueOn }) => {
+    setAddMaintenanceError("");
+    setAddMaintenanceBusy(true);
+    try {
+      await createMaintenanceObligation({ workspaceId, assetId: item.id, actorRef, title, description, dueOn });
+      await onSaved();
+      onClose();
+    } catch {
+      setAddMaintenanceError(t.itemDetailAddMaintenanceFailed);
+      setAddMaintenanceBusy(false);
     }
   };
 
@@ -476,6 +550,9 @@ export function ItemDetailSheet({
           ))}
         </ul>
       )}
+      <button type="button" className="home-panel-action" style={{ marginTop: 10, marginBottom: 18 }} onClick={() => setShowAddMaintenance(true)}>
+        <Plus size={15} aria-hidden="true" /> {t.itemDetailAddMaintenanceAction}
+      </button>
 
       <label className="field-label" style={{ marginTop: 18 }}>{t.itemDetailHistoryTitle}</label>
       {history === null ? (
@@ -530,6 +607,16 @@ export function ItemDetailSheet({
             />
           )}
         </Modal>
+      )}
+
+      {showAddMaintenance && (
+        <AddMaintenanceModal
+          t={t}
+          busy={addMaintenanceBusy}
+          error={addMaintenanceError}
+          onCancel={() => setShowAddMaintenance(false)}
+          onConfirm={confirmAddMaintenance}
+        />
       )}
 
       {showMove && (

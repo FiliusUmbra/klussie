@@ -71,6 +71,11 @@ const t = {
   myItemsLoading: "Loading…", myItemsDocumentExpired: "Expired", myItemsDocumentValidUntil: "Valid until {date}",
   myItemsMaintenanceTitle: "Maintenance", myItemsMaintenanceEmpty: "Nothing scheduled or overdue.",
   myItemsMaintenanceOverdue: "Overdue", myItemsMaintenanceDueOn: "Due {date}",
+  itemDetailAddMaintenanceAction: "Add maintenance", itemDetailAddMaintenanceTitleLabel: "Task",
+  itemDetailAddMaintenanceTitlePlaceholder: "e.g. Descale the machine",
+  itemDetailAddMaintenanceDescriptionLabel: "Notes (optional)", itemDetailAddMaintenanceDueLabel: "Due date",
+  itemDetailAddMaintenanceSave: "Save",
+  itemDetailAddMaintenanceFailed: "Couldn't save this task. Please try again.",
   itemDetailHistoryTitle: "History", itemDetailHistoryEmpty: "No completed work recorded for this item yet.",
   itemDetailEditAction: "Edit details",
   itemDetailMoveAction: "Move to another room", itemDetailMoveTitle: "Move item", itemDetailMoveSave: "Save",
@@ -253,6 +258,69 @@ describe("ItemDetailSheet — Maintenance (filtered from the already-fetched wor
       expect(fetchServiceRecordsForAsset).toHaveBeenCalled();
     });
     expect(screen.getByText("Loading…")).toBeTruthy();
+  });
+});
+
+// Add Maintenance slice — the plain, unconditional "Add maintenance" action, now that
+// api.create_maintenance_obligation() has a real client caller (the Document
+// Understanding slice's own confirm flow). A due date is required at the contract level
+// (work.maintenance_obligations.due_on is not-null), so Save stays disabled until both a
+// title and a due date are given.
+describe("ItemDetailSheet — Add maintenance", () => {
+  it("keeps Save disabled until both a task name and a due date are given", async () => {
+    await renderDetail();
+    fireEvent.click(screen.getByText("Add maintenance"));
+
+    expect(screen.getByText("Save").closest("button").disabled).toBe(true);
+    fireEvent.change(screen.getByPlaceholderText("e.g. Descale the machine"), { target: { value: "Descale the machine" } });
+    expect(screen.getByText("Save").closest("button").disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-12-01" } });
+    expect(screen.getByText("Save").closest("button").disabled).toBe(false);
+  });
+
+  it("creates a real obligation scoped to this item and this workspace, then closes", async () => {
+    const onSaved = vi.fn(() => Promise.resolve());
+    const onClose = vi.fn();
+    await renderDetail({ onSaved, onClose });
+
+    fireEvent.click(screen.getByText("Add maintenance"));
+    fireEvent.change(screen.getByPlaceholderText("e.g. Descale the machine"), { target: { value: "Descale the machine" } });
+    fireEvent.change(screen.getByLabelText("Notes (optional)"), { target: { value: "Every 3 months." } });
+    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-12-01" } });
+    fireEvent.click(screen.getByText("Save"));
+
+    await waitFor(() => expect(createMaintenanceObligation).toHaveBeenCalledWith({
+      workspaceId: "ws-1", assetId: "asset-1", actorRef: "owner-1",
+      title: "Descale the machine", description: "Every 3 months.", dueOn: "2026-12-01",
+    }));
+    expect(onSaved).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("never calls createMaintenanceObligation when Cancel is tapped", async () => {
+    await renderDetail();
+    fireEvent.click(screen.getByText("Add maintenance"));
+    fireEvent.change(screen.getByPlaceholderText("e.g. Descale the machine"), { target: { value: "Descale" } });
+    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-12-01" } });
+
+    fireEvent.click(screen.getByText("Cancel"));
+
+    expect(createMaintenanceObligation).not.toHaveBeenCalled();
+  });
+
+  it("shows the generic localized error, never a raw one, and does not close, when saving fails", async () => {
+    createMaintenanceObligation.mockRejectedValueOnce(new Error("insufficient_privilege"));
+    const onClose = vi.fn();
+    await renderDetail({ onClose });
+
+    fireEvent.click(screen.getByText("Add maintenance"));
+    fireEvent.change(screen.getByPlaceholderText("e.g. Descale the machine"), { target: { value: "Descale" } });
+    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-12-01" } });
+    fireEvent.click(screen.getByText("Save"));
+
+    await waitFor(() => expect(screen.getByText("Couldn't save this task. Please try again.")).toBeTruthy());
+    expect(screen.queryByText("insufficient_privilege")).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
 
