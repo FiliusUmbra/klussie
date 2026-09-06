@@ -135,24 +135,69 @@ async function loadLocations(propertyId) {
 }
 
 // Flat, path-ordered rows in (id, parentId, name, type, path) → a real tree, one root
-// array of { id, name, type, children }. property.locations_for_property() (migration
-// 0136) deliberately returns the flat shape and leaves this assembly to the client — the
-// same division of labour property.my_assets() already uses for a workspace's own asset
-// list. Pure and synchronous so it is testable without a network call, matching
-// knownFactsFrom below.
+// array of { id, name, type, parentId, children }. property.locations_for_property()
+// (migration 0136) deliberately returns the flat shape and leaves this assembly to the
+// client — the same division of labour property.my_assets() already uses for a
+// workspace's own asset list. Pure and synchronous so it is testable without a network
+// call, matching knownFactsFrom below.
+//
+// Move Room UI slice — every node now also carries its own DIRECT parentId (a scalar id,
+// never a parent-object reference, so nothing here is circular). Previously this only
+// built the children direction; LocationFormSheet.jsx's own header named this exact gap
+// as the reason moving a room had no picker UI to build. A node's parentId is set from
+// the SAME `parent` lookup already used to decide where to attach it below, so a node
+// ends up as a root (parentId null) exactly when — and for the exact same reason —
+// it is placed in `roots`: a genuine top-level location, or one whose declared parent_id
+// does not resolve to any location in this list (a parent retired or otherwise filtered
+// out server-side). Reporting parentId as null for that second case matches where the
+// node actually sits in the tree this function returns, rather than a dangling
+// reference to a node that appears nowhere in it.
 export function buildLocationTree(flatLocations) {
   const byId = new Map();
   for (const loc of flatLocations) {
-    byId.set(loc.id, { id: loc.id, name: loc.name, type: loc.type, children: [] });
+    byId.set(loc.id, { id: loc.id, name: loc.name, type: loc.type, parentId: null, children: [] });
   }
   const roots = [];
   for (const loc of flatLocations) {
     const node = byId.get(loc.id);
     const parent = loc.parentId ? byId.get(loc.parentId) : null;
-    if (parent) parent.children.push(node);
-    else roots.push(node);
+    if (parent) {
+      node.parentId = parent.id;
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
   }
   return roots;
+}
+
+// Move Room UI slice — every id in the subtree rooted at `roomId` (the room itself and
+// every descendant, any depth): the exact set a "move to another room" destination
+// picker must exclude, so a room can never become its own descendant's child from the
+// client's own offered choices (the backend's own cycle guard, property.
+// reparent_location()/0047, remains the authoritative second layer regardless — this is
+// a UX filter, not the security boundary). Pure, does not mutate `rooms`, returns a
+// plain Set of scalar ids — no parent/child object references retained.
+export function subtreeIds(rooms, roomId) {
+  const ids = new Set();
+  function collectAll(nodes) {
+    for (const node of nodes) {
+      ids.add(node.id);
+      collectAll(node.children);
+    }
+  }
+  function findAndCollect(nodes) {
+    for (const node of nodes) {
+      if (node.id === roomId) {
+        collectAll([node]);
+        return true;
+      }
+      if (findAndCollect(node.children)) return true;
+    }
+    return false;
+  }
+  findAndCollect(rooms || []);
+  return ids;
 }
 
 // A location tree (buildLocationTree()'s own shape), flattened into a picker list,
