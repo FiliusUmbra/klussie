@@ -218,6 +218,20 @@ export const HOME_CSS = `
 .maintenance-row-title, .document-row-caption{ flex:1; min-width:0; }
 .maintenance-row-due, .document-row-validity{ font-size:11.5px; color:var(--ink-soft); flex:none; }
 
+/* Maintenance resolution slice — ItemDetailSheet's own actionable rows (Mark done/Cancel
+   task for an open task, a status badge/line for a settled one) sit below the existing
+   title+due line, on their own line rather than crowding into it. MyItemsPanel.jsx's own
+   read-only MaintenanceList keeps using plain .maintenance-row <li> elements directly, so
+   none of this touches it. */
+.maintenance-row-item{ display:flex; flex-direction:column; gap:var(--space-1); }
+.maintenance-row-actions{ display:flex; gap:var(--space-3); }
+.maintenance-row-action{
+  display:flex; align-items:center; gap:6px; min-height:44px; padding:0 var(--space-1);
+  background:none; border:none; font-family:var(--font-body); font-size:12.5px;
+  color:var(--forest-dark); cursor:pointer;
+}
+.maintenance-row-action:disabled{ opacity:0.6; cursor:default; }
+
 /* ---- My Items, WP 1.8: the Location/Document section "+" action, and the picked-file
    row DocumentUploadSheet shows once a file is chosen ---- */
 .home-section-action{

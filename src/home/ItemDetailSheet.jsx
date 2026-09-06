@@ -34,7 +34,7 @@
 // until a later slice teaches intake to ask "which item is this about" — that is correct
 // behaviour for what has actually happened, not a bug to hide.
 import { useEffect, useState } from "react";
-import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight, Sparkles } from "lucide-react";
+import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight, Sparkles, Check, X } from "lucide-react";
 import { Drawer, Modal, Button, Badge } from "../design-system";
 import { DocumentRowContent } from "./panelParts.jsx";
 import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
@@ -42,7 +42,7 @@ import { fetchDocumentsForAsset, getDocumentUrl } from "../lib/documents.js";
 import { fetchServiceRecordsForAsset } from "../lib/serviceRecords.js";
 import { moveAsset, retireAsset, updateAsset } from "../lib/householdItems.js";
 import { askAboutItem } from "../lib/askAboutItem.js";
-import { createMaintenanceObligation } from "../lib/maintenance.js";
+import { createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation } from "../lib/maintenance.js";
 import { suggestItemDetailsFromDocument, DOCUMENT_UNREADABLE } from "../lib/documentUnderstanding.js";
 import { flattenLocationsForPicker, resolveItemRoomName } from "../lib/homeInventory.js";
 import { interpolate } from "../lib/homeStrings.js";
@@ -235,14 +235,39 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirm }) {
   );
 }
 
+// Maintenance resolution slice — work.cancel_maintenance_obligation() (0074) requires a
+// non-blank reason before it will touch the row at all (raising before ever reaching the
+// table's own not-null-when-cancelled check); Confirm stays disabled until one is typed,
+// the same required-field idiom AddMaintenanceModal's own due date already holds.
+function CancelMaintenanceModal({ t, busy, error, onCancel, onConfirm }) {
+  const [reason, setReason] = useState("");
+  return (
+    <Modal onClose={onCancel}>
+      <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailMaintenanceCancelTask}</div>
+      <label className="field-label" htmlFor="maintenance-cancel-reason">{t.itemDetailMaintenanceCancelReasonLabel}</label>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input
+          id="maintenance-cancel-reason"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder={t.itemDetailMaintenanceCancelReasonPlaceholder}
+        />
+      </div>
+      {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 8 }}>{error}</div>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <Button variant="secondary" onClick={onCancel} disabled={busy}>{t.cancelBtn}</Button>
+        <Button variant="primary" disabled={busy || !reason.trim()} onClick={() => onConfirm(reason.trim())}>
+          {t.itemDetailMaintenanceCancelTask}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 export function ItemDetailSheet({
   t, ownerId, workspaceId, rooms, fmtDate, item, maintenance, onClose, onEdit, onSaved, onReportProblem,
 }) {
   const actorRef = ownerId;
-  // maintenance is the workspace-wide list MyItemsPanel.jsx/useHomeContext.js already
-  // fetch once (src/lib/maintenance.js's own fetchMaintenanceObligations()) — every row
-  // already carries its own assetId, so this narrows to one item without a second fetch.
-  const itemMaintenance = (maintenance || []).filter((m) => m.assetId === item.id);
   // move_asset_for_caller() (0201) only ever updates location_id, never the free-text
   // room_label — resolving against the real room tree is what makes a moved item show
   // its real new room here, rather than a stale label or "no room selected."
@@ -260,6 +285,25 @@ export function ItemDetailSheet({
   const [showAddMaintenance, setShowAddMaintenance] = useState(false);
   const [addMaintenanceBusy, setAddMaintenanceBusy] = useState(false);
   const [addMaintenanceError, setAddMaintenanceError] = useState("");
+
+  // Maintenance resolution slice. Unlike Move/Retire/Add (which close the whole sheet on
+  // success, since `maintenance` is a prop the parent fetches once for the workspace),
+  // marking several tasks done or cancelled in one visit is a real, repeatable action --
+  // closing the sheet after each one would be real friction. `maintenanceOverrides`
+  // reflects a just-confirmed server change locally (applied only AFTER the RPC
+  // succeeds, never before) so the sheet can stay open; onSaved() still fires in the
+  // background so the parent's own next fetch eventually agrees too.
+  const [maintenanceOverrides, setMaintenanceOverrides] = useState({});
+  const [resolveBusyId, setResolveBusyId] = useState(null);
+  const [resolveError, setResolveError] = useState("");
+  const [cancellingId, setCancellingId] = useState(null);
+
+  // maintenance is the workspace-wide list MyItemsPanel.jsx/useHomeContext.js already
+  // fetch once (src/lib/maintenance.js's own fetchMaintenanceObligations()) — every row
+  // already carries its own assetId, so this narrows to one item without a second fetch.
+  const itemMaintenance = (maintenance || [])
+    .filter((m) => m.assetId === item.id)
+    .map((m) => (maintenanceOverrides[m.id] ? { ...m, ...maintenanceOverrides[m.id] } : m));
 
   // Document Understanding slice. suggestDoc is which document row triggered this (null
   // = modal closed); suggestions stays null while loading or after a load failure, so
@@ -403,6 +447,47 @@ export function ItemDetailSheet({
     }
   };
 
+  // Stays open on success, unlike every other maintenance action here -- see
+  // maintenanceOverrides' own comment above for why. onSaved() is fired but not awaited:
+  // its own refresh must not gate the local reflection of a change the server has already
+  // confirmed.
+  const markMaintenanceDone = async (obligationId) => {
+    setResolveError("");
+    setResolveBusyId(obligationId);
+    try {
+      await completeMaintenanceObligation(obligationId, actorRef);
+      setMaintenanceOverrides((prev) => ({ ...prev, [obligationId]: { status: "completed", isOverdue: false } }));
+      onSaved();
+    } catch {
+      setResolveError(t.itemDetailMaintenanceActionFailed);
+    } finally {
+      setResolveBusyId(null);
+    }
+  };
+
+  const openCancelPrompt = (obligationId) => {
+    setResolveError("");
+    setCancellingId(obligationId);
+  };
+
+  const confirmCancelMaintenance = async (reason) => {
+    setResolveError("");
+    setResolveBusyId(cancellingId);
+    try {
+      await cancelMaintenanceObligation(cancellingId, reason, actorRef);
+      setMaintenanceOverrides((prev) => ({
+        ...prev,
+        [cancellingId]: { status: "cancelled", isOverdue: false, cancellationReason: reason },
+      }));
+      setCancellingId(null);
+      onSaved();
+    } catch {
+      setResolveError(t.itemDetailMaintenanceActionFailed);
+    } finally {
+      setResolveBusyId(null);
+    }
+  };
+
   const confirmedRetire = async () => {
     setRetireError("");
     setRetireBusy(true);
@@ -535,24 +620,63 @@ export function ItemDetailSheet({
       ) : (
         <ul className="maintenance-list">
           {itemMaintenance.map((row) => (
-            <li key={row.id} className="maintenance-row">
-              <span className="maintenance-row-title">{row.title}</span>
-              {row.status === "open" && row.dueOn && (
-                <span className="maintenance-row-due">
-                  {row.isOverdue ? (
-                    <Badge tone="amber">{t.myItemsMaintenanceOverdue}</Badge>
-                  ) : (
-                    interpolate(t.myItemsMaintenanceDueOn, { date: fmtDate(row.dueOn) })
-                  )}
-                </span>
+            <li key={row.id} className="maintenance-row-item">
+              <div className="maintenance-row">
+                <span className="maintenance-row-title">{row.title}</span>
+                {row.status === "open" && row.dueOn && (
+                  <span className="maintenance-row-due">
+                    {row.isOverdue ? (
+                      <Badge tone="amber">{t.myItemsMaintenanceOverdue}</Badge>
+                    ) : (
+                      interpolate(t.myItemsMaintenanceDueOn, { date: fmtDate(row.dueOn) })
+                    )}
+                  </span>
+                )}
+              </div>
+              {row.status === "open" ? (
+                <div className="maintenance-row-actions">
+                  <button
+                    type="button"
+                    className="maintenance-row-action"
+                    disabled={resolveBusyId === row.id}
+                    onClick={() => markMaintenanceDone(row.id)}
+                  >
+                    <Check size={13} aria-hidden="true" /> {t.itemDetailMaintenanceMarkDone}
+                  </button>
+                  <button
+                    type="button"
+                    className="maintenance-row-action"
+                    disabled={resolveBusyId === row.id}
+                    onClick={() => openCancelPrompt(row.id)}
+                  >
+                    <X size={13} aria-hidden="true" /> {t.itemDetailMaintenanceCancelTask}
+                  </button>
+                </div>
+              ) : row.status === "completed" ? (
+                <Badge tone="sage">{t.itemDetailMaintenanceCompleted}</Badge>
+              ) : (
+                <p className="fineprint" style={{ justifyContent: "flex-start" }}>
+                  {interpolate(t.itemDetailMaintenanceCancelledReason, { reason: row.cancellationReason || "" })}
+                </p>
               )}
             </li>
           ))}
         </ul>
       )}
+      {resolveError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{resolveError}</div>}
       <button type="button" className="home-panel-action" style={{ marginTop: 10, marginBottom: 18 }} onClick={() => setShowAddMaintenance(true)}>
         <Plus size={15} aria-hidden="true" /> {t.itemDetailAddMaintenanceAction}
       </button>
+
+      {cancellingId && (
+        <CancelMaintenanceModal
+          t={t}
+          busy={resolveBusyId === cancellingId}
+          error={resolveError}
+          onCancel={() => setCancellingId(null)}
+          onConfirm={confirmCancelMaintenance}
+        />
+      )}
 
       <label className="field-label" style={{ marginTop: 18 }}>{t.itemDetailHistoryTitle}</label>
       {history === null ? (

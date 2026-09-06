@@ -24,6 +24,8 @@ vi.mock("../../lib/householdItems.js", () => ({
 }));
 vi.mock("../../lib/maintenance.js", () => ({
   createMaintenanceObligation: vi.fn(() => Promise.resolve()),
+  completeMaintenanceObligation: vi.fn(() => Promise.resolve()),
+  cancelMaintenanceObligation: vi.fn(() => Promise.resolve()),
 }));
 vi.mock("../../lib/documentUnderstanding.js", () => ({
   suggestItemDetailsFromDocument: vi.fn(() => Promise.resolve({ suggestions: {} })),
@@ -49,7 +51,7 @@ import { moveAsset, retireAsset, updateAsset } from "../../lib/householdItems.js
 import { fetchDocumentsForAsset, getDocumentUrl } from "../../lib/documents.js";
 import { fetchServiceRecordsForAsset } from "../../lib/serviceRecords.js";
 import { askAboutItem } from "../../lib/askAboutItem.js";
-import { createMaintenanceObligation } from "../../lib/maintenance.js";
+import { createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation } from "../../lib/maintenance.js";
 import { suggestItemDetailsFromDocument } from "../../lib/documentUnderstanding.js";
 import { ItemDetailSheet } from "../ItemDetailSheet.jsx";
 
@@ -76,6 +78,11 @@ const t = {
   itemDetailAddMaintenanceDescriptionLabel: "Notes (optional)", itemDetailAddMaintenanceDueLabel: "Due date",
   itemDetailAddMaintenanceSave: "Save",
   itemDetailAddMaintenanceFailed: "Couldn't save this task. Please try again.",
+  itemDetailMaintenanceMarkDone: "Mark done", itemDetailMaintenanceCancelTask: "Cancel task",
+  itemDetailMaintenanceCancelReasonLabel: "Reason (required)",
+  itemDetailMaintenanceCancelReasonPlaceholder: "e.g. No longer needed",
+  itemDetailMaintenanceCompleted: "Completed", itemDetailMaintenanceCancelledReason: "Cancelled: {reason}",
+  itemDetailMaintenanceActionFailed: "Couldn't update this task. Please try again.",
   itemDetailHistoryTitle: "History", itemDetailHistoryEmpty: "No completed work recorded for this item yet.",
   itemDetailEditAction: "Edit details",
   itemDetailMoveAction: "Move to another room", itemDetailMoveTitle: "Move item", itemDetailMoveSave: "Save",
@@ -321,6 +328,104 @@ describe("ItemDetailSheet — Add maintenance", () => {
     await waitFor(() => expect(screen.getByText("Couldn't save this task. Please try again.")).toBeTruthy());
     expect(screen.queryByText("insufficient_privilege")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+// Maintenance resolution slice — unlike Move/Retire/Add, resolving a task stays open
+// (maintenanceOverrides reflects the confirmed change locally) since completing or
+// cancelling several tasks in one visit is a real, repeatable action.
+describe("ItemDetailSheet — Maintenance resolution (mark done / cancel)", () => {
+  const OPEN_ROW = { id: "m-1", assetId: "asset-1", title: "Descale", status: "open", dueOn: "2030-01-01", isOverdue: false };
+
+  it("marking a task done calls the real RPC, reflects it locally, and keeps the sheet open", async () => {
+    const onSaved = vi.fn();
+    const onClose = vi.fn();
+    await renderDetail({ maintenance: [OPEN_ROW], onSaved, onClose });
+
+    fireEvent.click(screen.getByText("Mark done"));
+
+    await waitFor(() => expect(completeMaintenanceObligation).toHaveBeenCalledWith("m-1", "owner-1"));
+    await waitFor(() => expect(screen.getByText("Completed")).toBeTruthy());
+    expect(screen.queryByText("Mark done")).toBeNull();
+    expect(onSaved).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("shows the generic localized error, never a raw one, when marking done fails", async () => {
+    completeMaintenanceObligation.mockRejectedValueOnce(new Error("object_not_in_prerequisite_state"));
+    await renderDetail({ maintenance: [OPEN_ROW] });
+
+    fireEvent.click(screen.getByText("Mark done"));
+
+    await waitFor(() => expect(screen.getByText("Couldn't update this task. Please try again.")).toBeTruthy());
+    expect(screen.queryByText("object_not_in_prerequisite_state")).toBeNull();
+    // The row itself must not silently flip to completed on a failed call.
+    expect(screen.getByText("Mark done")).toBeTruthy();
+  });
+
+  it("cancelling requires a non-blank reason before Confirm is enabled", async () => {
+    await renderDetail({ maintenance: [OPEN_ROW] });
+    fireEvent.click(screen.getByText("Cancel task"));
+
+    expect(screen.getAllByText("Cancel task").at(-1).closest("button").disabled).toBe(true);
+    fireEvent.change(screen.getByPlaceholderText("e.g. No longer needed"), { target: { value: "No longer needed" } });
+    expect(screen.getAllByText("Cancel task").at(-1).closest("button").disabled).toBe(false);
+  });
+
+  it("cancelling calls the real RPC with the given reason, reflects it locally, and keeps the sheet open", async () => {
+    const onSaved = vi.fn();
+    const onClose = vi.fn();
+    await renderDetail({ maintenance: [OPEN_ROW], onSaved, onClose });
+
+    fireEvent.click(screen.getByText("Cancel task"));
+    fireEvent.change(screen.getByPlaceholderText("e.g. No longer needed"), { target: { value: "No longer needed" } });
+    fireEvent.click(screen.getAllByText("Cancel task").at(-1));
+
+    await waitFor(() => expect(cancelMaintenanceObligation).toHaveBeenCalledWith("m-1", "No longer needed", "owner-1"));
+    await waitFor(() => expect(screen.getByText("Cancelled: No longer needed")).toBeTruthy());
+    expect(onSaved).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("dismissing the cancel prompt never calls cancelMaintenanceObligation", async () => {
+    await renderDetail({ maintenance: [OPEN_ROW] });
+    fireEvent.click(screen.getByText("Cancel task"));
+    fireEvent.change(screen.getByPlaceholderText("e.g. No longer needed"), { target: { value: "No longer needed" } });
+
+    fireEvent.click(screen.getByText("Cancel"));
+
+    expect(cancelMaintenanceObligation).not.toHaveBeenCalled();
+    // Dismissing goes back to the plain row, not a stuck cancelled state.
+    expect(screen.getByText("Descale")).toBeTruthy();
+  });
+
+  it("shows the generic localized error, never a raw one, when cancelling fails", async () => {
+    cancelMaintenanceObligation.mockRejectedValueOnce(new Error("a cancellation reason is required"));
+    await renderDetail({ maintenance: [OPEN_ROW] });
+
+    fireEvent.click(screen.getByText("Cancel task"));
+    fireEvent.change(screen.getByPlaceholderText("e.g. No longer needed"), { target: { value: "No longer needed" } });
+    fireEvent.click(screen.getAllByText("Cancel task").at(-1));
+
+    // Shown both inline (Mark done's own error spot) and inside the still-open cancel
+    // modal (see CancelMaintenanceModal's own header on why its error renders inside
+    // itself) — only one is ever visible behind the modal overlay, but both are real DOM
+    // text, hence AllBy here rather than a singular query.
+    await waitFor(() => expect(screen.getAllByText("Couldn't update this task. Please try again.").length).toBeGreaterThan(0));
+    expect(screen.queryByText("a cancellation reason is required")).toBeNull();
+  });
+
+  it("shows neither action for an already-completed or already-cancelled row", async () => {
+    const settled = [
+      { id: "m-2", assetId: "asset-1", title: "Filter change", status: "completed", isOverdue: false },
+      { id: "m-3", assetId: "asset-1", title: "Gutter clean", status: "cancelled", isOverdue: false, cancellationReason: "Done by someone else" },
+    ];
+    await renderDetail({ maintenance: settled });
+
+    expect(screen.queryByText("Mark done")).toBeNull();
+    expect(screen.queryByText("Cancel task")).toBeNull();
+    expect(screen.getByText("Completed")).toBeTruthy();
+    expect(screen.getByText("Cancelled: Done by someone else")).toBeTruthy();
   });
 });
 

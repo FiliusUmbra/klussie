@@ -11,7 +11,7 @@ vi.mock("../supabaseClient", () => ({
   },
 }));
 
-import { fetchMaintenanceObligations, createMaintenanceObligation } from "../maintenance.js";
+import { fetchMaintenanceObligations, createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation } from "../maintenance.js";
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-000000000020";
 
@@ -90,6 +90,19 @@ describe("fetchMaintenanceObligations", () => {
     ]);
   });
 
+  // Maintenance resolution slice (0203) — present in the table since 0072, never read
+  // back until now.
+  it("reshapes a cancelled row's cancellation_reason", async () => {
+    apiRpc.mockResolvedValue({
+      data: [{ ...OPEN_SOON_ROW, status: "cancelled", cancelled_at: "2026-06-01T00:00:00Z", cancellation_reason: "No longer needed" }],
+      error: null,
+    });
+
+    const rows = await fetchMaintenanceObligations(WORKSPACE_ID);
+
+    expect(rows[0].cancellationReason).toBe("No longer needed");
+  });
+
   it("sorts open obligations before settled ones, and overdue/soonest first within open", async () => {
     apiRpc.mockResolvedValue({ data: [COMPLETED_ROW, OPEN_SOON_ROW, OPEN_OVERDUE_ROW], error: null });
 
@@ -154,5 +167,49 @@ describe("createMaintenanceObligation", () => {
     await expect(createMaintenanceObligation({
       workspaceId: WORKSPACE_ID, assetId: "asset-1", actorRef: "owner-1", title: "Descale", dueOn: "2026-12-01",
     })).rejects.toThrow("insufficient_privilege");
+  });
+});
+
+// Maintenance resolution slice — the first real client callers of api.complete_
+// maintenance_obligation()/api.cancel_maintenance_obligation() (0203).
+describe("completeMaintenanceObligation", () => {
+  it("calls the api schema's delegate with the obligation id and actor ref", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await completeMaintenanceObligation("ob-1", "owner-1");
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "complete_maintenance_obligation", expect.objectContaining({
+      p_obligation_id: "ob-1", p_actor_type: "person", p_actor_ref: "owner-1",
+    }));
+  });
+
+  it("throws the real error rather than swallowing it -- a write, not a read", async () => {
+    apiRpc.mockResolvedValue({ error: { message: "insufficient_privilege" } });
+
+    await expect(completeMaintenanceObligation("ob-1", "owner-1")).rejects.toThrow("insufficient_privilege");
+  });
+});
+
+describe("cancelMaintenanceObligation", () => {
+  it("calls the api schema's delegate with the obligation id, reason and actor ref", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await cancelMaintenanceObligation("ob-1", "No longer needed", "owner-1");
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "cancel_maintenance_obligation", expect.objectContaining({
+      p_obligation_id: "ob-1", p_reason: "No longer needed", p_actor_type: "person", p_actor_ref: "owner-1",
+    }));
+  });
+
+  it("does not validate the reason itself -- that stays the contract's own job", async () => {
+    apiRpc.mockResolvedValue({ error: { message: "a cancellation reason is required" } });
+
+    await expect(cancelMaintenanceObligation("ob-1", "", "owner-1")).rejects.toThrow("a cancellation reason is required");
+  });
+
+  it("throws the real error rather than swallowing it -- a write, not a read", async () => {
+    apiRpc.mockResolvedValue({ error: { message: "insufficient_privilege" } });
+
+    await expect(cancelMaintenanceObligation("ob-1", "No longer needed", "owner-1")).rejects.toThrow("insufficient_privilege");
   });
 });
