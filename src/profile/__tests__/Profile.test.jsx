@@ -3,7 +3,7 @@
 // scenarios and same assertions those files already established: the mobile-reachability
 // fix for WorkspaceSwitcher/LanguageSwitcher, and the "become a pro" invitation).
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const setActiveWorkspaceId = vi.fn();
 const useAuthMock = vi.fn();
@@ -23,6 +23,7 @@ vi.mock("../../lib/testimonials", () => ({
 
 import { LangContext } from "../../lib/lang";
 import { Profile } from "../Profile.jsx";
+import { updateProProfile } from "../../lib/pros";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = {
@@ -149,5 +150,47 @@ describe("Profile — variant isolation", () => {
   it("both variants render the shared sign-out action", () => {
     renderProfile("customer", [{ workspace_id: "ws-1", workspace_name: "My Home", workspace_type: "personal" }], { requests: [] });
     expect(screen.getByText("authSignOut")).toBeTruthy();
+  });
+});
+
+// Found live during a UX review, 2026-09-06: switching to "Registered business" failed
+// silently whenever business_name/vat_number were still unset (public.pro_profiles' own
+// business_requires_details check constraint) -- no error, no explanation, the button
+// simply appeared to do nothing.
+describe("Profile — pro variant, switching pro type", () => {
+  it("shows a plain-language message, not the raw constraint name, when the business switch is refused for missing details", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockRejectedValueOnce(
+      Object.assign(new Error('new row for relation "pro_profiles" violates check constraint "business_requires_details"'), { code: "23514" })
+    );
+    renderPro([{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }]);
+
+    fireEvent.click(screen.getByText("proTypeBusiness"));
+
+    await waitFor(() => expect(screen.getByText("proTypeBusinessRequiresDetails")).toBeTruthy());
+    expect(screen.queryByText(/business_requires_details/)).toBeNull();
+  });
+
+  it("shows a generic message, never the raw error, for any other failure", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockRejectedValueOnce(new Error("network hiccup"));
+    renderPro([{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }]);
+
+    fireEvent.click(screen.getByText("proTypeBusiness"));
+
+    await waitFor(() => expect(screen.getByText("proTypeSwitchFailed")).toBeTruthy());
+    expect(screen.queryByText("network hiccup")).toBeNull();
+  });
+
+  it("shows no error at all when the switch succeeds", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    renderPro([{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }]);
+
+    fireEvent.click(screen.getByText("proTypeBusiness"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { pro_type: "business" }));
+    expect(screen.queryByText("proTypeBusinessRequiresDetails")).toBeNull();
+    expect(screen.queryByText("proTypeSwitchFailed")).toBeNull();
   });
 });

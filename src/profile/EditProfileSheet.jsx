@@ -51,8 +51,8 @@ export function EditProfileSheet({ onClose, onSaved }) {
       if (proProfile) {
         await updateProProfile(profile.id, {
           bio,
-          business_name: proProfile.pro_type === "business" ? businessName : null,
-          vat_number: proProfile.pro_type === "business" ? vatNumber : null,
+          business_name: businessName.trim() || null,
+          vat_number: vatNumber.trim() || null,
         });
         await refreshProfile();
       }
@@ -91,18 +91,23 @@ export function EditProfileSheet({ onClose, onSaved }) {
 
       {proProfile && (
         <>
-          {proProfile.pro_type === "business" && (
-            <>
-              <label className="field-label">{t.businessNameLabel}</label>
-              <div className="search" style={{ marginBottom: 14 }}>
-                <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
-              </div>
-              <label className="field-label">{t.vatNumberLabel}</label>
-              <div className="search" style={{ marginBottom: 14 }}>
-                <input value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} />
-              </div>
-            </>
-          )}
+          {/* Found live during a UX review, 2026-09-06: these were shown only once
+              pro_type was ALREADY "business" -- but public.pro_profiles' own
+              business_requires_details check constraint requires business_name and
+              vat_number to already be set before pro_type can become "business" in the
+              first place. A flexi pro had no reachable way to ever switch: Profile.jsx's
+              own "Registered business" toggle failed the constraint with nothing to fill
+              in, and this form never offered the fields until after a switch that could
+              never succeed. Shown for either pro_type now, so a flexi pro can save these
+              first, then switch successfully. */}
+          <label className="field-label">{t.businessNameLabel}</label>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+          </div>
+          <label className="field-label">{t.vatNumberLabel}</label>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <input value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} />
+          </div>
           <label className="field-label">{t.bioLabel}</label>
           <textarea className="textarea" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
         </>
