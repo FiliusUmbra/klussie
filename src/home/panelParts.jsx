@@ -51,8 +51,18 @@ export function DocumentRowContent({ t, fmtDate, doc }) {
           // ("Garantie"/"Warranty"/...) every single time, matching the idiom
           // ProJobDetailSheet.jsx's own twin section and DocumentUploadSheet.jsx's own
           // dropdown already use correctly.
+          //
+          // Found live during a UX review, 2026-09-06: two of a customer's real
+          // documents both fell back to this exact label ("Warranty", "Warranty"),
+          // genuinely indistinguishable in the list -- even though DocumentUploadSheet.jsx
+          // has always asked for and saved an `issuer` (e.g. "Vaillant"), already
+          // threaded through every fetch path (fetchDocumentsForAsset(), homeInventory.js's
+          // own loadDocuments(), and the raw api.my_documents() row ProJobDetailSheet.jsx
+          // reads directly). Appending it here — the one place every document row's own
+          // label is decided — fixes every caller at once.
           const labelKey = documentTypeLabelKey(doc.typeKey);
-          return labelKey ? t[labelKey] : doc.typeKey;
+          const label = labelKey ? t[labelKey] : doc.typeKey;
+          return doc.issuer ? `${label} — ${doc.issuer}` : label;
         })()}
       </span>
       {doc.validUntil && (

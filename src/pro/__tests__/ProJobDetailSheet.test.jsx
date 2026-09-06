@@ -94,6 +94,50 @@ describe("ProJobDetailSheet", () => {
     expect(screen.getByText("documentTypeWarranty")).toBeTruthy();
   });
 
+  // Found live during a UX review, 2026-09-06: two real documents both fell back to the
+  // exact same bare type label ("Warranty", "Warranty"), genuinely indistinguishable —
+  // api.my_documents() has always returned d.issuer (e.g. "Vaillant"), just never shown.
+  it("appends the document's own issuer to its type label, when one is given", async () => {
+    fetchPropertyTwin.mockResolvedValue({
+      property: { id: "prop-1", name: "X" },
+      locations: [], assets: [],
+      documents: [{ id: "doc-1", type_key: "warranty", issuer: "Vaillant" }],
+    });
+
+    renderSheet();
+
+    await waitFor(() => expect(screen.getByText("documentTypeWarranty — Vaillant")).toBeTruthy());
+  });
+
+  it("shows only the type label, unchanged, when a document has no issuer", async () => {
+    fetchPropertyTwin.mockResolvedValue({
+      property: { id: "prop-1", name: "X" },
+      locations: [], assets: [],
+      documents: [{ id: "doc-1", type_key: "warranty" }],
+    });
+
+    renderSheet();
+
+    await waitFor(() => expect(screen.getByText("documentTypeWarranty")).toBeTruthy());
+    expect(screen.queryByText(/—/)).toBeNull();
+  });
+
+  it("distinguishes two documents of the same type by their own issuer", async () => {
+    fetchPropertyTwin.mockResolvedValue({
+      property: { id: "prop-1", name: "X" },
+      locations: [], assets: [],
+      documents: [
+        { id: "doc-1", type_key: "warranty", issuer: "Vaillant" },
+        { id: "doc-2", type_key: "warranty", issuer: "Bosch" },
+      ],
+    });
+
+    renderSheet();
+
+    await waitFor(() => expect(screen.getByText("documentTypeWarranty — Vaillant")).toBeTruthy());
+    expect(screen.getByText("documentTypeWarranty — Bosch")).toBeTruthy();
+  });
+
   it("shows twinNoDataMsg when the property resolves but nothing is recorded yet — not the unavailable message", async () => {
     fetchPropertyTwin.mockResolvedValue({
       property: { id: "prop-1", name: "Kerkstraat 12" },
