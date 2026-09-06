@@ -178,8 +178,15 @@ async function fetchQuotesAndReviewsForRequests(rows) {
 // Dual-writes: a real legacy row (so pro_matches_request() finds it) and a real
 // work.requests row (this platform's own lifecycle system of record from here on),
 // correlated via service_request_id. See this file's own header for why both.
+//
+// Intake item-association slice — `assetId` is optional and defaults to null (most real
+// requests genuinely aren't about one tracked appliance). The legacy service_requests
+// row has no asset_id column at all (Property Memory postdates it), so this is
+// work.requests-only, unlike every other field here. work.create_request_for_caller()
+// (0204) verifies a given assetId is actually stewarded by this workspace before it is
+// ever written — never trust a client-supplied id blindly.
 export async function createServiceRequest({
-  customerId, workspaceId, serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, location,
+  customerId, workspaceId, serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, location, assetId,
 }) {
   const { propertyId } = await resolveRequestLocation(location, { workspaceId, actorRef: customerId });
   const legacyId = uuidv7();
@@ -202,7 +209,7 @@ export async function createServiceRequest({
     p_request_id: requestId,
     p_requesting_workspace_id: workspaceId,
     p_property_id: propertyId,
-    p_asset_id: null,
+    p_asset_id: assetId || null,
     p_location_id: null,
     p_category_id: categoryId,
     p_service_id: serviceId,

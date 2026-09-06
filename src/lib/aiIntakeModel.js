@@ -109,6 +109,10 @@ export function buildIntakeRequest({ edited, result, baseServices, photos }) {
     // updated to gate on it yet, same optional-and-null-safe shape requests.js already
     // gives resolveRequestLocation().
     location: edited.location ?? null,
+    // Intake item-association slice — the item chosen in ItemAssociationField.jsx, if
+    // any. Always optional, unlike location above: most real requests genuinely aren't
+    // about one tracked appliance.
+    assetId: edited.assetId ?? null,
     photos,
   };
 }

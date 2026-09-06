@@ -110,7 +110,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
     }
   };
 
-  const createRequest = async (service, { whenPref, details, detailsJson, budget, city, location, photos }) => {
+  const createRequest = async (service, { whenPref, details, detailsJson, budget, city, location, assetId, photos }) => {
     const created = await createServiceRequest({
       customerId: user.id,
       workspaceId,
@@ -122,6 +122,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
       budget: numericBudget(budget),
       city: city || null,
       location,
+      assetId,
     });
     await attachPhotos(created.id, photos);
     await refresh();
@@ -130,7 +131,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
   // AI intake already resolves its own serviceId/categoryId (with the user able to
   // override the AI's guess before submitting), so this bypasses createRequest's
   // `service` object indirection rather than reshaping the payload to fit it.
-  const createRequestFromAi = async ({ serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, location, photos }) => {
+  const createRequestFromAi = async ({ serviceId, categoryId, details, detailsJson, aiAnalysis, whenPref, budget, city, location, assetId, photos }) => {
     const created = await createServiceRequest({
       customerId: user.id,
       workspaceId,
@@ -143,6 +144,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
       budget: numericBudget(budget),
       city: city || null,
       location,
+      assetId,
     });
     await attachPhotos(created.id, photos);
     await refresh();

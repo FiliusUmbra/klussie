@@ -168,6 +168,13 @@ describe("buildIntakeRequest", () => {
     expect(buildIntakeRequest({ edited: { ...edited, location }, result: {}, baseServices, photos: [] }).location).toBe(location);
   });
 
+  // Intake item-association slice — unlike location above, most real requests never
+  // choose one, so null is the far more common real value, not just the fallback.
+  it("passes the chosen item, if any, straight through, defaulting to null", () => {
+    expect(buildIntakeRequest({ edited, result: {}, baseServices, photos: [] }).assetId).toBeNull();
+    expect(buildIntakeRequest({ edited: { ...edited, assetId: "asset-1" }, result: {}, baseServices, photos: [] }).assetId).toBe("asset-1");
+  });
+
   it("leaves categoryId undefined when the catalog has no such service", () => {
     // Better an absent category than a wrong one — it routes the lead to the wrong pros.
     const payload = buildIntakeRequest({ edited: { ...edited, serviceId: "unknown" }, result: {}, baseServices, photos: [] });

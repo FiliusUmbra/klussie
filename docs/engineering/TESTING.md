@@ -201,6 +201,7 @@ automated (§4) or listed here. Walk the rows relevant to what changed.
 | C9 | Structured per-service questions render for the chosen service | `ServiceSheet` |
 | C10 | Submitting creates a request in `collecting` | `ServiceSheet` |
 | C10a | Every request requires a real service location — My Home (confirming its address the first time, if unset), another saved property, or a fresh one-time address — before it can be sent (migrations 0182/0185) | `ServiceLocationField` *(automated)* |
+| C10b | A request can optionally name which tracked item it's about — never required, since most real requests aren't about one tracked appliance — and the chosen asset id is verified server-side as actually belonging to the requesting workspace before it's ever saved (migration 0204) | `ItemAssociationField` *(automated)* |
 | C11 | One-tap booking creates a directed request | `ConversationHome` *(automated)* |
 
 ### 5.3 · Customer — requests, quotes and completion

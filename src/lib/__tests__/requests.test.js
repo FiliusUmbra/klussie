@@ -142,6 +142,31 @@ describe("createServiceRequest", () => {
     await expect(createServiceRequest(args)).rejects.toThrow("denied");
   });
 
+  // Intake item-association slice — "which item is this about." Optional: most real
+  // requests aren't about one tracked appliance, so a caller not given one must still
+  // send a plain null, not omit the field.
+  it("passes a given assetId straight through to work.requests -- the legacy row has no such column", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+    const rpc = mockApi({ create_request: () => ({ error: null }), ...noQuotesNoReview });
+
+    await createServiceRequest({ ...args, assetId: "asset-1" });
+
+    const legacyRow = vi.mocked(supabase.from).mock.results[0].value.insert.mock.calls[0][0];
+    expect(legacyRow).not.toHaveProperty("asset_id");
+    const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+    expect(createCall[1].p_asset_id).toBe("asset-1");
+  });
+
+  it("sends null, not undefined, for p_asset_id when no item is chosen", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+    const rpc = mockApi({ create_request: () => ({ error: null }), ...noQuotesNoReview });
+
+    await createServiceRequest(args);
+
+    const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+    expect(createCall[1].p_asset_id).toBeNull();
+  });
+
   // Beta-completion slice (0182/0185) — the service-location picker's own write side,
   // resolved before either the legacy or work.requests insert.
   describe("with a service location (0182/0185)", () => {

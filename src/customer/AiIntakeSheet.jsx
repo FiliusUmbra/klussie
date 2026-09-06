@@ -23,6 +23,7 @@ import { Badge, Drawer } from "../design-system";
 import { analyzeJobRequest, isSpeechRecognitionSupported, startSpeechRecognition } from "../lib/aiIntake";
 import { WHEN_PREFS } from "../lib/requestStatus.js";
 import { ServiceLocationField } from "./ServiceLocationField.jsx";
+import { ItemAssociationField } from "./ItemAssociationField.jsx";
 import {
   editableFromResult,
   initialStage,
@@ -35,7 +36,7 @@ import {
 
 export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos = [], initialResult = null }) {
   const { t, langCode, BASE_SERVICES, serviceInfo, whenLabel } = useLang();
-  const { profile, activeWorkspace } = useAuth();
+  const { user, profile, activeWorkspace } = useAuth();
   const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
 
   const [text, setText] = useState(initialText);
@@ -59,6 +60,7 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
   const [editCity, setEditCity] = useState(profile?.city || "");
   const [editWhen, setEditWhen] = useState(seeded.when);
   const [location, setLocation] = useState(null);
+  const [assetId, setAssetId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -176,7 +178,7 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
     setSubmitting(true);
     try {
       await onSubmitted(buildIntakeRequest({
-        edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, city: editCity, when: editWhen, location },
+        edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, city: editCity, when: editWhen, location, assetId },
         result,
         baseServices: BASE_SERVICES,
         photos: photos.map((p) => p.file),
@@ -295,6 +297,8 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
           </div>
 
           <ServiceLocationField workspaceId={activeWorkspace?.workspace_id} onChange={setLocation} />
+
+          <ItemAssociationField ownerId={user?.id} workspaceId={activeWorkspace?.workspace_id} onChange={setAssetId} />
 
           <label className="field-label">{t.cityLabel}</label>
           <div className="search" style={{ marginBottom: 14 }}>
