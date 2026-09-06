@@ -26,8 +26,7 @@ export function SendQuoteSheet({ lead, onClose, onSubmit }) {
 
       <label className="field-label">{t.yourPriceLabel}</label>
       <div className="search" style={{ marginBottom: 18 }}>
-        {/* Literal escape sequence preserved verbatim — see the note in ServiceSheet.jsx. */}
-        <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>\u20ac</span>
+        <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>€</span>
         <input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
       </div>
 

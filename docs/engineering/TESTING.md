@@ -336,28 +336,32 @@ built from.
 are **pinned by `knownDefects.test.js`** so that none is corrected
 without the correction being a declared change.
 
-### 6.1 · Literal escape text rendered to customers
+### 6.1 · Literal escape text rendered to customers — mostly closed
 
-Fourteen sites render escape sequences as literal text instead of the
-character, because JSX text content does not interpret backslash escapes
-the way a JavaScript string does. Customers see the raw sequence where a
-euro sign, bullet or dash belongs.
+Closed for all customer-reachable sites. JSX text content never interpreted
+backslash escapes the way a JavaScript string does, so several sites rendered
+the raw `\uXXXX` sequence where a euro sign or bullet belonged — real money
+amounts (invoice totals, a quote price, the flexi tax tracker, the Boost
+price) and the phone-mockup's own status-bar dots. Fixed to real `€`/`•`
+characters in `InvoiceSheet`, `SendQuoteSheet`, `Profile` (pro variant),
+`AppShell`, and `QuoteFormSheet`'s own budget-field prefix — confirmed live
+on staging as the pro fixture, in every one of those exact locations.
 
 | Sequence | Occurrences | Should render as |
 |---|---|---|
-| `u20AC` | 9 | € |
-| `u2022` | 3 | • |
 | `u2013` | 1 | – |
 | `u00B7` | 1 | · |
 
-Across `AiIntakeSheet`, `InvoiceSheet`, `QuoteFormSheet`, `ServiceSheet`,
-`Profile` (pro variant), `SendQuoteSheet`, `AppShell` — **including the invoice
-totals and quote prices**, which is where a customer is most likely to
-notice.
+Two occurrences remain, deliberately: both in `ServiceSheet.jsx`, which is
+dead, unreachable code today (`CustomerApp.jsx`'s own header names it —
+`setActiveService` is never called anywhere in this codebase). Removing that
+dead chain (`Discover`/`ServiceSheet`/`QuoteFormSheet`'s own render path) is a
+separate, already-partly-drafted concern — orphaned code, not customer-facing
+text — and was not bundled into this correctness fix.
 
-Recorded in `../MASTER_CONTEXT.md` §12. Fixing them is a one-line change
-per site and **a declared behaviour change** requiring a `CHANGELOG.md`
-entry, not a tidy-up inside another package.
+Recorded in `../MASTER_CONTEXT.md` §12. Any future fix to the two remaining
+occurrences is still **a declared behaviour change** requiring a
+`CHANGELOG.md` entry, not a tidy-up inside another package.
 
 ### 6.2 · `awaiting_pro` leaks untranslated
 

@@ -48,6 +48,30 @@ accurately.
 
 ## Unreleased
 
+### Fixed
+
+**Literal `\uXXXX` escape text rendered to customers, closed for every
+reachable site.** The declared change this file's own earlier entry named as
+required before this defect could be corrected. Real money amounts and a
+decorative separator rendered the raw escape sequence — `€594` instead of
+`€594` — because JSX text content never interpreted backslash escapes the way
+a JavaScript string does.
+
+- **Fixed to real `€`/`•` characters**: `InvoiceSheet.jsx` (the amount, VAT
+  and total rows), `SendQuoteSheet.jsx` (the price field's currency prefix),
+  `Profile.jsx`'s pro variant (the flexi tax tracker and the Boost price),
+  `AppShell.jsx` (the phone-mockup's own status-bar dots), and
+  `QuoteFormSheet.jsx`'s own budget-field prefix.
+- **Confirmed live on staging**, signed in as the pro fixture: the flexi
+  tracker now reads `€594 used of €18,440`, the Boost button reads
+  `Boost for €9`, and the status bar shows real bullets.
+- **Two occurrences deliberately left open** — `ServiceSheet.jsx`'s own en
+  dash and middle dot. That file is dead, unreachable code today
+  (`ENGINEERING_STANDARDS.md`'s own `Discover.jsx` entry already names why),
+  tied to a separate, already-partly-drafted dead-code removal rather than
+  this narrowly-scoped correctness fix. `knownDefects.test.js`'s baseline is
+  updated to match — 2 remaining, not 13.
+
 ### Added
 
 **Epic 22 — Subscription Engine (complete, 3 of 3 packages).** No client

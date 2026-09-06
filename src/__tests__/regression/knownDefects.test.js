@@ -53,25 +53,32 @@ function escapeInventory() {
   return counts;
 }
 
-// Captured 2026-08-12, revised 2026-08-31. Each of these renders as literal text to a
-// customer where a real character belongs — the euro signs are in invoice totals, quote
-// prices and the flexi tax tracker, which is where someone is most likely to see one.
+// Captured 2026-08-12, revised 2026-08-31, revised again here — a DECLARED closure, not
+// a silent one, matching this file's own stated rule. All eight € occurrences (invoice
+// totals in InvoiceSheet.jsx, the quote-price prefix in SendQuoteSheet.jsx, the flexi tax
+// tracker and the Boost price in Profile.jsx, and one more in QuoteFormSheet.jsx) and all
+// three bullet-separator occurrences (AppShell.jsx's own status-bar dots) are fixed to
+// real `€`/`•` characters — real customer-facing text, confirmed live on staging as
+// Pierre, in every one of those exact locations.
 //
-// One occurrence dropped from the original count of 9, found only because this exact
-// test started failing on main (git blame: commit 3073e52, PR #127, 2026-08-31).
-// AiIntakeSheet.jsx's own budget-field euro sign was fixed to a real `€` character as an
-// incidental "while in that exact file" correction alongside that PR's own, unrelated
-// error-handling fix (the AI-intake raw-exception leak) — real, legitimate, and never a
-// regression, but never declared here or in the changelog either, exactly the silent-fix
-// failure mode this file exists to catch (TESTING.md §1 category 6). This baseline is
-// updated to match; the fix itself is not undone, and no other occurrence moved.
+// TWO OCCURRENCES DELIBERATELY LEFT OPEN — NOT FORGOTTEN, NOT SILENTLY DROPPED
+//
+// ServiceSheet.jsx's own en dash and middle dot (both inside a price-range/rating line)
+// are the only two occurrences NOT closed here. That file, alongside Discover.jsx and
+// QuoteFormSheet.jsx's own render logic, is dead, unreachable code today — CustomerApp.jsx's
+// own header names exactly this: "setActiveService is never called anywhere in this
+// codebase... consequently also unreachable." Removing that dead chain entirely is a
+// real, separate, already-partly-drafted piece of work (a different concern — orphaned
+// code, not customer-visible text) and is not bundled into this narrowly-scoped
+// correctness fix. QuoteFormSheet.jsx's own single € occurrence WAS fixed here (a
+// one-line, zero-behaviour-change correction, since the string itself is still wrong even
+// while unreachable), which is why it no longer appears in the baseline below despite the
+// file itself not being removed.
 const BASELINE = {
-  u20ac: 8, // € — invoice totals, budgets, quote prices, boost price
-  u2022: 3, // • — separators
-  u2013: 1, // – — en dash
-  u00b7: 1, // · — middle dot
+  u2013: 1, // – — en dash, ServiceSheet.jsx (dead/unreachable code, left open — see above)
+  u00b7: 1, // · — middle dot, ServiceSheet.jsx (dead/unreachable code, left open — see above)
 };
-const BASELINE_TOTAL = 13;
+const BASELINE_TOTAL = 2;
 
 describe("known defect: literal escape text rendered to customers", () => {
   it("still appears in exactly the quantities recorded at baseline", () => {
@@ -81,7 +88,7 @@ describe("known defect: literal escape text rendered to customers", () => {
     expect(escapeInventory()).toEqual(BASELINE);
   });
 
-  it("totals fourteen occurrences", () => {
+  it("totals two occurrences", () => {
     const total = Object.values(escapeInventory()).reduce((sum, n) => sum + n, 0);
     expect(total).toBe(BASELINE_TOTAL);
   });

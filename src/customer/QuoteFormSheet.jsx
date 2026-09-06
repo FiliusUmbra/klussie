@@ -112,8 +112,7 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
 
       <label className="field-label">{t.budgetLabel}</label>
       <div className="search" style={{ marginBottom: 18 }}>
-        {/* Literal escape sequence preserved verbatim — see the note in ServiceSheet.jsx. */}
-        <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>\u20ac</span>
+        <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>€</span>
         <input placeholder={t.budgetPlaceholder} value={budget} onChange={(e) => setBudget(e.target.value)} />
       </div>
 

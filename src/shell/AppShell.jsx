@@ -159,9 +159,7 @@ export function AppShell() {
 
         <div className={`phone lang-${langCode}`}>
           <div className="notch" />
-          {/* Literal escape sequences preserved verbatim — see the note in
-              src/customer/ServiceSheet.jsx. */}
-          <div className="statusbar"><span>9:41</span><span className="statusbar-dots">\u2022 \u2022 \u2022</span></div>
+          <div className="statusbar"><span>9:41</span><span className="statusbar-dots">• • •</span></div>
           <div className="screen">
             {body}
             {becomeProOpen && (
