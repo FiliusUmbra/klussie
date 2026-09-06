@@ -197,8 +197,7 @@ export function Profile({
             <div className="flexi-box">
               <div className="ticket-title" style={{ fontSize: 13.5, marginBottom: 8 }}>{t.flexiTrackerTitle}</div>
               <div className="flexi-bar"><div className="flexi-bar-fill" style={{ width: `${flexiPct}%` }} /></div>
-              {/* Literal escape sequences preserved verbatim — see the note in ServiceSheet.jsx. */}
-              <div className="ticket-sub" style={{ marginTop: 6 }}>\u20ac{fmt(Math.round(earnedGross))} {t.flexiUsedOf} \u20ac{fmt(FLEXI_TAX_FREE_THRESHOLD)}</div>
+              <div className="ticket-sub" style={{ marginTop: 6 }}>€{fmt(Math.round(earnedGross))} {t.flexiUsedOf} €{fmt(FLEXI_TAX_FREE_THRESHOLD)}</div>
               <div className="fineprint" style={{ marginTop: 8, justifyContent: "flex-start", textAlign: "start" }}>{t.flexiThresholdNote}</div>
             </div>
           )}
@@ -264,7 +263,7 @@ export function Profile({
             {boosted ? (
               <Badge tone="amber">{t.boostActive}</Badge>
             ) : (
-              <button className="btn-primary" onClick={boost}>{t.boostBtn} \u20ac{BOOST_WEEKLY_PRICE}</button>
+              <button className="btn-primary" onClick={boost}>{t.boostBtn} €{BOOST_WEEKLY_PRICE}</button>
             )}
           </div>
 

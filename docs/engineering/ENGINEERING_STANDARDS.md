@@ -86,11 +86,11 @@ Status uses only: **Implemented**, **In Progress**, **Planned**.
   renders a timeline or that `InvoiceSheet` shows the right total. The Engineering Health
   sprint verified the move by line-level diff, build, lint and a manual smoke test — good
   enough to trust the move, not good enough to protect the next one.
-- **12 places render literal `\uXXXX` escape text** instead of the real character (JSX
-  text content doesn't interpret backslash escapes the way a JS string does). Carried
-  through the sprint unchanged and deliberately, since fixing it changes what a customer
-  reads and that sprint's contract was identical behaviour. Every site now carries a
-  comment pointing here.
+- **2 places (down from 12) still render literal `\uXXXX` escape text** instead of the
+  real character (JSX text content doesn't interpret backslash escapes the way a JS
+  string does). Every customer-reachable site is fixed; the 2 remaining are inside
+  `ServiceSheet.jsx`, dead/unreachable code (see the `Discover.jsx` item below) — left
+  for that same, separate dead-code removal rather than fixed standalone.
 - **Inline `.quote-card`/`.ticket`/price markup** in `ProProfile`, `ProPublicProfileSheet`
   and `CustomerProfile` still bypasses the Design System — migrated opportunistically as
   those areas get touched, not swept all at once.

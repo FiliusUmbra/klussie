@@ -22,10 +22,9 @@ export function InvoiceSheet({ request, quote, onClose }) {
         <div className="invoice-row"><span>{t.invoiceCustomer}</span><span>{t.profileYou}</span></div>
         <div className="invoice-row"><span>{t.invoiceService}</span><span>{info.name}</span></div>
         <div className="ticket-divider" />
-        {/* Literal escape sequences preserved verbatim — see the note in ServiceSheet.jsx. */}
-        <div className="invoice-row"><span>{t.invoiceAmount}</span><span>\u20ac{fmt(quote.price)}</span></div>
-        <div className="invoice-row"><span>{t.invoiceVat}</span><span>\u20ac{fmt(vat)}</span></div>
-        <div className="invoice-row invoice-total"><span>{t.invoiceTotal}</span><span>\u20ac{fmt(total)}</span></div>
+        <div className="invoice-row"><span>{t.invoiceAmount}</span><span>€{fmt(quote.price)}</span></div>
+        <div className="invoice-row"><span>{t.invoiceVat}</span><span>€{fmt(vat)}</span></div>
+        <div className="invoice-row invoice-total"><span>{t.invoiceTotal}</span><span>€{fmt(total)}</span></div>
       </div>
       <div className="fineprint" style={{ marginTop: 12 }}>{t.invoiceNote}</div>
     </Drawer>
