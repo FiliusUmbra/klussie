@@ -383,6 +383,12 @@ export const HOME_CSS = `
 .item-detail-document-content{ flex:1; min-width:0; display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-2); }
 .item-detail-document-chevron{ flex:none; color:var(--ink-faint); }
 [dir="rtl"] .item-detail-document-chevron{ transform:scaleX(-1); }
+.item-detail-document-suggest{
+  display:flex; align-items:center; gap:var(--space-1); min-height:44px;
+  padding:0 var(--space-1) var(--space-2); text-align:start; cursor:pointer;
+  background:none; border:none; font-family:var(--font-body); font-size:13px;
+  color:var(--forest-dark);
+}
 
 .item-photo-picker{ display:flex; }
 .item-photo-add{

@@ -239,6 +239,9 @@ something it depends on.
 | C30 | A document attached to one item opens via a real signed URL, is never visible under another item or another workspace, and survives a reload | `ItemDetailSheet` |
 | C31 | Moving an item to another room persists the change and closes any earlier room's placement into history | `ItemDetailSheet` *(automated)* |
 | C32 | Asking Klussie about an item answers only from that item's own facts, document, maintenance and service history, and cites which of those it used | `ItemDetailSheet` |
+| C33 | Letting Klussie read an attached document shows each candidate fact unchecked, with the item's current value alongside; only the fields the homeowner actually checks are saved, and nothing is saved automatically | `ItemDetailSheet` *(automated)* |
+| C34 | A suggested maintenance recommendation, once confirmed, creates one real maintenance obligation with a concrete due date — never a recurring schedule | `ItemDetailSheet` *(automated)* |
+| C35 | An unreadable file (wrong type, too large) shows a plain-language message and never reaches the AI, and any other failure shows the generic localized error, never a raw one | `ItemDetailSheet` *(automated)* |
 
 ### 5.5 · Professional
 

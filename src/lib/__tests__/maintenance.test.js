@@ -11,7 +11,7 @@ vi.mock("../supabaseClient", () => ({
   },
 }));
 
-import { fetchMaintenanceObligations } from "../maintenance.js";
+import { fetchMaintenanceObligations, createMaintenanceObligation } from "../maintenance.js";
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-000000000020";
 
@@ -118,5 +118,41 @@ describe("fetchMaintenanceObligations", () => {
     await expect(fetchMaintenanceObligations(WORKSPACE_ID)).resolves.toEqual([]);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+// Document Understanding slice — the first real client caller of a contract
+// (api.create_maintenance_obligation(), 0142) that has existed since WP 1.7 with none
+// named.
+describe("createMaintenanceObligation", () => {
+  it("calls the api schema's delegate with a single concrete due date, no recurrence", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await createMaintenanceObligation({
+      workspaceId: WORKSPACE_ID, assetId: "asset-1", actorRef: "owner-1",
+      title: "Descale the machine", description: "Every 3 months per the manual.", dueOn: "2026-12-01",
+    });
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "create_maintenance_obligation", expect.objectContaining({
+      p_workspace_id: WORKSPACE_ID, p_asset_id: "asset-1", p_location_id: null,
+      p_title: "Descale the machine", p_description: "Every 3 months per the manual.", p_due_on: "2026-12-01",
+      p_actor_type: "person", p_actor_ref: "owner-1",
+    }));
+  });
+
+  it("sends null, not an empty string, when no description is given", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await createMaintenanceObligation({ workspaceId: WORKSPACE_ID, assetId: "asset-1", actorRef: "owner-1", title: "Descale", dueOn: "2026-12-01" });
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "create_maintenance_obligation", expect.objectContaining({ p_description: null }));
+  });
+
+  it("throws the real error rather than swallowing it -- a write, not a read", async () => {
+    apiRpc.mockResolvedValue({ error: { message: "insufficient_privilege" } });
+
+    await expect(createMaintenanceObligation({
+      workspaceId: WORKSPACE_ID, assetId: "asset-1", actorRef: "owner-1", title: "Descale", dueOn: "2026-12-01",
+    })).rejects.toThrow("insufficient_privilege");
   });
 });

@@ -158,6 +158,28 @@ describe("ask-about-item handler", () => {
     expect(call.documents[0].mediaType).toBe("application/pdf");
   });
 
+  it("sends a photographed document (jpg/png) as an image content block, never a document one", async () => {
+    const download = vi.fn(() => Promise.resolve({
+      data: { size: 10, arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer) },
+      error: null,
+    }));
+    verifyAuthMock.mockResolvedValue({
+      user: { id: "user-1" },
+      supabase: supabaseStub({
+        documentRows: [{ id: "doc-1", type_key: "warranty", storage_bucket: "documents", storage_path: "ws/doc-1/warranty.jpg" }],
+        download,
+      }),
+    });
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });
+
+    await handler(req, res);
+
+    const call = reasonMock.mock.calls[0][0];
+    expect(call.documents).toEqual([]);
+    expect(call.images).toHaveLength(1);
+    expect(call.images[0].mediaType).toBe("image/jpeg");
+  });
+
   it("skips an attachment with an unrecognized file extension, grounding on item facts alone", async () => {
     verifyAuthMock.mockResolvedValue({
       user: { id: "user-1" },

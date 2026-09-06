@@ -77,6 +77,7 @@ function reshapeAsset(row) {
     photoUrl: null, // filled in by withSignedPhotos
     purchasedOn: row.acquired_on,
     installedOn: row.installed_on,
+    expectedServiceLifeMonths: row.expected_service_life_months,
     warrantyExpiresOn: row.warranty_expires_on,
     condition: row.condition,
     notes: row.notes,
@@ -300,10 +301,27 @@ export async function createAsset({ propertyId, ownerId, actorRef, locationId, n
   return { id: assetId, photoPath };
 }
 
-/** Edits a real asset. A new photo replaces the old one only after the update itself
+/**
+ * Edits a real asset. A new photo replaces the old one only after the update itself
  * succeeds — the same "row first, then clean up the old object" ordering
- * setHouseholdItemPhoto() already holds. */
-export async function updateAsset(assetId, { ownerId, actorRef, previousPhotoPath, name, category, room, brand, model, purchasedOn, notes, photoFile }) {
+ * setHouseholdItemPhoto() already holds.
+ *
+ * `serialNumber`/`installedOn`/`expectedServiceLifeMonths`/`warrantyExpiresOn`/
+ * `condition` default to `null` for backward compatibility, but every real caller must
+ * pass the item's OWN current value for whichever of these it isn't changing.
+ * property.update_asset() (0139) is a whole-value replace, the same "callers always send
+ * the full current set" contract setPropertyAddress() already documents — there is no
+ * partial-patch form. Before the Document Understanding slice, this function hardcoded
+ * all five to null on every single edit, silently erasing them the moment a homeowner
+ * next renamed an item or changed a note — harmless while nothing ever wrote them, but a
+ * real "overwrites confirmed values silently" bug the instant something (this same
+ * slice's own suggestion-confirmation flow) finally does. ItemFormSheet.jsx's own save
+ * call is what actually supplies the item's current values now.
+ */
+export async function updateAsset(assetId, {
+  ownerId, actorRef, previousPhotoPath, name, category, room, brand, model, purchasedOn, notes, photoFile,
+  serialNumber = null, installedOn = null, expectedServiceLifeMonths = null, warrantyExpiresOn = null, condition = null,
+}) {
   const photoPath = photoFile ? await uploadAssetPhoto(assetId, ownerId, photoFile) : previousPhotoPath || null;
   const fields = assetFieldsFromForm({ name, category, room, brand, model, purchasedOn, notes });
 
@@ -313,14 +331,14 @@ export async function updateAsset(assetId, { ownerId, actorRef, previousPhotoPat
     p_type: fields.type,
     p_make: fields.make,
     p_model: fields.model,
-    p_serial_number: null,
+    p_serial_number: serialNumber,
     p_parent_asset_id: null,
     p_room_label: fields.roomLabel,
     p_acquired_on: fields.acquiredOn,
-    p_installed_on: null,
-    p_expected_service_life_months: null,
-    p_warranty_expires_on: null,
-    p_condition: null,
+    p_installed_on: installedOn,
+    p_expected_service_life_months: expectedServiceLifeMonths,
+    p_warranty_expires_on: warrantyExpiresOn,
+    p_condition: condition,
     p_photo_path: photoPath,
     p_notes: fields.notes,
     p_event_id: uuidv7(),

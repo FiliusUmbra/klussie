@@ -20,6 +20,14 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 vi.mock("../../lib/householdItems.js", () => ({
   moveAsset: vi.fn(() => Promise.resolve()),
   retireAsset: vi.fn(() => Promise.resolve()),
+  updateAsset: vi.fn(() => Promise.resolve({ id: "asset-1", photoPath: null })),
+}));
+vi.mock("../../lib/maintenance.js", () => ({
+  createMaintenanceObligation: vi.fn(() => Promise.resolve()),
+}));
+vi.mock("../../lib/documentUnderstanding.js", () => ({
+  suggestItemDetailsFromDocument: vi.fn(() => Promise.resolve({ suggestions: {} })),
+  DOCUMENT_UNREADABLE: "DOCUMENT_UNREADABLE",
 }));
 vi.mock("../../lib/documents.js", () => ({
   createDocument: vi.fn(() => Promise.resolve({ id: "doc-new" })),
@@ -37,10 +45,12 @@ vi.mock("../../lib/askAboutItem.js", () => ({
   askAboutItem: vi.fn(() => Promise.resolve({ answer: "The warranty expires on 2029-01-20.", groundedIn: ["item_details"] })),
 }));
 
-import { moveAsset, retireAsset } from "../../lib/householdItems.js";
+import { moveAsset, retireAsset, updateAsset } from "../../lib/householdItems.js";
 import { fetchDocumentsForAsset, getDocumentUrl } from "../../lib/documents.js";
 import { fetchServiceRecordsForAsset } from "../../lib/serviceRecords.js";
 import { askAboutItem } from "../../lib/askAboutItem.js";
+import { createMaintenanceObligation } from "../../lib/maintenance.js";
+import { suggestItemDetailsFromDocument } from "../../lib/documentUnderstanding.js";
 import { ItemDetailSheet } from "../ItemDetailSheet.jsx";
 
 const t = {
@@ -71,6 +81,17 @@ const t = {
   itemDetailRetireFailed: "Couldn't retire this item. Please try again.",
   itemDetailWarrantyCovered: "Covered by warranty until {date}", itemDetailWarrantyExpired: "Warranty ended on {date}",
   itemDetailWarrantyUnknown: "No warranty date saved",
+  itemDetailSuggestAction: "Let Klussie read this", itemDetailSuggestTitle: "Suggested details",
+  itemDetailSuggestIntro: "Klussie found the following in this document. Check the ones you want to save.",
+  itemDetailSuggestEmpty: "Klussie didn't find any new details in this document.",
+  itemDetailSuggestFailed: "Klussie could not read this document right now. Please try again.",
+  itemDetailSuggestUnreadable: "Klussie can only read PDF, JPG or PNG files right now.",
+  itemDetailSuggestSave: "Save selected",
+  itemDetailSuggestSaveFailed: "Couldn't save the selected details. Please try again.",
+  itemDetailSuggestFieldManufacturer: "Manufacturer", itemDetailSuggestFieldModel: "Model",
+  itemDetailSuggestFieldSerialNumber: "Serial number", itemDetailSuggestFieldPurchaseDate: "Purchase date",
+  itemDetailSuggestFieldInstallDate: "Install date", itemDetailSuggestFieldWarrantyEndDate: "Warranty end date",
+  itemDetailSuggestCurrentValue: "Currently: {value}", itemDetailSuggestMaintenanceTitle: "Suggested maintenance",
 };
 
 const ITEM = {
@@ -365,5 +386,117 @@ describe("ItemDetailSheet — Ask Klussie (grounded, now including maintenance a
 
     await waitFor(() => expect(screen.getByText("Klussie couldn't answer right now. Please try again.")).toBeTruthy());
     expect(screen.queryByText("500 Internal Server Error")).toBeNull();
+  });
+});
+
+// Document Understanding slice — "let Klussie read this document" per document row,
+// then explicit per-field confirmation before anything is actually saved. Every
+// checkbox starts unchecked (opt-in, never opt-out from a batch of model output).
+describe("ItemDetailSheet — Suggested details from a document", () => {
+  const DOC = { id: "doc-1", typeKey: "manual", caption: null, validUntil: null, storageBucket: "documents", storagePath: "ws-1/doc-1/manual.pdf" };
+
+  async function openSuggestModal(extraProps = {}) {
+    fetchDocumentsForAsset.mockResolvedValueOnce([DOC]);
+    await renderDetail(extraProps);
+    fireEvent.click(screen.getByText("Let Klussie read this"));
+    await waitFor(() => expect(suggestItemDetailsFromDocument).toHaveBeenCalledWith({ itemId: "asset-1", documentId: "doc-1" }));
+  }
+
+  it("calls suggestItemDetailsFromDocument with this exact document's id when tapped", async () => {
+    await openSuggestModal();
+  });
+
+  it("shows the honest empty state when Klussie finds nothing in the document", async () => {
+    suggestItemDetailsFromDocument.mockResolvedValueOnce({ suggestions: {} });
+    await openSuggestModal();
+
+    await waitFor(() => expect(screen.getByText("Klussie didn't find any new details in this document.")).toBeTruthy());
+  });
+
+  it("lists each found field unchecked, with the item's current value shown alongside", async () => {
+    suggestItemDetailsFromDocument.mockResolvedValueOnce({ suggestions: { manufacturer: "Miele", warrantyEndDate: "2031-01-01" } });
+    await openSuggestModal();
+
+    await waitFor(() => expect(screen.getByText(/Manufacturer:/)).toBeTruthy());
+    expect(screen.getByText(/Miele/)).toBeTruthy();
+    // ITEM.brand is "Vaillant" -- shown as the current value being potentially replaced.
+    expect(screen.getByText(/Currently: Vaillant/)).toBeTruthy();
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes.every((box) => !box.checked)).toBe(true);
+    expect(screen.getByText("Save selected").closest("button").disabled).toBe(true);
+  });
+
+  it("saves only the checked field, preserving every other current value, then closes", async () => {
+    suggestItemDetailsFromDocument.mockResolvedValueOnce({ suggestions: { manufacturer: "Miele", model: "W1" } });
+    const onSaved = vi.fn(() => Promise.resolve());
+    const onClose = vi.fn();
+    await openSuggestModal({ onSaved, onClose });
+
+    await waitFor(() => expect(screen.getByText(/Manufacturer:/)).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("checkbox")[0]); // manufacturer only, not model
+    fireEvent.click(screen.getByText("Save selected"));
+
+    await waitFor(() => expect(updateAsset).toHaveBeenCalledWith("asset-1", expect.objectContaining({
+      brand: "Miele", model: "ecoTEC", // model unchanged -- the box was never checked
+      name: "Washing machine", warrantyExpiresOn: "2029-01-20",
+    })));
+    expect(onSaved).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("also creates a real maintenance obligation when the maintenance suggestion is checked", async () => {
+    suggestItemDetailsFromDocument.mockResolvedValueOnce({
+      suggestions: { maintenanceSuggestion: { title: "Descale", description: "Every 3 months.", dueOn: "2026-12-01" } },
+    });
+    await openSuggestModal();
+
+    await waitFor(() => expect(screen.getByText(/Suggested maintenance:/)).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByText("Save selected"));
+
+    await waitFor(() => expect(createMaintenanceObligation).toHaveBeenCalledWith({
+      workspaceId: "ws-1", assetId: "asset-1", actorRef: "owner-1",
+      title: "Descale", description: "Every 3 months.", dueOn: "2026-12-01",
+    }));
+  });
+
+  it("never calls updateAsset or createMaintenanceObligation when Cancel is tapped", async () => {
+    suggestItemDetailsFromDocument.mockResolvedValueOnce({ suggestions: { manufacturer: "Miele" } });
+    await openSuggestModal();
+
+    await waitFor(() => expect(screen.getByText(/Manufacturer:/)).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByText("Cancel"));
+
+    expect(updateAsset).not.toHaveBeenCalled();
+  });
+
+  it("shows a distinct message for a file Klussie can't read, not the generic failure text", async () => {
+    suggestItemDetailsFromDocument.mockRejectedValueOnce(new Error("DOCUMENT_UNREADABLE"));
+    await openSuggestModal();
+
+    await waitFor(() => expect(screen.getByText("Klussie can only read PDF, JPG or PNG files right now.")).toBeTruthy());
+  });
+
+  it("shows the generic localized error, never a raw one, on any other failure", async () => {
+    suggestItemDetailsFromDocument.mockRejectedValueOnce(new Error("upstream 500"));
+    await openSuggestModal();
+
+    await waitFor(() => expect(screen.getByText("Klussie could not read this document right now. Please try again.")).toBeTruthy());
+    expect(screen.queryByText("upstream 500")).toBeNull();
+  });
+
+  it("shows a save-specific failure message, and does not close, when the confirm save itself fails", async () => {
+    suggestItemDetailsFromDocument.mockResolvedValueOnce({ suggestions: { manufacturer: "Miele" } });
+    updateAsset.mockRejectedValueOnce(new Error("insufficient_privilege"));
+    const onClose = vi.fn();
+    await openSuggestModal({ onClose });
+
+    await waitFor(() => expect(screen.getByText(/Manufacturer:/)).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByText("Save selected"));
+
+    await waitFor(() => expect(screen.getByText("Couldn't save the selected details. Please try again.")).toBeTruthy());
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

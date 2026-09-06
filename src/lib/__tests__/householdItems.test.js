@@ -265,6 +265,37 @@ describe("updateAsset", () => {
     expect(params).not.toHaveProperty("p_location_id");
   });
 
+  // Document Understanding slice — before this fix, updateAsset() hardcoded these five
+  // fields to null on every single edit, silently erasing any real value the moment a
+  // homeowner next saved an unrelated change (a rename, a note). Real callers must now
+  // pass the item's own current value through for whichever of these they don't intend
+  // to change (property.update_asset() is a whole-value replace, no partial-patch form).
+  it("passes serialNumber/installedOn/expectedServiceLifeMonths/warrantyExpiresOn/condition through when given, rather than always sending null", async () => {
+    rpcMock.mockResolvedValue({ error: null });
+
+    await updateAsset("asset-1", {
+      ownerId: "owner-1", actorRef: "owner-1", name: "Boiler",
+      serialNumber: "SN-123", installedOn: "2024-03-01", expectedServiceLifeMonths: 120,
+      warrantyExpiresOn: "2029-01-20", condition: "good",
+    });
+
+    expect(rpcMock).toHaveBeenCalledWith("update_asset", expect.objectContaining({
+      p_serial_number: "SN-123", p_installed_on: "2024-03-01", p_expected_service_life_months: 120,
+      p_warranty_expires_on: "2029-01-20", p_condition: "good",
+    }));
+  });
+
+  it("defaults those same five fields to null only when a caller genuinely omits them", async () => {
+    rpcMock.mockResolvedValue({ error: null });
+
+    await updateAsset("asset-1", { ownerId: "owner-1", actorRef: "owner-1", name: "Boiler" });
+
+    expect(rpcMock).toHaveBeenCalledWith("update_asset", expect.objectContaining({
+      p_serial_number: null, p_installed_on: null, p_expected_service_life_months: null,
+      p_warranty_expires_on: null, p_condition: null,
+    }));
+  });
+
   it("does not remove the previous photo when the update itself fails", async () => {
     const storage = createStorageBuilder();
     vi.mocked(supabase.storage.from).mockReturnValue(storage);
