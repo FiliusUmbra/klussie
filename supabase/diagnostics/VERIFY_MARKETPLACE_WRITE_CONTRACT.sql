@@ -205,6 +205,50 @@ begin
   raise notice '2f · the status bridge reports the real, current work.requests status for the correlated legacy id';
 
   -- =========================================================================
+  -- 2g · Move Room UI slice's own sweep found this (PR #157): a quote can no longer be
+  -- submitted against a request that is no longer actually open. v_directed_request is
+  -- genuinely 'booked' at this point (2b already confirmed it) — a fresh, uninvolved
+  -- workspace (v_wrong_pro_ws) attempting to submit a real quote against it now must be
+  -- refused, and must leave no new quote row behind.
+
+  declare
+    v_closed_quote_attempt uuid := gen_random_uuid();
+    v_quotes_before        bigint;
+    v_quotes_after         bigint;
+    v_expected_failure     boolean := false;
+  begin
+    select count(*) into v_quotes_before from work.quotes where request_id = v_directed_request;
+
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claims', json_build_object('sub', v_wrong_pro_auth)::text, true);
+    begin
+      perform api.submit_quote(
+        p_quote_id => v_closed_quote_attempt, p_request_id => v_directed_request, p_offering_workspace_id => v_wrong_pro_ws,
+        p_price => 50.00, p_message => 'This job is already booked', p_legacy_quote_id => null,
+        p_event_id => gen_random_uuid(), p_correlation_id => gen_random_uuid(),
+        p_auto_accept_engagement_id => gen_random_uuid(), p_auto_accept_event_id => gen_random_uuid(), p_auto_accept_engagement_event_id => gen_random_uuid(),
+        p_auto_accept_conversation_id => gen_random_uuid(), p_auto_accept_customer_participant_id => gen_random_uuid(), p_auto_accept_pro_participant_id => gen_random_uuid(),
+        p_auto_accept_conversation_event_id => gen_random_uuid(), p_auto_accept_customer_participant_event_id => gen_random_uuid(), p_auto_accept_pro_participant_event_id => gen_random_uuid(),
+        p_actor_type => 'person', p_actor_ref => v_wrong_pro_auth::text
+      );
+    exception when sqlstate '55000' then
+      -- object_not_in_prerequisite_state
+      v_expected_failure := true;
+    end;
+    reset role;
+
+    if not v_expected_failure then
+      raise exception '2g · a quote was accepted against request % which is already booked', v_directed_request;
+    end if;
+
+    select count(*) into v_quotes_after from work.quotes where request_id = v_directed_request;
+    if v_quotes_after <> v_quotes_before then
+      raise exception '2g · a quote row was created against an already-booked request despite the rejection';
+    end if;
+  end;
+  raise notice '2g · submitting a quote against a request that is no longer open (already booked) is refused, with no quote row left behind';
+
+  -- =========================================================================
   -- 3 · The wrong workspace quoting a directed request does NOT auto-accept — goes to
   -- 'sent' exactly like an ordinary quote
 
