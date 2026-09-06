@@ -59,6 +59,7 @@ export function Profile({
   // this never toggles mid-life.
   const [selected, setSelected] = useState(offeredServiceIds);
   const [saving, setSaving] = useState(false);
+  const [proTypeError, setProTypeError] = useState("");
   const [portfolioItems, setPortfolioItems] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [editingPortfolioItem, setEditingPortfolioItem] = useState(null);
@@ -105,9 +106,24 @@ export function Profile({
     onServicesChange(selected);
     setSaving(false);
   };
+  // Found live during a UX review, 2026-09-06: switching to "business" here failed with
+  // zero visible feedback whenever business_name/vat_number were still unset — the real,
+  // reproducible case for any pro who has never filled them in, since public.pro_profiles'
+  // own business_requires_details check constraint (0001) refuses the row otherwise.
+  // updateProProfile()'s own .update() is a sparse PATCH (only pro_type here), so this
+  // never clobbers business_name/vat_number saved separately through EditProfileSheet.jsx
+  // -- fill those in first (now reachable there regardless of the caller's current
+  // pro_type, closing the chicken-and-egg gap this same review found), then this succeeds.
   const setProType = async (proType) => {
-    await updateProProfile(user.id, { pro_type: proType });
-    await refreshProfile();
+    setProTypeError("");
+    try {
+      await updateProProfile(user.id, { pro_type: proType });
+      await refreshProfile();
+    } catch (err) {
+      setProTypeError(
+        err.message?.includes("business_requires_details") ? t.proTypeBusinessRequiresDetails : t.proTypeSwitchFailed
+      );
+    }
   };
   const boost = async () => {
     await boostProfile(user.id);
@@ -192,6 +208,7 @@ export function Profile({
             <button className={proProfile.pro_type === "flexi" ? "seg-on" : ""} onClick={() => setProType("flexi")}>{t.proTypeFlexi}</button>
             <button className={proProfile.pro_type === "business" ? "seg-on" : ""} onClick={() => setProType("business")}>{t.proTypeBusiness}</button>
           </div>
+          {proTypeError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginTop: 6 }}>{proTypeError}</div>}
 
           {proProfile.pro_type === PRO_TYPE_FLEXI && (
             <div className="flexi-box">
