@@ -204,6 +204,144 @@ $$;
 
 rollback;
 
+-- =========================================================================
+-- 4 · Move Room UI slice — the CALLER-FACING contract (api.reparent_location() /
+-- property.reparent_location_for_caller(), 0198, retired-destination check added by
+-- 0211) with real impersonated sessions. Checks 1-3 above already prove
+-- property.reparent_location() itself is correct; nothing above ever exercised the
+-- permission-checking wrapper this UI slice is this function's own first real caller
+-- of.
+
+begin;
+
+do $$
+declare
+  v_owner_auth        uuid := gen_random_uuid();
+  v_stranger_auth     uuid := gen_random_uuid();
+  v_owner_ref         uuid;
+  v_stranger_ref      uuid;
+  v_ws                uuid := gen_random_uuid();
+  v_stranger_ws       uuid := gen_random_uuid();
+  v_prop              uuid := gen_random_uuid();
+  v_stranger_prop     uuid := gen_random_uuid();
+  v_parent            uuid := gen_random_uuid();
+  v_child             uuid := gen_random_uuid();
+  v_retired           uuid := gen_random_uuid();
+  v_stranger_room     uuid := gen_random_uuid();
+  v_unknown_id        uuid := gen_random_uuid();
+  v_expected_failure  boolean;
+  v_events_before     bigint;
+  v_events_after      bigint;
+begin
+  insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+  values
+    (v_owner_auth, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'reparent-caller-owner@example.test', '{}'::jsonb, now(), now()),
+    (v_stranger_auth, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'reparent-caller-stranger@example.test', '{}'::jsonb, now(), now());
+
+  select person_ref into v_owner_ref from identity.identities where auth_user_id = v_owner_auth;
+  select person_ref into v_stranger_ref from identity.identities where auth_user_id = v_stranger_auth;
+
+  insert into workspace.workspaces (id, type, name) values
+    (v_ws, 'personal', 'Reparent Caller Owner WS'),
+    (v_stranger_ws, 'personal', 'Reparent Caller Stranger WS');
+
+  insert into workspace.memberships (id, workspace_id, person_ref, role, scope, state, created_at, updated_at) values
+    (gen_random_uuid(), v_ws, v_owner_ref, 'owner', null, 'active', now(), now()),
+    (gen_random_uuid(), v_stranger_ws, v_stranger_ref, 'owner', null, 'active', now(), now());
+
+  insert into property.properties (id, name, steward_workspace_id, steward_since) values
+    (v_prop, 'Reparent Caller Property', v_ws, now()),
+    (v_stranger_prop, 'Reparent Caller Stranger Property', v_stranger_ws, now());
+
+  insert into property.locations (id, property_id, parent_id, name, type) values
+    (v_parent, v_prop, null, 'Parent', 'room'),
+    (v_child, v_prop, v_parent, 'Child', 'room'),
+    (v_stranger_room, v_stranger_prop, null, 'Stranger Room', 'room');
+
+  insert into property.locations (id, property_id, parent_id, name, type, retired_at) values
+    (v_retired, v_prop, null, 'Retired Room', 'room', now());
+
+  -- 4a · A native member moves their own location through the real entry point
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_owner_auth)::text, true);
+  perform api.reparent_location(v_child, null, gen_random_uuid(), gen_random_uuid(), 'person', v_owner_auth::text);
+  reset role;
+  if (select parent_id from property.locations where id = v_child) is not null then
+    raise exception '4a · a native member could not move their own location to top level through api.reparent_location()';
+  end if;
+  raise notice '4a · a native member moves their own location through the real caller-facing entry point';
+
+  select count(*) into v_events_before from platform.events where subject_type = 'location' and subject_id = v_child;
+
+  -- 4b · Moving beneath a retired location is refused
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_owner_auth)::text, true);
+  v_expected_failure := false;
+  begin
+    perform api.reparent_location(v_child, v_retired, gen_random_uuid(), gen_random_uuid(), 'person', v_owner_auth::text);
+  exception when sqlstate '42501' then
+    v_expected_failure := true;
+  end;
+  reset role;
+  if not v_expected_failure then
+    raise exception '4b · moving a location beneath a RETIRED one was accepted';
+  end if;
+  if (select parent_id from property.locations where id = v_child) = v_retired then
+    raise exception '4b · the child''s parent_id was updated despite the retired-destination refusal';
+  end if;
+  raise notice '4b · moving beneath a retired location is refused (0211), with no partial path rewrite';
+
+  -- 4c · An unknown destination is refused with the identical sqlstate as retired
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_owner_auth)::text, true);
+  v_expected_failure := false;
+  begin
+    perform api.reparent_location(v_child, v_unknown_id, gen_random_uuid(), gen_random_uuid(), 'person', v_owner_auth::text);
+  exception when sqlstate '42501' then
+    v_expected_failure := true;
+  end;
+  reset role;
+  if not v_expected_failure then
+    raise exception '4c · a wholly unknown destination id was accepted';
+  end if;
+  raise notice '4c · a wholly unknown destination fails with the identical sqlstate as a retired one (42501), non-enumerating';
+
+  -- 4d · Cross-workspace: a stranger cannot move the owner's location at all, even to
+  -- their own (real, active) room
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_stranger_auth)::text, true);
+  v_expected_failure := false;
+  begin
+    perform api.reparent_location(v_child, v_stranger_room, gen_random_uuid(), gen_random_uuid(), 'person', v_stranger_auth::text);
+  exception when sqlstate '42501' then
+    v_expected_failure := true;
+  end;
+  reset role;
+  if not v_expected_failure then
+    raise exception '4d · a stranger moved a location they do not steward';
+  end if;
+  if (select parent_id from property.locations where id = v_child) = v_stranger_room then
+    raise exception '4d · the child''s parent_id was updated despite the cross-workspace refusal';
+  end if;
+  raise notice '4d · a stranger with no membership in the location''s own property cannot move it at all';
+
+  -- 4e · No NEW event was emitted by any of the three rejected attempts above (4b/4c/4d)
+  -- -- each rejection happens inside the wrapper, before property.reparent_location() (the
+  -- only place that ever calls platform.emit_event() for this event type) is reached.
+  -- Compared against the count captured right after 4a's own real, successful move,
+  -- which does legitimately own one real event for this same location.
+  select count(*) into v_events_after from platform.events where subject_type = 'location' and subject_id = v_child;
+  if v_events_after <> v_events_before then
+    raise exception '4e · % new location.location.tree_changed event(s) exist for the child despite every attempted move since 4a being rejected', v_events_after - v_events_before;
+  end if;
+  raise notice '4e · no new event was emitted by any of the three rejected attempts (4b/4c/4d) -- each was refused before property.reparent_location() was ever reached';
+
+  raise notice 'VERIFY_LOCATION_REPARENTING §4 (caller-facing contract): all checks passed';
+end;
+$$;
+
+rollback;
+
 do $$
 begin
   raise notice 'VERIFY_LOCATION_REPARENTING: all checks passed';

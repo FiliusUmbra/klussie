@@ -13,7 +13,7 @@ vi.mock("../supabaseClient", () => ({
 }));
 
 import {
-  fetchHomeProfile, knownFactsFrom, buildLocationTree, flattenLocationsForPicker,
+  fetchHomeProfile, knownFactsFrom, buildLocationTree, flattenLocationsForPicker, subtreeIds,
   createPropertyForCaller, fetchMyProperties, setPropertyAddress, hasConfirmedAddress,
 } from "../homeInventory";
 
@@ -185,7 +185,8 @@ describe("fetchHomeProfile — locations and documents (WP 1.3)", () => {
         id: "loc-1",
         name: "Ground floor",
         type: "floor",
-        children: [{ id: "loc-2", name: "Kitchen", type: "kitchen", children: [] }],
+        parentId: null,
+        children: [{ id: "loc-2", name: "Kitchen", type: "kitchen", parentId: "loc-1", children: [] }],
       },
     ]);
   });
@@ -234,7 +235,7 @@ describe("buildLocationTree", () => {
     expect(buildLocationTree([])).toEqual([]);
   });
 
-  it("nests children under their parent, preserving multiple roots and multiple children", () => {
+  it("nests children under their parent, preserving multiple roots and multiple children, and gives every node its own direct parentId", () => {
     const flat = [
       { id: "a", parentId: null, name: "A", type: null },
       { id: "b", parentId: "a", name: "B", type: null },
@@ -247,19 +248,101 @@ describe("buildLocationTree", () => {
         id: "a",
         name: "A",
         type: null,
+        parentId: null,
         children: [
-          { id: "b", name: "B", type: null, children: [] },
-          { id: "c", name: "C", type: null, children: [] },
+          { id: "b", name: "B", type: null, parentId: "a", children: [] },
+          { id: "c", name: "C", type: null, parentId: "a", children: [] },
         ],
       },
-      { id: "d", name: "D", type: null, children: [] },
+      { id: "d", name: "D", type: null, parentId: null, children: [] },
     ]);
   });
 
-  it("treats a location whose declared parent is not in the list as a root, rather than dropping it", () => {
+  it("gives a grandchild its own direct parent's id, not the root's", () => {
+    const flat = [
+      { id: "a", parentId: null, name: "A", type: null },
+      { id: "b", parentId: "a", name: "B", type: null },
+      { id: "c", parentId: "b", name: "C", type: null },
+    ];
+
+    const [a] = buildLocationTree(flat);
+    const [b] = a.children;
+    const [c] = b.children;
+    expect(a.parentId).toBeNull();
+    expect(b.parentId).toBe("a");
+    expect(c.parentId).toBe("b");
+  });
+
+  it("treats a location whose declared parent is not in the list as a root, rather than dropping it, with parentId null (matching where it actually sits in the returned tree)", () => {
     const flat = [{ id: "orphan", parentId: "missing-parent", name: "Orphan", type: null }];
 
-    expect(buildLocationTree(flat)).toEqual([{ id: "orphan", name: "Orphan", type: null, children: [] }]);
+    expect(buildLocationTree(flat)).toEqual([{ id: "orphan", name: "Orphan", type: null, parentId: null, children: [] }]);
+  });
+
+  it("never gives a node a parent-object reference or any circular structure -- parentId is always a plain scalar id or null", () => {
+    const flat = [
+      { id: "a", parentId: null, name: "A", type: null },
+      { id: "b", parentId: "a", name: "B", type: null },
+    ];
+    const [a] = buildLocationTree(flat);
+    const [b] = a.children;
+    expect(typeof b.parentId).toBe("string");
+    expect(b.parentId).not.toBe(a);
+    // A tree containing a real object reference back to a node's own parent could not be
+    // JSON round-tripped (a circular structure throws); this must always succeed.
+    expect(() => JSON.stringify(buildLocationTree(flat))).not.toThrow();
+  });
+});
+
+describe("subtreeIds", () => {
+  const TREE = [
+    {
+      id: "a", name: "A", type: null, parentId: null, children: [
+        {
+          id: "b", name: "B", type: null, parentId: "a", children: [
+            { id: "c", name: "C", type: null, parentId: "b", children: [] },
+          ],
+        },
+        { id: "d", name: "D", type: null, parentId: "a", children: [] },
+      ],
+    },
+    { id: "e", name: "E", type: null, parentId: null, children: [] },
+  ];
+
+  it("includes the room itself and every descendant, at arbitrary depth", () => {
+    const ids = subtreeIds(TREE, "a");
+    expect(ids).toEqual(new Set(["a", "b", "c", "d"]));
+  });
+
+  it("includes a deep (grandchild) descendant when starting from its own direct parent", () => {
+    const ids = subtreeIds(TREE, "b");
+    expect(ids).toEqual(new Set(["b", "c"]));
+  });
+
+  it("is just the room itself for a leaf with no children", () => {
+    expect(subtreeIds(TREE, "c")).toEqual(new Set(["c"]));
+    expect(subtreeIds(TREE, "e")).toEqual(new Set(["e"]));
+  });
+
+  it("does not include an unrelated sibling or root", () => {
+    const ids = subtreeIds(TREE, "b");
+    expect(ids.has("d")).toBe(false);
+    expect(ids.has("e")).toBe(false);
+    expect(ids.has("a")).toBe(false);
+  });
+
+  it("returns an empty set for an id not present in the tree, rather than throwing", () => {
+    expect(subtreeIds(TREE, "missing")).toEqual(new Set());
+  });
+
+  it("returns an empty set for an empty tree", () => {
+    expect(subtreeIds([], "a")).toEqual(new Set());
+  });
+
+  it("does not mutate the tree it was given", () => {
+    const before = JSON.stringify(TREE);
+    subtreeIds(TREE, "b");
+    expect(JSON.stringify(TREE)).toBe(before);
   });
 });
 
