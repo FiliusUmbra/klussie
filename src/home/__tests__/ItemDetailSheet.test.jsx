@@ -15,7 +15,7 @@
 // renderDetail() waits for both fetches to have actually been called and settled before
 // returning, so every test starts from a fully quiesced component.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
 vi.mock("../../lib/householdItems.js", () => ({
   moveAsset: vi.fn(() => Promise.resolve()),
@@ -468,7 +468,14 @@ describe("ItemDetailSheet — Move", () => {
     await waitFor(() => expect(moveAsset).toHaveBeenCalledWith("asset-1", null, "owner-1"));
   });
 
-  it("shows a real failure message and keeps the sheet open when the move fails", async () => {
+  // Real bug, found while building the Add Maintenance slice and fixed alongside this
+  // test: the error used to render as a JSX sibling AFTER the modal rather than inside
+  // it, which put it behind Modal's own fixed, full-viewport overlay -- present in the
+  // DOM (so a plain getByText here would have passed even with the bug) but never
+  // visible to the user for as long as the modal stayed open on a failure. Asserting the
+  // error is inside the open dialog is the structural proxy jsdom can check for "the
+  // user can actually see this."
+  it("shows a real failure message INSIDE the still-open move dialog, not behind it, and keeps the sheet open", async () => {
     moveAsset.mockRejectedValueOnce(new Error("insufficient_privilege"));
     const onClose = vi.fn();
     await renderDetail({ onClose });
@@ -476,8 +483,23 @@ describe("ItemDetailSheet — Move", () => {
     fireEvent.click(screen.getByText("Move to another room"));
     fireEvent.click(screen.getByText("Save"));
 
-    await waitFor(() => expect(screen.getByText("Couldn't move this item. Please try again.")).toBeTruthy());
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => expect(within(dialog).getByText("Couldn't move this item. Please try again.")).toBeTruthy());
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("clears a previous failure's error when the move dialog is reopened", async () => {
+    moveAsset.mockRejectedValueOnce(new Error("insufficient_privilege"));
+    await renderDetail();
+
+    fireEvent.click(screen.getByText("Move to another room"));
+    fireEvent.click(screen.getByText("Save"));
+    await waitFor(() => expect(screen.getByText("Couldn't move this item. Please try again.")).toBeTruthy());
+    fireEvent.click(screen.getByText("Cancel"));
+
+    fireEvent.click(screen.getByText("Move to another room"));
+
+    expect(screen.queryByText("Couldn't move this item. Please try again.")).toBeNull();
   });
 });
 
@@ -498,14 +520,18 @@ describe("ItemDetailSheet — Retire", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("shows a real failure message when retiring fails", async () => {
+  // Unlike Move's own equivalent (a real, separate bug fixed alongside this test),
+  // Retire's error was already rendered inside its own confirm dialog from the start --
+  // pinned structurally here rather than assumed.
+  it("shows a real failure message INSIDE the still-open retire dialog when retiring fails", async () => {
     retireAsset.mockRejectedValueOnce(new Error("boom"));
     await renderDetail();
 
     fireEvent.click(screen.getByText("Retire item"));
     fireEvent.click(screen.getAllByText("Retire item")[1]);
 
-    await waitFor(() => expect(screen.getByText("Couldn't retire this item. Please try again.")).toBeTruthy());
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => expect(within(dialog).getByText("Couldn't retire this item. Please try again.")).toBeTruthy());
   });
 });
 

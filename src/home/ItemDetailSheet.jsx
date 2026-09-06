@@ -163,7 +163,14 @@ function WarrantyLine({ t, fmtDate, warrantyExpiresOn }) {
   );
 }
 
-function MoveItemModal({ t, rooms, currentLocationId, busy, onCancel, onConfirm }) {
+// The error renders INSIDE the modal itself. It used to render as a sibling after
+// {showMove && <MoveItemModal/>} instead, which sits behind Modal's own fixed,
+// full-viewport overlay (z-index 60) and so was invisible for as long as the modal
+// stayed open on a failure (the modal does not close on failure, only `busy` resets) —
+// a real bug, found while building the Add Maintenance slice and fixed here. Matches
+// every modal built since (AddMaintenanceModal, CancelMaintenanceModal,
+// SuggestDetailsFields), which all rendered their own error correctly from the start.
+function MoveItemModal({ t, rooms, currentLocationId, busy, error, onCancel, onConfirm }) {
   const options = flattenLocationsForPicker(rooms || []);
   const [locationId, setLocationId] = useState(currentLocationId || "");
   return (
@@ -178,6 +185,7 @@ function MoveItemModal({ t, rooms, currentLocationId, busy, onCancel, onConfirm 
           ))}
         </select>
       </div>
+      {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 8 }}>{error}</div>}
       <div style={{ display: "flex", gap: 8 }}>
         <Button variant="secondary" onClick={onCancel} disabled={busy}>{t.cancelBtn}</Button>
         <Button variant="primary" onClick={() => onConfirm(locationId || null)} disabled={busy}>{t.itemDetailMoveSave}</Button>
@@ -190,9 +198,6 @@ function MoveItemModal({ t, rooms, currentLocationId, busy, onCancel, onConfirm 
 // not-null, 0072) — "someday" is not a real task Save can express, so the button stays
 // disabled until one is actually picked, the same honest-validation idiom canSaveItem()
 // already holds for a name.
-// The error renders INSIDE the modal itself, unlike MoveItemModal's own error (rendered
-// as a sibling after {showMove && <MoveItemModal/>}, which sits behind Modal's own fixed,
-// full-viewport overlay and so is invisible for as long as the modal stays open on a
 // failure) — a real, pre-existing placement bug, flagged separately rather than
 // replicated here or fixed as a drive-by in an unrelated PR.
 function AddMaintenanceModal({ t, busy, error, onCancel, onConfirm }) {
@@ -695,7 +700,7 @@ export function ItemDetailSheet({
       )}
 
       <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 8 }}>
-        <button type="button" className="btn-secondary" onClick={() => setShowMove(true)}>
+        <button type="button" className="btn-secondary" onClick={() => { setMoveError(""); setShowMove(true); }}>
           <ArrowLeftRight size={13} aria-hidden="true" /> {t.itemDetailMoveAction}
         </button>
         {onReportProblem && (
@@ -749,11 +754,11 @@ export function ItemDetailSheet({
           rooms={rooms}
           currentLocationId={item.locationId}
           busy={moveBusy}
+          error={moveError}
           onCancel={() => setShowMove(false)}
           onConfirm={confirmMove}
         />
       )}
-      {moveError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{moveError}</div>}
 
       {confirmRetire && (
         <Modal onClose={() => setConfirmRetire(false)}>
