@@ -245,6 +245,8 @@ something it depends on.
 | C35 | An unreadable file (wrong type, too large) shows a plain-language message and never reaches the AI, and any other failure shows the generic localized error, never a raw one | `ItemDetailSheet` *(automated)* |
 | C36 | Adding maintenance for an item requires a task name and a due date, creates one real obligation scoped to that item and workspace, and shows the generic localized error, never a raw one, on failure | `ItemDetailSheet` *(automated)* |
 | C37 | Marking a task done, or cancelling one with a required reason, calls the real contract, reflects the change immediately without closing the sheet, and shows the generic localized error, never a raw one, on failure | `ItemDetailSheet` *(automated)* |
+| C38 | Setting a recurring cadence (a plain-language picker, never free-form interval entry) creates a real schedule; a schedule with no open task yet shows its own "Stop future reminders" row, while one that already has an open task shows the action from that task's own row instead — never both, and never inferred from Mark done/Cancel task | `ItemDetailSheet` *(automated)* |
+| C39 | The nightly server-owned generation job (pg_cron, `work.run_maintenance_schedule_generation()`) creates exactly one obligation per due schedule per day, is idempotent across repeated real invocations (no duplicate due dates), and a schedule creation seeds its first occurrence immediately only when already due | `work.maintenance_schedules`/`work.maintenance_obligations` (migration 0205, live-verified on staging) |
 
 ### 5.5 · Professional
 

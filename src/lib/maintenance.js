@@ -127,3 +127,89 @@ export async function cancelMaintenanceObligation(obligationId, reason, actorRef
   });
   if (error) throw error;
 }
+
+/**
+ * Every recurring schedule for a workspace, active or cancelled
+ * (`api.my_maintenance_schedules()`, migration 0137) — the first real client caller of a
+ * contract that has existed since WP 1.2 with none named. Mirrors
+ * fetchMaintenanceObligations()'s own "never throws" idiom: a caller with no real
+ * membership sees an empty list, and so does any other failure.
+ */
+export async function fetchMaintenanceSchedules(workspaceId) {
+  if (!workspaceId) return [];
+  try {
+    const { data, error } = await supabase.schema("api").rpc("my_maintenance_schedules", { p_workspace_id: workspaceId });
+    if (error) {
+      console.warn("maintenance schedules unavailable, continuing without them:", error.message);
+      return [];
+    }
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      assetId: row.asset_id,
+      locationId: row.location_id,
+      title: row.title,
+      description: row.description,
+      recurrence: row.recurrence,
+      nextDueOn: row.next_due_on,
+      active: row.active,
+    }));
+  } catch (err) {
+    console.warn("maintenance schedules unavailable, continuing without them:", err.message);
+    return [];
+  }
+}
+
+/**
+ * Creates a recurring maintenance schedule for an asset (`api.create_maintenance_
+ * schedule()`, Recurring Maintenance Activation slice) — the first real client caller.
+ * `recurrence` is a plain interval literal Postgres already understands ("1 month",
+ * "3 months", "6 months", "1 year") — the UI's own cadence chips map directly to these,
+ * never a count-and-unit pair this function would have to interpret itself.
+ *
+ * Always mints a seed-obligation id, even though it goes unused whenever `firstDueOn`
+ * is still in the future: the server decides whether to actually use it (only when the
+ * first occurrence is already due), but the id itself must come from the application
+ * for the same reason every other real write in this codebase does (see
+ * api/suggest-item-details.js's own header for the general rule; the nightly generation
+ * job that produces every LATER occurrence is a different, system-initiated case,
+ * documented in migration 0205's own header, and is not this function's concern).
+ */
+export async function createMaintenanceSchedule({ workspaceId, assetId, actorRef, title, description, recurrence, firstDueOn }) {
+  const { error } = await supabase.schema("api").rpc("create_maintenance_schedule", {
+    p_schedule_id: uuidv7(),
+    p_workspace_id: workspaceId,
+    p_asset_id: assetId,
+    p_location_id: null,
+    p_title: title,
+    p_description: description || null,
+    p_recurrence: recurrence,
+    p_first_due_on: firstDueOn,
+    p_seed_obligation_id: uuidv7(),
+    p_schedule_event_id: uuidv7(),
+    p_seed_obligation_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
+}
+
+/**
+ * Stops a recurring schedule from generating any further obligation
+ * (`api.cancel_maintenance_schedule()`, Recurring Maintenance Activation slice) —
+ * "stop future reminders," a real, separate action from cancelling one occurrence
+ * (cancelMaintenanceObligation() above). Never touches any obligation the schedule has
+ * already generated, and is a one-way transition — cancelling an already-cancelled
+ * schedule is a real error, not a silent no-op (work.cancel_maintenance_schedule()'s own
+ * comment, 0074).
+ */
+export async function cancelMaintenanceSchedule(scheduleId, actorRef) {
+  const { error } = await supabase.schema("api").rpc("cancel_maintenance_schedule", {
+    p_schedule_id: scheduleId,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: actorRef,
+  });
+  if (error) throw error;
+}

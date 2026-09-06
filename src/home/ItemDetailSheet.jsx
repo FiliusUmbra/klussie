@@ -34,7 +34,7 @@
 // until a later slice teaches intake to ask "which item is this about" — that is correct
 // behaviour for what has actually happened, not a bug to hide.
 import { useEffect, useState } from "react";
-import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight, Sparkles, Check, X } from "lucide-react";
+import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight, Sparkles, Check, X, BellOff, Repeat } from "lucide-react";
 import { Drawer, Modal, Button, Badge } from "../design-system";
 import { DocumentRowContent } from "./panelParts.jsx";
 import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
@@ -42,7 +42,10 @@ import { fetchDocumentsForAsset, getDocumentUrl } from "../lib/documents.js";
 import { fetchServiceRecordsForAsset } from "../lib/serviceRecords.js";
 import { moveAsset, retireAsset, updateAsset } from "../lib/householdItems.js";
 import { askAboutItem } from "../lib/askAboutItem.js";
-import { createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation } from "../lib/maintenance.js";
+import {
+  createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation,
+  fetchMaintenanceSchedules, createMaintenanceSchedule, cancelMaintenanceSchedule,
+} from "../lib/maintenance.js";
 import { suggestItemDetailsFromDocument, DOCUMENT_UNREADABLE } from "../lib/documentUnderstanding.js";
 import { flattenLocationsForPicker, resolveItemRoomName } from "../lib/homeInventory.js";
 import { interpolate } from "../lib/homeStrings.js";
@@ -198,16 +201,38 @@ function MoveItemModal({ t, rooms, currentLocationId, busy, error, onCancel, onC
 // not-null, 0072) — "someday" is not a real task Save can express, so the button stays
 // disabled until one is actually picked, the same honest-validation idiom canSaveItem()
 // already holds for a name.
-// failure) — a real, pre-existing placement bug, flagged separately rather than
-// replicated here or fixed as a drive-by in an unrelated PR.
-function AddMaintenanceModal({ t, busy, error, onCancel, onConfirm }) {
+//
+// Recurring Maintenance Activation slice — a plain-language cadence picker (Monthly /
+// Every 3 months / Every 6 months / Yearly), never free-form interval entry. Postgres
+// date+interval arithmetic does not clamp to month-end (2025-01-31 + 1 month lands on
+// 2025-03-03, not 2025-02-28) — a real, documented behaviour a closed set of common
+// cadences sidesteps rather than needing to explain in the UI.
+const RECURRENCE_OPTIONS = [
+  { value: "1 month", labelKey: "itemDetailScheduleCadenceMonthly" },
+  { value: "3 months", labelKey: "itemDetailScheduleCadenceEvery3Months" },
+  { value: "6 months", labelKey: "itemDetailScheduleCadenceEvery6Months" },
+  { value: "1 year", labelKey: "itemDetailScheduleCadenceYearly" },
+];
+
+function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfirmRecurring }) {
+  const [mode, setMode] = useState("once"); // "once" | "recurring"
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueOn, setDueOn] = useState("");
+  const [recurrence, setRecurrence] = useState(RECURRENCE_OPTIONS[1].value);
   const canSave = !!title.trim() && !!dueOn;
   return (
     <Modal onClose={onCancel}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailAddMaintenanceAction}</div>
+      <div className="chiprow" style={{ marginBottom: 14 }}>
+        <button type="button" className={"chip" + (mode === "once" ? " chip-on" : "")} onClick={() => setMode("once")}>
+          {t.itemDetailScheduleModeOnce}
+        </button>
+        <button type="button" className={"chip" + (mode === "recurring" ? " chip-on" : "")} onClick={() => setMode("recurring")}>
+          {t.itemDetailScheduleModeRecurring}
+        </button>
+      </div>
+
       <label className="field-label" htmlFor="maintenance-title">{t.itemDetailAddMaintenanceTitleLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
         <input
@@ -221,20 +246,65 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirm }) {
       <div className="search" style={{ marginBottom: 14 }}>
         <input id="maintenance-description" value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
-      <label className="field-label" htmlFor="maintenance-due">{t.itemDetailAddMaintenanceDueLabel}</label>
+
+      <label className="field-label" htmlFor="maintenance-due">
+        {mode === "once" ? t.itemDetailAddMaintenanceDueLabel : t.itemDetailScheduleStartsOnLabel}
+      </label>
       <div className="search" style={{ marginBottom: 14 }}>
         <input id="maintenance-due" type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} />
       </div>
+
+      {mode === "recurring" && (
+        <>
+          <label className="field-label">{t.itemDetailScheduleCadenceLabel}</label>
+          <div className="chiprow" style={{ marginBottom: 14 }}>
+            {RECURRENCE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={"chip" + (recurrence === opt.value ? " chip-on" : "")}
+                onClick={() => setRecurrence(opt.value)}
+              >
+                {t[opt.labelKey]}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 8 }}>{error}</div>}
       <div style={{ display: "flex", gap: 8 }}>
         <Button variant="secondary" onClick={onCancel} disabled={busy}>{t.cancelBtn}</Button>
         <Button
           variant="primary"
           disabled={busy || !canSave}
-          onClick={() => onConfirm({ title: title.trim(), description: description.trim(), dueOn })}
+          onClick={() => {
+            const payload = { title: title.trim(), description: description.trim() };
+            if (mode === "once") onConfirmOnce({ ...payload, dueOn });
+            else onConfirmRecurring({ ...payload, firstDueOn: dueOn, recurrence });
+          }}
         >
           {t.itemDetailAddMaintenanceSave}
         </Button>
+      </div>
+    </Modal>
+  );
+}
+
+// "Stop future reminders" — a real, separate action from cancelling one task
+// (CancelMaintenanceModal above): it only ever touches the schedule, never any
+// obligation the schedule has already generated. A confirm step, matching the
+// weight RetireConfirm already gives a one-way action — cancelling a schedule cannot
+// be undone (work.cancel_maintenance_schedule()'s own comment, 0074).
+function StopScheduleModal({ t, busy, error, onCancel, onConfirm }) {
+  return (
+    <Modal onClose={onCancel}>
+      <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailScheduleStopAction}</div>
+      <p style={{ marginTop: 8 }}>{t.itemDetailScheduleStopConfirm}</p>
+      {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{error}</div>}
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <Button variant="secondary" onClick={onCancel} disabled={busy}>{t.cancelBtn}</Button>
+        <Button variant="primary" onClick={onConfirm} disabled={busy}>{t.itemDetailScheduleStopAction}</Button>
       </div>
     </Modal>
   );
@@ -291,6 +361,17 @@ export function ItemDetailSheet({
   const [addMaintenanceBusy, setAddMaintenanceBusy] = useState(false);
   const [addMaintenanceError, setAddMaintenanceError] = useState("");
 
+  // Recurring Maintenance Activation slice. Unlike `maintenance` (a prop the parent
+  // fetches once for the whole workspace), schedules are this component's own local
+  // state -- the same fetch-and-refresh-in-place pattern documents already use --
+  // because "stop future reminders" needs to update in place without closing the sheet
+  // (see maintenanceOverrides' own comment below for why that matters), and a schedule
+  // with no obligation generated yet has nothing else to be shown by.
+  const [schedules, setSchedules] = useState(null);
+  const [stoppingScheduleId, setStoppingScheduleId] = useState(null);
+  const [scheduleActionBusy, setScheduleActionBusy] = useState(false);
+  const [scheduleActionError, setScheduleActionError] = useState("");
+
   // Maintenance resolution slice. Unlike Move/Retire/Add (which close the whole sheet on
   // success, since `maintenance` is a prop the parent fetches once for the workspace),
   // marking several tasks done or cancelled in one visit is a real, repeatable action --
@@ -309,6 +390,15 @@ export function ItemDetailSheet({
   const itemMaintenance = (maintenance || [])
     .filter((m) => m.assetId === item.id)
     .map((m) => (maintenanceOverrides[m.id] ? { ...m, ...maintenanceOverrides[m.id] } : m));
+
+  // Recurring Maintenance Activation slice. A schedule whose next occurrence is already
+  // an open obligation is represented by that row's own "Stop future reminders" action
+  // (below) -- listed here only once it has NO open obligation yet, so a recurring task
+  // never appears twice in one section.
+  const itemSchedules = (schedules || []).filter((s) => s.assetId === item.id);
+  const upcomingSchedules = itemSchedules.filter(
+    (s) => s.active && !itemMaintenance.some((m) => m.status === "open" && m.scheduleId === s.id)
+  );
 
   // Document Understanding slice. suggestDoc is which document row triggered this (null
   // = modal closed); suggestions stays null while loading or after a load failure, so
@@ -338,8 +428,14 @@ export function ItemDetailSheet({
     let cancelled = false;
     fetchDocumentsForAsset(item.id).then((docs) => { if (!cancelled) setDocuments(docs); });
     fetchServiceRecordsForAsset(workspaceId, item.id).then((records) => { if (!cancelled) setHistory(records); });
+    fetchMaintenanceSchedules(workspaceId).then((rows) => { if (!cancelled) setSchedules(rows); });
     return () => { cancelled = true; };
   }, [item.id, workspaceId]);
+
+  const refreshSchedules = async () => {
+    const rows = await fetchMaintenanceSchedules(workspaceId);
+    setSchedules(rows);
+  };
 
   const refreshDocuments = async () => {
     const docs = await fetchDocumentsForAsset(item.id);
@@ -438,8 +534,12 @@ export function ItemDetailSheet({
   // Closes the whole detail sheet on success, same reasoning as confirmMove() above --
   // unlike documents (its own local state, refreshed in place by refreshDocuments()),
   // `maintenance` is a prop the parent fetches once for the whole workspace and passes
-  // down; there is no "refresh just this one list" call to make from here.
-  const confirmAddMaintenance = async ({ title, description, dueOn }) => {
+  // down; there is no "refresh just this one list" call to make from here. A recurring
+  // schedule's own seeded first occurrence (if any) lands in that same parent-owned
+  // list, so closing and letting the caller re-fetch is the only way both the schedule
+  // fact and its first task are ever shown consistently, together, rather than only the
+  // schedule appearing via schedules' own local refresh while its task stays invisible.
+  const confirmAddMaintenanceOnce = async ({ title, description, dueOn }) => {
     setAddMaintenanceError("");
     setAddMaintenanceBusy(true);
     try {
@@ -449,6 +549,43 @@ export function ItemDetailSheet({
     } catch {
       setAddMaintenanceError(t.itemDetailAddMaintenanceFailed);
       setAddMaintenanceBusy(false);
+    }
+  };
+
+  const confirmAddMaintenanceRecurring = async ({ title, description, firstDueOn, recurrence }) => {
+    setAddMaintenanceError("");
+    setAddMaintenanceBusy(true);
+    try {
+      await createMaintenanceSchedule({ workspaceId, assetId: item.id, actorRef, title, description, recurrence, firstDueOn });
+      await onSaved();
+      onClose();
+    } catch {
+      setAddMaintenanceError(t.itemDetailAddMaintenanceFailed);
+      setAddMaintenanceBusy(false);
+    }
+  };
+
+  // Stays open on success -- schedules are this component's own local state (see their
+  // own declaration above for why), so "stop future reminders" can refresh in place the
+  // same way documents already do, rather than needing the whole-sheet-close workaround
+  // creation above still needs.
+  const openStopSchedulePrompt = (scheduleId) => {
+    setScheduleActionError("");
+    setStoppingScheduleId(scheduleId);
+  };
+
+  const confirmStopSchedule = async () => {
+    setScheduleActionError("");
+    setScheduleActionBusy(true);
+    try {
+      await cancelMaintenanceSchedule(stoppingScheduleId, actorRef);
+      await refreshSchedules();
+      setStoppingScheduleId(null);
+      onSaved();
+    } catch {
+      setScheduleActionError(t.itemDetailScheduleStopFailed);
+    } finally {
+      setScheduleActionBusy(false);
     }
   };
 
@@ -620,9 +757,9 @@ export function ItemDetailSheet({
       <label className="field-label">{t.myItemsMaintenanceTitle}</label>
       {maintenance === null || maintenance === undefined ? (
         <p className="home-group-empty">{t.myItemsLoading}</p>
-      ) : itemMaintenance.length === 0 ? (
+      ) : itemMaintenance.length === 0 && upcomingSchedules.length === 0 ? (
         <p className="home-group-empty">{t.myItemsMaintenanceEmpty}</p>
-      ) : (
+      ) : itemMaintenance.length > 0 ? (
         <ul className="maintenance-list">
           {itemMaintenance.map((row) => (
             <li key={row.id} className="maintenance-row-item">
@@ -656,6 +793,21 @@ export function ItemDetailSheet({
                   >
                     <X size={13} aria-hidden="true" /> {t.itemDetailMaintenanceCancelTask}
                   </button>
+                  {/* Only once schedules have actually loaded, and only while the
+                      schedule behind this task is still active -- "mark done"/"cancel
+                      task" never imply anything about the recurring rule itself, and a
+                      schedule already stopped by an earlier action has nothing left to
+                      stop. */}
+                  {row.scheduleId && itemSchedules.find((s) => s.id === row.scheduleId)?.active && (
+                    <button
+                      type="button"
+                      className="maintenance-row-action"
+                      disabled={resolveBusyId === row.id}
+                      onClick={() => openStopSchedulePrompt(row.scheduleId)}
+                    >
+                      <BellOff size={13} aria-hidden="true" /> {t.itemDetailScheduleStopAction}
+                    </button>
+                  )}
                 </div>
               ) : row.status === "completed" ? (
                 <Badge tone="sage">{t.itemDetailMaintenanceCompleted}</Badge>
@@ -667,8 +819,33 @@ export function ItemDetailSheet({
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
       {resolveError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{resolveError}</div>}
+
+      {/* Recurring Maintenance Activation slice — a schedule whose next occurrence
+          isn't due yet has no obligation row to show its own "Stop future reminders"
+          action from, so it gets its own short line here instead. */}
+      {upcomingSchedules.length > 0 && (
+        <ul className="maintenance-list" style={{ marginTop: itemMaintenance.length > 0 ? 8 : 0 }}>
+          {upcomingSchedules.map((schedule) => (
+            <li key={schedule.id} className="maintenance-row-item">
+              <div className="maintenance-row">
+                <span className="maintenance-row-title">
+                  <Repeat size={12} aria-hidden="true" style={{ marginRight: 4, verticalAlign: "-1px" }} />
+                  {schedule.title}
+                </span>
+                <span className="maintenance-row-due">{interpolate(t.myItemsMaintenanceDueOn, { date: fmtDate(schedule.nextDueOn) })}</span>
+              </div>
+              <div className="maintenance-row-actions">
+                <button type="button" className="maintenance-row-action" onClick={() => openStopSchedulePrompt(schedule.id)}>
+                  <BellOff size={13} aria-hidden="true" /> {t.itemDetailScheduleStopAction}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <button type="button" className="home-panel-action" style={{ marginTop: 10, marginBottom: 18 }} onClick={() => setShowAddMaintenance(true)}>
         <Plus size={15} aria-hidden="true" /> {t.itemDetailAddMaintenanceAction}
       </button>
@@ -744,7 +921,18 @@ export function ItemDetailSheet({
           busy={addMaintenanceBusy}
           error={addMaintenanceError}
           onCancel={() => setShowAddMaintenance(false)}
-          onConfirm={confirmAddMaintenance}
+          onConfirmOnce={confirmAddMaintenanceOnce}
+          onConfirmRecurring={confirmAddMaintenanceRecurring}
+        />
+      )}
+
+      {stoppingScheduleId && (
+        <StopScheduleModal
+          t={t}
+          busy={scheduleActionBusy}
+          error={scheduleActionError}
+          onCancel={() => setStoppingScheduleId(null)}
+          onConfirm={confirmStopSchedule}
         />
       )}
 

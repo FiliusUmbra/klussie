@@ -26,6 +26,9 @@ vi.mock("../../lib/maintenance.js", () => ({
   createMaintenanceObligation: vi.fn(() => Promise.resolve()),
   completeMaintenanceObligation: vi.fn(() => Promise.resolve()),
   cancelMaintenanceObligation: vi.fn(() => Promise.resolve()),
+  fetchMaintenanceSchedules: vi.fn(() => Promise.resolve([])),
+  createMaintenanceSchedule: vi.fn(() => Promise.resolve()),
+  cancelMaintenanceSchedule: vi.fn(() => Promise.resolve()),
 }));
 vi.mock("../../lib/documentUnderstanding.js", () => ({
   suggestItemDetailsFromDocument: vi.fn(() => Promise.resolve({ suggestions: {} })),
@@ -51,7 +54,10 @@ import { moveAsset, retireAsset, updateAsset } from "../../lib/householdItems.js
 import { fetchDocumentsForAsset, getDocumentUrl } from "../../lib/documents.js";
 import { fetchServiceRecordsForAsset } from "../../lib/serviceRecords.js";
 import { askAboutItem } from "../../lib/askAboutItem.js";
-import { createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation } from "../../lib/maintenance.js";
+import {
+  createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation,
+  fetchMaintenanceSchedules, createMaintenanceSchedule, cancelMaintenanceSchedule,
+} from "../../lib/maintenance.js";
 import { suggestItemDetailsFromDocument } from "../../lib/documentUnderstanding.js";
 import { ItemDetailSheet } from "../ItemDetailSheet.jsx";
 
@@ -83,6 +89,13 @@ const t = {
   itemDetailMaintenanceCancelReasonPlaceholder: "e.g. No longer needed",
   itemDetailMaintenanceCompleted: "Completed", itemDetailMaintenanceCancelledReason: "Cancelled: {reason}",
   itemDetailMaintenanceActionFailed: "Couldn't update this task. Please try again.",
+  itemDetailScheduleModeOnce: "One-time", itemDetailScheduleModeRecurring: "Recurring",
+  itemDetailScheduleStartsOnLabel: "Starts on", itemDetailScheduleCadenceLabel: "Repeats",
+  itemDetailScheduleCadenceMonthly: "Monthly", itemDetailScheduleCadenceEvery3Months: "Every 3 months",
+  itemDetailScheduleCadenceEvery6Months: "Every 6 months", itemDetailScheduleCadenceYearly: "Yearly",
+  itemDetailScheduleStopAction: "Stop future reminders",
+  itemDetailScheduleStopConfirm: "Stop future reminders for this task? It won't be scheduled again, but anything already due stays as is.",
+  itemDetailScheduleStopFailed: "Couldn't stop future reminders. Please try again.",
   itemDetailHistoryTitle: "History", itemDetailHistoryEmpty: "No completed work recorded for this item yet.",
   itemDetailEditAction: "Edit details",
   itemDetailMoveAction: "Move to another room", itemDetailMoveTitle: "Move item", itemDetailMoveSave: "Save",
@@ -129,8 +142,13 @@ async function renderDetail(props = {}) {
   await waitFor(() => {
     expect(fetchDocumentsForAsset).toHaveBeenCalled();
     expect(fetchServiceRecordsForAsset).toHaveBeenCalled();
+    // Recurring Maintenance Activation slice — a third fetch joined the same initial
+    // effect; the exact class of omission that produced this file's own act() bug
+    // before (see below) is trivial to reintroduce by forgetting to wait for a newly
+    // added fetch here too.
+    expect(fetchMaintenanceSchedules).toHaveBeenCalled();
   });
-  // The two fetches above resolve immediately (mocked), but their own .then(setState)
+  // The fetches above resolve immediately (mocked), but their own .then(setState)
   // still lands on a later microtask than the assertion above — one more real await
   // (not a bare Promise.resolve()) gives React's own scheduler room to flush it before
   // the test starts interacting, which is the actual fix for the cross-test act()
@@ -263,6 +281,7 @@ describe("ItemDetailSheet — Maintenance (filtered from the already-fetched wor
     await waitFor(() => {
       expect(fetchDocumentsForAsset).toHaveBeenCalled();
       expect(fetchServiceRecordsForAsset).toHaveBeenCalled();
+      expect(fetchMaintenanceSchedules).toHaveBeenCalled();
     });
     expect(screen.getByText("Loading…")).toBeTruthy();
   });
@@ -328,6 +347,144 @@ describe("ItemDetailSheet — Add maintenance", () => {
     await waitFor(() => expect(screen.getByText("Couldn't save this task. Please try again.")).toBeTruthy());
     expect(screen.queryByText("insufficient_privilege")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+// Recurring Maintenance Activation slice.
+describe("ItemDetailSheet — Recurring maintenance", () => {
+  it("defaults to One-time; switching to Recurring swaps the due-date label and reveals a cadence picker", async () => {
+    await renderDetail();
+    fireEvent.click(screen.getByText("Add maintenance"));
+
+    expect(screen.getByText("Due date")).toBeTruthy();
+    expect(screen.queryByText("Repeats")).toBeNull();
+
+    fireEvent.click(screen.getByText("Recurring"));
+
+    expect(screen.getByText("Starts on")).toBeTruthy();
+    expect(screen.getByText("Repeats")).toBeTruthy();
+    expect(screen.getByText("Every 3 months")).toBeTruthy();
+  });
+
+  it("creates a real schedule with the chosen cadence, scoped to this item and workspace, then closes", async () => {
+    const onSaved = vi.fn(() => Promise.resolve());
+    const onClose = vi.fn();
+    await renderDetail({ onSaved, onClose });
+
+    fireEvent.click(screen.getByText("Add maintenance"));
+    fireEvent.click(screen.getByText("Recurring"));
+    fireEvent.change(screen.getByPlaceholderText("e.g. Descale the machine"), { target: { value: "Descale the machine" } });
+    fireEvent.change(screen.getByLabelText("Starts on"), { target: { value: "2026-12-01" } });
+    fireEvent.click(screen.getByText("Every 6 months"));
+    fireEvent.click(screen.getByText("Save"));
+
+    await waitFor(() => expect(createMaintenanceSchedule).toHaveBeenCalledWith({
+      workspaceId: "ws-1", assetId: "asset-1", actorRef: "owner-1",
+      title: "Descale the machine", description: "", recurrence: "6 months", firstDueOn: "2026-12-01",
+    }));
+    expect(onSaved).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("shows an upcoming schedule with no open task yet, offering only Stop future reminders", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2026-12-01", active: true },
+    ]);
+    await renderDetail();
+
+    await waitFor(() => expect(screen.getByText("Descale the machine")).toBeTruthy());
+    expect(screen.getByText("Due 2026-12-01")).toBeTruthy();
+    expect(screen.getByText("Stop future reminders")).toBeTruthy();
+    expect(screen.queryByText("Mark done")).toBeNull();
+  });
+
+  it("does not show an upcoming-schedule row for a schedule that already has an open task -- that task's own row carries the action instead", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2027-03-01", active: true },
+    ]);
+    const openRow = { id: "m-1", assetId: "asset-1", scheduleId: "sch-1", title: "Descale the machine", status: "open", dueOn: "2026-12-01", isOverdue: false };
+    await renderDetail({ maintenance: [openRow] });
+
+    await waitFor(() => expect(screen.getAllByText("Descale the machine")).toHaveLength(1));
+    expect(screen.getByText("Mark done")).toBeTruthy();
+    expect(screen.getByText("Stop future reminders")).toBeTruthy();
+  });
+
+  it("an open task from a schedule already stopped shows no Stop future reminders action", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2027-03-01", active: false },
+    ]);
+    const openRow = { id: "m-1", assetId: "asset-1", scheduleId: "sch-1", title: "Descale the machine", status: "open", dueOn: "2026-12-01", isOverdue: false };
+    await renderDetail({ maintenance: [openRow] });
+
+    await waitFor(() => expect(screen.getByText("Mark done")).toBeTruthy());
+    expect(screen.queryByText("Stop future reminders")).toBeNull();
+  });
+
+  it("stopping future reminders from an open task's own row calls the real RPC and refreshes in place, without closing the sheet", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2027-03-01", active: true },
+    ]);
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2027-03-01", active: false },
+    ]);
+    const openRow = { id: "m-1", assetId: "asset-1", scheduleId: "sch-1", title: "Descale the machine", status: "open", dueOn: "2026-12-01", isOverdue: false };
+    const onClose = vi.fn();
+    await renderDetail({ maintenance: [openRow], onClose });
+
+    await waitFor(() => expect(screen.getByText("Stop future reminders")).toBeTruthy());
+    fireEvent.click(screen.getByText("Stop future reminders"));
+    fireEvent.click(screen.getAllByText("Stop future reminders").at(-1));
+
+    await waitFor(() => expect(cancelMaintenanceSchedule).toHaveBeenCalledWith("sch-1", "owner-1"));
+    await waitFor(() => expect(screen.queryByText("Stop future reminders")).toBeNull());
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("stopping future reminders from an upcoming schedule's own row removes that row once confirmed", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2026-12-01", active: true },
+    ]);
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2026-12-01", active: false },
+    ]);
+    await renderDetail();
+
+    await waitFor(() => expect(screen.getByText("Descale the machine")).toBeTruthy());
+    fireEvent.click(screen.getByText("Stop future reminders"));
+    fireEvent.click(screen.getAllByText("Stop future reminders").at(-1));
+
+    await waitFor(() => expect(cancelMaintenanceSchedule).toHaveBeenCalledWith("sch-1", "owner-1"));
+    await waitFor(() => expect(screen.queryByText("Descale the machine")).toBeNull());
+  });
+
+  it("dismissing the stop prompt never calls cancelMaintenanceSchedule", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2026-12-01", active: true },
+    ]);
+    await renderDetail();
+    await waitFor(() => expect(screen.getByText("Descale the machine")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("Stop future reminders"));
+    fireEvent.click(screen.getByText("Cancel"));
+
+    expect(cancelMaintenanceSchedule).not.toHaveBeenCalled();
+    expect(screen.getByText("Descale the machine")).toBeTruthy();
+  });
+
+  it("shows the generic localized error, never a raw one, when stopping fails", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2026-12-01", active: true },
+    ]);
+    cancelMaintenanceSchedule.mockRejectedValueOnce(new Error("schedule does not exist or is already cancelled"));
+    await renderDetail();
+    await waitFor(() => expect(screen.getByText("Descale the machine")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("Stop future reminders"));
+    fireEvent.click(screen.getAllByText("Stop future reminders").at(-1));
+
+    await waitFor(() => expect(screen.getByText("Couldn't stop future reminders. Please try again.")).toBeTruthy());
+    expect(screen.queryByText("schedule does not exist or is already cancelled")).toBeNull();
   });
 });
 

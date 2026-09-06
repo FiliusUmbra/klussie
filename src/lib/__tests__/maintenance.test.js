@@ -11,7 +11,10 @@ vi.mock("../supabaseClient", () => ({
   },
 }));
 
-import { fetchMaintenanceObligations, createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation } from "../maintenance.js";
+import {
+  fetchMaintenanceObligations, createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation,
+  fetchMaintenanceSchedules, createMaintenanceSchedule, cancelMaintenanceSchedule,
+} from "../maintenance.js";
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-000000000020";
 
@@ -211,5 +214,109 @@ describe("cancelMaintenanceObligation", () => {
     apiRpc.mockResolvedValue({ error: { message: "insufficient_privilege" } });
 
     await expect(cancelMaintenanceObligation("ob-1", "No longer needed", "owner-1")).rejects.toThrow("insufficient_privilege");
+  });
+});
+
+// Recurring Maintenance Activation slice — the first real client callers of
+// api.my_maintenance_schedules() (0137)/api.create_maintenance_schedule()/
+// api.cancel_maintenance_schedule() (0205).
+describe("fetchMaintenanceSchedules", () => {
+  const SCHEDULE_ROW = {
+    id: "sch-1", asset_id: "asset-1", location_id: null, title: "Descale the machine",
+    description: "Every 3 months.", recurrence: "3 mons", next_due_on: "2026-12-01", active: true,
+  };
+
+  it("returns an empty list without calling the api for a null workspace id", async () => {
+    const rows = await fetchMaintenanceSchedules(null);
+
+    expect(rows).toEqual([]);
+    expect(apiRpc).not.toHaveBeenCalled();
+  });
+
+  it("reshapes rows to camelCase", async () => {
+    apiRpc.mockResolvedValue({ data: [SCHEDULE_ROW], error: null });
+
+    const rows = await fetchMaintenanceSchedules(WORKSPACE_ID);
+
+    expect(rows).toEqual([{
+      id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine",
+      description: "Every 3 months.", recurrence: "3 mons", nextDueOn: "2026-12-01", active: true,
+    }]);
+  });
+
+  it("returns an empty list, never throwing, on an rpc error", async () => {
+    apiRpc.mockResolvedValue({ data: null, error: { message: "permission denied" } });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const rows = await fetchMaintenanceSchedules(WORKSPACE_ID);
+
+    expect(rows).toEqual([]);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe("createMaintenanceSchedule", () => {
+  it("calls the api schema's delegate with the recurrence as a plain interval literal", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await createMaintenanceSchedule({
+      workspaceId: WORKSPACE_ID, assetId: "asset-1", actorRef: "owner-1",
+      title: "Descale the machine", description: "Every 3 months.", recurrence: "3 months", firstDueOn: "2026-12-01",
+    });
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "create_maintenance_schedule", expect.objectContaining({
+      p_workspace_id: WORKSPACE_ID, p_asset_id: "asset-1", p_location_id: null,
+      p_title: "Descale the machine", p_description: "Every 3 months.",
+      p_recurrence: "3 months", p_first_due_on: "2026-12-01",
+      p_actor_type: "person", p_actor_ref: "owner-1",
+    }));
+  });
+
+  it("always mints a real seed-obligation id, even though the server decides whether to use it", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await createMaintenanceSchedule({
+      workspaceId: WORKSPACE_ID, assetId: "asset-1", actorRef: "owner-1",
+      title: "Descale", recurrence: "1 month", firstDueOn: "2099-01-01",
+    });
+
+    const call = apiRpc.mock.calls.find(([, name]) => name === "create_maintenance_schedule");
+    expect(typeof call[2].p_seed_obligation_id).toBe("string");
+    expect(call[2].p_seed_obligation_id.length).toBeGreaterThan(0);
+  });
+
+  it("sends null, not an empty string, when no description is given", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await createMaintenanceSchedule({ workspaceId: WORKSPACE_ID, assetId: "asset-1", actorRef: "owner-1", title: "Descale", recurrence: "1 month", firstDueOn: "2026-12-01" });
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "create_maintenance_schedule", expect.objectContaining({ p_description: null }));
+  });
+
+  it("throws the real error rather than swallowing it -- a write, not a read", async () => {
+    apiRpc.mockResolvedValue({ error: { message: "insufficient_privilege" } });
+
+    await expect(createMaintenanceSchedule({
+      workspaceId: WORKSPACE_ID, assetId: "asset-1", actorRef: "owner-1", title: "Descale", recurrence: "1 month", firstDueOn: "2026-12-01",
+    })).rejects.toThrow("insufficient_privilege");
+  });
+});
+
+describe("cancelMaintenanceSchedule", () => {
+  it("calls the api schema's delegate with the schedule id and actor ref -- 'stop future reminders,' never an obligation call", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await cancelMaintenanceSchedule("sch-1", "owner-1");
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "cancel_maintenance_schedule", expect.objectContaining({
+      p_schedule_id: "sch-1", p_actor_type: "person", p_actor_ref: "owner-1",
+    }));
+  });
+
+  it("throws the real error rather than swallowing it -- a write, not a read", async () => {
+    apiRpc.mockResolvedValue({ error: { message: "schedule does not exist or is already cancelled" } });
+
+    await expect(cancelMaintenanceSchedule("sch-1", "owner-1")).rejects.toThrow("schedule does not exist or is already cancelled");
   });
 });
