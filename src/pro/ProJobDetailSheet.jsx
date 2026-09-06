@@ -106,9 +106,15 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
           )}
           {twin.documents.length > 0 && (
             <TwinSection icon={FileText} label={t.twinDocumentsLabel}>
+              {/* Found live during a UX review, 2026-09-06: two real documents both fell
+                  back to this same bare type label ("Warranty", "Warranty"), genuinely
+                  indistinguishable — see panelParts.jsx's own DocumentRowContent for the
+                  identical fix on the customer's own side. api.my_documents() (fetched
+                  by fetchPropertyTwin(), above) already returns d.issuer. */}
               {twin.documents.map((d) => {
                 const labelKey = documentTypeLabelKey(d.type_key);
-                return <div key={d.id} className="ticket-sub">{labelKey ? t[labelKey] : d.type_key}</div>;
+                const label = labelKey ? t[labelKey] : d.type_key;
+                return <div key={d.id} className="ticket-sub">{d.issuer ? `${label} — ${d.issuer}` : label}</div>;
               })}
             </TwinSection>
           )}
