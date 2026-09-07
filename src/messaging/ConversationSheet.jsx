@@ -20,6 +20,20 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   const [draft, setDraft] = useState("");
   const [showOriginalFor, setShowOriginalFor] = useState(() => new Set());
   const translatingRef = useRef(new Set());
+  const scrollRef = useRef(null);
+
+  // Found live during a UX review, 2026-09-07: nothing here ever scrolled .chat-scroll
+  // at all. A conversation with enough history to need scrolling opened showing the
+  // OLDEST messages, not the most recent exchange, and sending a message while
+  // scrolled up left that new message off-screen -- the sender's own words, invisible
+  // without a manual scroll. Runs on every `messages` change (open, send, receive, and
+  // a translation landing on an old message) rather than only "new" ones -- this
+  // codebase already re-fetches and re-renders the whole list on any of those (refresh()
+  // above), so scrolling at the same coarse granularity matches it rather than adding a
+  // second, finer-grained notion of "what changed."
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
 
   const refresh = () => fetchMessages(conversationId, workspaceId).then(setMessages);
 
@@ -87,7 +101,7 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   return (
     <Drawer onClose={onClose}>
       <div className="sheet-title">{otherName || t.counterpartFallbackName}</div>
-      <div className="chat-scroll">
+      <div className="chat-scroll" ref={scrollRef}>
         {messages && messages.length === 0 && (
           <p className="chat-empty-state">{t.messagesConversationEmpty}</p>
         )}
