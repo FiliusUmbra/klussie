@@ -14,7 +14,9 @@
 //   · `fetchPublicProInfo` must fall back to the embedded profile when the resolver is
 //     unavailable. Code reading the identity engine against a database without Epic 02's
 //     migrations is production today, and the alternative to falling back is rendering
-//     every professional as the literal string "Pro".
+//     every professional with no name at all (`name: null` — see 2026-09-07's own fix:
+//     this used to be the literal, untranslated string "Pro"; now every render site
+//     applies its own `t.proFallbackName` instead).
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const rpc = vi.fn();
@@ -117,15 +119,18 @@ describe("fetchPublicProInfo resolves display information", () => {
     warn.mockRestore();
   });
 
-  it("renders an erased person the way a nameless one already rendered", async () => {
+  it("renders an erased person the way a nameless one already renders", async () => {
     // An erased identity resolves to nothing (§11.4). The resolver answered, so there is
-    // no fallback — and "Pro" is exactly what a professional with no name has always
-    // shown, so nothing about the surface changes.
+    // no fallback — and null is exactly what a professional with no name shows now
+    // (2026-09-07: this used to assert the literal English word "Pro" here, which is
+    // exactly the bug that fix closed — an erased person and a genuinely nameless one
+    // both render the same honest "no name on record" value, for the same render sites
+    // to apply t.proFallbackName to).
     rpc.mockResolvedValue({ data: [], error: null });
 
     const info = await fetchPublicProInfo([PRO_ID]);
 
-    expect(info[PRO_ID].name).toBe("Pro");
+    expect(info[PRO_ID].name).toBeNull();
     expect(info[PRO_ID].avatarUrl).toBeNull();
   });
 

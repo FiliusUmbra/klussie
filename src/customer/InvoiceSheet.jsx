@@ -18,7 +18,7 @@ export function InvoiceSheet({ request, quote, onClose }) {
       <div className="sheet-title">{t.invoiceTitle}</div>
       <div className="invoice-box">
         <div className="invoice-row"><span>{t.invoiceRef}</span><span>KLS-{request.id.toUpperCase()}</span></div>
-        <div className="invoice-row"><span>{t.invoiceSupplier}</span><span>{pro.name}</span></div>
+        <div className="invoice-row"><span>{t.invoiceSupplier}</span><span>{pro.name || t.proFallbackName}</span></div>
         <div className="invoice-row"><span>{t.invoiceCustomer}</span><span>{t.profileYou}</span></div>
         <div className="invoice-row"><span>{t.invoiceService}</span><span>{info.name}</span></div>
         <div className="ticket-divider" />

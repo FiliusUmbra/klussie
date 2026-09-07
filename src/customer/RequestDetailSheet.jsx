@@ -70,7 +70,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                   <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
                     <Avatar url={pro.avatarUrl} initials={pro.initials} />
                     <div style={{ flex: 1 }}>
-                      <div className="quote-name">{pro.name} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
+                      <div className="quote-name">{pro.name || t.proFallbackName} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
                     <TrustBadge rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} />
                   </div>
                   </button>
@@ -95,14 +95,14 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
                 <Avatar url={pro.avatarUrl} initials={pro.initials} />
-                <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
+                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
             <div className="ticket-divider" />
             <div className="quote-msg" style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               <MapPin size={14} style={{ marginTop: 2, flexShrink: 0 }} />
-              <span>{t.disclosureConsentBody.replace("{name}", pro.name)}</span>
+              <span>{t.disclosureConsentBody.replace("{name}", pro.name || t.proFallbackName)}</span>
             </div>
             <button
               className="btn-primary"
@@ -127,7 +127,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
               <Avatar url={pro.avatarUrl} initials={pro.initials} />
-              <div style={{ flex: 1 }}><div className="quote-name">{pro.name}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
+              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>

@@ -83,7 +83,7 @@ export function HomeTimelineCard({ t, event, serviceInfo, fmtDate, onOpenRequest
             {bookedQuote?.pro && (
               <span className="timeline-card-pro">
                 <Avatar url={bookedQuote.pro.avatarUrl} initials={bookedQuote.pro.initials} />
-                <span>{interpolate(t.myHomeDoneBy, { name: bookedQuote.pro.name })}</span>
+                <span>{interpolate(t.myHomeDoneBy, { name: bookedQuote.pro.name || t.proFallbackName })}</span>
               </span>
             )}
             {request.answers?.details && (
@@ -135,7 +135,7 @@ export function TrustedProsList({ t, pros, onOpenPro }) {
           <button type="button" className="trusted-pro" onClick={() => onOpenPro(pro.id)}>
             <Avatar url={pro.avatarUrl} initials={pro.initials} />
             <span className="trusted-pro-text">
-              <span className="trusted-pro-name">{pro.name}</span>
+              <span className="trusted-pro-name">{pro.name || t.proFallbackName}</span>
               <span className="trusted-pro-count">
                 {jobCount === 1 ? t.myHomeOneJobTogether : interpolate(t.myHomeJobsTogether, { count: jobCount })}
               </span>

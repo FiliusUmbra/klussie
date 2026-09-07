@@ -696,7 +696,9 @@ function shapePro(pro) {
   const stats = firstOrNull(pro.pro_stats);
   return {
     id: pro.profile_id,
-    name: profile?.full_name || "Pro",
+    // Same fix as pros.js's own two shapers, same day: null, not the raw English
+    // literal "Pro" -- localized at the render site via t.proFallbackName instead.
+    name: profile?.full_name || null,
     initials: initialsFrom(profile?.full_name),
     avatarUrl: profile?.avatar_url || null,
     proType: pro.pro_type,

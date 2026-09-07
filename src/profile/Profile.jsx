@@ -152,7 +152,7 @@ export function Profile({
         <ProfileIdentityHeader
           avatarUrl={proInfo.avatarUrl}
           initials={proInfo.initials}
-          name={proInfo.name}
+          name={proInfo.name || t.proFallbackName}
           subtitle={<TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} />}
         />
       )}

@@ -32,7 +32,7 @@ export function ProPublicProfileSheet({ proId, onClose }) {
       <div className="profile-head">
         <Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" />
         <div>
-          <div className="h1" style={{ fontSize: 19 }}>{proInfo.name}</div>
+          <div className="h1" style={{ fontSize: 19 }}>{proInfo.name || t.proFallbackName}</div>
           <TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} score={trustScore(proInfo)} scoreLabel={t.trustScoreLabel} fmt={fmt} />
         </div>
       </div>
