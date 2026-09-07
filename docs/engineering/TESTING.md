@@ -363,15 +363,37 @@ Recorded in `../MASTER_CONTEXT.md` §12. Any future fix to the two remaining
 occurrences is still **a declared behaviour change** requiring a
 `CHANGELOG.md` entry, not a tidy-up inside another package.
 
-### 6.2 · `awaiting_pro` leaks untranslated
+### 6.2 · `awaiting_pro` leaks untranslated — closed 2026-09-07, and re-scoped
 
-`src/lib/requestStatus.js` has no entry for the status a directed request
-sits in (ADR-0012), so the fallback returns `{ labelKey: null }` and the
-raw enum value reaches the customer in all locales. The detail sheet also
-shows no timeline for it.
+This entry originally said `src/lib/requestStatus.js` had no entry for the
+status a directed request sits in (ADR-0012), so the fallback returned
+`{ labelKey: null }` and the raw enum value reached the customer.
 
-The *rule* is pinned by `requestStatus.test.js`. What the customer
-*sees* is not, because those surfaces have no render tests (§4).
+Traced end to end while fixing it (not just patched on faith): `awaiting_pro`
+is real — `src/lib/requests.js`'s `createDirectedRequest()` still writes it —
+but only to the **legacy** `public.service_requests` table. The correlated
+`work.requests` row (what every customer/pro screen actually renders from
+since WP 2.6's client cutover) is dual-written at plain `collecting` —
+`work.requests`' own check constraint (`0182_service_location_schema.sql`)
+has no `awaiting_pro` value at all, so no current call site of
+`statusPresentation()` (`StatusPill`, `ProJobDetailSheet`, `myHomeParts`) can
+ever receive it. This entry predates that cutover and was never updated
+after the reproduction path closed on its own.
+
+`requestStatus.js`'s `PRESENTATION` table now has a real entry for it anyway
+(`statusAwaitingPro`, all 10 locales) — defensive coverage against a future
+surface that reads legacy status directly, not the closing of an actively
+reproducible customer-facing bug the way `cancelled` (added the same day)
+was. `timelineSteps()` still correctly returns `null` for it: a directed
+request's own `work.requests` row has no distinct lifecycle position either.
+
+Recorded here rather than silently deleted, matching §6.1's own convention —
+so a future reader doesn't wonder whether this was dropped by accident. Not
+fixed as part of this pass, deliberately: ADR-0012's own "Relief" promise
+(the directed pro's name, not just a generic "collecting" badge) has no
+surface anywhere today. That is a real, separate product gap — worth its own
+work package if directed requests become live traffic — not a presentation
+bug this file's own scope covers.
 
 ## 7 · Not user-facing surfaces
 

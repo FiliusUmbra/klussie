@@ -34,10 +34,20 @@ describe("statusPresentation", () => {
     expect(statusPresentation("cancelled")).toEqual({ labelKey: "statusCancelled", tone: "sage" });
   });
 
+  it("names awaiting_pro — real, but only in the legacy service_requests table (ADR-0012)", () => {
+    // Found during a UX review, 2026-09-07: TESTING.md §6.2 called this a live "known
+    // defect," but tracing every statusPresentation() call site end to end found none
+    // that can ever receive this value — work.requests' own check constraint
+    // (0182_service_location_schema.sql) has no `awaiting_pro` option, so no current UI
+    // surface (all work.requests-sourced) can pass it through. Defensive coverage for a
+    // future path that reads legacy status directly, not the close of a reproducible bug.
+    expect(statusPresentation("awaiting_pro")).toEqual({ labelKey: "statusAwaitingPro", tone: "amber" });
+  });
+
   it("degrades to a neutral badge for a status this client doesn't know", () => {
     // A migration can add a status before the client ships. Showing the raw value is
     // honest; throwing, or rendering an empty badge, is not.
-    expect(statusPresentation("awaiting_pro")).toEqual({ labelKey: null, tone: "sage" });
+    expect(statusPresentation("some_future_status")).toEqual({ labelKey: null, tone: "sage" });
     expect(statusPresentation(undefined)).toEqual({ labelKey: null, tone: "sage" });
   });
 
@@ -69,14 +79,17 @@ describe("timelineSteps", () => {
 
   it("returns null for a status outside the lifecycle, so no timeline renders", () => {
     // Half a timeline with nothing highlighted would claim the job is nowhere.
-    expect(timelineSteps("awaiting_pro")).toBeNull();
+    expect(timelineSteps("some_future_status")).toBeNull();
     expect(timelineSteps(undefined)).toBeNull();
   });
 
-  it("returns null for cancelled too — correct as-is; there is no forward progress to show", () => {
-    // Unlike statusPresentation, this one was already right: cancelled sits outside
-    // REQUEST_STATUS_ORDER on purpose. RequestDetailSheet.jsx's own cancelled branch
-    // is what fills the gap this correctly-empty timeline leaves behind.
+  it("returns null for cancelled and awaiting_pro too — correct as-is, both outside the lifecycle", () => {
+    // Unlike statusPresentation, this one was already right for cancelled: it sits
+    // outside REQUEST_STATUS_ORDER on purpose. RequestDetailSheet.jsx's own cancelled
+    // branch is what fills the gap this correctly-empty timeline leaves behind.
+    // awaiting_pro has no work.requests equivalent lifecycle position either — a
+    // directed request's own work.requests row sits at plain `collecting`.
+    expect(timelineSteps("awaiting_pro")).toBeNull();
     expect(timelineSteps("cancelled")).toBeNull();
   });
 });

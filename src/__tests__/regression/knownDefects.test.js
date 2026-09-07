@@ -12,9 +12,10 @@
 // If one of these fails, the question is not "how do I make the test pass". It is
 // "was this change intended?" — see TESTING.md §8.
 //
-// §6.2 of TESTING.md (the `awaiting_pro` status leaking untranslated) is already
-// pinned by src/lib/__tests__/requestStatus.test.js and is deliberately not
-// duplicated here.
+// §6.2 of TESTING.md (the `awaiting_pro` status) is closed as of 2026-09-07 --
+// requestStatus.test.js pins the real presentation entry it now has, not a
+// leak; see that section's own updated text for why it was never actually
+// reachable through a customer-facing surface in the first place.
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
