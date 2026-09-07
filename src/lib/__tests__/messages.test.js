@@ -92,7 +92,13 @@ describe("fetchConversations", () => {
     });
   });
 
-  it("falls back to a generic name when the identity resolver has nothing for this counterpart", async () => {
+  it("leaves otherName honestly null when the identity resolver has nothing for this counterpart", async () => {
+    // Found live during a UX review, 2026-09-07: this used to assert the literal,
+    // untranslated English phrase "Klussie user" -- pinning a real bug (that phrase
+    // reached the customer's own screen, in every locale, wherever a conversation's
+    // counterpart resolved to nothing). This module has no lang context to localize
+    // with, so it now leaves `otherName` honestly null and every render site applies
+    // its own `otherName || t.counterpartFallbackName` instead.
     const row = {
       id: "convo-1", engagement_id: "eng-1", asset_id: null, maintenance_obligation_id: null, property_id: null,
       workspace_id: null, closed_at: null, created_at: "2026-08-10T00:00:00Z",
@@ -105,7 +111,7 @@ describe("fetchConversations", () => {
     });
 
     const result = await fetchConversations("cust-auth-1", "cust-ws-1");
-    expect(result[0].otherName).toBe("Klussie user");
+    expect(result[0].otherName).toBeNull();
     expect(result[0].lastMessage).toBeNull();
     expect(result[0].unreadCount).toBe(0);
     expect(supabase.rpc).not.toHaveBeenCalled();

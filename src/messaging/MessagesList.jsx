@@ -17,7 +17,7 @@ export function MessagesList({ conversations, onOpen }) {
         <JobCard
           key={c.id}
           onClick={() => onOpen(c)}
-          title={c.otherName}
+          title={c.otherName || t.counterpartFallbackName}
           badge={c.unreadCount > 0 && <Badge tone="amber">{c.unreadCount}</Badge>}
           subtitle={c.serviceId ? serviceInfo(c.serviceId).name : ""}
         >

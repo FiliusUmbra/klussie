@@ -68,7 +68,13 @@ function reshapeConversation(row, messages, otherName) {
     id: row.id,
     requestId: row.request_id,
     serviceId: row.service_id,
-    otherName: otherName || "Klussie user",
+    // Found live during a UX review, 2026-09-07, in the same pass that found lib/pros.js's
+    // own identical pattern (PR #165, "Pro"): this was the literal, untranslated English
+    // phrase "Klussie user" -- this module has no lang context to localize with, so it
+    // leaves an honest null instead. Every render site applies its own
+    // `otherName || t.counterpartFallbackName` -- see that key's own locale entries in
+    // appStrings.js.
+    otherName: otherName || null,
     lastMessage: last ? { body: last.body, createdAt: new Date(last.created_at).getTime() } : null,
     unreadCount,
     createdAt: new Date(row.created_at).getTime(),

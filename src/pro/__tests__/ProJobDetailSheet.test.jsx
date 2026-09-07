@@ -171,6 +171,18 @@ describe("ProJobDetailSheet", () => {
     await waitFor(() => expect(screen.getByText("some_future_type")).toBeTruthy());
   });
 
+  // Found live during a UX review, 2026-09-07: this fell back to t.navMyJobs
+  // ("Mijn klussen"/My Jobs, the bottom-nav label) rather than a real name placeholder —
+  // never actually reachable before that same review's own fix to lib/messages.js
+  // (customerName always came from otherName's own "Klussie user" literal, never
+  // falsy), but would have shown a nonsensical "My Jobs" as the customer's own name the
+  // moment that changed.
+  it("falls back to the shared counterpart placeholder, not the My Jobs nav label, for a nameless customer", () => {
+    renderSheet({ customerName: undefined });
+    expect(screen.getByText("counterpartFallbackName")).toBeTruthy();
+    expect(screen.queryByText("navMyJobs")).toBeNull();
+  });
+
   it("does not fetch or render the Service Record section for anything but a completed job", () => {
     renderSheet({ job: { status: "booked" } });
     expect(fetchServiceRecordForRequest).not.toHaveBeenCalled();
