@@ -115,7 +115,11 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") send(); }}
         />
-        <button onClick={send}><Send size={16} /></button>
+        {/* Found live during a UX review, 2026-09-07: icon-only, no visible text and no
+            aria-label -- a screen reader announced this as an unnamed button, unlike every
+            other icon-only control in the app (e.g. MyItemsPanel's "Ruimte toevoegen"/
+            "Document toevoegen"), which already name themselves this way. */}
+        <button type="button" aria-label={t.chatSendBtn} onClick={send}><Send size={16} /></button>
       </div>
     </Drawer>
   );
