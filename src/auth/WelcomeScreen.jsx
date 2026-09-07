@@ -4,16 +4,19 @@
 // (src/lib/auth.jsx's signInWithOAuth) but only functional once each
 // provider is configured in the Supabase dashboard — see the
 // Authentication UX Redesign plan (Phase 2) and
-// docs/design/UX_PATTERNS.md's Authentication section. No brand logos:
-// Lucide has no real Apple/Google/Microsoft/Facebook marks, and inventing
-// them risks both a mixed-icon-library violation (docs/design/DESIGN_SYSTEM.md)
-// and each provider's own brand guidelines — text-only buttons for now,
-// upgradeable later without an architecture change.
+// docs/design/UX_PATTERNS.md's Authentication section.
+//
+// Real provider logos, added 2026-09-07 (user request): this file used to say Lucide
+// had no real Apple/Google/Microsoft/Facebook marks and stayed text-only rather than
+// invent them. ProviderIcons.jsx now carries each provider's own official mark, sourced
+// verbatim (not redrawn) — see that file's own header for exactly where each one came
+// from and why it isn't a lucide-react import.
 import { useState } from "react";
 import { Mail } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { EmailAuthSheet } from "./EmailAuthSheet.jsx";
+import { AppleIcon, GoogleIcon, MicrosoftIcon, FacebookIcon } from "./ProviderIcons.jsx";
 
 export function WelcomeScreen() {
   const { t } = useLang();
@@ -37,10 +40,10 @@ export function WelcomeScreen() {
         <p className="sheet-blurb" style={{ margin: 0 }}>{t.welcomeSubtitle}</p>
       </div>
       {oauthError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 10 }}>{oauthError}</div>}
-      <button className="btn-secondary" onClick={() => startOAuth("apple")}>{t.continueWithApple}</button>
-      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("google")}>{t.continueWithGoogle}</button>
-      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("azure")}>{t.continueWithMicrosoft}</button>
-      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("facebook")}>{t.continueWithFacebook}</button>
+      <button className="btn-secondary" onClick={() => startOAuth("apple")}><AppleIcon size={17} /> {t.continueWithApple}</button>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("google")}><GoogleIcon size={16} /> {t.continueWithGoogle}</button>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("azure")}><MicrosoftIcon size={16} /> {t.continueWithMicrosoft}</button>
+      <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => startOAuth("facebook")}><FacebookIcon size={16} /> {t.continueWithFacebook}</button>
       <button className="btn-primary" style={{ marginTop: 14 }} onClick={() => setEmailOpen(true)}><Mail size={15} /> {t.continueWithEmail}</button>
       {emailOpen && <EmailAuthSheet onClose={() => setEmailOpen(false)} />}
     </div>

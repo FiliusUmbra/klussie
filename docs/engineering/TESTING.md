@@ -389,7 +389,11 @@ being flows themselves: `CustomerApp.jsx`, `ProApp.jsx`.
 audience-specific subtitle, the block `Profile.jsx`'s two variants
 share), `StatRow.jsx` (the `stat-row` markup both variants share),
 `SignOutButton.jsx` (shared by `Profile.jsx` and `OperatorApp.jsx`
-alike — UNIFIED_PROFILE_DESIGN.md §5 step 4).
+alike — UNIFIED_PROFILE_DESIGN.md §5 step 4), `ProviderIcons.jsx`
+(added 2026-09-07 — four real OAuth-provider marks `WelcomeScreen.jsx`
+renders inline on its own buttons, the same role `Mail` from
+lucide-react already plays there; see that file's own header for
+where each mark came from).
 
 ## 8 · Updating this baseline
 
