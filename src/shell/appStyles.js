@@ -144,7 +144,13 @@ export const APP_CSS = `
 .quote-msg{ font-size:12.5px; color:var(--ink-soft); font-style:italic; margin:9px 0 10px; line-height:1.5; }
 
 .btn-primary{ width:100%; display:flex; align-items:center; justify-content:center; gap:7px; background:var(--forest); color:#fff; border:none; padding:13px; border-radius:12px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:transform var(--motion-fast), opacity var(--motion-base); }
-.btn-secondary{ width:100%; background:var(--sage-bg); color:var(--forest-dark); border:none; padding:10px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:transform var(--motion-fast), opacity var(--motion-base); }
+/* display:flex/gap added 2026-09-07 for WelcomeScreen.jsx's own provider-logo buttons
+   (ProviderIcons.jsx) -- matches .btn-primary's own layout immediately above so an icon
+   sits inline with its label instead of stacking. A no-op for every existing text-only
+   .btn-secondary: flex + justify-content:center centers a single child exactly like the
+   inherited text-align:center it replaces (see homeStyles.js's own note on that
+   inheritance), so this changes nothing for the other 40-odd call sites. */
+.btn-secondary{ width:100%; display:flex; align-items:center; justify-content:center; gap:7px; background:var(--sage-bg); color:var(--forest-dark); border:none; padding:10px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:transform var(--motion-fast), opacity var(--motion-base); }
 .btn-primary:active, .btn-secondary:active{ transform:scale(0.98); opacity:0.92; }
 
 .fineprint{ display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--ink-soft); margin-top:12px; justify-content:center; text-align:center; }
