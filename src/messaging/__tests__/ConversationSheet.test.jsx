@@ -24,9 +24,9 @@ import { sendMessage } from "../../lib/messages";
 import { LangContext } from "../../lib/lang";
 import { ConversationSheet } from "../ConversationSheet.jsx";
 
-const t = { chatSendBtn: "Verstuur bericht", messagePlaceholder: "Typ een bericht..." };
+const t = { chatSendBtn: "Verstuur bericht", messagePlaceholder: "Typ een bericht...", counterpartFallbackName: "Gebruiker" };
 
-function renderSheet() {
+function renderSheet({ otherName = "Cathy Customer" } = {}) {
   const onClose = vi.fn();
   render(
     <LangContext.Provider value={{ t, langCode: "nl" }}>
@@ -34,13 +34,25 @@ function renderSheet() {
         conversationId="conv-1"
         userId="person-1"
         workspaceId="ws-1"
-        otherName="Cathy Customer"
+        otherName={otherName}
         onClose={onClose}
       />
     </LangContext.Provider>
   );
   return { onClose };
 }
+
+// Found live during a UX review, 2026-09-07: a conversation whose counterpart has no
+// resolvable name (lib/messages.js's own "Klussie user" literal, closed the same day)
+// used to show that literal English phrase here, in every locale. This module has no
+// lang context of its own to blame — messages.js leaves otherName honestly null now,
+// and this is the render-side half that fills it in with a real translated placeholder.
+describe("ConversationSheet — counterpart with no resolvable name", () => {
+  it("shows the translated placeholder, not a blank title, when otherName is null", () => {
+    renderSheet({ otherName: null });
+    expect(screen.getByText("Gebruiker")).toBeTruthy();
+  });
+});
 
 describe("ConversationSheet — send button has a real accessible name", () => {
   it("names the icon-only send button via aria-label, not left silent", async () => {

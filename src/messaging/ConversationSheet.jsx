@@ -86,7 +86,7 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
 
   return (
     <Drawer onClose={onClose}>
-      <div className="sheet-title">{otherName}</div>
+      <div className="sheet-title">{otherName || t.counterpartFallbackName}</div>
       <div className="chat-scroll">
         {messages && messages.length === 0 && (
           <p className="chat-empty-state">{t.messagesConversationEmpty}</p>

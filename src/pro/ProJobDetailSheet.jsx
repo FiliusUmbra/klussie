@@ -51,7 +51,13 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
   return (
     <Drawer onClose={onClose}>
       <div className="sheet-title">{info.name}</div>
-      <div className="sheet-sub">{customerName || t.navMyJobs}</div>
+      {/* Found live during a UX review, 2026-09-07, in the same pass that closed
+          lib/messages.js's own "Klussie user" literal: this fallback was `t.navMyJobs`
+          ("Mijn klussen"/My Jobs) -- the bottom-nav label, not a name placeholder. Never
+          actually reachable before today (customerName always came from otherName's own
+          "Klussie user" fallback, never falsy), but would have shown a nonsensical "My
+          Jobs" as the customer's own name the moment that changed. */}
+      <div className="sheet-sub">{customerName || t.counterpartFallbackName}</div>
 
       {steps && <Timeline steps={steps.map((s) => ({ ...s, label: t[s.labelKey] }))} />}
 
