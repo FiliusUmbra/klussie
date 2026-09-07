@@ -116,6 +116,27 @@ describe("RequestDetailSheet — disclosure-consent card (0182/0183)", () => {
   });
 });
 
+// Found live during a UX review, 2026-09-07: `cancelled` had no branch at all here —
+// timelineSteps() already returns null for it correctly, but nothing filled the gap
+// that left, so a cancelled request's detail sheet showed nothing past the title and
+// subtitle. See requestStatus.test.js's own new case for the matching badge-label gap
+// (statusPresentation had no `cancelled` entry either) this same review found and closed.
+describe("RequestDetailSheet — cancelled request", () => {
+  const CANCELLED_REQUEST = { ...BOOKED_REQUEST, status: "cancelled", bookedProId: null, quotes: [] };
+
+  it("shows a real explanation instead of an empty sheet", () => {
+    renderSheet({ request: CANCELLED_REQUEST });
+    expect(screen.getByText("requestCancelledMsg")).toBeTruthy();
+  });
+
+  it("renders none of the other status branches for it", () => {
+    renderSheet({ request: CANCELLED_REQUEST });
+    expect(screen.queryByText("waitingMsg")).toBeNull();
+    expect(screen.queryByText("markCompleteBtn")).toBeNull();
+    expect(screen.queryByText("disclosureConsentApproveBtn")).toBeNull();
+  });
+});
+
 describe("RequestDetailSheet — ServiceRecordSummary (WP 3.2)", () => {
   const COMPLETED_REQUEST = { ...BOOKED_REQUEST, status: "completed", review: null };
   const REVIEWED_REQUEST = {

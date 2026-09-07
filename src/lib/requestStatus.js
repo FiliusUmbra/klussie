@@ -29,6 +29,13 @@ const PRESENTATION = {
   booked: { labelKey: "statusBooked", tone: "forest" },
   completed: { labelKey: "statusCompleted", tone: "sage" },
   reviewed: { labelKey: "statusReviewed", tone: "sage" },
+  // Found live during a UX review, 2026-09-07: `cancelled` has been a real status in
+  // work.requests' own check constraint since 0001_init.sql (work.withdraw_request()
+  // reaches it today; there is no customer-facing "cancel" button yet, but the status
+  // itself is not the unanticipated case this table's own fallback below exists for) --
+  // it was simply never added here, so every cancelled request fell through to the
+  // fallback and showed its own raw, untranslated status string to the customer.
+  cancelled: { labelKey: "statusCancelled", tone: "sage" },
 };
 
 /**
