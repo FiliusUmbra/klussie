@@ -36,6 +36,21 @@ const PRESENTATION = {
   // it was simply never added here, so every cancelled request fell through to the
   // fallback and showed its own raw, untranslated status string to the customer.
   cancelled: { labelKey: "statusCancelled", tone: "sage" },
+  // Added 2026-09-07, defensively -- TESTING.md §6.2's own "known defect" for this one,
+  // but traced end to end (not just added on faith): `awaiting_pro` is real, and still
+  // gets written (src/lib/requests.js's createDirectedRequest(), ADR-0012's one-tap
+  // directed booking) -- but only to the LEGACY `public.service_requests` table.
+  // work.requests' own check constraint (0182_service_location_schema.sql) has no
+  // `awaiting_pro` value at all -- structurally cannot hold it -- and createDirectedRequest()
+  // dual-writes the correlated work.requests row at plain `collecting` (a directed
+  // request's own distinctness lives in directed_workspace_id/auto_accept_max there, not
+  // in status). Every current call site of statusPresentation() (StatusPill,
+  // ProJobDetailSheet, myHomeParts) reads only work.requests-sourced statuses, so no live
+  // UI path can pass this value through today -- confirmed, not assumed. §6.2 predates
+  // WP 2.6's client cutover onto work.requests (requests.js's own header); this entry is
+  // real coverage against a future path that reads legacy status directly, not the
+  // closing of an actively reproducible customer-facing bug the way `cancelled` above was.
+  awaiting_pro: { labelKey: "statusAwaitingPro", tone: "amber" },
 };
 
 /**
