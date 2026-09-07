@@ -14,7 +14,7 @@ export function ProDashboard({ leads, onQuote, proInfo }) {
   const { proProfile } = useAuth();
   return (
     <div className="pad">
-      <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{proInfo.name}</div></div><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} /></div>
+      <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{proInfo.name || t.proFallbackName}</div></div><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} /></div>
 
       <div className="stat-row">
         <div className="stat"><div className="stat-num"><Rating value={proInfo.rating} size={12} /></div><div className="stat-label">{proInfo.rating} {t.statScore}</div></div>

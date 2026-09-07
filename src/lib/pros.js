@@ -35,7 +35,13 @@ export async function findBestProForService({ serviceId, city, certifiedOnly = f
       const stats = pp.pro_stats || {};
       return {
         id: pp.profile_id,
-        name: pp.profiles?.full_name || "Pro",
+        // Found live during a UX review, 2026-09-07: this was the literal English word
+        // "Pro", not a translated placeholder -- reached the customer's own screen in
+        // every locale. Left null here (an honest "no name on record") rather than
+        // localized here: this module has no lang context. Every render site applies
+        // its own `name || t.proFallbackName` instead -- see that key's own locale
+        // entries in appStrings.js.
+        name: pp.profiles?.full_name || null,
         initials: initialsFrom(pp.profiles?.full_name),
         avatarUrl: pp.profiles?.avatar_url || null,
         city: pp.profiles?.city || null,
@@ -155,7 +161,9 @@ export async function fetchPublicProInfo(proIds) {
         row.profile_id,
         {
           id: row.profile_id,
-          name: fullName || "Pro",
+          // Same fix as findBestProForService() above, same reason: null, not a raw
+          // English literal -- localized at the render site via t.proFallbackName.
+          name: fullName || null,
           initials: initialsFrom(fullName),
           avatarUrl: avatarUrl || null,
           proType: row.pro_type,

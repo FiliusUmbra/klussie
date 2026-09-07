@@ -26,7 +26,7 @@ function ProfessionalCard({ conversation, t, fmt, proBadgeLabel }) {
         <Avatar url={conversation.pro.avatarUrl} initials={conversation.pro.initials} />
         <div className="conv-pro-meta">
           <div className="conv-pro-name">
-            {conversation.pro.name}
+            {conversation.pro.name || t.proFallbackName}
             {proBadgeLabel(conversation.pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(conversation.pro.badgeTier)}</Badge>}
           </div>
           <TrustBadge
@@ -117,7 +117,7 @@ export function ConversationCanvas({
           <div className="conv-relief">
             <div className="conv-relief-mark"><Check size={18} /></div>
             <div className="conv-relief-title">{t.convReliefTitle}</div>
-            <div className="conv-relief-sub">{t.convReliefSub.replace("{name}", conversation.pro.name)}</div>
+            <div className="conv-relief-sub">{t.convReliefSub.replace("{name}", conversation.pro.name || t.proFallbackName)}</div>
           </div>
         </UnfoldItem>
       ) : (
@@ -147,7 +147,7 @@ function BookingActions({ conversation, booking, canDirectBook, onBook, onContin
             {booking === "saving" ? (
               <><Loader2 size={14} className="spin" /> {t.convBookingSaving}</>
             ) : (
-              t.convBookCta.replace("{name}", conversation.pro.name)
+              t.convBookCta.replace("{name}", conversation.pro.name || t.proFallbackName)
             )}
           </button>
         )}

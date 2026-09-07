@@ -13,7 +13,7 @@ export const APP_STRINGS = {
   nl: {
     workspaceFallbackHome:"Thuis", workspaceFallbackBusiness:"Bedrijf",
     greeting:"Goedemiddag", heroTitle:"Wat wil je laten doen?", searchPlaceholder:"Zoek een dienst...",
-    catAll:"Alles", trendingTitle:"Populair deze week", prosSuffix:"vakmensen",
+    catAll:"Alles", trendingTitle:"Populair deze week", prosSuffix:"vakmensen", proFallbackName:"Vakman",
     noServicesFound:"Geen diensten gevonden.", typicalPrice:"Typische prijs:",
     serviceBookNow:"Nu boeken", serviceGetQuotes:"Vraag gratis offertes aan",
     quoteFormTitle:"Vertel ons wat je nodig hebt", forService:"voor",
@@ -121,7 +121,7 @@ export const APP_STRINGS = {
   fr: {
     workspaceFallbackHome:"Maison", workspaceFallbackBusiness:"Entreprise",
     greeting:"Bonjour", heroTitle:"De quoi as-tu besoin ?", searchPlaceholder:"Rechercher un service...",
-    catAll:"Tout", trendingTitle:"Tendance cette semaine", prosSuffix:"professionnels",
+    catAll:"Tout", trendingTitle:"Tendance cette semaine", prosSuffix:"professionnels", proFallbackName:"Professionnel",
     noServicesFound:"Aucun service ne correspond.", typicalPrice:"Prix habituel :",
     serviceBookNow:"Réserver", serviceGetQuotes:"Demander des devis gratuits",
     quoteFormTitle:"Dis-nous ce dont tu as besoin", forService:"pour",
@@ -229,7 +229,7 @@ export const APP_STRINGS = {
   de: {
     workspaceFallbackHome:"Zuhause", workspaceFallbackBusiness:"Unternehmen",
     greeting:"Guten Tag", heroTitle:"Was möchtest du erledigen lassen?", searchPlaceholder:"Dienstleistung suchen...",
-    catAll:"Alle", trendingTitle:"Beliebt diese Woche", prosSuffix:"Profis",
+    catAll:"Alle", trendingTitle:"Beliebt diese Woche", prosSuffix:"Profis", proFallbackName:"Profi",
     noServicesFound:"Keine passenden Dienstleistungen gefunden.", typicalPrice:"Üblicher Preis:",
     serviceBookNow:"Jetzt buchen", serviceGetQuotes:"Kostenlose Angebote anfordern",
     quoteFormTitle:"Erzähl uns, was du brauchst", forService:"für",
@@ -337,7 +337,7 @@ export const APP_STRINGS = {
   en: {
     workspaceFallbackHome:"Home", workspaceFallbackBusiness:"Business",
     greeting:"Good afternoon", heroTitle:"What do you need done?", searchPlaceholder:"Search a service...",
-    catAll:"All", trendingTitle:"Trending this week", prosSuffix:"pros",
+    catAll:"All", trendingTitle:"Trending this week", prosSuffix:"pros", proFallbackName:"Pro",
     noServicesFound:"No services match that search.", typicalPrice:"Typical price:",
     serviceBookNow:"Book now", serviceGetQuotes:"Request free quotes",
     quoteFormTitle:"Tell us what you need", forService:"for",
@@ -445,7 +445,7 @@ export const APP_STRINGS = {
   es: {
     workspaceFallbackHome:"Casa", workspaceFallbackBusiness:"Empresa",
     greeting:"Buenas tardes", heroTitle:"¿Qué necesitas hacer?", searchPlaceholder:"Buscar un servicio...",
-    catAll:"Todo", trendingTitle:"Tendencia esta semana", prosSuffix:"profesionales",
+    catAll:"Todo", trendingTitle:"Tendencia esta semana", prosSuffix:"profesionales", proFallbackName:"Profesional",
     noServicesFound:"Ningún servicio coincide con esa búsqueda.", typicalPrice:"Precio habitual:",
     serviceBookNow:"Reservar ahora", serviceGetQuotes:"Pedir presupuestos gratis",
     quoteFormTitle:"Cuéntanos qué necesitas", forService:"para",
@@ -553,7 +553,7 @@ export const APP_STRINGS = {
   ar: {
     workspaceFallbackHome:"المنزل", workspaceFallbackBusiness:"العمل",
     greeting:"مساء الخير", heroTitle:"ما الذي تحتاج إنجازه؟", searchPlaceholder:"ابحث عن خدمة...",
-    catAll:"الكل", trendingTitle:"الأكثر طلبًا هذا الأسبوع", prosSuffix:"محترف",
+    catAll:"الكل", trendingTitle:"الأكثر طلبًا هذا الأسبوع", prosSuffix:"محترف", proFallbackName:"محترف",
     noServicesFound:"لا توجد خدمات مطابقة.", typicalPrice:"السعر المعتاد:",
     serviceBookNow:"احجز الآن", serviceGetQuotes:"اطلب عروض أسعار مجانية",
     quoteFormTitle:"أخبرنا بما تحتاجه", forService:"لخدمة",
@@ -661,7 +661,7 @@ export const APP_STRINGS = {
   fa: {
     workspaceFallbackHome:"خانه", workspaceFallbackBusiness:"کسب‌وکار",
     greeting:"ظهر بخیر", heroTitle:"چه کاری می‌خواهید انجام شود؟", searchPlaceholder:"جست‌وجوی خدمت...",
-    catAll:"همه", trendingTitle:"پرطرفدار این هفته", prosSuffix:"متخصص",
+    catAll:"همه", trendingTitle:"پرطرفدار این هفته", prosSuffix:"متخصص", proFallbackName:"متخصص",
     noServicesFound:"خدمتی با این جست‌وجو پیدا نشد.", typicalPrice:"قیمت معمول:",
     serviceBookNow:"همین حالا رزرو کن", serviceGetQuotes:"درخواست پیشنهاد رایگان",
     quoteFormTitle:"بگویید به چه چیزی نیاز دارید", forService:"برای",
@@ -769,7 +769,7 @@ export const APP_STRINGS = {
   tr: {
     workspaceFallbackHome:"Ev", workspaceFallbackBusiness:"İşletme",
     greeting:"İyi günler", heroTitle:"Ne yaptırmak istiyorsun?", searchPlaceholder:"Bir hizmet ara...",
-    catAll:"Tümü", trendingTitle:"Bu hafta trend olanlar", prosSuffix:"profesyonel",
+    catAll:"Tümü", trendingTitle:"Bu hafta trend olanlar", prosSuffix:"profesyonel", proFallbackName:"Profesyonel",
     noServicesFound:"Bu aramayla eşleşen hizmet yok.", typicalPrice:"Ortalama fiyat:",
     serviceBookNow:"Şimdi rezervasyon yap", serviceGetQuotes:"Ücretsiz teklif al",
     quoteFormTitle:"İhtiyacını bize anlat", forService:"için",
@@ -877,7 +877,7 @@ export const APP_STRINGS = {
   ru: {
     workspaceFallbackHome:"Дом", workspaceFallbackBusiness:"Бизнес",
     greeting:"Добрый день", heroTitle:"Что нужно сделать?", searchPlaceholder:"Поиск услуги...",
-    catAll:"Все", trendingTitle:"Популярно на этой неделе", prosSuffix:"специалистов",
+    catAll:"Все", trendingTitle:"Популярно на этой неделе", prosSuffix:"специалистов", proFallbackName:"Специалист",
     noServicesFound:"Услуги не найдены.", typicalPrice:"Обычная цена:",
     serviceBookNow:"Забронировать", serviceGetQuotes:"Запросить бесплатные предложения",
     quoteFormTitle:"Расскажите, что вам нужно", forService:"для",
@@ -985,7 +985,7 @@ export const APP_STRINGS = {
   zh: {
     workspaceFallbackHome:"家庭", workspaceFallbackBusiness:"企业",
     greeting:"下午好", heroTitle:"你需要什么服务？", searchPlaceholder:"搜索服务...",
-    catAll:"全部", trendingTitle:"本周热门", prosSuffix:"位专业人士",
+    catAll:"全部", trendingTitle:"本周热门", prosSuffix:"位专业人士", proFallbackName:"专业人士",
     noServicesFound:"没有找到匹配的服务。", typicalPrice:"参考价格：",
     serviceBookNow:"立即预订", serviceGetQuotes:"免费获取报价",
     quoteFormTitle:"告诉我们你的需求", forService:"针对",

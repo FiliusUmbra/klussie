@@ -113,6 +113,23 @@ function renderPro(workspaceMemberships) {
   });
 }
 
+// Found live during a UX review, 2026-09-07: a pro with no full_name on record showed
+// the literal English word "Pro" here -- not a translated placeholder -- in every
+// locale. lib/pros.js's own shapers now leave `name` honestly null instead; this is the
+// render-side half of that fix.
+describe("Profile — pro variant, unnamed pro", () => {
+  it("shows t.proFallbackName, not the raw \"Pro\" literal, when proInfo.name is null", () => {
+    renderProfile("pro", [{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }], {
+      proProfile: PRO_PROFILE,
+      proInfo: { ...PRO_INFO, name: null },
+      completedCount: 0, earnedGross: 0, offeredServiceIds: [],
+      onServicesChange: vi.fn(), onProfileSaved: vi.fn(), onPauseToggled: vi.fn(),
+    });
+    expect(screen.getByText("proFallbackName")).toBeTruthy();
+    expect(screen.queryByText("Pro")).toBeNull();
+  });
+});
+
 describe("Profile — pro variant, workspace switching", () => {
   it("shows no switcher for a single-workspace person", () => {
     renderPro([{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }]);

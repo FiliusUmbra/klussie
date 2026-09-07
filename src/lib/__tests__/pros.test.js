@@ -255,13 +255,18 @@ describe("findBestProForService", () => {
     });
   });
 
-  it("names an unnamed pro rather than rendering a blank card", async () => {
+  it("leaves an unnamed pro's name null rather than inventing an untranslated one", async () => {
+    // Found live during a UX review, 2026-09-07: this used to assert the literal
+    // English word "Pro" -- pinning a real bug (that string reached the customer's
+    // own screen, in every locale, wherever this result was rendered). This module has
+    // no lang context to localize with, so it now leaves `name` honestly null and
+    // every render site applies its own `name || t.proFallbackName` instead.
     supabase.from.mockReturnValue(
       createQueryBuilder({ data: [proServiceRow({ fullName: null })], error: null })
     );
 
     const pro = await findBestProForService({ serviceId: "svc-1" });
-    expect(pro.name).toBe("Pro");
+    expect(pro.name).toBeNull();
     expect(pro.initials).toBe("?");
   });
 
