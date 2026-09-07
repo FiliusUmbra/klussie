@@ -27,6 +27,13 @@ describe("statusPresentation", () => {
     });
   });
 
+  it("names cancelled — a real status since 0001_init.sql, not the unanticipated case the fallback below exists for", () => {
+    // Found live during a UX review, 2026-09-07: this was missing entirely, so a
+    // cancelled request fell through to the raw-status fallback and showed its own
+    // literal, untranslated status string ("cancelled") to the customer.
+    expect(statusPresentation("cancelled")).toEqual({ labelKey: "statusCancelled", tone: "sage" });
+  });
+
   it("degrades to a neutral badge for a status this client doesn't know", () => {
     // A migration can add a status before the client ships. Showing the raw value is
     // honest; throwing, or rendering an empty badge, is not.
@@ -64,6 +71,13 @@ describe("timelineSteps", () => {
     // Half a timeline with nothing highlighted would claim the job is nowhere.
     expect(timelineSteps("awaiting_pro")).toBeNull();
     expect(timelineSteps(undefined)).toBeNull();
+  });
+
+  it("returns null for cancelled too — correct as-is; there is no forward progress to show", () => {
+    // Unlike statusPresentation, this one was already right: cancelled sits outside
+    // REQUEST_STATUS_ORDER on purpose. RequestDetailSheet.jsx's own cancelled branch
+    // is what fills the gap this correctly-empty timeline leaves behind.
+    expect(timelineSteps("cancelled")).toBeNull();
   });
 });
 

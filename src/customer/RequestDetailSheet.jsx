@@ -5,7 +5,7 @@
 // The timeline and the commission breakdown both come from src/lib — the lifecycle from
 // requestStatus.js, the fee and payout from billing.js.
 import { useState } from "react";
-import { Check, Clock, MessageCircle, ShieldCheck, MapPin, Loader2 } from "lucide-react";
+import { Ban, Check, Clock, MessageCircle, ShieldCheck, MapPin, Loader2 } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, Button, Rating, PriceTag, QuoteCard, TrustBadge, Timeline, Drawer } from "../design-system";
@@ -47,6 +47,16 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
 
       {request.status === "collecting" && (
         <div className="empty-block"><Clock size={22} color="var(--ink-soft)" /><p>{t.waitingMsg}</p></div>
+      )}
+
+      {/* Found live during a UX review, 2026-09-07: `cancelled` had no branch here at
+          all -- timelineSteps() already returns null for it (correctly: there is no
+          forward progress to show), but nothing filled the resulting gap, so a
+          cancelled request's own detail sheet showed nothing past the title and
+          subtitle. See requestStatus.js's own PRESENTATION table for the matching
+          badge-label gap this same review found and closed. */}
+      {request.status === "cancelled" && (
+        <div className="empty-block"><Ban size={22} color="var(--ink-soft)" /><p>{t.requestCancelledMsg}</p></div>
       )}
 
       {request.status === "quotes_ready" && (
