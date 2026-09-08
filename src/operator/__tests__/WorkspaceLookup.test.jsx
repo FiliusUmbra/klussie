@@ -154,11 +154,25 @@ describe("WorkspaceLookup", () => {
       );
     });
 
-    it("always renders a Request access button, unlike View audit trail which needs a handler", async () => {
+    it("renders a Request access button for an ordinary workspace, unlike View audit trail which needs a handler", async () => {
       apiRpc.mockResolvedValue({ data: [PROFILE], error: null });
       render(<WorkspaceLookup />);
       await waitFor(() => expect(screen.getByText("Cathy Customer")).toBeTruthy());
       expect(screen.getByRole("button", { name: /request access/i })).toBeTruthy();
+    });
+
+    // Found live during a UX review, 2026-09-08, as a real operator: this button was
+    // offered for the operations workspace's own row too, and the grant behind it
+    // actually succeeded — closed at the source in
+    // 0213_support_access_refuses_operations_workspace.sql. Not offering the button here
+    // isn't the security boundary (that migration is); this just keeps a real operator
+    // from hitting a guaranteed refusal for a reason the button gives no hint of.
+    it("hides Request access for a workspace that itself holds platform_operations", async () => {
+      const opsProfile = { ...PROFILE, workspace_name: "Klussie Operations", capability_keys: ["platform_operations"] };
+      apiRpc.mockResolvedValue({ data: [opsProfile], error: null });
+      render(<WorkspaceLookup />);
+      await waitFor(() => expect(screen.getByText("Klussie Operations")).toBeTruthy());
+      expect(screen.queryByRole("button", { name: /request access/i })).toBeNull();
     });
   });
 });
