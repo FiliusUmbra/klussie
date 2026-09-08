@@ -150,10 +150,17 @@ export function CustomerApp({ showToast, onBecomePro }) {
     await refresh();
   };
 
+  // Found live during a UX review, 2026-09-08: this used to show toastBooked ("Geboekt!
+  // De vakman is op de hoogte gebracht.") the instant a quote was accepted -- correct
+  // before 0182/0183, wrong since: the very next thing on screen is the
+  // disclosure-consent card telling the customer to share their address "to confirm the
+  // booking," directly contradicting a toast that just told them it was already booked.
+  // approveLocationDisclosure() below already shows the identical toast at the moment
+  // that's actually true; nothing here replaces it, on purpose — the disclosure-consent
+  // card itself is the real, unmissable feedback that accepting worked.
   const acceptQuote = async (quoteId) => {
     await acceptQuoteApi(quoteId, user.id);
     await refresh();
-    showToast(t.toastBooked);
   };
 
   // Beta-completion slice (0182/0183) — the disclosure-consent action. Separate from
