@@ -123,9 +123,17 @@ export function WorkspaceLookup({ onViewAudit }) {
                 View audit trail
               </button>
             )}
-            <button type="button" className="btn-secondary" onClick={() => setAccessWorkspace({ id: profile.id, name: profile.name })}>
-              Request access
-            </button>
+            {/* 0213: the backend now refuses a grant targeting any platform_operations-
+                holding workspace (the loophole a real operator found and closed live,
+                2026-09-08 -- see that migration's own header). Not offering the button
+                here isn't the security boundary, the migration is -- this just keeps a
+                real operator from hitting a guaranteed refusal for a reason the button
+                itself gives no hint of. */}
+            {!profile.capabilityKeys.includes("platform_operations") && (
+              <button type="button" className="btn-secondary" onClick={() => setAccessWorkspace({ id: profile.id, name: profile.name })}>
+                Request access
+              </button>
+            )}
           </div>
         </Card>
       ))}
