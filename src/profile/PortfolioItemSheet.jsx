@@ -11,21 +11,38 @@ export function PortfolioItemSheet({ item, onClose, onChanged }) {
   const [caption, setCaption] = useState(item.caption || "");
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState("");
 
+  // Neither write ever had a catch — a real failure (RLS, network, the Storage remove in
+  // deletePortfolioItem()) threw straight out of the handler, `busy` never went back to
+  // false, and the sheet was left open with its buttons permanently disabled and nothing
+  // telling the pro anything went wrong. A raw err.message is never shown, matching
+  // documents.js's own "generic, localized error, never a raw one" convention.
   const save = async () => {
+    setError("");
     setBusy(true);
-    await updatePortfolioCaption(item.id, caption);
-    await onChanged();
-    setBusy(false);
-    onClose();
+    try {
+      await updatePortfolioCaption(item.id, caption);
+      await onChanged();
+      onClose();
+    } catch {
+      setError(t.portfolioSaveFailed);
+      setBusy(false);
+    }
   };
 
   const remove = async () => {
+    setError("");
     setBusy(true);
-    await deletePortfolioItem(item.id, item.storage_path);
-    await onChanged();
-    setBusy(false);
-    onClose();
+    try {
+      await deletePortfolioItem(item.id, item.storage_path);
+      await onChanged();
+      onClose();
+    } catch {
+      setError(t.portfolioDeleteFailed);
+      setBusy(false);
+      setConfirmDelete(false);
+    }
   };
 
   return (
@@ -35,6 +52,7 @@ export function PortfolioItemSheet({ item, onClose, onChanged }) {
       <div className="search" style={{ marginBottom: 16 }}>
         <input value={caption} onChange={(e) => setCaption(e.target.value)} />
       </div>
+      {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 8 }}>{error}</div>}
       <button className="btn-primary" disabled={busy} onClick={save}>{t.saveChangesBtn}</button>
       <button className="btn-secondary" style={{ marginTop: 8 }} disabled={busy} onClick={() => setConfirmDelete(true)}>{t.deletePhotoBtn}</button>
       {confirmDelete && (

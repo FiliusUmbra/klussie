@@ -22,8 +22,11 @@ export function AddTestimonialSheet({ proId, onClose, onAdded }) {
       await addTestimonial({ proId, clientName, quoteText });
       await onAdded();
       onClose();
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      // A raw err.message here would be a raw Postgres error (an RLS refusal, a
+      // constraint violation) -- documents.js's own header names this exact anti-pattern
+      // and the fix for it: a generic, localized message, never the backend's own words.
+      setError(t.testimonialSaveFailed);
     } finally {
       setBusy(false);
     }
