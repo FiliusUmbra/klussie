@@ -4,7 +4,7 @@
 // Narrowly scoped to the new onMessage behaviour — this component has no prior test file,
 // and building full coverage of every status branch is a separate undertaking.
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 vi.mock("../../lib/auth.jsx", () => ({ useAuth: () => ({ user: { id: "customer-1" } }) }));
 // RequestDetailSheet renders RequestPhotosStrip unconditionally, which calls
@@ -113,6 +113,74 @@ describe("RequestDetailSheet — disclosure-consent card (0182/0183)", () => {
   it("does not render the card, or a booked ticket, before a quote is actually accepted", () => {
     renderSheet({ request: { ...PENDING_DISCLOSURE_REQUEST, bookedProId: null, quotes: [] } });
     expect(screen.queryByText("disclosureConsentApproveBtn")).toBeNull();
+  });
+
+  // Found by code audit: none of these three buttons had a busy state, and this one
+  // had no catch either — a rejected onApproveDisclosure used to leave `approving` set
+  // forever were it not for the try/finally already in place; what was actually missing
+  // is that the rejection itself was never caught anywhere, an unhandled rejection this
+  // test would otherwise fail the whole run on.
+  it("re-enables the button rather than leaving it stuck, and never throws unhandled, when onApproveDisclosure is refused", async () => {
+    const onApproveDisclosure = vi.fn(() => Promise.reject(new Error("engagement not found")));
+    renderSheet({ request: PENDING_DISCLOSURE_REQUEST, onApproveDisclosure });
+
+    fireEvent.click(screen.getByText("disclosureConsentApproveBtn"));
+
+    await waitFor(() => expect(screen.getByText("disclosureConsentApproveBtn").closest("button").disabled).toBe(false));
+  });
+});
+
+// Found by code audit: onAccept and onComplete had no busy state, no await and no catch
+// at all at this sheet's own call sites — a double-tap could fire either twice, and a
+// real refusal left the button sitting there re-clickable with nothing telling the
+// customer anything had gone wrong (the real toast now comes from CustomerApp.jsx's own
+// acceptQuote()/markComplete(), which this sheet's own catch here only needs to not
+// re-throw as a second unhandled rejection).
+describe("RequestDetailSheet — accepting a quote / marking complete, busy state and failure", () => {
+  const QUOTES_READY_REQUEST = { ...BOOKED_REQUEST, status: "quotes_ready", bookedProId: null };
+
+  it("disables accept while one is in flight, and calls onAccept with the right quote id", async () => {
+    let resolveAccept;
+    const onAccept = vi.fn(() => new Promise((resolve) => { resolveAccept = resolve; }));
+    renderSheet({ request: QUOTES_READY_REQUEST, onAccept });
+
+    fireEvent.click(screen.getByText("acceptQuoteBtn"));
+    expect(onAccept).toHaveBeenCalledWith("q-1");
+    expect(screen.getByText("acceptQuoteBtn").closest("button").disabled).toBe(true);
+
+    resolveAccept();
+    await waitFor(() => expect(screen.getByText("acceptQuoteBtn").closest("button").disabled).toBe(false));
+  });
+
+  it("re-enables accept rather than leaving it stuck, and never throws unhandled, when onAccept is refused", async () => {
+    const onAccept = vi.fn(() => Promise.reject(new Error("quote no longer open")));
+    renderSheet({ request: QUOTES_READY_REQUEST, onAccept });
+
+    fireEvent.click(screen.getByText("acceptQuoteBtn"));
+
+    await waitFor(() => expect(screen.getByText("acceptQuoteBtn").closest("button").disabled).toBe(false));
+  });
+
+  it("disables mark-complete while in flight, and re-enables it on success", async () => {
+    let resolveComplete;
+    const onComplete = vi.fn(() => new Promise((resolve) => { resolveComplete = resolve; }));
+    renderSheet({ request: BOOKED_REQUEST, onComplete });
+
+    fireEvent.click(screen.getByText("markCompleteBtn"));
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("markCompleteBtn").closest("button").disabled).toBe(true);
+
+    resolveComplete();
+    await waitFor(() => expect(screen.getByText("markCompleteBtn").closest("button").disabled).toBe(false));
+  });
+
+  it("re-enables mark-complete rather than leaving it stuck, and never throws unhandled, when onComplete is refused", async () => {
+    const onComplete = vi.fn(() => Promise.reject(new Error("engagement not found")));
+    renderSheet({ request: BOOKED_REQUEST, onComplete });
+
+    fireEvent.click(screen.getByText("markCompleteBtn"));
+
+    await waitFor(() => expect(screen.getByText("markCompleteBtn").closest("button").disabled).toBe(false));
   });
 });
 

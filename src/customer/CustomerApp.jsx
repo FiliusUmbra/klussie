@@ -158,23 +158,57 @@ export function CustomerApp({ showToast, onBecomePro }) {
   // approveLocationDisclosure() below already shows the identical toast at the moment
   // that's actually true; nothing here replaces it, on purpose — the disclosure-consent
   // card itself is the real, unmissable feedback that accepting worked.
+  // Found by code audit: fire-and-forget from RequestDetailSheet.jsx's own onClick (no
+  // await, no busy state there either) and had no catch of its own -- the same shape
+  // submitReview()'s own comment below already documents fixing, on what TESTING.md's
+  // own §5.3 calls "the highest-consequence flow in the platform." A real refusal (a
+  // race with another quote already accepted, a status that moved on, a network error)
+  // rejected silently: no toast, no error, the quote card just sitting there as if
+  // nothing had been tapped. Re-thrown after the toast so RequestDetailSheet.jsx's own
+  // caller still sees the rejection (nothing currently awaits this one, but a future
+  // busy-state guard -- the same fix onComplete/onApproveDisclosure below needed -- can
+  // rely on it without this function silently turning a failure into a resolved promise.
   const acceptQuote = async (quoteId) => {
-    await acceptQuoteApi(quoteId, user.id);
-    await refresh();
+    try {
+      await acceptQuoteApi(quoteId, user.id);
+      await refresh();
+    } catch (err) {
+      console.warn("acceptQuote failed:", err.message);
+      showToast(t.toastAcceptQuoteFailed);
+      throw err;
+    }
   };
 
   // Beta-completion slice (0182/0183) — the disclosure-consent action. Separate from
   // acceptQuote() above: quote acceptance alone no longer books anything, this is what
   // actually does.
+  //
+  // Same real gap as acceptQuote() above: RequestDetailSheet.jsx's own onClick already
+  // has a busy-state try/finally, but no catch -- setApproving(false) ran on a real
+  // refusal, quietly re-enabling the button with nothing telling the customer why
+  // nothing happened. Re-thrown so that finally still runs exactly as before.
   const approveLocationDisclosure = async (requestId) => {
-    await approveLocationDisclosureApi(requestId, user.id);
-    await refresh();
-    showToast(t.toastBooked);
+    try {
+      await approveLocationDisclosureApi(requestId, user.id);
+      await refresh();
+      showToast(t.toastBooked);
+    } catch (err) {
+      console.warn("approveLocationDisclosure failed:", err.message);
+      showToast(t.toastDisclosureApproveFailed);
+      throw err;
+    }
   };
 
+  // Same real gap as acceptQuote() above.
   const markComplete = async (requestId) => {
-    await markCompleteApi(requestId, user.id);
-    await refresh();
+    try {
+      await markCompleteApi(requestId, user.id);
+      await refresh();
+    } catch (err) {
+      console.warn("markComplete failed:", err.message);
+      showToast(t.toastMarkCompleteFailed);
+      throw err;
+    }
   };
 
   const submitReview = async (request, review) => {

@@ -24,6 +24,11 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
   const [showReport, setShowReport] = useState(false);
   const [openProId, setOpenProId] = useState(null);
   const [approving, setApproving] = useState(false);
+  // Which quote id is currently being accepted, if any — a single flag (not per-quote)
+  // is enough since accepting one quote is the one mutually-exclusive action this
+  // sheet's quotes_ready state offers.
+  const [acceptingId, setAcceptingId] = useState(null);
+  const [completing, setCompleting] = useState(false);
   const info = serviceInfo(request.serviceId);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
   const steps = timelineSteps(request.status);
@@ -76,7 +81,23 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                   </button>
                   <PriceTag amount={q.price} fmt={fmt} />
                 </div>
-                <button className="btn-secondary" onClick={() => onAccept(q.id)}>{t.acceptQuoteBtn}</button>
+                {/* Found by code audit: no busy state at all -- a real refusal (a race
+                    with another quote already accepted, a status that moved on) used
+                    to leave this button sitting there, tappable again, with nothing
+                    telling the customer their tap had even registered, let alone that
+                    it failed (acceptQuote()'s own new catch, CustomerApp.jsx, shows the
+                    real toast; this only needs to not double-submit while one is in
+                    flight and not throw here a second time). */}
+                <button
+                  className="btn-secondary"
+                  disabled={acceptingId !== null}
+                  onClick={async () => {
+                    setAcceptingId(q.id);
+                    try { await onAccept(q.id); } catch { /* toasted by acceptQuote() */ } finally { setAcceptingId(null); }
+                  }}
+                >
+                  {acceptingId === q.id ? <Loader2 size={15} className="spin" /> : null} {t.acceptQuoteBtn}
+                </button>
               </QuoteCard>
             );
           })}
@@ -108,7 +129,14 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
               className="btn-primary"
               style={{ marginTop: 12 }}
               disabled={approving}
-              onClick={async () => { setApproving(true); try { await onApproveDisclosure(); } finally { setApproving(false); } }}
+              onClick={async () => {
+                setApproving(true);
+                // Found by code audit: this try/finally had no catch -- approveLocationDisclosure()'s
+                // own new catch (CustomerApp.jsx) now shows the real toast and re-throws;
+                // catching (and doing nothing further) here is what stops that from also
+                // becoming an unhandled rejection at this level.
+                try { await onApproveDisclosure(); } catch { /* toasted by approveLocationDisclosure() */ } finally { setApproving(false); }
+              }}
             >
               {approving ? <Loader2 size={15} className="spin" /> : <MapPin size={15} />} {t.disclosureConsentApproveBtn}
             </button>
@@ -135,7 +163,21 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="fee-row"><span>{t.platformFeeLabel}</span><PriceTag amount={fee} fmt={fmt} size="sm" /></div>
             <div className="fee-row fee-row-net"><span>{t.netPayoutLabel}</span><PriceTag amount={net} fmt={fmt} size="sm" /></div>
             <div className="fineprint" style={{ marginTop: 10 }}><ShieldCheck size={12} /> {t.guaranteeNote}</div>
-            <button className="btn-primary" style={{ marginTop: 12 }} onClick={onComplete}>{t.markCompleteBtn}</button>
+            {/* Found by code audit: no busy state, no await, no catch at all -- a real
+                refusal (complete_engagement()'s own refusal, a network error) used to
+                leave the button sitting there tappable again with no feedback at all
+                (markComplete()'s own new catch, CustomerApp.jsx, shows the real toast). */}
+            <button
+              className="btn-primary"
+              style={{ marginTop: 12 }}
+              disabled={completing}
+              onClick={async () => {
+                setCompleting(true);
+                try { await onComplete(); } catch { /* toasted by markComplete() */ } finally { setCompleting(false); }
+              }}
+            >
+              {completing ? <Loader2 size={15} className="spin" /> : null} {t.markCompleteBtn}
+            </button>
             <button className="btn-secondary" style={{ marginTop: 8 }} onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button>
           </QuoteCard>
         );
