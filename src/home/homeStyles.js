@@ -128,7 +128,7 @@ export const HOME_CSS = `
 }
 .conv-textrow-tool::after{ content:""; position:absolute; inset:-6px; border-radius:50%; }
 .conv-textrow-tool:disabled{ opacity:0.4; cursor:default; }
-.conv-textrow-tool-on{ background:var(--amber-bg); color:#8a5c14; }
+.conv-textrow-tool-on{ background:var(--amber-bg); color:var(--amber-dark); }
 
 /* ---- safety interruption ---- */
 .safety-notice{
@@ -136,7 +136,7 @@ export const HOME_CSS = `
   display:flex; flex-direction:column; gap:var(--space-3);
 }
 .safety-notice-head{ display:flex; align-items:center; gap:var(--space-2); }
-.safety-notice-glyph{ color:#8a5c14; display:flex; }
+.safety-notice-glyph{ color:var(--amber-dark); display:flex; }
 .safety-notice-title{ margin:0; font-size:14px; font-weight:700; color:var(--ink); }
 .safety-notice-body{ margin:0; font-size:12.5px; line-height:1.5; color:var(--ink); }
 .safety-notice-actions{ display:flex; flex-direction:column; gap:var(--space-2); }
@@ -161,7 +161,7 @@ export const HOME_CSS = `
   display:flex; align-items:center; justify-content:center;
   background:var(--sage-bg); color:var(--forest-dark);
 }
-.today-card-amber .today-card-glyph{ background:var(--amber-bg); color:#8a5c14; }
+.today-card-amber .today-card-glyph{ background:var(--amber-bg); color:var(--amber-dark); }
 .today-card-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .today-card-title{ font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.3; }
 .today-card-body{ font-size:12px; color:var(--ink-soft); line-height:1.45; }
@@ -296,7 +296,10 @@ export const HOME_CSS = `
   position:absolute; inset-inline-start:calc(-1 * var(--space-4) + 0px); top:16px;
   width:7px; height:7px; border-radius:50%; background:var(--sage); border:1px solid var(--surface);
 }
-.timeline-card-active .timeline-card-dot{ background:var(--amber); }
+/* --amber-dark, not --amber -- see appStyles.js's identical .timeline-dot fix and
+   ACCESSIBILITY.md's Color contrast section: #E8A33D fails the 3:1 non-text floor
+   this status dot needs against its white track. */
+.timeline-card-active .timeline-card-dot{ background:var(--amber-dark); }
 .timeline-card{
   position:relative; display:flex; flex-direction:column; gap:var(--space-2);
   width:100%; text-align:start; cursor:pointer;
@@ -311,7 +314,7 @@ export const HOME_CSS = `
 .timeline-card-detail{ margin:0; font-size:12px; line-height:1.5; color:var(--ink-soft); font-style:italic; }
 .timeline-card-ai{ margin:0; font-size:11.5px; line-height:1.45; color:var(--forest); }
 .timeline-card-status{
-  align-self:flex-start; font-size:11px; font-weight:600; color:#8a5c14;
+  align-self:flex-start; font-size:11px; font-weight:600; color:var(--amber-dark);
   background:var(--amber-bg); border-radius:999px; padding:2px var(--space-3);
 }
 .timeline-card-review{ display:flex; flex-direction:column; gap:var(--space-1); }

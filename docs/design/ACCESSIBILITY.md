@@ -128,10 +128,13 @@ hex/rgba values in `DESIGN_TOKENS.md` — not estimated:
 | `--ink-soft` `#5B6B60` | `--paper` `#EFEEE6` | 4.86:1 | Pass |
 | `#FFFFFF` | `--forest` `#1F4D3A` | 9.63:1 | Pass (AAA) |
 | `--forest-dark` `#163828` | `--sage-bg` `#E7F0E5` | 11.0:1 | Pass (AAA) |
-| `#8a5c14` (hardcoded, not a token — `.cta-quote`/boost text) | `--amber-bg` `#FBEBD2` | 4.94:1 | Pass |
+| `--amber-dark` `#8a5c14` (was hardcoded — `.cta-quote`/boost text) | `--amber-bg` `#FBEBD2` | 4.94:1 | Pass |
+| `--amber-dark` `#8a5c14` | `--surface` `#FFFFFF` | 5.8:1 | Pass |
+| `--amber-dark` `#8a5c14` | `--paper` `#EFEEE6` | 4.98:1 | Pass |
+| ~~`--amber` `#E8A33D`~~ | `--surface` `#FFFFFF` | **2.16:1** | **Fail** |
 | ~~`--ink-faint` `#8B978D`~~ | `--surface` `#FFFFFF` | **3.04:1** | **Fail** |
 
-**The one real failure found, and how it was resolved:** `--ink-faint`
+**The first real failure found, and how it was resolved:** `--ink-faint`
 (added in the Phase 2 token pass) was used on `.timeline-label` at
 10.5px — normal-size text, so the 4.5:1 threshold applies, not the 3:1
 large-text one. It measured 3.04:1 against white. Rather than guess a new
@@ -139,23 +142,48 @@ hex value under the same time pressure that produced the first miss, the
 fix reuses `--ink-soft` (already verified above at ≥4.5:1 against both
 real backgrounds) for that one usage. `--ink-faint` itself is still
 defined in `:root` (removing a token is a bigger call than fixing its one
-usage) but now has **zero real usages anywhere** — see
-`DESIGN_TOKENS.md`'s Audit section, worth a note there too. If a genuinely
-lighter text tier is wanted later, the real constraint this audit found is
-worth knowing: there's very little room between `--ink-soft`'s 4.86:1 (on
-paper, the stricter of the two real backgrounds) and the 4.5:1 floor — a
-meaningfully lighter tier that still passes normal-text AA on `--paper`
-may not be achievable without changing the background it sits on too.
+usage) and had **zero real usages anywhere** at the time of that pass.
 
-**Also confirmed:** the hardcoded `#8a5c14` (used for amber-tinted CTA
-text, never tokenized — see `DESIGN_TOKENS.md`'s "not yet tokenized" list)
-does pass at 4.94:1, so it isn't a contrast bug, just an un-tokenized
-value.
+**That's since regressed:** `src/home/homeStyles.js`, added later, now has
+ten real `color:var(--ink-faint)` usages, all at the same 10.5–11px size
+class that already failed once (`.home-group-count`,
+`.location-node-type`, `.location-node-edit`, `.timeline-card-date`,
+`.timeline-card-chevron`, `.trusted-pro`, `.home-photo-missing`,
+`.item-card-room`, `.item-card-edit`, `.item-detail-document-chevron`) —
+see `DESIGN_TOKENS.md`'s Audit section. Not re-verified or fixed in this
+pass (out of scope — this pass covered `--amber`, below); flagged here as
+a real, live candidate for the next Color contrast pass, not assumed
+passing just because `--ink-soft` at a similar size does. If a genuinely
+lighter text tier is wanted later, the real constraint the original audit
+found is worth knowing: there's very little room between `--ink-soft`'s
+4.86:1 (on paper, the stricter of the two real backgrounds) and the 4.5:1
+floor — a meaningfully lighter tier that still passes normal-text AA on
+`--paper` may not be achievable without changing the background it sits
+on too.
+
+**The second real failure found, and how it was resolved:** `--amber`
+(`#E8A33D`) was never checked against a real background before this pass
+— DESIGN_TOKENS.md carried it as a plain accent color with no contrast
+note. It measures 2.16:1 against both `--surface` and `--paper`, failing
+not just the 4.5:1 text floor but the 3:1 non-text floor too. Every real
+usage of bare `var(--amber)` in the app put that color directly under
+text or a meaningful icon/dot: `.waiting`'s "waiting for quotes" text,
+`.tab-badge`'s unread-count number, both timeline-active status dots
+(`appStyles.js` and `homeStyles.js`), the photo conversation-action
+glyph's icon, both star-rating components' filled stars, and the AI
+intake sheet's error text. Same fix shape as `--ink-faint` above: reuse
+an already-verified value rather than invent one. The hardcoded `#8a5c14`
+used for `.cta-quote`/`.badge-amber` text was already confirmed passing
+(4.94:1 on `--amber-bg`, and — now separately verified — 5.8:1 on
+`--surface` and 4.98:1 on `--paper`), so it's now the real `--amber-dark`
+token, and every usage above switched to it. `--amber` itself stays
+defined and untouched, for any future large-scale/decorative use where it
+isn't sitting directly under text or a small icon.
 
 **Not audited in this pass:** every color pairing in the app — this is a
 representative sample of the highest-frequency real pairings, not
-exhaustive. `--amber` text-on-text combinations and disabled-state colors
-weren't checked.
+exhaustive. Disabled-state colors weren't checked, and neither was the
+`--ink-faint` regression named above.
 
 ## Motion sensitivity
 

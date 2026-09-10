@@ -27,11 +27,15 @@ export function Rating({ value, size = 13 }) {
   return (
     <span className="stars" role="img" aria-label={`${value} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
+        // --amber-dark, not --amber: the aria-label above already carries the rating
+        // as real text, but the filled stars are still a real non-text UI component for
+        // a sighted low-vision user, so the 3:1 floor still applies -- #E8A33D only
+        // reaches ~2.16:1 against a white/paper card. See ACCESSIBILITY.md.
         <Star
           key={i}
           size={size}
-          fill={i <= Math.round(value) ? "var(--amber)" : "none"}
-          color={i <= Math.round(value) ? "var(--amber)" : "var(--line-strong)"}
+          fill={i <= Math.round(value) ? "var(--amber-dark)" : "none"}
+          color={i <= Math.round(value) ? "var(--amber-dark)" : "var(--line-strong)"}
           strokeWidth={1.5}
           aria-hidden="true"
         />

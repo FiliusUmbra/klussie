@@ -240,7 +240,10 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
             </div>
           )}
 
-          {error && <div className="fineprint" style={{ color: "var(--amber)", justifyContent: "flex-start" }}><AlertTriangle size={12} /> {error}</div>}
+          {/* --amber-dark, not --amber: this is real error text at .fineprint's 10.5px --
+              normal-size, so the 4.5:1 floor applies. #E8A33D only reaches ~2.16:1 here;
+              see ACCESSIBILITY.md's Color contrast section. */}
+          {error && <div className="fineprint" style={{ color: "var(--amber-dark)", justifyContent: "flex-start" }}><AlertTriangle size={12} /> {error}</div>}
 
           <button
             className="btn-primary"
@@ -333,7 +336,10 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
             </div>
           )}
 
-          {error && <div className="fineprint" style={{ color: "var(--amber)", justifyContent: "flex-start" }}><AlertTriangle size={12} /> {error}</div>}
+          {/* --amber-dark, not --amber: this is real error text at .fineprint's 10.5px --
+              normal-size, so the 4.5:1 floor applies. #E8A33D only reaches ~2.16:1 here;
+              see ACCESSIBILITY.md's Color contrast section. */}
+          {error && <div className="fineprint" style={{ color: "var(--amber-dark)", justifyContent: "flex-start" }}><AlertTriangle size={12} /> {error}</div>}
 
           <button className="btn-primary" disabled={!canSubmit} onClick={handleFinalSubmit}>
             {submitting ? <Loader2 size={15} className="spin" /> : <Send size={15} />} {t.sendRequestBtn}

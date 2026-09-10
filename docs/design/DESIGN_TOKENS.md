@@ -43,7 +43,8 @@ convention (e.g. don't add `--colorForestDark` or `--forest_dark`).
 | `--forest-dark` | `#163828` | Deeper forest — headers, pressed states, strong text-on-tint |
 | `--sage` | `#8FB996` | Supporting neutral | **Implemented, defined — currently unused.** See Audit below |
 | `--sage-bg` | `#E7F0E5` | Sage tint — the actual supporting-neutral background in use everywhere |
-| `--amber` | `#E8A33D` | Accent — reserved for emphasis, per `DESIGN_SYSTEM.md` |
+| `--amber` | `#E8A33D` | Accent — reserved for emphasis, per `DESIGN_SYSTEM.md`. **Not WCAG-safe as a foreground color** (~2.16:1 on `--surface`/`--paper`, failing both the 4.5:1 text and 3:1 non-text floors) — use `--amber-dark` for any text, icon, badge, or status-dot pixel, and reserve this one for large decorative fills where it's paired with `--amber-bg` |
+| `--amber-dark` | `#8a5c14` | Deeper amber — text/icon/badge on `--surface`, `--paper`, or `--amber-bg`, all ≥4.9:1. Tokenized in the Color contrast pass below; was previously the hardcoded `#8a5c14` used ad hoc for `.cta-quote`/`.badge-amber` |
 | `--amber-bg` | `#FBEBD2` | Amber tint |
 | `--paper` | `#EFEEE6` | Page/sheet ground |
 | `--surface` | `#FFFFFF` | Card/input ground, sits on `--paper` |
@@ -222,6 +223,31 @@ issues, both addressed in this pass:
   `--ink-faint` stays defined but has zero real usages again. Two token
   bugs found on the same token in two different passes; worth remembering
   when the next one gets added.
+
+  **Update, later pass:** that "zero real usages again" no longer holds —
+  `src/home/homeStyles.js` (added after Phase 6) has ten real
+  `color:var(--ink-faint)` usages (`.home-group-count`,
+  `.location-node-type`, `.location-node-edit`, `.timeline-card-date`,
+  `.timeline-card-chevron`, `.trusted-pro`, `.home-photo-missing`,
+  `.item-card-room`, `.item-card-edit`, `.item-detail-document-chevron`),
+  all at 10.5–11px — normal-size text, the same size class that already
+  failed once at 3.04:1. Not re-verified or fixed in this pass (this
+  pass's own scope was `--amber`, below) — flagged here as the next real
+  candidate for a `Color contrast` audit pass, not confirmed passing.
+
+- **`--amber` was never a WCAG-safe foreground color.** Every real usage of
+  bare `var(--amber)` — `.waiting`, `.tab-badge`, the two timeline-active
+  dots, the photo conversation-action glyph, both star-rating components,
+  and the AI intake error text — put `#E8A33D` directly under text or a
+  meaningful icon/dot on `--surface` or `--paper`, at ~2.16:1: below even
+  the 3:1 non-text floor, let alone 4.5:1 for text. Fixed by tokenizing the
+  already-verified `#8a5c14` (previously hardcoded ad hoc in `.cta-quote`/
+  `.badge-amber`, confirmed passing in `ACCESSIBILITY.md`) as
+  `--amber-dark`, and switching every one of those usages — plus the other
+  already-passing-but-hardcoded `#8a5c14` spots in `homeStyles.js` — to the
+  new token. `--amber` itself is untouched and still defined, for any
+  future large-scale/decorative use where contrast against small text
+  isn't in play.
 - **`--surface-2` is referenced but never defined.** `.modal-close` uses
   `background:var(--surface-2, var(--sage-bg))` — the explicit fallback
   means it's harmless today (always resolves to `--sage-bg`), but the

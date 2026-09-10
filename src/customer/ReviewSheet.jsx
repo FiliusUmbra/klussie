@@ -15,7 +15,10 @@ export function ReviewSheet({ onClose, onSubmit }) {
       <div className="sheet-title">{t.reviewTitle}</div>
       <div className="star-picker">
         {[1, 2, 3, 4, 5].map((i) => (
-          <button key={i} onClick={() => setStars(i)} aria-label={`Rate ${i} star${i > 1 ? "s" : ""}`} aria-pressed={i <= stars}><Star size={30} fill={i <= stars ? "var(--amber)" : "none"} color={i <= stars ? "var(--amber)" : "var(--line-strong)"} strokeWidth={1.5} /></button>
+          // --amber-dark, not --amber: a filled star here is the entire meaning of the
+          // rating, so it needs the 3:1 non-text floor against this sheet's white
+          // background -- #E8A33D only reaches ~2.16:1. See ACCESSIBILITY.md.
+          <button key={i} onClick={() => setStars(i)} aria-label={`Rate ${i} star${i > 1 ? "s" : ""}`} aria-pressed={i <= stars}><Star size={30} fill={i <= stars ? "var(--amber-dark)" : "none"} color={i <= stars ? "var(--amber-dark)" : "var(--line-strong)"} strokeWidth={1.5} /></button>
         ))}
       </div>
       <textarea className="textarea" rows={3} placeholder={t.howDidItGo} value={text} onChange={(e) => setText(e.target.value)} />

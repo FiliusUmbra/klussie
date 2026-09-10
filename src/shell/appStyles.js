@@ -10,7 +10,7 @@ export const APP_CSS = `
 
 :root{
   --forest:#1F4D3A; --forest-dark:#163828; --sage:#8FB996; --sage-bg:#E7F0E5;
-  --paper:#EFEEE6; --surface:#FFFFFF; --amber:#E8A33D; --amber-bg:#FBEBD2;
+  --paper:#EFEEE6; --surface:#FFFFFF; --amber:#E8A33D; --amber-dark:#8a5c14; --amber-bg:#FBEBD2;
   --ink:#16231C; --ink-soft:#5B6B60; --ink-faint:#8B978D; --line:rgba(22,35,28,0.10); --line-strong:rgba(22,35,28,0.28);
   --line-soft:rgba(22,35,28,0.06);
   --shadow-card:0 1px 2px rgba(31,77,58,0.05), 0 2px 10px rgba(31,77,58,0.06);
@@ -107,7 +107,7 @@ export const APP_CSS = `
 .svc-meta{ font-size:11px; color:var(--ink-soft); margin-bottom:3px; }
 .svc-rating{ display:flex; align-items:center; gap:4px; font-size:11px; color:var(--ink-soft); margin-bottom:10px; }
 .svc-cta{ font-size:11.5px; font-weight:700; padding:6px 0; text-align:center; border-radius:8px; }
-.cta-quote{ background:var(--amber-bg); color:#8a5c14; }
+.cta-quote{ background:var(--amber-bg); color:var(--amber-dark); }
 .cta-book{ background:var(--sage-bg); color:var(--forest-dark); }
 .empty{ grid-column:1/-1; color:var(--ink-soft); font-size:13px; padding:20px 0; text-align:center; }
 
@@ -119,7 +119,7 @@ export const APP_CSS = `
 .badge{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; white-space:nowrap; }
 .badge-sage{ background:var(--sage-bg); color:var(--forest-dark); }
 .badge-forest{ background:var(--forest); color:#fff; }
-.badge-amber{ background:var(--amber-bg); color:#8a5c14; }
+.badge-amber{ background:var(--amber-bg); color:var(--amber-dark); }
 
 .ticket{ position:relative; width:100%; display:block; text-align:start; background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:16px; margin-bottom:14px; cursor:pointer; font-family:var(--font-body); overflow:hidden; }
 .tear{ height:1px; background:var(--line-soft); }
@@ -129,7 +129,14 @@ export const APP_CSS = `
 .ticket-sub{ font-size:11.5px; color:var(--ink-soft); }
 .ticket-divider{ border-top:1.5px dashed var(--line-strong); margin:11px 0; }
 .ticket-foot{ display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft); }
-.waiting{ display:flex; align-items:center; gap:5px; color:var(--amber); font-weight:600; }
+/* --amber-dark, not the bare --amber ACCESSIBILITY.md's own audit named as unchecked:
+   #E8A33D on #FFFFFF/#EFEEE6 is ~2.16:1, nowhere near the 4.5:1 normal-text floor --
+   the exact --ink-faint class of bug that audit already found and fixed once. --amber
+   itself stays defined (still a valid large-scale/decorative accent) but every place
+   below that puts amber pixels directly under text or a small icon now uses the darker,
+   already-verified pair instead -- the same #8a5c14 .cta-quote/.badge-amber already
+   proved passes at ~5:1, now a real token. See DESIGN_TOKENS.md and ACCESSIBILITY.md. */
+.waiting{ display:flex; align-items:center; gap:5px; color:var(--amber-dark); font-weight:600; }
 
 .empty-block{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; color:var(--ink-soft); font-size:13px; padding:34px 14px; background:var(--surface); border:1px dashed var(--line-strong); border-radius:16px; }
 
@@ -170,7 +177,10 @@ export const APP_CSS = `
 .tab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:44px; gap:3px; background:none; border:none; font-size:10px; color:var(--ink-soft); font-family:var(--font-body); font-weight:600; cursor:pointer; }
 .tab-on{ color:var(--forest); }
 .tab-icon-wrap{ position:relative; }
-.tab-badge{ position:absolute; top:-5px; right:-8px; background:var(--amber); color:#fff; font-size:9px; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+/* --amber-dark, not --amber: white text on #E8A33D is ~2.16:1, failing even at this
+   badge's own bold weight -- the unread count itself is real text (a number), not
+   decoration, so the 4.5:1 floor applies. #8a5c14 gets white text to ~5.8:1. */
+.tab-badge{ position:absolute; top:-5px; right:-8px; background:var(--amber-dark); color:#fff; font-size:9px; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
 
 .sheet-overlay{ position:absolute; inset:0; background:rgba(13,21,18,0.45); display:flex; align-items:flex-end; z-index:20; }
 .sheet{ position:relative; width:100%; max-height:88%; background:var(--paper); border-radius:24px 24px 0 0; padding:10px 20px 26px; box-shadow:0 -10px 30px rgba(0,0,0,0.2); }
@@ -286,7 +296,10 @@ export const APP_CSS = `
   width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff;
   display:flex; align-items:center; justify-content:center; margin-bottom:var(--space-1);
 }
-.conv-action-photo .conv-action-glyph{ background:var(--amber); }
+/* --amber-dark, not --amber: this circle carries a white icon that identifies the
+   action (camera vs. mic) -- a meaningful graphic, not decoration, so it needs the
+   3:1 non-text floor at minimum; #E8A33D only gets ~2.16:1. */
+.conv-action-photo .conv-action-glyph{ background:var(--amber-dark); }
 /* Two lines are reserved whether or not the title needs them, so the two tiles' subtitles
    sit on the same baseline in every locale. Without this the layout depends on string
    length: Dutch "Vertel het me gewoon" wraps while "Laat het me zien" doesn't, and the
@@ -525,7 +538,10 @@ button.ds-card{ cursor:pointer; }
 .timeline-step.timeline-done:not(:last-child)::after{ background:var(--forest); }
 .timeline-dot{ width:11px; height:11px; border-radius:50%; background:var(--surface); border:2px solid var(--line-strong); z-index:1; }
 .timeline-step.timeline-done .timeline-dot{ background:var(--forest); border-color:var(--forest); }
-.timeline-step.timeline-active .timeline-dot{ background:var(--amber); border-color:var(--amber); }
+/* --amber-dark, not --amber: this dot is a real status indicator (which step is
+   active), so WCAG 1.4.11's 3:1 non-text floor applies against the white track it
+   sits on -- #E8A33D only reaches ~2.16:1 there. */
+.timeline-step.timeline-active .timeline-dot{ background:var(--amber-dark); border-color:var(--amber-dark); }
 .timeline-label{ font-size:10.5px; color:var(--ink-soft); margin-top:6px; max-width:70px; line-height:1.3; }
 .timeline-step.timeline-done .timeline-label{ color:var(--ink-soft); }
 .timeline-step.timeline-active .timeline-label{ color:var(--ink); font-weight:600; }
