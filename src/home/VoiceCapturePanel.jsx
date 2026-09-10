@@ -19,20 +19,44 @@ export function VoiceCapturePanel({ onDone, onCancel }) {
   const recognizerRef = useRef(null);
   const meterRef = useRef(null);
   const finalRef = useRef("");
+  const interimRef = useRef("");
+  // Set the moment recognition is told to stop (explicit tap or the recognizer ending on
+  // its own) — a guard against a stray onresult arriving after we've already committed
+  // the transcript below, which would otherwise append the same words a second time.
+  const stoppedRef = useRef(false);
+
+  // The recognizer is not guaranteed to convert the last thing said into a final result
+  // before ending — a real, observed Web Speech API inconsistency, not a hypothetical:
+  // an explicit stop, a trailing pause, or the browser's own silence timeout can all end
+  // recognition with the tail of what was said still sitting in `interimText`, never
+  // finalized. Without folding it in here, words that were visibly on screen a moment
+  // ago silently vanish — and if nothing was ever finalized either, the whole utterance
+  // is lost with no explanation (the "done, but nothing to confirm" effect below then
+  // reads it as if the customer never spoke at all).
+  const commitPendingInterim = () => {
+    const pending = interimRef.current.trim();
+    if (!pending) return;
+    finalRef.current = (finalRef.current ? finalRef.current + " " : "") + pending;
+    interimRef.current = "";
+    setFinalText(finalRef.current);
+    setInterim(""); // already folded into finalText — leaving it set would echo it twice
+  };
 
   useEffect(() => {
     let cancelled = false;
     try {
       recognizerRef.current = startSpeechRecognition(speechLocaleFor(langCode), {
         onResult: ({ finalText: done, interimText }) => {
+          if (stoppedRef.current) return;
           if (done) {
             finalRef.current = (finalRef.current ? finalRef.current + " " : "") + done;
             setFinalText(finalRef.current);
           }
+          interimRef.current = interimText;
           setInterim(interimText);
         },
-        onEnd: () => { if (!cancelled) setState("done"); },
-        onError: () => { if (!cancelled) setState("done"); },
+        onEnd: () => { if (!cancelled) { commitPendingInterim(); setState("done"); } },
+        onError: () => { if (!cancelled) { commitPendingInterim(); setState("done"); } },
       });
     } catch {
       onCancel();
@@ -61,8 +85,10 @@ export function VoiceCapturePanel({ onDone, onCancel }) {
   }, [state]);
 
   const stop = () => {
+    stoppedRef.current = true;
     recognizerRef.current?.stop();
     meterRef.current?.stop();
+    commitPendingInterim();
     setState("done");
   };
 

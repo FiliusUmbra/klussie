@@ -477,6 +477,49 @@ describe("ConversationHome — voice capture", () => {
     expect(analyzeJobRequest).not.toHaveBeenCalled();
   });
 
+  // A real, observed Web Speech API inconsistency, not a hypothetical: the recognizer is
+  // never guaranteed to convert the last words spoken into a final result before ending —
+  // a trailing pause, the browser's own silence timeout, or an explicit stop can all end
+  // recognition while the tail of what was said is still sitting in `interimText`, never
+  // finalized. Before this fix, that content was silently discarded.
+  it("keeps what was said even when recognition ends before finalizing it", async () => {
+    const recognizer = captureRecognizer();
+    renderHome();
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
+
+    // Never finalized — this is exactly the interim-only case some browsers hit.
+    await act(async () => { recognizer.handlers.onResult({ finalText: "", interimText: "my sink is leaking" }); });
+    await act(async () => { recognizer.handlers.onEnd(); });
+
+    // The panel stays open with a real transcript to confirm, rather than reading "no
+    // final text" as "nothing was said" and silently closing.
+    expect(document.querySelector(".voice-capture")).not.toBeNull();
+    expect(screen.getByText("my sink is leaking")).toBeTruthy();
+
+    await act(async () => { screen.getByText("convContinue").click(); });
+    await waitFor(() => expect(analyzeJobRequest).toHaveBeenCalledWith(expect.objectContaining({ text: "my sink is leaking" })));
+  });
+
+  it("keeps a trailing never-finalized word when the customer taps stop themselves", async () => {
+    const recognizer = captureRecognizer();
+    renderHome();
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
+
+    await act(async () => { recognizer.handlers.onResult({ finalText: "my sink is leaking", interimText: "" }); });
+    // A further clause is spoken but never makes it to a final result before the tap.
+    await act(async () => { recognizer.handlers.onResult({ finalText: "", interimText: "and the toilet too" }); });
+    await act(async () => { document.querySelector(".voice-stop").click(); });
+
+    // Both the already-final and the rescued trailing clause show, exactly once each —
+    // not the trailing clause echoed twice (finalText and the still-set interim).
+    expect(screen.getByText("my sink is leaking and the toilet too")).toBeTruthy();
+
+    await act(async () => { screen.getByText("convContinue").click(); });
+    await waitFor(() => expect(analyzeJobRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "my sink is leaking and the toilet too" }),
+    ));
+  });
+
   it("returns to rest when the recognizer errors out", async () => {
     const recognizer = captureRecognizer();
     renderHome();
