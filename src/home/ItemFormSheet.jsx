@@ -116,8 +116,11 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       }
       await onSaved();
       onClose();
-    } catch (err) {
-      setError(err.message || String(err));
+    } catch {
+      // A raw err.message here would be a raw Postgres/Storage error -- documents.js's
+      // own header names this anti-pattern and its fix: a generic, localized message,
+      // never the backend's own words.
+      setError(t.itemSaveFailed);
     } finally {
       setBusy(false);
     }
@@ -134,8 +137,10 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       }
       await onSaved();
       onClose();
-    } catch (err) {
-      setError(err.message || String(err));
+    } catch {
+      // The same action ItemDetailSheet.jsx's own confirmedRetire() performs -- reusing
+      // its key rather than declaring a second one for the identical failure.
+      setError(t.itemDetailRetireFailed);
       setBusy(false);
     }
   };

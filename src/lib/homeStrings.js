@@ -174,7 +174,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "Merk (optioneel)", itemModelLabel: "Model (optioneel)",
     itemPhotoLabel: "Foto (optioneel)", itemPhotoAdd: "Foto toevoegen", itemPhotoRemove: "Foto verwijderen",
     itemPurchasedLabel: "Gekocht op (optioneel)", itemNotesLabel: "Notities (optioneel)",
-    itemSaveNew: "Item bewaren", itemSaveChanges: "Wijzigingen opslaan",
+    itemSaveNew: "Item bewaren", itemSaveChanges: "Wijzigingen opslaan", itemSaveFailed:"Kon dit item niet opslaan. Probeer het opnieuw.",
     itemDelete: "Item verwijderen",
     itemDeleteConfirm: "Dit item verwijderen? Dit kan niet ongedaan gemaakt worden.",
 
@@ -362,7 +362,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "Marque (facultatif)", itemModelLabel: "Modèle (facultatif)",
     itemPhotoLabel: "Photo (facultatif)", itemPhotoAdd: "Ajouter une photo", itemPhotoRemove: "Supprimer la photo",
     itemPurchasedLabel: "Acheté le (facultatif)", itemNotesLabel: "Notes (facultatif)",
-    itemSaveNew: "Enregistrer l'objet", itemSaveChanges: "Enregistrer les modifications",
+    itemSaveNew: "Enregistrer l'objet", itemSaveChanges: "Enregistrer les modifications", itemSaveFailed:"Impossible d'enregistrer cet objet. Réessaie.",
     itemDelete: "Supprimer l'objet",
     itemDeleteConfirm: "Supprimer cet objet ? Cette action est irréversible.",
 
@@ -550,7 +550,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "Marke (optional)", itemModelLabel: "Modell (optional)",
     itemPhotoLabel: "Foto (optional)", itemPhotoAdd: "Foto hinzufügen", itemPhotoRemove: "Foto entfernen",
     itemPurchasedLabel: "Gekauft am (optional)", itemNotesLabel: "Notizen (optional)",
-    itemSaveNew: "Gegenstand speichern", itemSaveChanges: "Änderungen speichern",
+    itemSaveNew: "Gegenstand speichern", itemSaveChanges: "Änderungen speichern", itemSaveFailed:"Dieser Gegenstand konnte nicht gespeichert werden. Bitte versuche es erneut.",
     itemDelete: "Gegenstand löschen",
     itemDeleteConfirm: "Diesen Gegenstand löschen? Das kann nicht rückgängig gemacht werden.",
 
@@ -738,7 +738,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "Brand (optional)", itemModelLabel: "Model (optional)",
     itemPhotoLabel: "Photo (optional)", itemPhotoAdd: "Add a photo", itemPhotoRemove: "Remove photo",
     itemPurchasedLabel: "Bought on (optional)", itemNotesLabel: "Notes (optional)",
-    itemSaveNew: "Save item", itemSaveChanges: "Save changes",
+    itemSaveNew: "Save item", itemSaveChanges: "Save changes", itemSaveFailed:"Couldn't save this item. Please try again.",
     itemDelete: "Delete item",
     itemDeleteConfirm: "Delete this item? This can't be undone.",
 
@@ -926,7 +926,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "Marca (opcional)", itemModelLabel: "Modelo (opcional)",
     itemPhotoLabel: "Foto (opcional)", itemPhotoAdd: "Añadir una foto", itemPhotoRemove: "Quitar la foto",
     itemPurchasedLabel: "Comprado el (opcional)", itemNotesLabel: "Notas (opcional)",
-    itemSaveNew: "Guardar objeto", itemSaveChanges: "Guardar cambios",
+    itemSaveNew: "Guardar objeto", itemSaveChanges: "Guardar cambios", itemSaveFailed:"No se pudo guardar este objeto. Inténtalo de nuevo.",
     itemDelete: "Eliminar objeto",
     itemDeleteConfirm: "¿Eliminar este objeto? Esta acción no se puede deshacer.",
 
@@ -1116,7 +1116,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "الماركة (اختياري)", itemModelLabel: "الطراز (اختياري)",
     itemPhotoLabel: "صورة (اختياري)", itemPhotoAdd: "إضافة صورة", itemPhotoRemove: "إزالة الصورة",
     itemPurchasedLabel: "تاريخ الشراء (اختياري)", itemNotesLabel: "ملاحظات (اختياري)",
-    itemSaveNew: "حفظ الغرض", itemSaveChanges: "حفظ التغييرات",
+    itemSaveNew: "حفظ الغرض", itemSaveChanges: "حفظ التغييرات", itemSaveFailed:"تعذّر حفظ هذا الغرض. يرجى المحاولة مرة أخرى.",
     itemDelete: "حذف الغرض",
     itemDeleteConfirm: "هل تريد حذف هذا الغرض؟ لا يمكن التراجع عن ذلك.",
 
@@ -1304,7 +1304,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "برند (اختیاری)", itemModelLabel: "مدل (اختیاری)",
     itemPhotoLabel: "عکس (اختیاری)", itemPhotoAdd: "افزودن عکس", itemPhotoRemove: "حذف عکس",
     itemPurchasedLabel: "تاریخ خرید (اختیاری)", itemNotesLabel: "یادداشت (اختیاری)",
-    itemSaveNew: "ذخیره وسیله", itemSaveChanges: "ذخیره تغییرات",
+    itemSaveNew: "ذخیره وسیله", itemSaveChanges: "ذخیره تغییرات", itemSaveFailed:"این وسیله ذخیره نشد. لطفاً دوباره امتحان کنید.",
     itemDelete: "حذف وسیله",
     itemDeleteConfirm: "این وسیله حذف شود؟ این کار قابل بازگشت نیست.",
 
@@ -1494,7 +1494,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "Marka (isteğe bağlı)", itemModelLabel: "Model (isteğe bağlı)",
     itemPhotoLabel: "Fotoğraf (isteğe bağlı)", itemPhotoAdd: "Fotoğraf ekle", itemPhotoRemove: "Fotoğrafı kaldır",
     itemPurchasedLabel: "Satın alma tarihi (isteğe bağlı)", itemNotesLabel: "Notlar (isteğe bağlı)",
-    itemSaveNew: "Eşyayı kaydet", itemSaveChanges: "Değişiklikleri kaydet",
+    itemSaveNew: "Eşyayı kaydet", itemSaveChanges: "Değişiklikleri kaydet", itemSaveFailed:"Bu eşya kaydedilemedi. Lütfen tekrar dene.",
     itemDelete: "Eşyayı sil",
     itemDeleteConfirm: "Bu eşya silinsin mi? Bu işlem geri alınamaz.",
 
@@ -1682,7 +1682,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "Марка (необязательно)", itemModelLabel: "Модель (необязательно)",
     itemPhotoLabel: "Фото (необязательно)", itemPhotoAdd: "Добавить фото", itemPhotoRemove: "Удалить фото",
     itemPurchasedLabel: "Дата покупки (необязательно)", itemNotesLabel: "Заметки (необязательно)",
-    itemSaveNew: "Сохранить предмет", itemSaveChanges: "Сохранить изменения",
+    itemSaveNew: "Сохранить предмет", itemSaveChanges: "Сохранить изменения", itemSaveFailed:"Не удалось сохранить этот предмет. Попробуйте ещё раз.",
     itemDelete: "Удалить предмет",
     itemDeleteConfirm: "Удалить этот предмет? Это нельзя отменить.",
 
@@ -1870,7 +1870,7 @@ export const HOME_STRINGS = {
     itemBrandLabel: "品牌（可选）", itemModelLabel: "型号（可选）",
     itemPhotoLabel: "照片（可选）", itemPhotoAdd: "添加照片", itemPhotoRemove: "移除照片",
     itemPurchasedLabel: "购买日期（可选）", itemNotesLabel: "备注（可选）",
-    itemSaveNew: "保存物品", itemSaveChanges: "保存更改",
+    itemSaveNew: "保存物品", itemSaveChanges: "保存更改", itemSaveFailed:"无法保存此物品，请重试。",
     itemDelete: "删除物品",
     itemDeleteConfirm: "要删除这件物品吗？此操作无法撤销。",
 

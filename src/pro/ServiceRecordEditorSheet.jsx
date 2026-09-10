@@ -91,8 +91,13 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
 
       await onSaved();
       onClose();
-    } catch (err) {
-      setError(err.message || String(err));
+    } catch {
+      // A raw err.message here would be a raw Postgres/Storage error -- documents.js's
+      // own header names this anti-pattern and its fix: a generic, localized message,
+      // never the backend's own words. Worth getting right here specifically: this is
+      // "the highest-leverage single screen in either roadmap" per
+      // PLATFORM_ACTIVATION_PROGRAMME.md, not a minor form.
+      setError(t.srSaveFailed);
     } finally {
       setBusy(false);
     }

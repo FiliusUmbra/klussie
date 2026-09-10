@@ -92,14 +92,20 @@ describe("ServiceRecordEditorSheet", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("shows the real error and keeps the sheet open when the save is refused", async () => {
+  // Found by code audit: this used to assert the raw backend error ("insufficient_
+  // privilege") rendered verbatim — the exact anti-pattern documents.js's own header
+  // names and fixes elsewhere. Updated to pin the fix instead: a real, generic, localized
+  // message, never the backend's own words, on the single highest-leverage screen in
+  // either roadmap (PLATFORM_ACTIVATION_PROGRAMME.md's own description of this sheet).
+  it("shows a generic localized error, never the raw backend message, and keeps the sheet open when the save is refused", async () => {
     createServiceRecord.mockRejectedValue(new Error("insufficient_privilege"));
     const onClose = vi.fn();
     renderEditor({ onClose });
     fireEvent.change(screen.getByPlaceholderText("srWorkPerformedPlaceholder"), { target: { value: "Replaced the valve." } });
     fireEvent.click(screen.getByText("srSaveBtn"));
 
-    await waitFor(() => expect(screen.getByText("insufficient_privilege")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("srSaveFailed")).toBeTruthy());
+    expect(screen.queryByText("insufficient_privilege")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
   });
 

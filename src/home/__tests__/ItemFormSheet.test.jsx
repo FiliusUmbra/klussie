@@ -32,8 +32,9 @@ const t = {
   itemBrandLabel: "Brand", itemModelLabel: "Model",
   itemPhotoLabel: "Photo", itemPhotoAdd: "Add photo", itemPhotoRemove: "Remove photo",
   itemPurchasedLabel: "Purchased on", itemNotesLabel: "Notes",
-  itemSaveNew: "Save item", itemSaveChanges: "Save changes",
+  itemSaveNew: "Save item", itemSaveChanges: "Save changes", itemSaveFailed: "Couldn't save this item.",
   itemDelete: "Delete item", itemDeleteConfirm: "Delete this item?", cancelBtn: "Cancel",
+  itemDetailRetireFailed: "Couldn't retire this item.",
   itemCatAppliance: "Appliances", itemCatElectronics: "Electronics", itemCatFurniture: "Furniture",
   itemCatGarden: "Garden", itemCatTool: "Tools", itemCatOther: "Other",
   itemRoomKitchen: "Kitchen", itemRoomLiving: "Living room", itemRoomBedroom: "Bedroom",
@@ -200,5 +201,35 @@ describe("ItemFormSheet — delete, real contract vs legacy", () => {
 
     await waitFor(() => expect(deleteHouseholdItem).toHaveBeenCalledWith("asset-1", "owner-1/asset-1/old"));
     expect(retireAsset).not.toHaveBeenCalled();
+  });
+});
+
+// Found by code audit: both catch blocks did `setError(err.message || String(err))`,
+// showing a raw Postgres/Storage error verbatim — the exact anti-pattern documents.js's
+// own header names and fixes.
+describe("ItemFormSheet — save/delete failure", () => {
+  it("shows a generic localized error, never the raw backend message, when saving fails", async () => {
+    vi.mocked(createAsset).mockRejectedValueOnce(new Error("new row violates row-level security policy"));
+    const onSaved = vi.fn();
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" item={null} onClose={() => {}} onSaved={onSaved} />);
+
+    await fillNameAndSave("Save item");
+
+    await waitFor(() => expect(screen.getByText("Couldn't save this item.")).toBeTruthy());
+    expect(screen.queryByText(/row-level security/)).toBeNull();
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(screen.getByText("Save item").disabled).toBe(false);
+  });
+
+  it("shows the shared retire-failed message, never the raw backend message, when deleting fails", async () => {
+    vi.mocked(retireAsset).mockRejectedValueOnce(new Error("network error"));
+    const onSaved = vi.fn();
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" item={ITEM} onClose={() => {}} onSaved={onSaved} />);
+
+    fireEvent.click(screen.getByText("Delete item"));
+    fireEvent.click(screen.getAllByText("Delete item")[1]);
+
+    await waitFor(() => expect(screen.getByText("Couldn't retire this item.")).toBeTruthy());
+    expect(onSaved).not.toHaveBeenCalled();
   });
 });
