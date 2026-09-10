@@ -23,7 +23,9 @@ vi.mock("../../lib/testimonials", () => ({
 
 import { LangContext } from "../../lib/lang";
 import { Profile } from "../Profile.jsx";
-import { updateProProfile } from "../../lib/pros";
+import { updateProProfile, updateProServices, boostProfile } from "../../lib/pros";
+import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../../lib/portfolio";
+import { deleteTestimonial, fetchTestimonials } from "../../lib/testimonials";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = {
@@ -209,5 +211,142 @@ describe("Profile — pro variant, switching pro type", () => {
     await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { pro_type: "business" }));
     expect(screen.queryByText("proTypeBusinessRequiresDetails")).toBeNull();
     expect(screen.queryByText("proTypeSwitchFailed")).toBeNull();
+  });
+});
+
+// Found by code audit: five pro-only actions in this file had no real error handling —
+// some no catch at all, one (saveServices) not even a finally, so a real refusal left
+// its own busy flag stuck true forever (the exact "no dead end" shape this codebase has
+// already found and fixed repeatedly elsewhere — PortfolioItemSheet.jsx's own identical
+// gap, ServiceRecordSummary.jsx's own identical gap — just not yet swept in this file).
+const PRO_WORKSPACES = [{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }];
+
+describe("Profile — pro variant, saveServices", () => {
+  it("re-enables the button rather than leaving it stuck, and shows a real error, when saving fails", async () => {
+    updateProServices.mockReset();
+    updateProServices.mockRejectedValueOnce(new Error("insufficient_privilege"));
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("saveServicesBtn"));
+
+    await waitFor(() => expect(screen.getByText("saveServicesFailed")).toBeTruthy());
+    expect(screen.queryByText("insufficient_privilege")).toBeNull();
+    expect(screen.getByText("saveServicesBtn").closest("button").disabled).toBe(false);
+  });
+
+  it("shows no error at all when saving succeeds", async () => {
+    updateProServices.mockReset();
+    updateProServices.mockResolvedValueOnce(undefined);
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("saveServicesBtn"));
+
+    await waitFor(() => expect(updateProServices).toHaveBeenCalled());
+    expect(screen.queryByText("saveServicesFailed")).toBeNull();
+  });
+});
+
+describe("Profile — pro variant, portfolio upload", () => {
+  it("shows a real error, never the raw backend message, when the upload fails", async () => {
+    uploadPortfolioImage.mockReset();
+    uploadPortfolioImage.mockRejectedValueOnce(new Error("storage quota exceeded"));
+    renderPro(PRO_WORKSPACES);
+
+    const file = new File(["x"], "photo.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    await waitFor(() => expect(screen.getByText("portfolioUploadFailed")).toBeTruthy());
+    expect(screen.queryByText("storage quota exceeded")).toBeNull();
+    expect(addPortfolioItem).not.toHaveBeenCalled();
+  });
+
+  it("uploads and refreshes the grid on success", async () => {
+    uploadPortfolioImage.mockReset();
+    uploadPortfolioImage.mockResolvedValueOnce({ url: "https://example.test/p.jpg", path: "pro-1/p" });
+    addPortfolioItem.mockReset();
+    addPortfolioItem.mockResolvedValueOnce({});
+    fetchPortfolioItems.mockClear();
+    renderPro(PRO_WORKSPACES);
+
+    const file = new File(["x"], "photo.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    await waitFor(() => expect(addPortfolioItem).toHaveBeenCalled());
+    expect(screen.queryByText("portfolioUploadFailed")).toBeNull();
+  });
+});
+
+describe("Profile — pro variant, removing a testimonial", () => {
+  function renderProWithTestimonial() {
+    fetchTestimonials.mockReset();
+    fetchTestimonials.mockResolvedValue([{ id: "tst-1", client_name: "Cathy", quote_text: "Great work!" }]);
+    return renderPro(PRO_WORKSPACES);
+  }
+
+  it("shows a real error and keeps the confirm modal open, re-enabling both buttons, when deletion fails", async () => {
+    deleteTestimonial.mockReset();
+    deleteTestimonial.mockRejectedValueOnce(new Error("network error"));
+    renderProWithTestimonial();
+
+    await screen.findByText("Cathy");
+    fireEvent.click(screen.getByText("deleteBtn"));
+    fireEvent.click(screen.getAllByText("deleteBtn")[1]);
+
+    await waitFor(() => expect(screen.getByText("testimonialDeleteFailed")).toBeTruthy());
+    expect(screen.queryByText("network error")).toBeNull();
+    // Still open — Cancel is still there to click.
+    expect(screen.getByText("cancelBtn")).toBeTruthy();
+  });
+
+  it("deletes and closes the modal on success", async () => {
+    deleteTestimonial.mockReset();
+    deleteTestimonial.mockResolvedValueOnce(undefined);
+    renderProWithTestimonial();
+
+    await screen.findByText("Cathy");
+    fireEvent.click(screen.getByText("deleteBtn"));
+    fireEvent.click(screen.getAllByText("deleteBtn")[1]);
+
+    await waitFor(() => expect(deleteTestimonial).toHaveBeenCalledWith("tst-1"));
+    await waitFor(() => expect(screen.queryByText("cancelBtn")).toBeNull());
+  });
+});
+
+describe("Profile — pro variant, boost", () => {
+  it("re-enables the button and shows a real error when Boost fails to start", async () => {
+    boostProfile.mockReset();
+    boostProfile.mockRejectedValueOnce(new Error("payment required"));
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText(/boostBtn/));
+
+    await waitFor(() => expect(screen.getByText("boostFailed")).toBeTruthy());
+    expect(screen.queryByText("payment required")).toBeNull();
+    expect(screen.getByText(/boostBtn/).closest("button").disabled).toBe(false);
+  });
+});
+
+describe("Profile — pro variant, pause/resume", () => {
+  it("re-enables the button and shows a real error when the toggle fails", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockRejectedValueOnce(new Error("network error"));
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("pauseProfileBtn"));
+
+    await waitFor(() => expect(screen.getByText("togglePausedFailed")).toBeTruthy());
+    expect(screen.queryByText("network error")).toBeNull();
+    expect(screen.getByText("pauseProfileBtn").closest("button").disabled).toBe(false);
+  });
+
+  it("shows no error and calls onPauseToggled on success", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("pauseProfileBtn"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { paused: true }));
+    expect(screen.queryByText("togglePausedFailed")).toBeNull();
   });
 });

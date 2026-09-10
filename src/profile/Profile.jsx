@@ -66,6 +66,14 @@ export function Profile({
   const [testimonials, setTestimonials] = useState(null);
   const [addTestimonialOpen, setAddTestimonialOpen] = useState(false);
   const [confirmDeleteTestimonialId, setConfirmDeleteTestimonialId] = useState(null);
+  const [portfolioError, setPortfolioError] = useState("");
+  const [testimonialError, setTestimonialError] = useState("");
+  const [testimonialBusy, setTestimonialBusy] = useState(false);
+  const [saveServicesError, setSaveServicesError] = useState("");
+  const [boosting, setBoosting] = useState(false);
+  const [boostError, setBoostError] = useState("");
+  const [pausing, setPausing] = useState(false);
+  const [pauseError, setPauseError] = useState("");
   const portfolioFileRef = useRef(null);
 
   const refreshPortfolio = () => fetchPortfolioItems(user.id).then(setPortfolioItems);
@@ -82,29 +90,59 @@ export function Profile({
   // (never called, so never evaluated) rather than branching on variant here too, same
   // reasoning as the fetch effect above.
   const toggle = (id) => setSelected((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+  // Found by code audit: try/finally but no catch -- uploadingPhoto always reset
+  // correctly (the finally already did that much), but a real failure (Storage, RLS,
+  // network) was never shown at all, an unhandled rejection with nothing on screen.
   const handlePortfolioUpload = async (e) => {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
     setUploadingPhoto(true);
+    setPortfolioError("");
     try {
       const { url, path } = await uploadPortfolioImage(user.id, file);
       await addPortfolioItem({ proId: user.id, imageUrl: url, storagePath: path });
       await refreshPortfolio();
+    } catch {
+      setPortfolioError(t.portfolioUploadFailed);
     } finally {
       setUploadingPhoto(false);
     }
   };
+  // Found by code audit: no try/catch at all -- a real refusal left the confirm modal's
+  // own Delete button re-clickable with no explanation, and never closed the modal
+  // (setConfirmDeleteTestimonialId(null) only ran on success), an unhandled rejection.
   const removeTestimonial = async (id) => {
-    await deleteTestimonial(id);
-    await refreshTestimonials();
-    setConfirmDeleteTestimonialId(null);
+    setTestimonialBusy(true);
+    setTestimonialError("");
+    try {
+      await deleteTestimonial(id);
+      await refreshTestimonials();
+      setConfirmDeleteTestimonialId(null);
+    } catch {
+      setTestimonialError(t.testimonialDeleteFailed);
+    } finally {
+      setTestimonialBusy(false);
+    }
   };
+  // Found by code audit: no try/catch, and critically no finally either -- a real
+  // refusal left `saving` stuck at true forever (setSaving(false) sat after the await
+  // with nothing to run it on rejection), the button permanently disabled with no way
+  // back in short of leaving and re-opening this screen. The exact "no dead end" shape
+  // this codebase has already found and fixed repeatedly elsewhere (PortfolioItemSheet.jsx's
+  // own identical gap, ServiceRecordSummary.jsx's own identical gap, among others) --
+  // just not yet swept in this file, on the pro's own core "which services do I offer" setting.
   const saveServices = async () => {
     setSaving(true);
-    await updateProServices(user.id, selected);
-    onServicesChange(selected);
-    setSaving(false);
+    setSaveServicesError("");
+    try {
+      await updateProServices(user.id, selected);
+      onServicesChange(selected);
+    } catch {
+      setSaveServicesError(t.saveServicesFailed);
+    } finally {
+      setSaving(false);
+    }
   };
   // Found live during a UX review, 2026-09-06: switching to "business" here failed with
   // zero visible feedback whenever business_name/vat_number were still unset — the real,
@@ -125,14 +163,34 @@ export function Profile({
       );
     }
   };
+  // Found by code audit: no try/catch, no busy state at all -- a real refusal left
+  // nothing telling the pro their tap on a paid action (€{BOOST_WEEKLY_PRICE}/week) had
+  // failed, and nothing stopped a double-tap from firing it twice.
   const boost = async () => {
-    await boostProfile(user.id);
-    await refreshProfile();
+    setBoosting(true);
+    setBoostError("");
+    try {
+      await boostProfile(user.id);
+      await refreshProfile();
+    } catch {
+      setBoostError(t.boostFailed);
+    } finally {
+      setBoosting(false);
+    }
   };
+  // Found by code audit: same gap as boost() above -- no try/catch, no busy state.
   const togglePaused = async () => {
-    await updateProProfile(user.id, { paused: !proProfile.paused });
-    await refreshProfile();
-    if (onPauseToggled) await onPauseToggled();
+    setPausing(true);
+    setPauseError("");
+    try {
+      await updateProProfile(user.id, { paused: !proProfile.paused });
+      await refreshProfile();
+      if (onPauseToggled) await onPauseToggled();
+    } catch {
+      setPauseError(t.togglePausedFailed);
+    } finally {
+      setPausing(false);
+    }
   };
 
   const displayName = profile?.full_name || t.profileYou;
@@ -199,9 +257,10 @@ export function Profile({
 
       {variant === "pro" && (
         <>
-          <button className="btn-secondary" style={{ marginBottom: 14 }} onClick={togglePaused}>
+          <button className="btn-secondary" style={{ marginBottom: pauseError ? 6 : 14 }} disabled={pausing} onClick={togglePaused}>
             {proProfile.paused ? t.resumeProfileBtn : t.pauseProfileBtn}
           </button>
+          {pauseError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 14 }}>{pauseError}</div>}
 
           <div className="section-title">{t.proTypeLabel}</div>
           <div className="segmented segmented-block">
@@ -237,7 +296,8 @@ export function Profile({
               </div>
             );
           })}
-          <button className="btn-secondary" style={{ marginBottom: 14 }} disabled={saving} onClick={saveServices}>{t.saveServicesBtn}</button>
+          <button className="btn-secondary" style={{ marginBottom: saveServicesError ? 6 : 14 }} disabled={saving} onClick={saveServices}>{t.saveServicesBtn}</button>
+          {saveServicesError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 14 }}>{saveServicesError}</div>}
 
           <div className="section-title">{t.portfolioTitle}</div>
           <div className="portfolio-grid">
@@ -251,6 +311,7 @@ export function Profile({
             </button>
             <input ref={portfolioFileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePortfolioUpload} />
           </div>
+          {portfolioError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 8 }}>{portfolioError}</div>}
           {portfolioItems && portfolioItems.length === 0 && <div className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 14 }}>{t.noPortfolioYet}</div>}
 
           <div className="section-title">{t.testimonialsTitle}</div>
@@ -260,15 +321,16 @@ export function Profile({
             <QuoteCard key={tst.id}>
               {tst.client_name && <div className="quote-name">{tst.client_name}</div>}
               <p className="quote-msg">"{tst.quote_text}"</p>
-              <button className="btn-secondary" onClick={() => setConfirmDeleteTestimonialId(tst.id)}>{t.deleteBtn}</button>
+              <button className="btn-secondary" onClick={() => { setTestimonialError(""); setConfirmDeleteTestimonialId(tst.id); }}>{t.deleteBtn}</button>
             </QuoteCard>
           ))}
           {confirmDeleteTestimonialId && (
             <Modal onClose={() => setConfirmDeleteTestimonialId(null)}>
               <p style={{ marginTop: 8 }}>{t.confirmDeleteMsg}</p>
+              {testimonialError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginTop: 8 }}>{testimonialError}</div>}
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                <Button variant="secondary" onClick={() => setConfirmDeleteTestimonialId(null)}>{t.cancelBtn}</Button>
-                <Button variant="primary" onClick={() => removeTestimonial(confirmDeleteTestimonialId)}>{t.deleteBtn}</Button>
+                <Button variant="secondary" disabled={testimonialBusy} onClick={() => setConfirmDeleteTestimonialId(null)}>{t.cancelBtn}</Button>
+                <Button variant="primary" disabled={testimonialBusy} onClick={() => removeTestimonial(confirmDeleteTestimonialId)}>{t.deleteBtn}</Button>
               </div>
             </Modal>
           )}
@@ -280,7 +342,10 @@ export function Profile({
             {boosted ? (
               <Badge tone="amber">{t.boostActive}</Badge>
             ) : (
-              <button className="btn-primary" onClick={boost}>{t.boostBtn} €{BOOST_WEEKLY_PRICE}</button>
+              <>
+                <button className="btn-primary" disabled={boosting} onClick={boost}>{t.boostBtn} €{BOOST_WEEKLY_PRICE}</button>
+                {boostError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginTop: 8 }}>{boostError}</div>}
+              </>
             )}
           </div>
 
