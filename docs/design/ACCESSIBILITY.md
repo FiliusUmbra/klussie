@@ -168,7 +168,7 @@ measured icon-only controls met it:**
 |---|---|---|---|
 | `.sheet-close` (`Drawer`) | 28×28px | 44×44px (fixed, 2026-08-28) | Yes |
 | `.modal-close` (`Modal`) | 28×28px | 44×44px (fixed, 2026-08-28) | Yes |
-| `.chat-input-row button` (send) | 38×38px | 38×38px — attempted, genuinely can't be hit-slopped, see below | No |
+| `.chat-input-row button` (send) | 44×44px (grown, 2026-09-08 — see below) | 44×44px | Yes |
 | `.photo-remove-btn` | 20×20px | 28×28px (fixed, 2026-08-28) | No — deliberately partial, see below |
 
 **Fixed via hit-slop** (`src/shell/appStyles.js`): a transparent
@@ -180,7 +180,7 @@ verified by measuring the real hit-test (`document.elementFromPoint()`)
 at a point just outside the visible circle, live, not just by reading
 the CSS.
 
-**`.chat-input-row button` (the message-send button) genuinely cannot be
+**`.chat-input-row button` (the message-send button) genuinely could not be
 hit-slopped, tried live, 2026-08-28** — a real CSS constraint, not an
 oversight: this button lives inside a `Drawer`'s own `.sheet-scroll`
 (`overflow-y:auto`), and the CSS Overflow spec forces `overflow-x` to
@@ -189,11 +189,22 @@ compute as `auto` too whenever the other axis isn't `visible` — setting
 coerces it back, confirmed against the real computed style live, not
 just the source. Any hit-slop pseudo-element bleeding outside this
 button's own box gets clipped by that same computed overflow, exactly
-like any other content would be. A real fix exists — move
-`.chat-input-row` outside the Drawer's scrolling children — but that is
-a structural change to every conversation sheet in the app, not a
-touch-target tweak, so it's named here rather than attempted under this
-pass's scope.
+like any other content would be. Two real fixes were named at the time:
+move `.chat-input-row` outside the Drawer's scrolling children (a
+structural change to every conversation sheet in the app), or grow the
+button's own visible box, which sidesteps the clipping problem
+entirely — nothing bleeds outside the button's own bounds for the
+ancestor's overflow to clip against. **Closed 2026-09-08 the second
+way**: grown from 38×38px to a real 44×44px. A visibly larger round send
+button reads as more tappable, not as a design regression, unlike the
+small utility icons (`.sheet-close`/`.photo-remove-btn`) hit-slop was
+chosen for instead. Verified against the source CSS and the surrounding
+flex layout (`.chat-input-row input` is `flex:1`, so the 6px larger
+button simply takes 6px more from the space the input already yields);
+**not re-verified live in a real browser this pass** — the same
+limitation this session's own other real-browser-dependent findings
+(this codebase's voice capture chief among them) already named plainly
+rather than glossed over.
 
 **`.photo-remove-btn` stays a deliberately partial fix, exactly the
 "real design decision per control" this section originally called for

@@ -211,20 +211,18 @@ export const APP_CSS = `
 .chat-bubble-them .chat-translate-toggle{ color:var(--ink-soft); }
 .chat-input-row{ display:flex; gap:8px; align-items:center; }
 .chat-input-row input{ flex:1; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); outline:none; }
-/* 38x38px, below the 44x44px minimum (docs/design/ACCESSIBILITY.md) -- and, unlike
-   .sheet-close/.modal-close, hit-slop genuinely cannot fix it here. Tried the same
-   pseudo-element technique live, 2026-08-28: this button lives inside a Drawer's own
-   .sheet-scroll (overflow-y:auto), and CSS's own overflow spec forces overflow-x to
-   compute as "auto" too whenever the other axis isn't "visible" -- explicitly setting
-   overflow-x:visible on .sheet-scroll does not override this; the browser coerces it
-   back, confirmed against the real computed style, not just the source. A hit-slop
-   pseudo-element bleeding outside this button's own box is clipped by that same
-   computed overflow, same as any other content would be. A real fix exists (move
-   .chat-input-row outside Drawer's scrolling children) but is a structural change to
-   every conversation sheet in the app, not a touch-target tweak -- named here rather
-   than attempted under this pass's scope, the same restraint this file's own
-   .photo-remove-btn comment already uses. */
-.chat-input-row button{ width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+/* Was 38x38px, below the 44x44px minimum (docs/design/ACCESSIBILITY.md) -- and,
+   unlike .sheet-close/.modal-close, hit-slop genuinely couldn't fix it here (tried
+   live, 2026-08-28: this button lives inside a Drawer's own .sheet-scroll
+   (overflow-y:auto), and CSS's own overflow spec forces overflow-x to compute as
+   "auto" too whenever the other axis isn't "visible" -- a hit-slop pseudo-element
+   bleeding outside this button's own box got clipped by that same computed overflow).
+   Closed 2026-09-08 a different way: grown to a real 44x44px box instead of an
+   invisible hit-slop extension -- sidesteps the clipping problem entirely, since
+   nothing bleeds outside the button's own bounds for the ancestor's overflow to clip.
+   A visibly larger send button reads as more, not less, tappable, unlike the small
+   utility icons (.sheet-close/.photo-remove-btn) hit-slop was chosen for instead. */
+.chat-input-row button{ width:44px; height:44px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
 
 .avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
 .avatar-upload-row{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
