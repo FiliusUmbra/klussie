@@ -92,12 +92,26 @@ export function ProApp({ showToast }) {
 
   const earnedGross = netEarnings([...jobs.booked, ...jobs.completed], user.id);
 
+  // Same shape as CustomerApp.jsx's own submitReview() fix: this was fire-and-forget
+  // from its own JSX call site (no await, no catch) and had none of its own either, so
+  // any failure -- 0212's own "a quote could be submitted against a request that was no
+  // longer open" guard included, a real, reachable refusal whenever two pros race the
+  // same lead -- became an unhandled promise rejection. The sheet had no busy state
+  // either, so the professional had no way to tell an attempt had even been made,
+  // let alone that it failed. setQuoteLead(null) only runs on success (unchanged from
+  // before), so a failure leaves the sheet open with the price/message already typed,
+  // ready to retry, rather than silently discarding them.
   const sendQuote = async (lead, price, message) => {
-    await sendQuoteApi({ requestId: lead.id, proId: user.id, workspaceId, price, message });
-    setQuoteLead(null);
-    await refreshLeads();
-    await refreshJobs();
-    showToast(t.toastQuoteSent);
+    try {
+      await sendQuoteApi({ requestId: lead.id, proId: user.id, workspaceId, price, message });
+      setQuoteLead(null);
+      await refreshLeads();
+      await refreshJobs();
+      showToast(t.toastQuoteSent);
+    } catch (err) {
+      console.warn("sendQuote failed:", err.message);
+      showToast(t.toastQuoteFailed);
+    }
   };
 
   return (
