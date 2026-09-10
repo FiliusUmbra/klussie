@@ -7,22 +7,6 @@
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
-export function Drawer({ children, onClose, closeLabel = "Close" }) {
-  return (
-    <div
-      className="sheet-overlay"
-      onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
-    >
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-grabber" />
-        <button className="sheet-close" onClick={onClose} aria-label={closeLabel}><X size={16} /></button>
-        <div className="sheet-scroll">{children}</div>
-      </div>
-    </div>
-  );
-}
-
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 // Keeps Tab inside the dialog and puts focus back where it came from on close.
@@ -30,8 +14,18 @@ const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), in
 // docs/design/ACCESSIBILITY.md named this as the clearest outstanding task in the
 // whole document set — both overlays closed on Escape but neither trapped focus, so
 // Tab walked straight out of an open dialog into the page behind it. Implemented here
-// rather than duplicated per overlay so every existing Modal call site (the two
-// delete confirmations) gains it too.
+// rather than duplicated per overlay so both Drawer and Modal share it.
+//
+// Found by code audit: this was already written to be shared, and Modal already called
+// it (see Modal's own useFocusTrap(panelRef, true) below) -- but Drawer, the far more
+// heavily used of the two overlays (every sheet in the app: EditProfileSheet,
+// ItemFormSheet, LocationFormSheet, DocumentUploadSheet, ReportSheet, BecomeProSheet,
+// EmailAuthSheet, ServiceRecordEditorSheet, AiIntakeSheet, ConversationSheet,
+// RequestDetailSheet, dozens more -- Modal is used only for the two delete
+// confirmations and the onboarding tour), never actually called it. The doc's own
+// current table (ACCESSIBILITY.md, "Focus management" section) still lists both as "No
+// focus trap" -- stale relative to Modal's own fix, and simply true for Drawer until
+// now.
 function useFocusTrap(panelRef, active) {
   useEffect(() => {
     if (!active) return undefined;
@@ -67,6 +61,34 @@ function useFocusTrap(panelRef, active) {
       if (previouslyFocused && previouslyFocused.isConnected) previouslyFocused.focus();
     };
   }, [panelRef, active]);
+}
+
+export function Drawer({ children, onClose, closeLabel = "Close", labelledBy, describedBy }) {
+  const panelRef = useRef(null);
+  useFocusTrap(panelRef, true);
+
+  return (
+    <div
+      className="sheet-overlay"
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+    >
+      <div
+        ref={panelRef}
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelledBy}
+        aria-describedby={describedBy}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sheet-grabber" />
+        <button className="sheet-close" onClick={onClose} aria-label={closeLabel}><X size={16} /></button>
+        <div className="sheet-scroll">{children}</div>
+      </div>
+    </div>
+  );
 }
 
 export function Modal({ children, onClose, closeLabel = "Close", labelledBy, describedBy }) {

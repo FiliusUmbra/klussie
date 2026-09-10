@@ -48,11 +48,19 @@ Almost everything interactive is a real `<button>`, `<input>`, or
 Tab/Enter/Space work by default without special handling. Two real gaps,
 not fixed here:
 
-- **No focus trap in `Drawer` or `Modal`.** Both now close on `Escape`,
-  but while open, `Tab` can still move focus to elements behind the
-  overlay. This is a genuinely non-trivial fix (a real focus-trap
-  implementation, not a one-line addition) — named here as the clearest
-  next task for this document, not attempted in this pass.
+- **Focus trap — closed 2026-09-08, `overlays.jsx`'s own `useFocusTrap()`.**
+  Both close on `Escape` and now trap `Tab`/`Shift+Tab` inside the open
+  dialog, focus the panel on open (the close button, in practice — it's
+  the first focusable element in both), and restore focus to whatever
+  was focused before the dialog opened, once it closes. Found live: the
+  shared hook's own header already claimed both overlays used it, and
+  `Modal` genuinely did — but `Drawer`, the far more heavily used of the
+  two (every sheet in the app; `Modal` is only the two delete
+  confirmations and the onboarding tour), never actually called it.
+  Closing this needed no new implementation, only wiring the existing
+  hook into `Drawer` the same way `Modal` already had it — see
+  `overlays.test.jsx` for the regression coverage neither overlay had
+  before.
 - **No visible focus-ring audit performed.** Browsers supply a default
   focus outline, but nothing in `src/App.jsx` confirms it's never
   suppressed (a stray `outline:none` without a replacement would be
@@ -231,8 +239,8 @@ column, updated with this pass's fixes:
 
 | Component | Status |
 |---|---|
-| `Drawer` | Close button labeled, now closes on Escape. No focus trap. |
-| `Modal` | Close button labeled, closes on Escape, `role="dialog"`. No focus trap. |
+| `Drawer` | Close button labeled, closes on Escape, `role="dialog"`, real focus trap and restoration (2026-09-08). |
+| `Modal` | Close button labeled, closes on Escape, `role="dialog"`, real focus trap and restoration. |
 | `Rating` | Now has an accessible name. |
 | `Avatar` | Photo `alt=""` is correct (decorative, name is adjacent text). |
 | `Badge`, `PriceTag`, `TrustBadge`, `AIMessage`, `Timeline`, `ServiceCard`, `JobCard`, `QuoteCard` | Text-based, no icon-only content — no known gaps found. |

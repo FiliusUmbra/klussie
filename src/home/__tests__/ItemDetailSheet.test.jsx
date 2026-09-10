@@ -640,7 +640,10 @@ describe("ItemDetailSheet — Move", () => {
     fireEvent.click(screen.getByText("Move to another room"));
     fireEvent.click(screen.getByText("Save"));
 
-    const dialog = await screen.findByRole("dialog");
+    // .modal-panel, not role="dialog" -- the enclosing Drawer now carries that role too
+    // (overlays.jsx's own focus-trap fix), so a bare role query is ambiguous here.
+    await waitFor(() => expect(document.querySelector(".modal-panel")).toBeTruthy());
+    const dialog = document.querySelector(".modal-panel");
     await waitFor(() => expect(within(dialog).getByText("Couldn't move this item. Please try again.")).toBeTruthy());
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -687,7 +690,10 @@ describe("ItemDetailSheet — Retire", () => {
     fireEvent.click(screen.getByText("Retire item"));
     fireEvent.click(screen.getAllByText("Retire item")[1]);
 
-    const dialog = await screen.findByRole("dialog");
+    // .modal-panel, not role="dialog" -- the enclosing Drawer now carries that role too
+    // (overlays.jsx's own focus-trap fix), so a bare role query is ambiguous here.
+    await waitFor(() => expect(document.querySelector(".modal-panel")).toBeTruthy());
+    const dialog = document.querySelector(".modal-panel");
     await waitFor(() => expect(within(dialog).getByText("Couldn't retire this item. Please try again.")).toBeTruthy());
   });
 });
