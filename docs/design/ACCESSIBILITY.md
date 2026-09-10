@@ -100,9 +100,20 @@ not fixed here because each needs more than a label:
   `WorkspaceLookup.jsx`'s own hardcoded labels are the operator tool's,
   correctly English-only, no `t`/i18n context to localize with). This
   category of gap is genuinely closed, not merely reduced.
-- **No live-region announcements exist** for async state changes (a quote
-  arriving, a request status changing) — a screen-reader user gets no
-  notification unless they happen to be focused on the changed content.
+- **The one shared toast — closed 2026-09-08.** `AppShell.jsx`'s own
+  `{toast && <div className="toast">...}` (every confirmation in the app
+  goes through this one render site: a booking confirmed, a review
+  sent, a quote sent, a request accepted) had no `aria-live`/`role` at
+  all — it appeared and disappeared with zero announcement to a screen
+  reader. Now `role="status"`. One shared render site, so this closes
+  it for every toast in the app at once, not per call site.
+- **Still open: state changes that never go through the shared toast**
+  (a quote arriving on the dashboard, a request's own status pill
+  changing while its detail sheet is open) still announce nothing —
+  a screen-reader user gets no notification unless already focused on
+  the changed content. Real, and a materially bigger task than the
+  toast fix above: each such surface needs its own live region wired to
+  its own real-time update, not one shared fix.
 
 ## Color contrast
 

@@ -24,7 +24,13 @@ vi.mock("../../lib/operatorContext.js", () => ({ isOperatorWorkspace: vi.fn(() =
 vi.mock("../../auth/WelcomeScreen.jsx", () => ({ WelcomeScreen: () => <div data-testid="welcome-screen" /> }));
 vi.mock("../../profile/BecomeProPrompt.jsx", () => ({ BecomeProPrompt: () => null }));
 vi.mock("../../profile/BecomeProSheet.jsx", () => ({ BecomeProSheet: () => null }));
-vi.mock("../../customer/CustomerApp.jsx", () => ({ CustomerApp: () => <div data-testid="customer-app" /> }));
+vi.mock("../../customer/CustomerApp.jsx", () => ({
+  CustomerApp: ({ showToast }) => (
+    <div data-testid="customer-app">
+      <button type="button" onClick={() => showToast("Booked!")}>fire-toast</button>
+    </div>
+  ),
+}));
 vi.mock("../../pro/ProApp.jsx", () => ({ ProApp: () => <div data-testid="pro-app" /> }));
 vi.mock("../../operator/OperatorApp.jsx", () => ({ OperatorApp: () => <div data-testid="operator-app" /> }));
 vi.mock("../WorkspaceSwitcher.jsx", () => ({ WorkspaceSwitcher: () => null }));
@@ -72,5 +78,22 @@ describe("AppShell — catalog load failure", () => {
 
     await waitFor(() => expect(screen.getByTestId("customer-app")).toBeTruthy());
     expect(fetchCatalogMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+// Found by code audit: the one shared toast every confirmation in the app goes through
+// (a booking confirmed, a review sent, a quote sent, a request accepted...) had no
+// aria-live/role at all — it appeared and disappeared with zero announcement to a
+// screen reader. Matches ACCESSIBILITY.md's own named "No live-region announcements
+// exist for async state changes" gap exactly.
+describe("AppShell — toast is a real live region", () => {
+  it("announces the toast via role=\"status\", not silently", async () => {
+    fetchCatalogMock.mockResolvedValue({ categories: [], services: [] });
+    render(<AppShell />);
+    await waitFor(() => expect(screen.getByTestId("customer-app")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("fire-toast"));
+
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Booked!"));
   });
 });

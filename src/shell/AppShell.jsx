@@ -195,7 +195,14 @@ export function AppShell() {
               />
             )}
           </div>
-          {toast && <div className="toast">{toast}</div>}
+          {/* Found by code audit: no aria-live/role anywhere on this -- the one shared
+              toast every confirmation in the app goes through (a booking confirmed, a
+              review sent, a quote sent, a request accepted...) appeared and
+              disappeared with zero announcement to a screen reader. Matches
+              ACCESSIBILITY.md's own named-but-unfixed "No live-region announcements
+              exist for async state changes" gap exactly -- this single shared render
+              site closes it for every toast in the app at once, not per call site. */}
+          {toast && <div className="toast" role="status">{toast}</div>}
         </div>
       </div>
     </LangContext.Provider>
