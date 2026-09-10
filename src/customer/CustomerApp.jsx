@@ -65,6 +65,21 @@ export function CustomerApp({ showToast, onBecomePro }) {
   const [reviewFor, setReviewFor] = useState(null);
   const [requests, setRequests] = useState(null);
   const [conversations, setConversations] = useState(null);
+  // Found by code audit: the initial refresh()/refreshConversations() calls below had no
+  // catch of their own. fetchCustomerRequests()/fetchConversations() both throw on a real
+  // Postgres error (RLS refusal, network failure, the my_requests/my_conversations RPC
+  // itself failing) -- which, with requests/conversations gating the render below at
+  // "if (!requests || !conversations) return <LoadingScreen />", turned into the whole
+  // customer app hanging on a spinner forever: no error, no retry, nothing short of a
+  // page reload. The exact AppShell.jsx catalogError bug (see that file's own comment),
+  // one layer in. Deliberately scoped to just the FIRST load: refresh/refreshConversations
+  // stay exactly as they were everywhere else they're already called (the subscription
+  // callbacks above, and every action handler below that already has its own try/catch
+  // around `await refresh()`) -- catching inside refresh() itself would have silently
+  // swallowed those callers' own failures too, the same "no user feedback" bug this fix
+  // is closing, just moved one function down.
+  const [requestsLoadError, setRequestsLoadError] = useState(false);
+  const [conversationsLoadError, setConversationsLoadError] = useState(false);
   const [openConversation, setOpenConversation] = useState(null);
   // Which section of the homepage is showing. Lifted out of ConversationHome only
   // because the tour can end on "Stel eerst mijn woning in" and has to land the
@@ -78,8 +93,17 @@ export function CustomerApp({ showToast, onBecomePro }) {
   const refresh = () => fetchCustomerRequests(user.id, workspaceId).then(setRequests);
   const refreshConversations = () => fetchConversations(user.id, workspaceId).then(setConversations);
 
+  // Only the very first load sets requestsLoadError/conversationsLoadError -- a later
+  // background refresh (a realtime event, an action handler's own post-mutation refresh)
+  // that happens to fail leaves whatever was already on screen alone, exactly like every
+  // other "unavailable, continuing without them" background read elsewhere in the
+  // codebase, rather than yanking a working screen out from under someone over a
+  // transient hiccup.
+  const loadRequests = () => refresh().then(() => setRequestsLoadError(false)).catch(() => setRequestsLoadError(true));
+  const loadConversations = () => refreshConversations().then(() => setConversationsLoadError(false)).catch(() => setConversationsLoadError(true));
+
   useEffect(() => {
-    refresh();
+    loadRequests();
     return subscribeToCustomerRequests(user.id, workspaceId, refresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, workspaceId]);
@@ -91,10 +115,23 @@ export function CustomerApp({ showToast, onBecomePro }) {
   }, [openRequest]);
 
   useEffect(() => {
-    refreshConversations();
+    loadConversations();
     return subscribeToConversationsForUser(user.id, workspaceId, refreshConversations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, workspaceId]);
+
+  if ((requests === null && requestsLoadError) || (conversations === null && conversationsLoadError)) {
+    return (
+      <div className="pad">
+        <div className="empty-block">
+          <p>{t.catalogLoadFailed}</p>
+          <button type="button" className="btn-secondary" onClick={() => { loadRequests(); loadConversations(); }}>
+            {t.retryBtn}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!requests || !conversations) return <LoadingScreen />;
 

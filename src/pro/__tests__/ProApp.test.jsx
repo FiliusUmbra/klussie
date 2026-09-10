@@ -10,7 +10,7 @@
 // whenever two pros race the same lead) became an unhandled promise rejection, with the
 // sheet's own SendQuoteSheet having no busy state either — nothing telling the
 // professional an attempt was even made, let alone that it failed.
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 vi.mock("../../lib/supabaseClient", () => ({ supabase: { from: vi.fn(), auth: {}, channel: vi.fn() } }));
@@ -20,19 +20,24 @@ vi.mock("../../lib/auth.jsx", () => ({
 }));
 
 const sendQuoteApiMock = vi.fn();
+const fetchProLeadsMock = vi.fn(() => Promise.resolve([]));
+const fetchProJobsMock = vi.fn(() => Promise.resolve({ sent: [], booked: [], completed: [] }));
 vi.mock("../../lib/requests", () => ({
-  fetchProLeads: vi.fn(() => Promise.resolve([])),
-  fetchProJobs: vi.fn(() => Promise.resolve({ sent: [], booked: [], completed: [] })),
+  fetchProLeads: (...args) => fetchProLeadsMock(...args),
+  fetchProJobs: (...args) => fetchProJobsMock(...args),
   sendQuote: (...args) => sendQuoteApiMock(...args),
   subscribeToProLeads: vi.fn(() => () => {}),
   subscribeToProQuoteUpdates: vi.fn(() => () => {}),
 }));
+const fetchProServicesMock = vi.fn(() => Promise.resolve([]));
+const fetchPublicProInfoMock = vi.fn(() => Promise.resolve({ "pro-1": { name: "Pierre Pro" } }));
 vi.mock("../../lib/pros", () => ({
-  fetchProServices: vi.fn(() => Promise.resolve([])),
-  fetchPublicProInfo: vi.fn(() => Promise.resolve({ "pro-1": { name: "Pierre Pro" } })),
+  fetchProServices: (...args) => fetchProServicesMock(...args),
+  fetchPublicProInfo: (...args) => fetchPublicProInfoMock(...args),
 }));
+const fetchConversationsMock = vi.fn(() => Promise.resolve([]));
 vi.mock("../../lib/messages", () => ({
-  fetchConversations: vi.fn(() => Promise.resolve([])),
+  fetchConversations: (...args) => fetchConversationsMock(...args),
   subscribeToConversationsForUser: vi.fn(() => () => {}),
 }));
 
@@ -68,6 +73,14 @@ function renderApp() {
   return { showToast };
 }
 
+beforeEach(() => {
+  fetchProLeadsMock.mockReset().mockResolvedValue([]);
+  fetchProJobsMock.mockReset().mockResolvedValue({ sent: [], booked: [], completed: [] });
+  fetchProServicesMock.mockReset().mockResolvedValue([]);
+  fetchPublicProInfoMock.mockReset().mockResolvedValue({ "pro-1": { name: "Pierre Pro" } });
+  fetchConversationsMock.mockReset().mockResolvedValue([]);
+});
+
 describe("ProApp — sendQuote", () => {
   it("sends the quote, closes the sheet, and shows the success toast", async () => {
     sendQuoteApiMock.mockResolvedValue();
@@ -98,5 +111,30 @@ describe("ProApp — sendQuote", () => {
     // The sheet stays open, price/message intact for a retry, rather than the failed
     // attempt silently vanishing.
     expect(screen.getByText("submit-quote")).toBeTruthy();
+  });
+});
+
+// Found by code audit: none of the five fetches ProApp gates its render on had a catch —
+// a real refusal on any one of them (fetchProServices/fetchPublicProInfo/fetchProLeads/
+// fetchProJobs/fetchConversations) hung the whole screen on a spinner forever, the exact
+// AppShell.jsx catalogError bug one layer in.
+describe("ProApp — initial load failure", () => {
+  it("renders the real dashboard once every initial fetch succeeds", async () => {
+    renderApp();
+    await waitFor(() => expect(screen.getByText("open-quote-sheet")).toBeTruthy());
+  });
+
+  it("shows a generic localized message and a real retry, never an infinite spinner, when a fetch fails", async () => {
+    fetchProLeadsMock.mockRejectedValue(new Error("relation \"leads\" does not exist"));
+    renderApp();
+
+    await waitFor(() => expect(screen.getByText("catalogLoadFailed")).toBeTruthy());
+    expect(screen.queryByText(/does not exist/)).toBeNull();
+    expect(screen.queryByText("open-quote-sheet")).toBeNull();
+
+    fetchProLeadsMock.mockResolvedValueOnce([]);
+    fireEvent.click(screen.getByText("retryBtn"));
+
+    await waitFor(() => expect(screen.getByText("open-quote-sheet")).toBeTruthy());
   });
 });
