@@ -16,6 +16,7 @@ vi.mock("../../lib/auth.jsx", () => ({ useAuth: () => useAuthMock() }));
 vi.mock("../../lib/storage", () => ({ uploadAvatar: vi.fn() }));
 vi.mock("../../lib/pros", () => ({ updateProProfile: vi.fn() }));
 
+import { uploadAvatar } from "../../lib/storage";
 import { updateProProfile } from "../../lib/pros";
 import { LangContext } from "../../lib/lang";
 import { EditProfileSheet } from "../EditProfileSheet.jsx";
@@ -99,5 +100,33 @@ describe("EditProfileSheet — business details, reachable regardless of current
     renderSheet({ proProfile: { pro_type: "business", bio: "", business_name: "Pierre BV", vat_number: "BE0123456789" } });
     expect(inputAfterLabel("businessNameLabel").value).toBe("Pierre BV");
     expect(inputAfterLabel("vatNumberLabel").value).toBe("BE0123456789");
+  });
+});
+
+// Found by code audit: both catch blocks did `setError(err.message)`, showing a raw
+// Postgres/Storage error verbatim — the exact anti-pattern documents.js's own header
+// names and fixes ("t.documentFormSaveFailed already existed... and was never used").
+describe("EditProfileSheet — save/upload failure", () => {
+  it("shows a generic localized error, never the raw backend message, when saving the profile fails", async () => {
+    const { updateProfile, onClose } = renderSheet({ proProfile: null });
+    updateProfile.mockRejectedValueOnce(new Error("new row violates row-level security policy"));
+
+    fireEvent.click(screen.getByText("saveChangesBtn"));
+
+    await waitFor(() => expect(screen.getByText("editProfileSaveFailed")).toBeTruthy());
+    expect(screen.queryByText(/row-level security/)).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("shows a generic localized error, never the raw backend message, when the avatar upload fails", async () => {
+    vi.mocked(uploadAvatar).mockRejectedValueOnce(new Error("new row violates row-level security policy"));
+    renderSheet({ proProfile: null });
+
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = new File(["x"], "avatar.jpg", { type: "image/jpeg" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => expect(screen.getByText("avatarUploadFailed")).toBeTruthy());
+    expect(screen.queryByText(/row-level security/)).toBeNull();
   });
 });
