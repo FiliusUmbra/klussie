@@ -13,6 +13,7 @@ describe("authErrorLabelKey", () => {
     expect(authErrorLabelKey({ code: "over_request_rate_limit" })).toBe("authErrorRateLimited");
     expect(authErrorLabelKey({ code: "user_banned" })).toBe("authErrorAccountUnavailable");
     expect(authErrorLabelKey({ code: "signup_disabled" })).toBe("authErrorAccountUnavailable");
+    expect(authErrorLabelKey({ code: "provider_disabled" })).toBe("authErrorProviderUnavailable");
   });
 
   it("falls back to the generic key for a code it doesn't recognise", () => {

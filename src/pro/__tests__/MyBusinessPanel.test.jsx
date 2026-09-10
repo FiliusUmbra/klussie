@@ -27,7 +27,7 @@ vi.mock("../../home/MyItemsPanel.jsx", () => ({
 import { createPropertyForCaller } from "../../lib/homeInventory.js";
 import { MyBusinessPanel } from "../MyBusinessPanel.jsx";
 
-const t = { retryBtn: "Try again" };
+const t = { retryBtn: "Try again", myBusinessSetupFailed: "Couldn't set up your business workspace." };
 const fmtDate = (iso) => iso;
 
 const twinState = (overrides) => ({
@@ -91,13 +91,18 @@ describe("MyBusinessPanel — Option B's own lazy-creation trigger", () => {
     expect(createPropertyForCaller).not.toHaveBeenCalled();
   });
 
-  it("shows the real error and a retry action when creation fails", async () => {
+  // Found by code audit: this used to assert the raw backend error ("insufficient_
+  // privilege") rendered verbatim — the exact anti-pattern documents.js's own header
+  // names and fixes elsewhere. Updated to pin the fix instead of leaving a stale
+  // duplicate test behind.
+  it("shows a generic localized error and a retry action when creation fails", async () => {
     createPropertyForCaller.mockRejectedValue(new Error("insufficient_privilege"));
     usePropertyTwinMock.mockReturnValue(twinState({ homeProfile: { property: null, rooms: [], documents: [] } }));
 
     render(<MyBusinessPanel t={t} fmtDate={fmtDate} />);
 
-    await waitFor(() => expect(screen.getByText("insufficient_privilege")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(t.myBusinessSetupFailed)).toBeTruthy());
+    expect(screen.queryByText("insufficient_privilege")).toBeNull();
     expect(screen.getByText("Try again")).toBeTruthy();
     expect(screen.queryByTestId("my-items-panel")).toBeNull();
   });
@@ -107,7 +112,7 @@ describe("MyBusinessPanel — Option B's own lazy-creation trigger", () => {
     usePropertyTwinMock.mockReturnValue(twinState({ homeProfile: { property: null, rooms: [], documents: [] } }));
 
     render(<MyBusinessPanel t={t} fmtDate={fmtDate} />);
-    await waitFor(() => expect(screen.getByText("network error")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(t.myBusinessSetupFailed)).toBeTruthy());
 
     createPropertyForCaller.mockResolvedValueOnce({ id: "prop-new" });
     fireEvent.click(screen.getByText("Try again"));

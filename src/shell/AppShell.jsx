@@ -50,7 +50,9 @@ export function AppShell() {
   const [role, setRole] = useState("customer");
   const [toast, setToast] = useState(null);
   const [catalog, setCatalog] = useState(null);
-  const [catalogError, setCatalogError] = useState(null);
+  // A boolean, not the raw error -- see the effect below for why.
+  const [catalogError, setCatalogError] = useState(false);
+  const [catalogRetryToken, setCatalogRetryToken] = useState(0);
   const [becomeProOpen, setBecomeProOpen] = useState(false);
   const [operatorCheck, setOperatorCheck] = useState({ workspaceId: null, result: false });
   const toastTimer = useRef(null);
@@ -65,9 +67,17 @@ export function AppShell() {
   const multiWorkspace = workspaceMemberships.length >= 2;
   const effectiveRole = deriveEffectiveRole({ multiWorkspace, activeWorkspace, role });
 
+  // Found by code audit: a failed fetch here used to set catalogError to the raw
+  // err.message -- a raw Postgres error, in English only, rendered as the ENTIRE app's
+  // only visible content (below) for every signed-in person, in every locale, with no
+  // way back in short of reloading the page. Now a boolean; the message shown is always
+  // t.catalogLoadFailed, and catalogRetryToken gives an actual way to try again without
+  // a reload, the same retry idiom MyBusinessPanel.jsx already established.
   useEffect(() => {
-    fetchCatalog().then(setCatalog).catch((err) => setCatalogError(err.message));
-  }, []);
+    fetchCatalog()
+      .then((data) => { setCatalog(data); setCatalogError(false); })
+      .catch(() => setCatalogError(true));
+  }, [catalogRetryToken]);
 
   // Platform Activation Slice 0, WP 0.5 — is the active workspace the internal
   // Operations Workspace (ADR-0030)? Re-checked whenever the active workspace changes
@@ -124,7 +134,16 @@ export function AppShell() {
   if (authLoading || (session && !catalog && !catalogError) || (session && operatorCheckPending)) {
     body = <LoadingScreen />;
   } else if (catalogError) {
-    body = <div className="pad"><div className="empty-block"><p>{catalogError}</p></div></div>;
+    body = (
+      <div className="pad">
+        <div className="empty-block">
+          <p>{t.catalogLoadFailed}</p>
+          <button type="button" className="btn-secondary" onClick={() => setCatalogRetryToken((n) => n + 1)}>
+            {t.retryBtn}
+          </button>
+        </div>
+      </div>
+    );
   } else if (!session) {
     body = <WelcomeScreen />;
   } else if (isOperator) {

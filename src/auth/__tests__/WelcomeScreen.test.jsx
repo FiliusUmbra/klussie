@@ -43,10 +43,26 @@ describe("WelcomeScreen — provider logos", () => {
     expect(signInWithOAuthMock).toHaveBeenCalledWith(provider);
   });
 
-  it("shows the OAuth error message rather than swallowing it silently", async () => {
-    signInWithOAuthMock.mockRejectedValueOnce(new Error("provider not configured"));
+  // Found by code audit: this used to assert the raw GoTrue error rendered verbatim —
+  // the exact anti-pattern documents.js's own header names and fixes elsewhere.
+  // Updated to pin the fix instead of leaving a stale duplicate test behind: a real,
+  // localized, still-specific message from error.code, never error.message. Not a
+  // hypothetical case either — every OAuth provider genuinely is unconfigured today
+  // (MASTER_CONTEXT.md's own beta-readiness checklist), so `provider_disabled` is
+  // exactly the error a real tap on any of these four buttons currently throws.
+  it("shows the real, localized 'not available yet' message, never the raw GoTrue text, when a provider isn't configured", async () => {
+    signInWithOAuthMock.mockRejectedValueOnce(Object.assign(new Error("Unsupported provider"), { code: "provider_disabled" }));
     renderScreen();
     fireEvent.click(screen.getByText("continueWithApple"));
-    await screen.findByText("provider not configured");
+    await screen.findByText("authErrorProviderUnavailable");
+    expect(screen.queryByText(/Unsupported provider/)).toBeNull();
+  });
+
+  it("falls back to the generic message for an OAuth failure GoTrue gave no code for", async () => {
+    signInWithOAuthMock.mockRejectedValueOnce(new Error("Failed to fetch"));
+    renderScreen();
+    fireEvent.click(screen.getByText("continueWithApple"));
+    await screen.findByText("authErrorGeneric");
+    expect(screen.queryByText(/Failed to fetch/)).toBeNull();
   });
 });

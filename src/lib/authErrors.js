@@ -1,4 +1,5 @@
-// Maps a Supabase Auth error to a locale key EmailAuthSheet.jsx can show.
+// Maps a Supabase Auth error to a locale key EmailAuthSheet.jsx/WelcomeScreen.jsx can
+// show.
 //
 // Deliberately NOT the same fix as documents.js/ReportSheet.jsx/BecomeProSheet.jsx/
 // EditProfileSheet.jsx's own "one generic localized message, never the raw error"
@@ -26,11 +27,17 @@ const AUTH_ERROR_LABEL_KEYS = {
   over_request_rate_limit: "authErrorRateLimited",
   user_banned: "authErrorAccountUnavailable",
   signup_disabled: "authErrorAccountUnavailable",
+  // signInWithOAuth() itself never rejects (it redirects the browser away); this is
+  // reached when the provider tapped isn't configured in the Supabase dashboard at all
+  // — a real, current state for every provider (MASTER_CONTEXT.md's own beta-readiness
+  // checklist: "OAuth buttons are real but genuinely unconfigured"), not a hypothetical.
+  provider_disabled: "authErrorProviderUnavailable",
 };
 
 /**
- * The `t` key to show for an error caught from signIn()/signUp()/signInWithOtp()
- * (src/lib/auth.jsx), which all throw the underlying Supabase AuthError unmodified.
+ * The `t` key to show for an error caught from signIn()/signUp()/signInWithOtp()/
+ * signInWithOAuth() (src/lib/auth.jsx), which all throw the underlying Supabase
+ * AuthError unmodified.
  */
 export function authErrorLabelKey(err) {
   return AUTH_ERROR_LABEL_KEYS[err?.code] || "authErrorGeneric";
