@@ -21,6 +21,7 @@ export function ServiceRecordSummary({ requestId }) {
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState("");
 
   useEffect(() => {
     // Initial state (loading = true) already covers the first fetch — no synchronous
@@ -37,12 +38,24 @@ export function ServiceRecordSummary({ requestId }) {
     };
   }, [requestId]);
 
+  // Found by code audit: no try/catch at all -- a real refusal left `approving` stuck
+  // at true forever (nothing past the await ever ran), the button permanently disabled
+  // with no way back in short of leaving and re-opening the sheet, and no explanation
+  // shown at any point. The exact "no dead end" shape this codebase has already found
+  // and fixed repeatedly elsewhere (PortfolioItemSheet.jsx's own identical gap, among
+  // others).
   async function handleApprove() {
     if (!record || approving) return;
     setApproving(true);
-    await approveServiceRecord(record.id, user.id);
-    setRecord((r) => ({ ...r, customerApproved: true, customerApprovedAt: new Date().toISOString() }));
-    setApproving(false);
+    setApproveError("");
+    try {
+      await approveServiceRecord(record.id, user.id);
+      setRecord((r) => ({ ...r, customerApproved: true, customerApprovedAt: new Date().toISOString() }));
+    } catch {
+      setApproveError(t.serviceRecordApproveFailed);
+    } finally {
+      setApproving(false);
+    }
   }
 
   // Loading is deliberately silent (no skeleton) — this sits below the review card,
@@ -77,9 +90,14 @@ export function ServiceRecordSummary({ requestId }) {
               <CheckCircle2 size={12} /> {t.serviceRecordApprovedMsg}
             </div>
           ) : (
-            <Button variant="secondary" style={{ marginTop: 12, width: "100%" }} onClick={handleApprove} disabled={approving}>
-              {t.serviceRecordApproveBtn}
-            </Button>
+            <>
+              <Button variant="secondary" style={{ marginTop: 12, width: "100%" }} onClick={handleApprove} disabled={approving}>
+                {t.serviceRecordApproveBtn}
+              </Button>
+              {approveError && (
+                <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginTop: 8 }}>{approveError}</div>
+              )}
+            </>
           )}
         </QuoteCard>
       )}
