@@ -120,8 +120,12 @@ export function LocationFormSheet({ t, propertyId, actorRef, rooms, room, onClos
       }
       await onSaved();
       onClose();
-    } catch (err) {
-      setError(err.message || String(err));
+    } catch {
+      // A raw err.message here would be a raw Postgres error -- documents.js's own
+      // header names this anti-pattern and its fix: a generic, localized message,
+      // never the backend's own words. locationFormSaveFailed already existed and was
+      // never actually used here.
+      setError(t.locationFormSaveFailed);
       setBusy(false);
     }
   };
@@ -136,7 +140,9 @@ export function LocationFormSheet({ t, propertyId, actorRef, rooms, room, onClos
     } catch (err) {
       if (err.hint === "active_children") setError(t.locationRetireBlockedChildren);
       else if (err.hint === "active_assets") setError(t.locationRetireBlockedItems);
-      else setError(err.message || String(err));
+      // Same anti-pattern/fix as submit()'s own catch above, for whatever isn't one of
+      // the two specific, known refusal reasons already handled.
+      else setError(t.locationRetireFailed);
       setBusy(false);
       setConfirmRetire(false);
     }
