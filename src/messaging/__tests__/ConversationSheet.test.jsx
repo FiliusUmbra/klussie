@@ -25,7 +25,10 @@ import { sendMessage } from "../../lib/messages";
 import { LangContext } from "../../lib/lang";
 import { ConversationSheet } from "../ConversationSheet.jsx";
 
-const t = { chatSendBtn: "Verstuur bericht", messagePlaceholder: "Typ een bericht...", counterpartFallbackName: "Gebruiker" };
+const t = {
+  chatSendBtn: "Verstuur bericht", chatSendFailed: "Kon dit bericht niet versturen.",
+  messagePlaceholder: "Typ een bericht...", counterpartFallbackName: "Gebruiker",
+};
 
 function renderSheet({ otherName = "Cathy Customer" } = {}) {
   const onClose = vi.fn();
@@ -111,5 +114,36 @@ describe("ConversationSheet — send button has a real accessible name", () => {
     await waitFor(() => expect(sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ conversationId: "conv-1", senderId: "person-1", senderWorkspaceId: "ws-1", body: "Hallo!" })
     ));
+  });
+});
+
+// Found by code audit: no try/catch at all, and the draft was cleared optimistically
+// before the send even started — a real refusal meant the words the customer just
+// typed were gone, with no error shown and no way to recover them short of retyping
+// from memory.
+describe("ConversationSheet — send failure restores the draft", () => {
+  it("restores what was typed and shows a real error, rather than silently losing it, when sending fails", async () => {
+    vi.mocked(sendMessage).mockRejectedValueOnce(new Error("network error"));
+    renderSheet();
+    const input = await screen.findByPlaceholderText("Typ een bericht...");
+    fireEvent.change(input, { target: { value: "Hallo, ben je er nog?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verstuur bericht" }));
+
+    await waitFor(() => expect(screen.getByText("Kon dit bericht niet versturen.")).toBeTruthy());
+    // The typed text is back in the input, not lost.
+    expect(screen.getByPlaceholderText("Typ een bericht...").value).toBe("Hallo, ben je er nog?");
+    expect(screen.queryByText("network error")).toBeNull();
+  });
+
+  it("clears the draft and shows no error on a successful send", async () => {
+    vi.mocked(sendMessage).mockResolvedValueOnce(undefined);
+    renderSheet();
+    const input = await screen.findByPlaceholderText("Typ een bericht...");
+    fireEvent.change(input, { target: { value: "Hallo!" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verstuur bericht" }));
+
+    await waitFor(() => expect(sendMessage).toHaveBeenCalled());
+    expect(screen.getByPlaceholderText("Typ een bericht...").value).toBe("");
+    expect(screen.queryByText("Kon dit bericht niet versturen.")).toBeNull();
   });
 });

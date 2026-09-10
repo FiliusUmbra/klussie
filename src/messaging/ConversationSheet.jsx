@@ -18,6 +18,7 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   const { t, langCode } = useLang();
   const [messages, setMessages] = useState(null);
   const [draft, setDraft] = useState("");
+  const [sendError, setSendError] = useState("");
   const [showOriginalFor, setShowOriginalFor] = useState(() => new Set());
   const translatingRef = useRef(new Set());
   const scrollRef = useRef(null);
@@ -81,12 +82,24 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     });
   }, [messages, langCode, userId, workspaceId]);
 
+  // Found by code audit: no try/catch at all, and the draft was cleared optimistically
+  // before the send even started -- a real refusal (RLS, network) meant the words the
+  // customer just typed were gone, with no error shown and no way to recover them short
+  // of retyping from memory. Restoring the draft on failure, not just showing an error,
+  // is the actual fix: the message text itself is the thing that must never be
+  // silently destroyed.
   const send = async () => {
     const body = draft.trim();
     if (!body) return;
     setDraft("");
-    await sendMessage({ conversationId, senderId: userId, senderWorkspaceId: workspaceId, body });
-    await refresh();
+    setSendError("");
+    try {
+      await sendMessage({ conversationId, senderId: userId, senderWorkspaceId: workspaceId, body });
+      await refresh();
+    } catch {
+      setDraft(body);
+      setSendError(t.chatSendFailed);
+    }
   };
 
   const toggleOriginal = (id) => {
@@ -135,6 +148,7 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
             "Document toevoegen"), which already name themselves this way. */}
         <button type="button" aria-label={t.chatSendBtn} onClick={send}><Send size={16} /></button>
       </div>
+      {sendError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{sendError}</div>}
     </Drawer>
   );
 }
