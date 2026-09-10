@@ -176,6 +176,7 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
   const handleFinalSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
+    setError("");
     try {
       await onSubmitted(buildIntakeRequest({
         edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, city: editCity, when: editWhen, location, assetId },
@@ -184,6 +185,16 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
         photos: photos.map((p) => p.file),
       }));
       onClose();
+    } catch {
+      // onSubmitted (CustomerApp.jsx's createRequestFromAi -> createServiceRequest())
+      // has no error handling of its own anywhere in its chain -- a real refusal (any
+      // of the real ownership/consistency checks 0153/0154/0155/0208/0209/0210 added,
+      // or a genuine transient failure) used to reject silently all the way up here:
+      // the sheet just sat there with a re-enabled button and no explanation at all,
+      // an unhandled rejection in the console (X8) and nothing on screen. Reuses
+      // aiGenericError -- runAnalysis's own catch above already established it as this
+      // sheet's one generic, localized, action-agnostic "something went wrong" message.
+      setError(t.aiGenericError);
     } finally {
       setSubmitting(false);
     }
@@ -318,6 +329,8 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
               ))}
             </div>
           )}
+
+          {error && <div className="fineprint" style={{ color: "var(--amber)", justifyContent: "flex-start" }}><AlertTriangle size={12} /> {error}</div>}
 
           <button className="btn-primary" disabled={!canSubmit} onClick={handleFinalSubmit}>
             {submitting ? <Loader2 size={15} className="spin" /> : <Send size={15} />} {t.sendRequestBtn}
