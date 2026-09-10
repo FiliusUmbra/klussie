@@ -133,6 +133,7 @@ hex/rgba values in `DESIGN_TOKENS.md` — not estimated:
 | `--amber-dark` `#8a5c14` | `--paper` `#EFEEE6` | 4.98:1 | Pass |
 | ~~`--amber` `#E8A33D`~~ | `--surface` `#FFFFFF` | **2.16:1** | **Fail** |
 | ~~`--ink-faint` `#8B978D`~~ | `--surface` `#FFFFFF` | **3.04:1** | **Fail** |
+| ~~`--ink-faint` `#8B978D`~~ | `--paper` `#EFEEE6` | **2.61:1** | **Fail** |
 
 **The first real failure found, and how it was resolved:** `--ink-faint`
 (added in the Phase 2 token pass) was used on `.timeline-label` at
@@ -144,19 +145,25 @@ real backgrounds) for that one usage. `--ink-faint` itself is still
 defined in `:root` (removing a token is a bigger call than fixing its one
 usage) and had **zero real usages anywhere** at the time of that pass.
 
-**That's since regressed:** `src/home/homeStyles.js`, added later, now has
-ten real `color:var(--ink-faint)` usages, all at the same 10.5–11px size
-class that already failed once (`.home-group-count`,
+**That regressed once, and has now been fixed a second time:**
+`src/home/homeStyles.js`, added after the Phase 6 pass above, had picked
+up ten real `color:var(--ink-faint)` usages, all at the same 10.5–11px
+size class that already failed once (`.home-group-count`,
 `.location-node-type`, `.location-node-edit`, `.timeline-card-date`,
 `.timeline-card-chevron`, `.trusted-pro`, `.home-photo-missing`,
-`.item-card-room`, `.item-card-edit`, `.item-detail-document-chevron`) —
-see `DESIGN_TOKENS.md`'s Audit section. Not re-verified or fixed in this
-pass (out of scope — this pass covered `--amber`, below); flagged here as
-a real, live candidate for the next Color contrast pass, not assumed
-passing just because `--ink-soft` at a similar size does. If a genuinely
+`.item-card-room`, `.item-card-edit`, `.item-detail-document-chevron`).
+Measured against `--paper` for the first time this pass, it's actually
+worse there than the documented `--surface` failure: 2.61:1. Same fix as
+the original: all ten now use `--ink-soft` instead (5.65:1 / 4.85:1 —
+comfortably clears 4.5:1 against both real backgrounds). `--ink-faint`
+stays defined, zero real usages again — see `DESIGN_TOKENS.md`'s Audit
+section for the full regression history. This time the fix ships with a
+regression test (`src/shell/__tests__/cssTokenContrast.test.js`) that
+fails CI if `var(--ink-faint)` reappears in either stylesheet string, so
+a third silent regression isn't just possible again. If a genuinely
 lighter text tier is wanted later, the real constraint the original audit
 found is worth knowing: there's very little room between `--ink-soft`'s
-4.86:1 (on paper, the stricter of the two real backgrounds) and the 4.5:1
+4.85:1 (on paper, the stricter of the two real backgrounds) and the 4.5:1
 floor — a meaningfully lighter tier that still passes normal-text AA on
 `--paper` may not be achievable without changing the background it sits
 on too.
@@ -178,12 +185,16 @@ used for `.cta-quote`/`.badge-amber` text was already confirmed passing
 `--surface` and 4.98:1 on `--paper`), so it's now the real `--amber-dark`
 token, and every usage above switched to it. `--amber` itself stays
 defined and untouched, for any future large-scale/decorative use where it
-isn't sitting directly under text or a small icon.
+isn't sitting directly under text or a small icon. `var(--amber)` reappearing
+as a foreground color is also covered by
+`src/shell/__tests__/cssTokenContrast.test.js` now, same as `--ink-faint`
+above — that test's own header comment is honest about what it doesn't
+cover: an inline `style={{ color: "var(--amber)" }}` prop outside the two
+shared stylesheet strings.
 
 **Not audited in this pass:** every color pairing in the app — this is a
 representative sample of the highest-frequency real pairings, not
-exhaustive. Disabled-state colors weren't checked, and neither was the
-`--ink-faint` regression named above.
+exhaustive. Disabled-state colors weren't checked.
 
 ## Motion sensitivity
 

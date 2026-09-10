@@ -189,7 +189,18 @@ export const HOME_CSS = `
   margin:0; font-size:13px; font-weight:700; color:var(--ink);
   display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-2);
 }
-.home-group-count{ font-family:var(--font-mono); font-size:11px; font-weight:500; color:var(--ink-faint); }
+/* --ink-soft, not --ink-faint, here and at every other former --ink-faint usage in this
+   file (.location-node-type, .location-node-edit, .timeline-card-date, .timeline-card-chevron,
+   .trusted-pro, .home-photo-missing, .item-card-room, .item-card-edit,
+   .item-detail-document-chevron) -- the exact bug ACCESSIBILITY.md's Color contrast
+   section already found and fixed once, at .timeline-label: --ink-faint measures 3.04:1
+   on --surface and 2.61:1 on --paper, both well under the 4.5:1 normal-text floor (all
+   of these render at 10.5-11px, and several are real text, not decoration). It
+   regressed back in when this file was added after that first fix -- DESIGN_TOKENS.md
+   had stopped being true the moment the first of these was written. Same fix as before:
+   --ink-soft (5.65:1 / 4.85:1, comfortably clearing both real backgrounds either way) --
+   ink-faint itself stays defined, with zero real usages again. */
+.home-group-count{ font-family:var(--font-mono); font-size:11px; font-weight:500; color:var(--ink-soft); }
 .home-group-empty{ margin:0; font-size:12px; color:var(--ink-soft); line-height:1.45; }
 
 /* ---- My Items, WP 1.3: the location tree, maintenance list, document list ---- */
@@ -197,7 +208,7 @@ export const HOME_CSS = `
 .location-tree-root > .location-node{ font-weight:600; }
 .location-node .location-tree{ margin-inline-start:var(--space-4); padding-block-start:var(--space-1); font-weight:400; }
 .location-node-name{ display:flex; align-items:baseline; gap:var(--space-2); font-size:13px; color:var(--ink); }
-.location-node-type{ font-size:11px; color:var(--ink-faint); }
+.location-node-type{ font-size:11px; color:var(--ink-soft); }
 /* Home Builder slice: every room is now a real, tappable row — never a bare name next
    to an icon nobody was told means "edit". Full-width and 44px tall so the whole row is
    the target, not just the small pencil glyph. */
@@ -208,7 +219,7 @@ export const HOME_CSS = `
   font-family:var(--font-body); transition:background var(--motion-base);
 }
 .location-node-btn:active{ background:var(--sage-bg); }
-.location-node-edit{ flex:none; color:var(--ink-faint); }
+.location-node-edit{ flex:none; color:var(--ink-soft); }
 
 .maintenance-list, .document-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
 .maintenance-row, .document-row{
@@ -309,7 +320,7 @@ export const HOME_CSS = `
 }
 .timeline-card-head{ display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-3); }
 .timeline-card-title{ font-size:13.5px; font-weight:600; color:var(--ink); }
-.timeline-card-date{ font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); white-space:nowrap; }
+.timeline-card-date{ font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); white-space:nowrap; }
 .timeline-card-pro{ display:inline-flex; align-items:center; gap:var(--space-2); font-size:12px; color:var(--ink-soft); }
 .timeline-card-detail{ margin:0; font-size:12px; line-height:1.5; color:var(--ink-soft); font-style:italic; }
 .timeline-card-ai{ margin:0; font-size:11.5px; line-height:1.45; color:var(--forest); }
@@ -321,7 +332,7 @@ export const HOME_CSS = `
 .timeline-card-quote{ margin:0; font-size:12px; line-height:1.5; color:var(--ink-soft); }
 .timeline-card-chevron{
   position:absolute; inset-inline-end:var(--space-2); top:50%; transform:translateY(-50%);
-  color:var(--ink-faint);
+  color:var(--ink-soft);
 }
 [dir="rtl"] .timeline-card-chevron{ transform:translateY(-50%) scaleX(-1); }
 
@@ -330,7 +341,7 @@ export const HOME_CSS = `
   display:flex; align-items:center; gap:var(--space-3); width:100%; min-height:56px;
   text-align:start; cursor:pointer; background:var(--surface);
   border:1px solid var(--line-soft); border-radius:14px;
-  padding:var(--space-2) var(--space-4); font-family:var(--font-body); color:var(--ink-faint);
+  padding:var(--space-2) var(--space-4); font-family:var(--font-body); color:var(--ink-soft);
 }
 .trusted-pro-text{ flex:1; display:flex; flex-direction:column; gap:1px; }
 .trusted-pro-name{ font-size:13px; font-weight:600; color:var(--ink); }
@@ -351,7 +362,7 @@ export const HOME_CSS = `
   display:flex; align-items:center; justify-content:center;
 }
 .home-photo img{ width:100%; height:100%; object-fit:cover; }
-.home-photo-missing{ color:var(--ink-faint); }
+.home-photo-missing{ color:var(--ink-soft); }
 
 /* ---- My Items ---- */
 
@@ -378,8 +389,8 @@ export const HOME_CSS = `
 .item-card-text{ flex:1; display:flex; flex-direction:column; gap:1px; min-width:0; }
 .item-card-name{ font-size:12.5px; font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
 .item-card-sub{ font-size:11px; color:var(--ink-soft); overflow-wrap:anywhere; }
-.item-card-room{ font-size:10.5px; color:var(--ink-faint); }
-.item-card-edit{ flex:none; color:var(--ink-faint); }
+.item-card-room{ font-size:10.5px; color:var(--ink-soft); }
+.item-card-edit{ flex:none; color:var(--ink-soft); }
 
 /* ---- Item Detail (the icon+fact identity block, and the tappable document rows) ---- */
 .item-detail-photo{
@@ -398,7 +409,7 @@ export const HOME_CSS = `
 .item-detail-document-open:disabled{ opacity:0.6; cursor:default; }
 .item-detail-document-icon{ flex:none; color:var(--forest-dark); }
 .item-detail-document-content{ flex:1; min-width:0; display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-2); }
-.item-detail-document-chevron{ flex:none; color:var(--ink-faint); }
+.item-detail-document-chevron{ flex:none; color:var(--ink-soft); }
 [dir="rtl"] .item-detail-document-chevron{ transform:scaleX(-1); }
 .item-detail-document-suggest{
   display:flex; align-items:center; gap:var(--space-1); min-height:44px;

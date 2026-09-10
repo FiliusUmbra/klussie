@@ -224,16 +224,23 @@ issues, both addressed in this pass:
   bugs found on the same token in two different passes; worth remembering
   when the next one gets added.
 
-  **Update, later pass:** that "zero real usages again" no longer holds —
-  `src/home/homeStyles.js` (added after Phase 6) has ten real
-  `color:var(--ink-faint)` usages (`.home-group-count`,
+  **Update, later pass:** that "zero real usages again" briefly stopped
+  holding — `src/home/homeStyles.js` (added after Phase 6) picked up ten
+  real `color:var(--ink-faint)` usages (`.home-group-count`,
   `.location-node-type`, `.location-node-edit`, `.timeline-card-date`,
   `.timeline-card-chevron`, `.trusted-pro`, `.home-photo-missing`,
   `.item-card-room`, `.item-card-edit`, `.item-detail-document-chevron`),
   all at 10.5–11px — normal-size text, the same size class that already
-  failed once at 3.04:1. Not re-verified or fixed in this pass (this
-  pass's own scope was `--amber`, below) — flagged here as the next real
-  candidate for a `Color contrast` audit pass, not confirmed passing.
+  failed once at 3.04:1. Same fix as before, verified against both real
+  backgrounds this time: all ten switched to `--ink-soft` (5.65:1 on
+  `--surface`, 4.85:1 on `--paper` — `--ink-faint` measures 2.61:1 on
+  `--paper`, even worse than the 3.04:1 already documented against
+  `--surface`). `--ink-faint` stays defined, zero real usages again — see
+  `ACCESSIBILITY.md`'s Color contrast section. Three token regressions
+  found on the same token across three passes now; this pattern (a fix
+  applied once, then quietly regressing when a new stylesheet file is
+  added) is worth a lint rule or a token-usage test someday rather than
+  relying on the next person to re-read this section.
 
 - **`--amber` was never a WCAG-safe foreground color.** Every real usage of
   bare `var(--amber)` — `.waiting`, `.tab-badge`, the two timeline-active
