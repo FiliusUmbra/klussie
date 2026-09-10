@@ -28,6 +28,17 @@ function renderSheet() {
 }
 
 describe("ReportSheet", () => {
+  // Found by code audit (overlays.jsx): every Drawer/Modal call site across the app
+  // relied on the hardcoded English default ("Close") rather than passing its own
+  // localized t.closeBtn — a screen reader on any of the other 9 locales announced
+  // "Close" in English on every single sheet's own close button. Fixed app-wide;
+  // pinned here on one representative sheet rather than duplicated 20+ times.
+  it("names the close button with the real localized closeLabel, not the hardcoded default", () => {
+    renderSheet();
+    expect(screen.getByLabelText("closeBtn")).toBeTruthy();
+    expect(screen.queryByLabelText("Close")).toBeNull();
+  });
+
   it("submits the chosen reason and details, then shows the sent confirmation", async () => {
     vi.mocked(submitReport).mockResolvedValue();
     renderSheet();

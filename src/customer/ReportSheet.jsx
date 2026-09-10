@@ -36,7 +36,7 @@ export function ReportSheet({ reporterId, reportedWorkspaceId, requestId, onClos
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.reportIssueBtn}</div>
       {sent ? (
         <div className="empty-block"><Check size={22} color="var(--forest)" /><p>{t.reportSentMsg}</p></div>

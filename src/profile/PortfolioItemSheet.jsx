@@ -46,7 +46,7 @@ export function PortfolioItemSheet({ item, onClose, onChanged }) {
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <img src={item.image_url} alt="" style={{ width: "100%", borderRadius: 12, marginBottom: 14 }} />
       <label className="field-label">{t.captionLabel}</label>
       <div className="search" style={{ marginBottom: 16 }}>
@@ -56,7 +56,7 @@ export function PortfolioItemSheet({ item, onClose, onChanged }) {
       <button className="btn-primary" disabled={busy} onClick={save}>{t.saveChangesBtn}</button>
       <button className="btn-secondary" style={{ marginTop: 8 }} disabled={busy} onClick={() => setConfirmDelete(true)}>{t.deletePhotoBtn}</button>
       {confirmDelete && (
-        <Modal onClose={() => setConfirmDelete(false)}>
+        <Modal onClose={() => setConfirmDelete(false)} closeLabel={t.closeBtn}>
           <p style={{ marginTop: 8 }}>{t.confirmDeleteMsg}</p>
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <Button variant="secondary" onClick={() => setConfirmDelete(false)}>{t.cancelBtn}</Button>

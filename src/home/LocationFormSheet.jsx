@@ -67,7 +67,7 @@ function MoveRoomModal({ t, rooms, room, busy, error, onCancel, onConfirm }) {
   const summaryLocation = parentId ? (selectedOption?.name || "") : t.locationMoveTopLevel;
 
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.locationMoveTitle}</div>
       <label className="field-label" htmlFor="location-move-parent">{t.locationMoveFieldLabel}</label>
       <div className="search" style={{ marginBottom: 8 }}>
@@ -173,7 +173,7 @@ export function LocationFormSheet({ t, propertyId, actorRef, rooms, room, onClos
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{editing ? t.locationEditTitle : t.locationFormAddTitle}</div>
 
       <label className="field-label" htmlFor="location-name">{t.locationFormNameLabel}</label>
@@ -231,7 +231,7 @@ export function LocationFormSheet({ t, propertyId, actorRef, rooms, room, onClos
       )}
 
       {confirmRetire && (
-        <Modal onClose={() => setConfirmRetire(false)}>
+        <Modal onClose={() => setConfirmRetire(false)} closeLabel={t.closeBtn}>
           <p style={{ marginTop: 8 }}>{t.locationRemoveConfirm}</p>
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <Button variant="secondary" onClick={() => setConfirmRetire(false)}>{t.cancelBtn}</Button>

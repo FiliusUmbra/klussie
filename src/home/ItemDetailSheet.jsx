@@ -177,7 +177,7 @@ function MoveItemModal({ t, rooms, currentLocationId, busy, error, onCancel, onC
   const options = flattenLocationsForPicker(rooms || []);
   const [locationId, setLocationId] = useState(currentLocationId || "");
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailMoveTitle}</div>
       <label className="field-label" htmlFor="item-move-room">{t.itemRoomLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
@@ -222,7 +222,7 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfir
   const [recurrence, setRecurrence] = useState(RECURRENCE_OPTIONS[1].value);
   const canSave = !!title.trim() && !!dueOn;
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailAddMaintenanceAction}</div>
       <div className="chiprow" style={{ marginBottom: 14 }}>
         <button type="button" className={"chip" + (mode === "once" ? " chip-on" : "")} onClick={() => setMode("once")}>
@@ -298,7 +298,7 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfir
 // be undone (work.cancel_maintenance_schedule()'s own comment, 0074).
 function StopScheduleModal({ t, busy, error, onCancel, onConfirm }) {
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailScheduleStopAction}</div>
       <p style={{ marginTop: 8 }}>{t.itemDetailScheduleStopConfirm}</p>
       {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{error}</div>}
@@ -317,7 +317,7 @@ function StopScheduleModal({ t, busy, error, onCancel, onConfirm }) {
 function CancelMaintenanceModal({ t, busy, error, onCancel, onConfirm }) {
   const [reason, setReason] = useState("");
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailMaintenanceCancelTask}</div>
       <label className="field-label" htmlFor="maintenance-cancel-reason">{t.itemDetailMaintenanceCancelReasonLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
@@ -672,7 +672,7 @@ export function ItemDetailSheet({
   const citedSources = groundedIn.map((source) => GROUND_SOURCE_LABELS[source]).filter(Boolean);
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{item.name}</div>
 
       <div className="item-detail-photo">
@@ -891,7 +891,7 @@ export function ItemDetailSheet({
       </div>
 
       {suggestDoc && (
-        <Modal onClose={closeSuggest}>
+        <Modal onClose={closeSuggest} closeLabel={t.closeBtn}>
           <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailSuggestTitle}</div>
           {suggestLoading ? (
             <p className="home-group-empty">{t.myItemsLoading}</p>
@@ -949,7 +949,7 @@ export function ItemDetailSheet({
       )}
 
       {confirmRetire && (
-        <Modal onClose={() => setConfirmRetire(false)}>
+        <Modal onClose={() => setConfirmRetire(false)} closeLabel={t.closeBtn}>
           <p style={{ marginTop: 8 }}>{t.itemDetailRetireConfirm}</p>
           {retireError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{retireError}</div>}
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>

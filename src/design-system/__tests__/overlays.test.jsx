@@ -93,6 +93,17 @@ describe.each([
     expect(panel.getAttribute("aria-modal")).toBe("true");
     expect(panel.getAttribute("aria-labelledby")).toBe("t1");
   });
+
+  // The default ("Close") is a real, deliberate fallback for callers with no i18n
+  // context at all (the operator tool's own sheets) — every localized caller is
+  // expected to pass its own t.closeBtn instead, which every ordinary sheet in the app
+  // now does. This pins that the override actually takes effect, not just that a
+  // default exists.
+  it("uses a passed closeLabel as the close button's real accessible name, not just the default", () => {
+    render(<Overlay onClose={() => {}} closeLabel="Sluiten"><button>x</button></Overlay>);
+    expect(screen.getByLabelText("Sluiten")).toBeTruthy();
+    expect(screen.queryByLabelText("Close")).toBeNull();
+  });
 });
 
 describe("Drawer/Modal — Escape and backdrop click", () => {

@@ -24,11 +24,11 @@ export function ProPublicProfileSheet({ proId, onClose }) {
   }, [proId]);
 
   if (!proInfo) {
-    return <Drawer onClose={onClose}><div className="empty-block"><p>...</p></div></Drawer>;
+    return <Drawer onClose={onClose} closeLabel={t.closeBtn}><div className="empty-block"><p>...</p></div></Drawer>;
   }
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="profile-head">
         <Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" />
         <div>

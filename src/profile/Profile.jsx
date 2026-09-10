@@ -325,7 +325,7 @@ export function Profile({
             </QuoteCard>
           ))}
           {confirmDeleteTestimonialId && (
-            <Modal onClose={() => setConfirmDeleteTestimonialId(null)}>
+            <Modal onClose={() => setConfirmDeleteTestimonialId(null)} closeLabel={t.closeBtn}>
               <p style={{ marginTop: 8 }}>{t.confirmDeleteMsg}</p>
               {testimonialError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginTop: 8 }}>{testimonialError}</div>}
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>

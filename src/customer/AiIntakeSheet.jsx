@@ -201,7 +201,7 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       {stage === "compose" && (
         <>
           <div className="sheet-title"><Sparkles size={18} /> {t.aiIntakeTitle}</div>
@@ -231,7 +231,10 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
               {photos.map((p) => (
                 <div key={p.previewUrl} className="portfolio-thumb">
                   <img src={p.previewUrl} alt="" />
-                  <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)} aria-label="Remove photo"><X size={12} /></button>
+                  {/* Found by code audit: hardcoded English -- ItemFormSheet.jsx/
+                      ServiceRecordEditorSheet.jsx's own identical buttons already use
+                      the real, existing t.itemPhotoRemove; this one just never did. */}
+                  <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)} aria-label={t.itemPhotoRemove}><X size={12} /></button>
                 </div>
               ))}
             </div>

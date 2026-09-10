@@ -112,7 +112,7 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{otherName || t.counterpartFallbackName}</div>
       <div className="chat-scroll" ref={scrollRef}>
         {messages && messages.length === 0 && (

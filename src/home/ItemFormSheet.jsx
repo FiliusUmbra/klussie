@@ -146,7 +146,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{editing ? t.itemEditTitle : t.itemAddTitle}</div>
 
       <label className="field-label" htmlFor="item-name">{t.itemNameLabel}</label>
@@ -265,7 +265,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       )}
 
       {confirmDelete && (
-        <Modal onClose={() => setConfirmDelete(false)}>
+        <Modal onClose={() => setConfirmDelete(false)} closeLabel={t.closeBtn}>
           <p style={{ marginTop: 8 }}>{t.itemDeleteConfirm}</p>
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <Button variant="secondary" onClick={() => setConfirmDelete(false)}>{t.cancelBtn}</Button>

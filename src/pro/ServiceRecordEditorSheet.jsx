@@ -104,7 +104,7 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.srEditorTitle}</div>
       <div className="sheet-sub">{t.srEditorSub}</div>
 

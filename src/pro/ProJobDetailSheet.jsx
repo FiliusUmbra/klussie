@@ -49,7 +49,7 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
   const hasTwinData = twin && (twin.locations.length > 0 || twin.assets.length > 0 || twin.documents.length > 0);
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{info.name}</div>
       {/* Found live during a UX review, 2026-09-07, in the same pass that closed
           lib/messages.js's own "Klussie user" literal: this fallback was `t.navMyJobs`

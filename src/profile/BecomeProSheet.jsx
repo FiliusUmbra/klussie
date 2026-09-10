@@ -34,7 +34,7 @@ export function BecomeProSheet({ onClose, onDone }) {
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.becomeProTitle}</div>
 
       <label className="field-label">{t.proTypeLabel}</label>

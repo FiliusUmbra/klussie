@@ -58,7 +58,7 @@ export function EmailAuthSheet({ onClose }) {
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.continueWithEmail}</div>
       {!usePassword ? (
         <form onSubmit={submitMagicLink}>

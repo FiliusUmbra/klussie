@@ -34,7 +34,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
   const steps = timelineSteps(request.status);
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{info.name}</div>
       <div className="sheet-sub">{whenLabel(request.answers.when)} {"·"} "{request.answers.details}"</div>
       {steps && (

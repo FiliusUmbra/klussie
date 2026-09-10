@@ -17,7 +17,7 @@ export function SendQuoteSheet({ lead, onClose, onSubmit }) {
   const [price, setPrice] = useState(service?.base || FALLBACK_QUOTE_PRICE);
   const [msg, setMsg] = useState(t.defaultProMessage);
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.sendQuoteTitle}</div>
       <div className="sheet-sub">{serviceInfo(lead.serviceId).name}</div>
       <JobDetailsSummary serviceId={lead.serviceId} fields={lead.answers.fields} />

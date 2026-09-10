@@ -72,15 +72,34 @@ not fixed here:
 Fixed this pass: see the table above. Two real gaps remain, deliberately
 not fixed here because each needs more than a label:
 
-- **`aria-label`s in this codebase are hardcoded English, never
-  localized** — including the ones just added, and the pre-existing ones
-  on `Modal`. A screen-reader user on the `ar`, `fr`, or `zh` locale hears
-  "Close" and "Remove photo" in English while every other word on screen
-  is translated. Real, consistent with the rest of the app's localization
-  effort not yet reaching this layer — flagged as a real task (add these
-  to `STRINGS` across all 10 locales, the same pattern used for every
-  other piece of copy in the app), not solved by hardcoding yet more
-  English strings in this pass.
+- **`Drawer`/`Modal`'s own close button — closed 2026-09-08.** Every
+  ordinary sheet in the app (EditProfileSheet, ItemFormSheet,
+  ReportSheet, AiIntakeSheet, ConversationSheet, RequestDetailSheet,
+  20+ more) now passes its own real `t.closeBtn` (new key, all 10
+  locales) as `closeLabel`, rather than relying on `overlays.jsx`'s own
+  hardcoded `"Close"` default. That default itself is deliberately kept
+  — it is the correct, real answer for the operator tool's own two
+  sheets (`CaseDetailSheet`/`SupportAccessSheet`), which have no `t`/i18n
+  context at all and are English-only by design.
+- **`AiIntakeSheet.jsx`'s own photo-remove button — also closed 2026-09-08.**
+  Hardcoded `aria-label="Remove photo"`, even though its two sibling
+  buttons (`ItemFormSheet.jsx`, `ServiceRecordEditorSheet.jsx`) already
+  used the real, existing `t.itemPhotoRemove` — this one simply never
+  did. Wired to the same key, no new string needed.
+- **`LanguageSwitcher.jsx`'s own `aria-label="Language"` — also closed
+  2026-09-08.** The one control whose entire purpose is switching
+  language had a screen reader announce it in English regardless of
+  which locale a person had already picked — the most on-the-nose
+  instance of this whole category of gap. New key, `languageSwitcherLabel`,
+  all 10 locales.
+- **A full grep of every `aria-label="literal string"` in `src/` was run
+  closing this pass** — the three above are the only real, reachable
+  ones found (`QuoteFormSheet.jsx`'s own identical "Remove photo" is
+  dead, unreachable code, ADR/`ENGINEERING_STANDARDS.md`'s own
+  long-standing finding, not fixed here on purpose; `AuditLog.jsx`/
+  `WorkspaceLookup.jsx`'s own hardcoded labels are the operator tool's,
+  correctly English-only, no `t`/i18n context to localize with). This
+  category of gap is genuinely closed, not merely reduced.
 - **No live-region announcements exist** for async state changes (a quote
   arriving, a request status changing) — a screen-reader user gets no
   notification unless they happen to be focused on the changed content.
