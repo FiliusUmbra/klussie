@@ -223,8 +223,16 @@ export const APP_CSS = `
 .chat-scroll{ display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; padding:4px 2px 14px; }
 .chat-empty-state{ text-align:center; color:var(--ink-soft); font-size:13px; padding:24px 12px; margin:0; }
 .chat-bubble{ max-width:78%; padding:9px 13px; border-radius:16px; font-size:13px; line-height:1.45; }
-.chat-bubble-them{ align-self:flex-start; background:var(--surface); border:1px solid var(--line); color:var(--ink); border-bottom-left-radius:4px; }
-.chat-bubble-me{ align-self:flex-end; background:var(--forest); color:#fff; border-bottom-right-radius:4px; }
+/* Found by code audit, 2026-09-11: border-bottom-left/-right-radius, physical -- the
+   bubble's own tail (the sharp corner pointing toward the edge it hugs) already follows
+   reading direction via align-self:flex-start/flex-end, which is logical, but its corner
+   radius didn't: for an Arabic or Persian reader, a them-bubble correctly moves to the
+   right side of the thread while its sharp corner stayed pinned to the visual bottom-
+   left -- now on the far side, pointing away from the edge the bubble actually sits
+   against. border-end-start/-end-end-radius (block-end + inline-start/-end) follow the
+   same align-self flip automatically. */
+.chat-bubble-them{ align-self:flex-start; background:var(--surface); border:1px solid var(--line); color:var(--ink); border-end-start-radius:4px; }
+.chat-bubble-me{ align-self:flex-end; background:var(--forest); color:#fff; border-end-end-radius:4px; }
 .chat-translate-toggle{ display:block; margin-top:4px; padding:0; border:none; background:none; cursor:pointer; font-family:var(--font-body); font-size:11px; color:var(--ink-soft); text-decoration:underline; }
 .chat-bubble-them .chat-translate-toggle{ color:var(--ink-soft); }
 .chat-input-row{ display:flex; gap:8px; align-items:center; }
@@ -452,7 +460,11 @@ export const APP_CSS = `
 .conv-recap{
   align-self:flex-start; max-width:85%; background:var(--forest); color:#fff;
   font-size:13px; line-height:1.45; padding:var(--space-2) var(--space-3);
-  border-radius:13px; border-bottom-left-radius:4px;
+  /* Same tail-corner fix as .chat-bubble-them just above -- this bubble sits at the
+     start edge too (align-self:flex-start), so its own sharp corner needs the same
+     border-end-start-radius to keep pointing at the edge it actually hugs once that
+     edge is the right, not the left, for an Arabic/Persian reader. */
+  border-radius:13px; border-end-start-radius:4px;
 }
 .conv-thinking{ display:flex; align-items:center; gap:var(--space-2); font-size:12.5px; color:var(--ink-soft); }
 /* --ink, not the --amber-text the HTML prototypes used: that token has never existed in
