@@ -186,11 +186,15 @@ owns the real underlying capability ships it — see
 ## Client architecture
 
 - `src/App.jsx` — the composition root, and nothing more: it wraps
-  `src/shell/AppShell.jsx` in the auth provider. The Engineering Health
+  the public `/` and protected `/app/*` surfaces in the auth provider and
+  browser router. The Engineering Health
   sprint took it from 3,459 lines to 19 by splitting the app into feature
   folders; `../engineering/ENGINEERING_STANDARDS.md` documents the
   boundaries and what each one owns.
-- `src/shell/AppShell.jsx` decides which surface renders — welcome,
+- `src/auth/AuthRoutes.jsx` owns URL-level auth boundaries. `/` is public-only,
+  `/app/*` requires a restored Supabase session, and unknown paths resolve from
+  the current session. Supabase RLS remains the data-security boundary.
+- `src/shell/AppShell.jsx` decides which signed-in workspace surface renders — welcome,
   role selection, `src/customer/CustomerApp.jsx`, or
   `src/pro/ProApp.jsx`. It is the only place that routing-like logic
   lives.
@@ -204,8 +208,8 @@ owns the real underlying capability ships it — see
   key names to a customer. Catalog names live in the database
   (`category_translations`, `service_translations`) and are widened by the
   same migration that widens the `locale` check constraints — see 0017.
-- No routing library — the app is state-driven, not URL-driven; no
-  code-splitting exists because there are no routes.
+- React Router provides the public/authenticated URL boundary. Feature navigation
+  inside `AppShell` remains state-driven; route-based code-splitting is not yet used.
 - `src/design-system/` components are real and have real call sites, but
   inline markup remains in `ProProfile`, `ProPublicProfileSheet` and
   `CustomerProfile`.
