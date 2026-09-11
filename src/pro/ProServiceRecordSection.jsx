@@ -26,19 +26,29 @@ export function ProServiceRecordSection({ job, workspaceId, actorRef, onRecordSa
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  // Found by code audit: fetchServiceRecordForRequest() throws on a real Postgres error,
+  // and this effect had no catch of its own -- loading stayed stuck at true forever
+  // (nothing past the .then() ever ran), so "if (loading) return null" left this whole
+  // section permanently blank: no error, no "write it up" entry point, no way back short
+  // of leaving and re-opening the sheet. Deliberately NOT resolved by falling into the
+  // existing !record branch the way ProJobDetailSheet.jsx's own identical twin-fetch fix
+  // does: that branch here is a real "write it up" button, and a record that actually
+  // exists but merely failed to load would risk create_service_record() being called a
+  // second time for the same job. A real retry instead, the same retryToken idiom
+  // AppShell.jsx/MyBusinessPanel.jsx already use.
+  const [loadError, setLoadError] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    fetchServiceRecordForRequest(job.id).then((r) => {
-      if (!cancelled) {
-        setRecord(r);
-        setLoading(false);
-      }
-    });
+    fetchServiceRecordForRequest(job.id)
+      .then((r) => { if (!cancelled) { setRecord(r); setLoadError(false); } })
+      .catch(() => { if (!cancelled) setLoadError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => {
       cancelled = true;
     };
-  }, [job.id]);
+  }, [job.id, retryToken]);
 
   async function reload() {
     const r = await fetchServiceRecordForRequest(job.id);
@@ -51,6 +61,20 @@ export function ProServiceRecordSection({ job, workspaceId, actorRef, onRecordSa
   // Same silent-loading restraint as ServiceRecordSummary.jsx — this sits below content
   // that already renders immediately.
   if (loading) return null;
+
+  if (loadError) {
+    return (
+      <div style={{ marginTop: 20 }}>
+        <div className="section-title">{t.serviceRecordTitle}</div>
+        <div className="empty-block">
+          <p>{t.catalogLoadFailed}</p>
+          <button type="button" className="btn-secondary" onClick={() => { setLoading(true); setRetryToken((n) => n + 1); }}>
+            {t.retryBtn}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: 20 }}>

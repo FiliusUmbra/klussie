@@ -62,3 +62,31 @@ describe("ServiceRecordSummary — approve", () => {
     expect(screen.queryByText("serviceRecordApprovedMsg")).toBeNull();
   });
 });
+
+// Found by code audit: fetchServiceRecordForRequest() throws on a real Postgres error,
+// and the initial-load effect had no catch of its own -- loading stayed stuck at true
+// forever, leaving this whole section permanently blank. Deliberately not resolved by
+// falling into the existing !record empty state: a record that actually exists (and
+// needs the customer's own approval) but merely failed to load would read as "your pro
+// never wrote this up" instead of a fixable failure.
+describe("ServiceRecordSummary — initial load failure", () => {
+  it("renders the real record once it loads successfully", async () => {
+    fetchServiceRecordForRequestMock.mockResolvedValue(RECORD);
+    renderSummary();
+    await screen.findByText("Replaced the valve.");
+  });
+
+  it("shows a generic localized message and a real retry, never a permanently blank section, when the load fails", async () => {
+    fetchServiceRecordForRequestMock.mockRejectedValue(new Error("relation \"service_records\" does not exist"));
+    renderSummary();
+
+    await waitFor(() => expect(screen.getByText("catalogLoadFailed")).toBeTruthy());
+    expect(screen.queryByText(/does not exist/)).toBeNull();
+    expect(screen.queryByText("serviceRecordEmptyMsg")).toBeNull();
+
+    fetchServiceRecordForRequestMock.mockResolvedValueOnce(RECORD);
+    fireEvent.click(screen.getByText("retryBtn"));
+
+    await waitFor(() => expect(screen.getByText("Replaced the valve.")).toBeTruthy());
+  });
+});
