@@ -235,14 +235,23 @@ export function CustomerApp({ showToast, onBecomePro }) {
   // caller still sees the rejection (nothing currently awaits this one, but a future
   // busy-state guard -- the same fix onComplete/onApproveDisclosure below needed -- can
   // rely on it without this function silently turning a failure into a resolved promise.
+  // Found by code audit, 2026-09-11: refresh() used to sit inside this same try, so a
+  // failure there -- after acceptQuoteApi() had already succeeded -- fell into the
+  // catch below and showed toastAcceptQuoteFailed, the exact opposite of what actually
+  // happened (and re-threw on top of it). Same bug shape as ProApp.jsx's own sendQuote()
+  // fix, same pass. refresh() is now best-effort once the accept itself is confirmed.
   const acceptQuote = async (quoteId) => {
     try {
       await acceptQuoteApi(quoteId, user.id);
-      await refresh();
     } catch (err) {
       console.warn("acceptQuote failed:", err.message);
       showToast(t.toastAcceptQuoteFailed);
       throw err;
+    }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the quote itself was already accepted regardless.
     }
   };
 
@@ -254,27 +263,38 @@ export function CustomerApp({ showToast, onBecomePro }) {
   // has a busy-state try/finally, but no catch -- setApproving(false) ran on a real
   // refusal, quietly re-enabling the button with nothing telling the customer why
   // nothing happened. Re-thrown so that finally still runs exactly as before.
+  // Found by code audit, 2026-09-11: refresh() used to sit inside this same try too --
+  // see acceptQuote()'s own header, same bug, same fix shape. toastBooked now shows once
+  // approveLocationDisclosureApi() itself is confirmed, regardless of refresh's outcome.
   const approveLocationDisclosure = async (requestId) => {
     try {
       await approveLocationDisclosureApi(requestId, user.id);
-      await refresh();
-      showToast(t.toastBooked);
     } catch (err) {
       console.warn("approveLocationDisclosure failed:", err.message);
       showToast(t.toastDisclosureApproveFailed);
       throw err;
     }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the disclosure was already approved regardless.
+    }
+    showToast(t.toastBooked);
   };
 
   // Same real gap as acceptQuote() above.
   const markComplete = async (requestId) => {
     try {
       await markCompleteApi(requestId, user.id);
-      await refresh();
     } catch (err) {
       console.warn("markComplete failed:", err.message);
       showToast(t.toastMarkCompleteFailed);
       throw err;
+    }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the request was already marked complete regardless.
     }
   };
 
@@ -289,14 +309,24 @@ export function CustomerApp({ showToast, onBecomePro }) {
     // insert and work.mark_request_reviewed() in one transaction, so a caught failure
     // here means genuinely nothing was written -- "Laat een beoordeling achter" simply
     // reappears, exactly as if the attempt had never happened.
+    //
+    // Found by code audit, 2026-09-11: refresh() used to sit inside this same try too --
+    // same bug shape as acceptQuote()/approveLocationDisclosure()/markComplete() above:
+    // a failure there, after submitReviewApi() had already succeeded, showed
+    // toastReviewFailed for a review that genuinely was saved.
     try {
       await submitReviewApi({ requestId: request.id, customerId: user.id, stars: review.stars, text: review.text });
-      await refresh();
-      showToast(t.toastThanks);
     } catch (err) {
       console.warn("submitReview failed:", err.message);
       showToast(t.toastReviewFailed);
+      return;
     }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the review was already saved regardless.
+    }
+    showToast(t.toastThanks);
   };
 
   return (

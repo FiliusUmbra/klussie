@@ -21,13 +21,17 @@ vi.mock("../../lib/auth.jsx", () => ({
 const fetchCustomerRequestsMock = vi.fn(() => Promise.resolve([]));
 const subscribeToCustomerRequestsMock = vi.fn(() => () => {});
 const createServiceRequestMock = vi.fn(() => Promise.resolve({ id: "req-new" }));
+const acceptQuoteApiMock = vi.fn(() => Promise.resolve());
+const approveLocationDisclosureApiMock = vi.fn(() => Promise.resolve());
+const markCompleteApiMock = vi.fn(() => Promise.resolve());
+const submitReviewApiMock = vi.fn(() => Promise.resolve());
 vi.mock("../../lib/requests", () => ({
   createServiceRequest: (...args) => createServiceRequestMock(...args),
   fetchCustomerRequests: (...args) => fetchCustomerRequestsMock(...args),
-  acceptQuote: vi.fn(),
-  approveLocationDisclosure: vi.fn(),
-  markComplete: vi.fn(),
-  submitReview: vi.fn(),
+  acceptQuote: (...args) => acceptQuoteApiMock(...args),
+  approveLocationDisclosure: (...args) => approveLocationDisclosureApiMock(...args),
+  markComplete: (...args) => markCompleteApiMock(...args),
+  submitReview: (...args) => submitReviewApiMock(...args),
   subscribeToCustomerRequests: (...args) => subscribeToCustomerRequestsMock(...args),
   subscribeToRequestQuotes: vi.fn(() => () => {}),
 }));
@@ -39,13 +43,15 @@ vi.mock("../../lib/messages", () => ({
 const uploadRequestPhotoMock = vi.fn(() => Promise.resolve());
 vi.mock("../../lib/requestPhotos", () => ({ uploadRequestPhoto: (...args) => uploadRequestPhotoMock(...args) }));
 
-// The onStart button below is what a real ConversationHome's own AI-intake CTA
-// ultimately does — opens aiIntakeOpen with a seed object — needed so the two
-// createRequestFromAi() regression tests further down can actually reach it.
+// The onStart/onOpenRequest buttons below are what a real ConversationHome's own
+// AI-intake CTA and request-card taps ultimately do — needed so the regression tests
+// further down can actually reach createRequestFromAi()/RequestDetailSheet's own
+// callbacks.
 vi.mock("../../home/ConversationHome.jsx", () => ({
-  ConversationHome: ({ onStart }) => (
+  ConversationHome: ({ onStart, onOpenRequest }) => (
     <div data-testid="conversation-home">
       <button onClick={() => onStart({ text: "leak" })}>open-ai-intake</button>
+      <button onClick={() => onOpenRequest("req-1")}>open-request</button>
     </div>
   ),
 }));
@@ -68,8 +74,22 @@ vi.mock("../AiIntakeSheet.jsx", () => ({
   ),
 }));
 vi.mock("../RequestsList.jsx", () => ({ RequestsList: () => null }));
-vi.mock("../RequestDetailSheet.jsx", () => ({ RequestDetailSheet: () => null }));
-vi.mock("../ReviewSheet.jsx", () => ({ ReviewSheet: () => null }));
+// Buttons mirror RequestDetailSheet.jsx's own real onAccept/onApproveDisclosure/
+// onComplete call sites closely enough for the regression tests further down to invoke
+// CustomerApp.jsx's real handlers with real arguments.
+vi.mock("../RequestDetailSheet.jsx", () => ({
+  RequestDetailSheet: ({ onAccept, onApproveDisclosure, onComplete, onReview }) => (
+    <div>
+      <button onClick={() => onAccept("quote-1")}>accept-quote</button>
+      <button onClick={() => onApproveDisclosure()}>approve-disclosure</button>
+      <button onClick={() => onComplete()}>mark-complete</button>
+      <button onClick={() => onReview()}>leave-review</button>
+    </div>
+  ),
+}));
+vi.mock("../ReviewSheet.jsx", () => ({
+  ReviewSheet: ({ onSubmit }) => <button onClick={() => onSubmit({ stars: 5, text: "Great!" })}>submit-review</button>,
+}));
 vi.mock("../../profile/Profile.jsx", () => ({ Profile: () => null }));
 
 import { LangContext } from "../../lib/lang";
@@ -88,13 +108,30 @@ function renderApp() {
   return { showToast };
 }
 
+// A single request that resolves both openRequestObj (id: "req-1") and, once reviewFor
+// is set by the leave-review button above, reviewReq -- the same row serves both.
+const REQUEST = { id: "req-1", quotes: [{ id: "quote-1" }] };
+
 beforeEach(() => {
   fetchCustomerRequestsMock.mockReset().mockResolvedValue([]);
   fetchConversationsMock.mockReset().mockResolvedValue([]);
   subscribeToCustomerRequestsMock.mockClear();
   createServiceRequestMock.mockReset().mockResolvedValue({ id: "req-new" });
   uploadRequestPhotoMock.mockReset().mockResolvedValue();
+  acceptQuoteApiMock.mockReset().mockResolvedValue();
+  approveLocationDisclosureApiMock.mockReset().mockResolvedValue();
+  markCompleteApiMock.mockReset().mockResolvedValue();
+  submitReviewApiMock.mockReset().mockResolvedValue();
 });
+
+async function openRequestDetail() {
+  fetchCustomerRequestsMock.mockResolvedValue([REQUEST]);
+  const { showToast } = renderApp();
+  await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
+  fireEvent.click(screen.getByText("open-request"));
+  await screen.findByText("accept-quote");
+  return { showToast };
+}
 
 describe("CustomerApp — initial load failure", () => {
   it("renders the real app once requests and conversations both load successfully", async () => {
@@ -186,5 +223,57 @@ describe("CustomerApp — creating a request survives a failed photo upload or a
 
     await waitFor(() => expect(screen.queryByTestId("conversation-home")).toBeNull());
     expect(createServiceRequestMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Found by code audit, 2026-09-11: the same bug shape as attachPhotos()/refresh() above,
+// applied to every one of this file's own action handlers on an existing request —
+// acceptQuote()/approveLocationDisclosure()/markComplete()/submitReview() all had their
+// own trailing refresh() sitting inside the same try as the real write. A failure there,
+// after the real write had already succeeded, showed that handler's own failure toast
+// (or, for submitReview, never showed the success one) even though nothing had actually
+// gone wrong.
+describe("CustomerApp — accept/approve/complete/review all survive a failed post-action refresh", () => {
+  it("acceptQuote shows no false failure toast when only the post-accept refresh fails", async () => {
+    const { showToast } = await openRequestDetail();
+    fetchCustomerRequestsMock.mockRejectedValueOnce(new Error("network blip refetching the list"));
+
+    fireEvent.click(screen.getByText("accept-quote"));
+
+    await waitFor(() => expect(acceptQuoteApiMock).toHaveBeenCalledWith("quote-1", "cust-1"));
+    await waitFor(() => expect(fetchCustomerRequestsMock).toHaveBeenCalledTimes(2));
+    expect(showToast).not.toHaveBeenCalledWith("toastAcceptQuoteFailed");
+  });
+
+  it("approveLocationDisclosure still shows the real success toast when only the post-approve refresh fails", async () => {
+    const { showToast } = await openRequestDetail();
+    fetchCustomerRequestsMock.mockRejectedValueOnce(new Error("network blip refetching the list"));
+
+    fireEvent.click(screen.getByText("approve-disclosure"));
+
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith("toastBooked"));
+    expect(showToast).not.toHaveBeenCalledWith("toastDisclosureApproveFailed");
+  });
+
+  it("markComplete shows no false failure toast when only the post-complete refresh fails", async () => {
+    const { showToast } = await openRequestDetail();
+    fetchCustomerRequestsMock.mockRejectedValueOnce(new Error("network blip refetching the list"));
+
+    fireEvent.click(screen.getByText("mark-complete"));
+
+    await waitFor(() => expect(markCompleteApiMock).toHaveBeenCalledWith("req-1", "cust-1"));
+    await waitFor(() => expect(fetchCustomerRequestsMock).toHaveBeenCalledTimes(2));
+    expect(showToast).not.toHaveBeenCalledWith("toastMarkCompleteFailed");
+  });
+
+  it("submitReview still shows the real success toast when only the post-review refresh fails", async () => {
+    const { showToast } = await openRequestDetail();
+    fireEvent.click(screen.getByText("leave-review"));
+    fetchCustomerRequestsMock.mockRejectedValueOnce(new Error("network blip refetching the list"));
+
+    fireEvent.click(await screen.findByText("submit-review"));
+
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith("toastThanks"));
+    expect(showToast).not.toHaveBeenCalledWith("toastReviewFailed");
   });
 });
