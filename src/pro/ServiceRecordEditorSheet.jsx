@@ -48,9 +48,11 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
   // any of this form's several text fields, not just when a photo is added or removed)
   // for the same unchanged File, with the old URL from the previous render never
   // revoked. A real, unbounded memory leak on exactly the screen this file's own header
-  // calls "the highest-leverage single screen in either roadmap." ItemFormSheet.jsx and
-  // QuoteFormSheet.jsx both already get this right -- create the object URL once, when a
-  // file is picked, and revoke it once, when that file is removed. Matched here.
+  // calls "the highest-leverage single screen in either roadmap." QuoteFormSheet.jsx
+  // already got this right -- create the object URL once, when a file is picked, and
+  // revoke it once, when that file is removed. Matched here. (ItemFormSheet.jsx's own
+  // remove button did NOT get this right until a later, separate audit found and fixed
+  // it there too -- see that file's own header.)
   const pickPhotos = (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";

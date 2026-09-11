@@ -233,3 +233,36 @@ describe("ItemFormSheet — save/delete failure", () => {
     expect(onSaved).not.toHaveBeenCalled();
   });
 });
+
+// Found by code audit: the "remove photo" button cleared photoFile/photoPreview without
+// ever revoking the object URL pickPhoto() had created for it -- a real, unbounded memory
+// leak on every tap. QuoteFormSheet.jsx's own removePhoto() (and, since, this file's own
+// header) is the established correct shape: create once on pick, revoke once on remove.
+describe("ItemFormSheet — photo object URL lifecycle", () => {
+  const file = new File(["x"], "boiler.jpg", { type: "image/jpeg" });
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:mock-1");
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  it("revokes the object URL for a locally picked photo when it's removed", () => {
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" item={null} onClose={() => {}} onSaved={vi.fn()} />);
+
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByLabelText("Remove photo"));
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock-1");
+  });
+
+  it("never calls revokeObjectURL on an existing item's own real photoUrl, only on a locally picked file", () => {
+    const withPhoto = { ...ITEM, photoUrl: "https://example.test/storage/owner-1/asset-1/old.jpg" };
+    render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" item={withPhoto} onClose={() => {}} onSaved={vi.fn()} />);
+
+    // No file was ever picked here — the preview shown is the item's own existing
+    // photoUrl, a real server URL, never one this component created itself.
+    fireEvent.click(screen.getByLabelText("Remove photo"));
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  });
+});

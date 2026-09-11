@@ -83,6 +83,20 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
     setPhotoPreview(URL.createObjectURL(file));
   };
 
+  // Found by code audit: this cleared photoFile/photoPreview without ever revoking the
+  // object URL pickPhoto() just created for it -- a real, unbounded memory leak on every
+  // "remove photo" tap, ServiceRecordEditorSheet.jsx's own header names this file as
+  // already getting right (create once on pick, revoke once on remove) alongside
+  // QuoteFormSheet.jsx -- true there, not here. Only revokes when photoFile is set: a
+  // photoPreview carrying the item's own existing photoUrl (no local file picked yet) is
+  // a real server URL, not a blob, and revoking that would do nothing useful and log a
+  // console warning for no reason.
+  const removePhoto = () => {
+    if (photoFile && photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
   const submit = async () => {
     if (!canSaveItem({ name })) return;
     setError("");
@@ -229,7 +243,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
             <button
               type="button"
               className="photo-remove-btn"
-              onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+              onClick={removePhoto}
               aria-label={t.itemPhotoRemove}
             >
               <X size={12} />
