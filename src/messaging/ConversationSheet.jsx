@@ -17,6 +17,18 @@ import { messagesNeedingTranslation } from "../lib/conversationSelectors.js";
 export function ConversationSheet({ conversationId, userId, workspaceId, otherName, onClose }) {
   const { t, langCode } = useLang();
   const [messages, setMessages] = useState(null);
+  // Found by code audit: fetchMessages() throws on a real Postgres error, and the
+  // initial refresh() call in the mount effect below had no catch of its own -- a
+  // genuine unhandled promise rejection on every failure, and messages stuck at null
+  // forever means the empty-state text below ("messages && messages.length === 0")
+  // never shows either -- just a blank chat area with no explanation, worse than showing
+  // "no messages yet" would be, since a real failure would read as an empty conversation
+  // rather than a failed load. Tracked separately from CustomerApp.jsx's identical fix:
+  // showing a false "no messages yet" here specifically risks someone re-sending
+  // something already sent, so this gets the fuller error+retry treatment rather than
+  // the softer "degrade to []" one RequestPhotosStrip.jsx/Profile.jsx use for
+  // supplementary lists.
+  const [messagesLoadError, setMessagesLoadError] = useState(false);
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState("");
   const [showOriginalFor, setShowOriginalFor] = useState(() => new Set());
@@ -36,11 +48,22 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
+  // refresh() itself stays capable of rejecting -- send() below awaits it inside its own
+  // try/catch and needs a real rejection to reach that, the same reasoning
+  // CustomerApp.jsx's refresh()/loadRequests() split already established. loadMessages()
+  // is the tracked wrapper the mount effect and the realtime subscription actually call.
   const refresh = () => fetchMessages(conversationId, workspaceId).then(setMessages);
+  const loadMessages = () =>
+    refresh().then(() => setMessagesLoadError(false)).catch(() => setMessagesLoadError(true));
 
   useEffect(() => {
-    refresh();
-    markConversationRead(conversationId, workspaceId);
+    loadMessages();
+    // Found by code audit: also called with no catch of its own -- best-effort,
+    // deliberately, the same restraint markConversationNotificationsSeen() below already
+    // documents for itself ("a failure here must never block reading an actual
+    // message"): marking read/seen is a courtesy update, not something the customer is
+    // ever shown a retry for.
+    markConversationRead(conversationId, workspaceId).catch(() => {});
     // Slice 4, WP 4.2 — the Notification engine's write contract (WP 4.0) gets its first
     // real caller here: opening a conversation is the moment any notification naming it
     // is genuinely "seen" and "acted on," the same real-world event
@@ -48,8 +71,8 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     // header for why this ships instead of a separate, duplicate inbox screen.
     markConversationNotificationsSeen(conversationId, userId);
     const unsubscribe = subscribeToMessages(conversationId, () => {
-      refresh();
-      markConversationRead(conversationId, workspaceId);
+      loadMessages();
+      markConversationRead(conversationId, workspaceId).catch(() => {});
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,27 +137,36 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   return (
     <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{otherName || t.counterpartFallbackName}</div>
-      <div className="chat-scroll" ref={scrollRef}>
-        {messages && messages.length === 0 && (
-          <p className="chat-empty-state">{t.messagesConversationEmpty}</p>
-        )}
-        {(messages || []).map((m) => {
-          const isMine = m.senderId === userId;
-          const translated = !isMine ? m.translations?.[langCode] : null;
-          const showingOriginal = showOriginalFor.has(m.id);
-          const displayText = translated && !showingOriginal ? translated : m.body;
-          return (
-            <div key={m.id} className={"chat-bubble " + (isMine ? "chat-bubble-me" : "chat-bubble-them")}>
-              <div>{displayText}</div>
-              {translated && (
-                <button type="button" className="chat-translate-toggle" onClick={() => toggleOriginal(m.id)}>
-                  {showingOriginal ? t.viewTranslationBtn : t.viewOriginalBtn}
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {messages === null && messagesLoadError ? (
+        <div className="pad">
+          <div className="empty-block">
+            <p>{t.catalogLoadFailed}</p>
+            <button type="button" className="btn-secondary" onClick={loadMessages}>{t.retryBtn}</button>
+          </div>
+        </div>
+      ) : (
+        <div className="chat-scroll" ref={scrollRef}>
+          {messages && messages.length === 0 && (
+            <p className="chat-empty-state">{t.messagesConversationEmpty}</p>
+          )}
+          {(messages || []).map((m) => {
+            const isMine = m.senderId === userId;
+            const translated = !isMine ? m.translations?.[langCode] : null;
+            const showingOriginal = showOriginalFor.has(m.id);
+            const displayText = translated && !showingOriginal ? translated : m.body;
+            return (
+              <div key={m.id} className={"chat-bubble " + (isMine ? "chat-bubble-me" : "chat-bubble-them")}>
+                <div>{displayText}</div>
+                {translated && (
+                  <button type="button" className="chat-translate-toggle" onClick={() => toggleOriginal(m.id)}>
+                    {showingOriginal ? t.viewTranslationBtn : t.viewOriginalBtn}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="chat-input-row">
         <input
           placeholder={t.messagePlaceholder}

@@ -21,13 +21,15 @@ vi.mock("../../lib/notifications.js", () => ({
 }));
 vi.mock("../../lib/translate", () => ({ translateMessage: vi.fn(() => Promise.resolve("")) }));
 
-import { sendMessage } from "../../lib/messages";
+import { sendMessage, markConversationRead } from "../../lib/messages";
 import { LangContext } from "../../lib/lang";
 import { ConversationSheet } from "../ConversationSheet.jsx";
 
 const t = {
   chatSendBtn: "Verstuur bericht", chatSendFailed: "Kon dit bericht niet versturen.",
   messagePlaceholder: "Typ een bericht...", counterpartFallbackName: "Gebruiker",
+  catalogLoadFailed: "Er ging iets mis bij het laden van klussie. Probeer het opnieuw.",
+  retryBtn: "Opnieuw proberen", messagesConversationEmpty: "Nog geen berichten.",
 };
 
 function renderSheet({ otherName = "Cathy Customer" } = {}) {
@@ -145,5 +147,52 @@ describe("ConversationSheet — send failure restores the draft", () => {
     await waitFor(() => expect(sendMessage).toHaveBeenCalled());
     expect(screen.getByPlaceholderText("Typ een bericht...").value).toBe("");
     expect(screen.queryByText("Kon dit bericht niet versturen.")).toBeNull();
+  });
+});
+
+// Found by code audit: fetchMessages() throws on a real Postgres error, and the initial
+// refresh() call in the mount effect had no catch of its own -- a genuine unhandled
+// promise rejection, with messages stuck at null forever meaning even the "no messages
+// yet" empty state never showed either, just a blank chat area with no explanation.
+describe("ConversationSheet — initial load failure", () => {
+  it("renders the real conversation once messages load successfully", async () => {
+    fetchMessagesMock.mockResolvedValueOnce([
+      { id: "m1", senderId: "person-1", body: "Hallo!", createdAt: 1, translations: {} },
+    ]);
+    renderSheet();
+    await waitFor(() => expect(screen.getByText("Hallo!")).toBeTruthy());
+  });
+
+  it("shows a generic localized message and a real retry, never an infinite blank chat, when the load fails", async () => {
+    fetchMessagesMock.mockRejectedValueOnce(new Error("relation \"messages\" does not exist"));
+    renderSheet();
+
+    await waitFor(() => expect(screen.getByText("Er ging iets mis bij het laden van klussie. Probeer het opnieuw.")).toBeTruthy());
+    expect(screen.queryByText(/does not exist/)).toBeNull();
+    expect(screen.queryByText("Nog geen berichten.")).toBeNull();
+
+    fetchMessagesMock.mockResolvedValueOnce([
+      { id: "m1", senderId: "person-1", body: "Hallo!", createdAt: 1, translations: {} },
+    ]);
+    fireEvent.click(screen.getByText("Opnieuw proberen"));
+
+    await waitFor(() => expect(screen.getByText("Hallo!")).toBeTruthy());
+  });
+});
+
+// Found by code audit: markConversationRead() throws on a real Postgres error, and both
+// call sites (mount, and the realtime subscription's own callback) invoked it with no
+// catch at all -- a genuine unhandled promise rejection on every failure. Best-effort,
+// deliberately, matching markConversationNotificationsSeen()'s own documented restraint:
+// marking read/seen is a courtesy update, never something the customer sees a retry for.
+describe("ConversationSheet — marking read is best-effort", () => {
+  it("still renders the real conversation when markConversationRead fails, never an unhandled rejection", async () => {
+    vi.mocked(markConversationRead).mockRejectedValueOnce(new Error("network error"));
+    fetchMessagesMock.mockResolvedValueOnce([
+      { id: "m1", senderId: "person-1", body: "Hallo!", createdAt: 1, translations: {} },
+    ]);
+    renderSheet();
+
+    await waitFor(() => expect(screen.getByText("Hallo!")).toBeTruthy());
   });
 });
