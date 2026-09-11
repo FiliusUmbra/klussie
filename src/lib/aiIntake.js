@@ -36,7 +36,13 @@ function fileToCompressedBase64(file) {
         IMAGE_QUALITY
       );
     };
-    img.onerror = reject;
+    // Found by code audit: the success path already revokes `url` once the image has
+    // decoded (above); this one didn't -- a corrupted or unreadable photo (the one case
+    // img.onerror exists for) leaked its blob URL instead of ever freeing it.
+    img.onerror = (event) => {
+      URL.revokeObjectURL(url);
+      reject(event);
+    };
     img.src = url;
   });
 }
