@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-11 — Supabase auth route boundary
+
+- Added `/` as the public-only sign-in entry and `/app/*` as the protected
+  application surface, with session-aware fallback redirects.
+- Kept the loading gate in place while Supabase restores a persisted session,
+  preventing redirect flicker and accidental signed-out rendering.
+- Preserved the existing Supabase origin callback; the public-only guard forwards
+  an authenticated callback to `/app` without expanding the redirect allow-list.
+- Added the Vercel rewrite required for direct visits and refreshes under `/app/*`.
+
 All notable changes to Klussie are recorded here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
