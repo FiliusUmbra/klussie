@@ -119,7 +119,14 @@ export function ConversationCanvas({
           <div className="conv-relief">
             <div className="conv-relief-mark"><Check size={18} /></div>
             <div className="conv-relief-title">{t.convReliefTitle}</div>
-            <div className="conv-relief-sub">{t.convReliefSub.replace("{name}", conversation.pro.name || t.proFallbackName)}</div>
+            {/* Found by code audit, 2026-09-11: this and convBookCta below used to be a
+                raw `.replace("{name}", ...)` -- String.replace's own string-pattern
+                overload only substitutes the first occurrence, unlike interpolate()
+                (already imported here for ratingLabel above), which replaces every
+                occurrence a translation actually contains. See
+                RequestDetailSheet.jsx's own disclosureConsentBody fix, same pass, for
+                the full reasoning. */}
+            <div className="conv-relief-sub">{interpolate(t.convReliefSub, { name: conversation.pro.name || t.proFallbackName })}</div>
           </div>
         </UnfoldItem>
       ) : (
@@ -149,7 +156,7 @@ function BookingActions({ conversation, booking, canDirectBook, onBook, onContin
             {booking === "saving" ? (
               <><Loader2 size={14} className="spin" /> {t.convBookingSaving}</>
             ) : (
-              t.convBookCta.replace("{name}", conversation.pro.name || t.proFallbackName)
+              interpolate(t.convBookCta, { name: conversation.pro.name || t.proFallbackName })
             )}
           </button>
         )}

@@ -124,7 +124,16 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="ticket-divider" />
             <div className="quote-msg" style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               <MapPin size={14} style={{ marginTop: 2, flexShrink: 0 }} />
-              <span>{t.disclosureConsentBody.replace("{name}", pro.name || t.proFallbackName)}</span>
+              {/* Found by code audit, 2026-09-11: this used to be a raw
+                  `.replace("{name}", ...)` -- String.replace's own string-pattern
+                  overload only substitutes the FIRST occurrence, unlike interpolate()
+                  (already imported here for ratingLabel above), which replaces every
+                  occurrence. No locale's own disclosureConsentBody happens to repeat
+                  {"{name}"} today, so this never actually rendered a broken literal
+                  placeholder -- but nothing enforced that, and a future translation
+                  that names the pro twice (grammatically ordinary) would have silently
+                  shipped one unsubstituted "{"{name}"}" straight to a customer. */}
+              <span>{interpolate(t.disclosureConsentBody, { name: pro.name || t.proFallbackName })}</span>
             </div>
             <button
               className="btn-primary"

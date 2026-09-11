@@ -128,6 +128,27 @@ describe("RequestDetailSheet — disclosure-consent card (0182/0183)", () => {
 
     await waitFor(() => expect(screen.getByText("disclosureConsentApproveBtn").closest("button").disabled).toBe(false));
   });
+
+  // Found by code audit, 2026-09-11: this used to be
+  // `t.disclosureConsentBody.replace("{name}", ...)` — String.replace's own string-
+  // pattern overload only substitutes the FIRST occurrence, unlike interpolate()
+  // (already imported/used elsewhere in this file). No shipped locale currently repeats
+  // {name} in this one string, so the bug never actually showed — this pins the real
+  // contract (every occurrence gets substituted) rather than relying on today's
+  // translations happening not to trigger it.
+  it("substitutes every occurrence of {name} in disclosureConsentBody, not just the first", () => {
+    const localT = new Proxy({}, {
+      get: (_, key) => (key === "disclosureConsentBody" ? "Tot nu toe kende {name} enkel je gemeente. Bedank {name} straks!" : String(key)),
+    });
+    const localCtx = { ...ctx, t: localT };
+    render(
+      <LangContext.Provider value={localCtx}>
+        <RequestDetailSheet request={PENDING_DISCLOSURE_REQUEST} onClose={vi.fn()} onApproveDisclosure={vi.fn()} />
+      </LangContext.Provider>
+    );
+    expect(screen.getByText("Tot nu toe kende Pierre Pro enkel je gemeente. Bedank Pierre Pro straks!")).toBeTruthy();
+    expect(screen.queryByText(/\{name\}/)).toBeNull();
+  });
 });
 
 // Found by code audit: onAccept and onComplete had no busy state, no await and no catch
