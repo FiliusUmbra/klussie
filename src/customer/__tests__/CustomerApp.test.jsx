@@ -56,8 +56,17 @@ vi.mock("../../home/ConversationHome.jsx", () => ({
   ),
 }));
 vi.mock("../../home/CustomerOnboarding.jsx", () => ({ CustomerOnboarding: () => null }));
-vi.mock("../../messaging/MessagesList.jsx", () => ({ MessagesList: () => null }));
-vi.mock("../../messaging/ConversationSheet.jsx", () => ({ ConversationSheet: () => null }));
+// The onOpen/onClose buttons below mirror MessagesList's own row taps and
+// ConversationSheet's own close button closely enough for the regression test further
+// down to reach CustomerApp.jsx's own real onClose wrapper.
+vi.mock("../../messaging/MessagesList.jsx", () => ({
+  MessagesList: ({ onOpen }) => (
+    <button onClick={() => onOpen({ id: "conv-1", otherName: "Pierre Pro" })}>open-conversation</button>
+  ),
+}));
+vi.mock("../../messaging/ConversationSheet.jsx", () => ({
+  ConversationSheet: ({ onClose }) => <button onClick={onClose}>close-conversation</button>,
+}));
 vi.mock("./ServiceSheet.jsx", () => ({ ServiceSheet: () => null }));
 vi.mock("../QuoteFormSheet.jsx", () => ({ QuoteFormSheet: () => null }));
 // The onSubmitted button mirrors the real AiIntakeSheet.jsx's own handleFinalSubmit —
@@ -275,5 +284,34 @@ describe("CustomerApp — accept/approve/complete/review all survive a failed po
 
     await waitFor(() => expect(showToast).toHaveBeenCalledWith("toastThanks"));
     expect(showToast).not.toHaveBeenCalledWith("toastReviewFailed");
+  });
+});
+
+// Found by code audit, 2026-09-11: closing a ConversationSheet called
+// refreshConversations() with no catch of its own -- fetchConversations() throws on a
+// real Postgres error, so a real failure here became a genuine unhandled promise
+// rejection every time a customer closed a conversation while the list happened to fail
+// to refresh. Unlike this file's own accept/approve/complete/review handlers above
+// (which show a real toast the customer sees), there was no user-facing symptom here at
+// all -- just a silent unhandled rejection, the same class of defect
+// markConversationRead()/markConversationNotificationsSeen() elsewhere in this codebase
+// are already deliberately guarded against.
+describe("CustomerApp — closing a conversation refreshes the list best-effort", () => {
+  it("never leaves an unhandled rejection when the post-close refreshConversations() fails", async () => {
+    fetchConversationsMock.mockResolvedValueOnce([]);
+    renderApp();
+    await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("navMessages"));
+    fireEvent.click(await screen.findByText("open-conversation"));
+    const closeBtn = await screen.findByText("close-conversation");
+    fetchConversationsMock.mockRejectedValueOnce(new Error("network blip refreshing conversations"));
+
+    fireEvent.click(closeBtn);
+
+    // A rejection left unhandled here would surface as a real failure of this test run
+    // (see this fix's own commit message for the git-stash-revert that proved exactly
+    // that against the old code) — this assertion just confirms the sheet closed.
+    await waitFor(() => expect(screen.queryByText("close-conversation")).toBeNull());
   });
 });

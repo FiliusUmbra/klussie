@@ -221,7 +221,13 @@ export function ProApp({ showToast }) {
           userId={user.id}
           workspaceId={workspaceId}
           otherName={openConversation.otherName}
-          onClose={() => { setOpenConversation(null); refreshConversations(); }}
+          // Found by code audit, 2026-09-11: refreshConversations() called with no catch
+          // of its own -- fetchConversations() throws on a real Postgres error, so a
+          // real failure here was a genuine unhandled promise rejection on every close.
+          // Best-effort, matching every other purely cosmetic refresh in this file: the
+          // list will pick up the change on its next successful poll or realtime event
+          // regardless.
+          onClose={() => { setOpenConversation(null); refreshConversations().catch(() => {}); }}
         />
       )}
     </div>

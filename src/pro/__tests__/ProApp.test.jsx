@@ -51,8 +51,17 @@ vi.mock("../SendQuoteSheet.jsx", () => ({
 }));
 vi.mock("../ProJobs.jsx", () => ({ ProJobs: () => null }));
 vi.mock("../ProJobDetailSheet.jsx", () => ({ ProJobDetailSheet: () => null }));
-vi.mock("../../messaging/MessagesList.jsx", () => ({ MessagesList: () => null }));
-vi.mock("../../messaging/ConversationSheet.jsx", () => ({ ConversationSheet: () => null }));
+// The onOpen/onClose buttons below mirror MessagesList's own row taps and
+// ConversationSheet's own close button closely enough for the regression test further
+// down to reach ProApp.jsx's own real onClose wrapper.
+vi.mock("../../messaging/MessagesList.jsx", () => ({
+  MessagesList: ({ onOpen }) => (
+    <button onClick={() => onOpen({ id: "conv-1", otherName: "Cathy Customer" })}>open-conversation</button>
+  ),
+}));
+vi.mock("../../messaging/ConversationSheet.jsx", () => ({
+  ConversationSheet: ({ onClose }) => <button onClick={onClose}>close-conversation</button>,
+}));
 vi.mock("../../profile/Profile.jsx", () => ({ Profile: () => null }));
 vi.mock("../MyBusinessPanel.jsx", () => ({ MyBusinessPanel: () => null }));
 vi.mock("../ProOnboarding.jsx", () => ({ ProOnboarding: () => null }));
@@ -157,5 +166,28 @@ describe("ProApp — initial load failure", () => {
     fireEvent.click(screen.getByText("retryBtn"));
 
     await waitFor(() => expect(screen.getByText("open-quote-sheet")).toBeTruthy());
+  });
+});
+
+// Found by code audit, 2026-09-11: closing a ConversationSheet called
+// refreshConversations() with no catch of its own -- fetchConversations() throws on a
+// real Postgres error, so a real failure here was a genuine unhandled promise rejection
+// every time a pro closed a conversation while the list happened to fail to refresh.
+describe("ProApp — closing a conversation refreshes the list best-effort", () => {
+  it("never leaves an unhandled rejection when the post-close refreshConversations() fails", async () => {
+    renderApp();
+    await waitFor(() => expect(screen.getByText("open-quote-sheet")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("navMessages"));
+    fireEvent.click(await screen.findByText("open-conversation"));
+    const closeBtn = await screen.findByText("close-conversation");
+    fetchConversationsMock.mockRejectedValueOnce(new Error("network blip refreshing conversations"));
+
+    fireEvent.click(closeBtn);
+
+    // A rejection left unhandled here would surface as a real failure of this test run
+    // (see this fix's own commit message for the git-stash-revert that proved exactly
+    // that against the old code) — this assertion just confirms the sheet closed.
+    await waitFor(() => expect(screen.queryByText("close-conversation")).toBeNull());
   });
 });
