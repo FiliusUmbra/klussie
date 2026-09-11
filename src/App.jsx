@@ -9,11 +9,23 @@
 // because the shell's first decision is which surface an unauthenticated visitor sees.
 import { AuthProvider } from "./lib/auth.jsx";
 import { AppShell } from "./shell/AppShell.jsx";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ProtectedRoute, PublicOnlyRoute, SessionRedirect } from "./auth/AuthRoutes.jsx";
 
 export default function App() {
   return (
     <AuthProvider>
-      <AppShell />
+      <BrowserRouter>
+        <Routes>
+          <Route element={<PublicOnlyRoute loadingFallback={<AppShell />} />}>
+            <Route path="/" element={<AppShell />} />
+          </Route>
+          <Route element={<ProtectedRoute loadingFallback={<AppShell />} />}>
+            <Route path="/app/*" element={<AppShell />} />
+          </Route>
+          <Route path="*" element={<SessionRedirect loadingFallback={<AppShell />} />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

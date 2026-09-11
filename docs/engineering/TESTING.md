@@ -400,8 +400,9 @@ bug this file's own scope covers.
 Component files that are helpers rather than flows, listed so
 `baselineCoverage.test.js` can distinguish "unlisted" from "not a flow":
 
-**Containers and routing** — they render the flows above rather than
-being flows themselves: `CustomerApp.jsx`, `ProApp.jsx`.
+**Containers and routing** — they render or protect the flows above rather
+than being flows themselves: `CustomerApp.jsx`, `ProApp.jsx`, `AuthRoutes.jsx`
+(public-only, authenticated, and session-aware fallback URL boundaries).
 
 **Presentational parts and shared primitives:** `myHomeParts.jsx`,
 `panelParts.jsx`, `primitives.jsx`, `overlays.jsx`, `domain.jsx`,
