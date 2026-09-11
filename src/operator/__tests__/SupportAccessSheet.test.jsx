@@ -110,4 +110,43 @@ describe("SupportAccessSheet", () => {
     await waitFor(() => expect(endSupportAccess).toHaveBeenCalledWith({ membershipId: "mem-1", actorRef: "operator-auth-1" }));
     await waitFor(() => expect(fetchSupportAccessGrants).toHaveBeenCalledTimes(2));
   });
+
+  // Found by code audit, 2026-09-11: refresh() used to sit inside the same try as the
+  // real write -- a failure there, after grantSupportAccess() had already succeeded,
+  // showed a raw error message for a grant that had actually gone through, and (since
+  // purpose was already cleared) invited the operator to retype it and submit again:
+  // a second, redundant elevated-access grant, not just a confusing error.
+  it("clears the purpose and shows no error when the post-grant history refresh fails — the grant itself already went through", async () => {
+    grantSupportAccess.mockResolvedValue(undefined);
+    render(<SupportAccessSheet workspaceId="ws-1" workspaceName="Pierre's Painting" actorRef="operator-auth-1" onClose={vi.fn()} />);
+    await waitFor(() => expect(fetchSupportAccessGrants).toHaveBeenCalledTimes(1));
+    // The initial load above already consumed the default resolved value; only the
+    // refresh() triggered by the grant below should fail.
+    fetchSupportAccessGrants.mockRejectedValueOnce(new Error("network blip refetching grant history"));
+
+    fireEvent.change(screen.getByPlaceholderText(/Purpose/), { target: { value: "Billing dispute" } });
+    fireEvent.click(screen.getByRole("button", { name: /request access/i }));
+
+    await waitFor(() => expect(grantSupportAccess).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByPlaceholderText(/Purpose/).value).toBe(""));
+    expect(screen.queryByText("network blip refetching grant history")).toBeNull();
+  });
+
+  // Same shape as the grant test above, on the End access side: a failed refresh must
+  // never read as the end action itself having failed.
+  it("shows no error when the post-end history refresh fails — the grant itself was already ended", async () => {
+    fetchSupportAccessGrants.mockResolvedValue([ACTIVE_GRANT]);
+    endSupportAccess.mockResolvedValue(undefined);
+    render(<SupportAccessSheet workspaceId="ws-1" workspaceName="Pierre's Painting" actorRef="operator-auth-1" onClose={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /end access/i })).toBeTruthy());
+    fetchSupportAccessGrants.mockRejectedValueOnce(new Error("network blip refetching grant history"));
+
+    fireEvent.click(screen.getByRole("button", { name: /end access/i }));
+
+    await waitFor(() => expect(endSupportAccess).toHaveBeenCalled());
+    // submitting settles back to false regardless of the refresh outcome — the End
+    // access button (disabled only by `submitting`) is clickable again.
+    await waitFor(() => expect(screen.getByRole("button", { name: /end access/i }).disabled).toBe(false));
+    expect(screen.queryByText("network blip refetching grant history")).toBeNull();
+  });
 });
