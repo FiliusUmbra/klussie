@@ -24,7 +24,7 @@ export function RequestsList({ requests, onOpen }) {
             <>
               {r.status === "collecting" && <span className="waiting"><Clock size={12} /> {t.waitingForQuotes}</span>}
               {r.status !== "collecting" && <span>{r.quotes.length} {t.quotesReceived}</span>}
-              <ChevronRight size={16} color="var(--ink-soft)" />
+              <ChevronRight className="ticket-foot-chevron" size={16} color="var(--ink-soft)" />
             </>
           }
         />

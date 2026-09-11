@@ -129,6 +129,14 @@ export const APP_CSS = `
 .ticket-sub{ font-size:11.5px; color:var(--ink-soft); }
 .ticket-divider{ border-top:1.5px dashed var(--line-strong); margin:11px 0; }
 .ticket-foot{ display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft); }
+/* Found by a later audit, 2026-09-11: a "this card leads forward" chevron, same
+   meaning as myHomeParts.jsx's own .timeline-card-chevron (which does get flipped) —
+   this one never did. Only RequestsList.jsx's own JobCard footer uses this; ProDashboard.jsx's
+   own JobCard footer is a real button, not a chevron, so this stays scoped to a class
+   rather than a structural .ticket-foot > svg:last-child selector that would reach
+   further than intended if a future footer ever ends in an unrelated icon. */
+.ticket-foot-chevron{ flex-shrink:0; }
+[dir="rtl"] .ticket-foot-chevron{ transform:scaleX(-1); }
 /* --amber-dark, not the bare --amber ACCESSIBILITY.md's own audit named as unchecked:
    #E8A33D on #FFFFFF/#EFEEE6 is ~2.16:1, nowhere near the 4.5:1 normal-text floor --
    the exact --ink-faint class of bug that audit already found and fixed once. --amber

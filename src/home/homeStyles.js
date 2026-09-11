@@ -173,6 +173,10 @@ export const HOME_CSS = `
 .today-card-body{ font-size:12px; color:var(--ink-soft); line-height:1.45; }
 .today-card-cta{ margin-top:var(--space-1); font-size:12px; font-weight:700; color:var(--forest); }
 .today-card-chev{ color:var(--ink-soft); flex-shrink:0; align-self:center; }
+/* Found by a later audit, 2026-09-11: the same "leads forward" chevron .timeline-card-chevron
+   already flips for RTL below -- the Today card is the single most prominent card on
+   the whole homepage, and this one was simply missed. */
+[dir="rtl"] .today-card-chev{ transform:scaleX(-1); }
 .today-empty-cta{ margin-top:var(--space-2); min-height:44px; }
 
 /* ---- what is already running ---- */
@@ -186,6 +190,10 @@ export const HOME_CSS = `
 .home-active-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
 .home-active-name{ font-size:13px; font-weight:600; color:var(--ink); }
 .home-active-state{ font-size:11.5px; color:var(--ink-soft); }
+.home-active-chevron{ flex-shrink:0; }
+/* Same gap as .today-card-chev and .ticket-foot-chevron (appStyles.js) -- see that
+   file's own comment for the full explanation. */
+[dir="rtl"] .home-active-chevron{ transform:scaleX(-1); }
 
 /* ---- my home / my items ---- */
 .home-panel{ display:flex; flex-direction:column; gap:var(--space-4); }
