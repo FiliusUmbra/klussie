@@ -20,6 +20,7 @@ import { useIntentFlow } from "./useIntentFlow.js";
 
 const ACTIVE_KIND_TITLE = {
   quotes_ready: "todayQuotesTitle",
+  accepted_pending_location_approval: "todayLocationApprovalTitle",
   booked: "todayBookedTitle",
   awaiting_pro: "todayAwaitingTitle",
   collecting: "todayCollectingTitle",
