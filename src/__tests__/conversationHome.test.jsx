@@ -179,13 +179,19 @@ describe("ConversationHome — rest state", () => {
 });
 
 describe("ConversationHome — trust strip (ADR-0011)", () => {
-  it("shows only transparent pricing when no platform data backs the other signals", async () => {
+  // The unconditional "transparent pricing" item was removed at the product's own
+  // request, 2026-09-11 — it was the one item here never actually backed by a dataset.
+  // With no real signal to show, the strip now renders nothing at all rather than a
+  // permanent placeholder.
+  it("shows no trust strip at all when no platform data backs any signal", async () => {
     renderHome();
-    await waitFor(() => expect(screen.getByText("trustTransparentPricing")).toBeTruthy());
+    await waitFor(() => expect(fetchPlatformTrustStats).toHaveBeenCalled());
 
-    // Verified-pro count is 0 and the rating is withheld, so neither may be claimed.
+    // Verified-pro count is 0 and the rating is withheld, so neither may be claimed —
+    // and with nothing left to show, the strip itself is absent, not empty.
     expect(screen.queryByText("trustVerifiedPros")).toBeNull();
-    expect(document.querySelectorAll(".trust-strip-item")).toHaveLength(1);
+    expect(document.querySelectorAll(".trust-strip-item")).toHaveLength(0);
+    expect(document.querySelector(".trust-strip")).toBeNull();
   });
 
   it("adds the signals that do have data behind them", async () => {
@@ -196,12 +202,13 @@ describe("ConversationHome — trust strip (ADR-0011)", () => {
     expect(screen.getByText("4.7★ trustAvgRating")).toBeTruthy();
   });
 
-  it("drops the data-backed signals rather than breaking when the fetch fails", async () => {
+  it("shows no trust strip, rather than breaking, when the fetch fails", async () => {
     vi.mocked(fetchPlatformTrustStats).mockRejectedValue(new Error("offline"));
     renderHome();
 
-    await waitFor(() => expect(screen.getByText("trustTransparentPricing")).toBeTruthy());
+    await waitFor(() => expect(fetchPlatformTrustStats).toHaveBeenCalled());
     expect(screen.queryByText("trustVerifiedPros")).toBeNull();
+    expect(document.querySelector(".trust-strip")).toBeNull();
   });
 });
 

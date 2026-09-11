@@ -42,14 +42,15 @@ export function greetingLine(t, fullName, now) {
     : interpolate(t.homeGreetNoName, { greeting });
 }
 
-// Only signals with real data behind them (ADR-0011). Transparent pricing is a
-// property of how quoting works, not a claim about a dataset, so it always holds;
-// verified pros and the rating average appear only when the numbers exist.
+// Only signals with real data behind them (ADR-0011) — verified pros and the rating
+// average appear only when the numbers exist. Removed at the product's own request,
+// 2026-09-11: "transparent pricing" used to be pushed unconditionally regardless of
+// `trust`, the one claim here not actually backed by a dataset; the strip now shows
+// nothing at all rather than a permanent placeholder when no real signal qualifies.
 export function trustItemsFrom(t, trust) {
   const items = [];
   if (trust && trust.verifiedProCount > 0) items.push(t.trustVerifiedPros);
   if (trust && trust.ratingAvg != null) items.push(`${trust.ratingAvg.toFixed(1)}★ ${t.trustAvgRating}`);
-  items.push(t.trustTransparentPricing);
   return items;
 }
 

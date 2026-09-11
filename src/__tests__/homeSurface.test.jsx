@@ -133,9 +133,8 @@ describe("homepage sections", () => {
 
     fireEvent.click(tabs[1]);
     expect(screen.getByText("myHomeQuestion")).toBeTruthy();
-    // The hero and the trust strip are the surface, not the section — they stay put.
+    // The hero is the surface, not the section — it stays put.
     expect(document.querySelector(".home-hero-question")).not.toBeNull();
-    expect(screen.getByText("trustTransparentPricing")).toBeTruthy();
 
     fireEvent.click(tabs[2]);
     expect(screen.getByText("myItemsQuestion")).toBeTruthy();
