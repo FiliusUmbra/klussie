@@ -17,10 +17,22 @@
 // belongs to the active list, not the record.
 const FINISHED = ["completed", "reviewed"];
 
-// Everything the customer is currently waiting on. Mirrors homeToday.js's IN_FLIGHT plus
-// 'booked', because My Home answers "what is happening to my house" rather than "what
-// needs a decision from me".
-const IN_FLIGHT = ["collecting", "awaiting_pro", "quotes_ready", "booked"];
+// Everything the customer is currently waiting on -- the same statuses
+// homeToday.js's own IN_FLIGHT names, because My Home answers "what is happening to my
+// house" rather than "what needs a decision from me", but a separate list here, not a
+// shared import: nothing enforces the two staying identical.
+//
+// Found by code audit, exactly that risk realized: this list still said
+// ["collecting", "awaiting_pro", "quotes_ready", "booked"] after homeToday.js's own copy
+// gained accepted_pending_location_approval (the mandatory disclosure-consent step
+// between accepting a quote and an actual booking) -- a real, live duplicate this
+// module's own header names as its pattern ("pure and data-only, like homeToday.js")
+// without actually sharing the list itself. A request stuck at that status disappeared
+// from My Home's own "Active" section entirely (MyHomePanel.jsx), the same gap the Today
+// card had, on a second real surface. ActiveWorkCard (myHomeParts.jsx) already reads its
+// label through statusPresentation(), which already has a real entry for this status --
+// nothing else needed wiring.
+const IN_FLIGHT = ["collecting", "awaiting_pro", "quotes_ready", "accepted_pending_location_approval", "booked"];
 
 const byNewest = (a, b) => b.createdAt - a.createdAt;
 

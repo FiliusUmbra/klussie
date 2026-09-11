@@ -98,12 +98,23 @@ describe("openWork / finishedWork", () => {
       req({ id: "collecting", status: "collecting" }),
       req({ id: "awaiting", status: "awaiting_pro" }),
       req({ id: "quotes", status: "quotes_ready" }),
+      req({ id: "location", status: "accepted_pending_location_approval" }),
       req({ id: "booked", status: "booked" }),
       req({ id: "done", status: "completed" }),
       req({ id: "reviewed", status: "reviewed" }),
     ];
-    expect(openWork(requests).map((r) => r.id)).toEqual(["collecting", "awaiting", "quotes", "booked"]);
+    expect(openWork(requests).map((r) => r.id)).toEqual(["collecting", "awaiting", "quotes", "location", "booked"]);
     expect(finishedWork(requests).map((r) => r.id)).toEqual(["done", "reviewed"]);
+  });
+
+  // Found by code audit: this list still said ["collecting", "awaiting_pro",
+  // "quotes_ready", "booked"] after homeToday.js's own IN_FLIGHT gained
+  // accepted_pending_location_approval (the mandatory disclosure-consent step between
+  // accepting a quote and an actual booking) -- a request stuck there disappeared from
+  // My Home's own "Active" section entirely, a real duplicate of homeToday.js's own list
+  // silently drifting out of sync.
+  it("counts a request awaiting location disclosure approval as open work, not as missing entirely", () => {
+    expect(openWork([req({ status: "accepted_pending_location_approval" })])).toHaveLength(1);
   });
 
   it("counts a booked job as in progress, not as history", () => {
