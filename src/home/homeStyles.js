@@ -85,7 +85,13 @@ export const HOME_CSS = `
   background:var(--forest); margin:3px auto 0;
 }
 .seg-tabpanel{ display:flex; flex-direction:column; gap:var(--space-4); }
-.seg-tabpanel:focus{ outline:none; }
+/* Found by a later audit, 2026-09-11 (appStyles.js's own :focus-visible rule carries the
+   full explanation): this used :focus, not :focus-visible, and its own selector's
+   specificity beats the app's single global focus-ring rule regardless — so this real,
+   keyboard-focusable scroll region (TabPanel's own tabIndex={0}, "so a keyboard user can
+   reach the tabs but not scroll what they selected" — its own comment in tabs.jsx) never
+   showed a focus indicator to anyone. Removed rather than re-scoped to :focus-visible:
+   deleting the local override is what lets the app's one global rule actually govern it. */
 
 /* ---- intent suggestions ---- */
 .intent-row{ display:flex; flex-wrap:wrap; gap:var(--space-2); }

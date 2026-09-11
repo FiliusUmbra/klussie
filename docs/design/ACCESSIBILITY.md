@@ -61,11 +61,24 @@ not fixed here:
   hook into `Drawer` the same way `Modal` already had it — see
   `overlays.test.jsx` for the regression coverage neither overlay had
   before.
-- **No visible focus-ring audit performed.** Browsers supply a default
-  focus outline, but nothing in `src/App.jsx` confirms it's never
-  suppressed (a stray `outline:none` without a replacement would be
-  invisible in a `grep` for this pass's scope) — flagged for a dedicated
-  pass, not checked exhaustively here.
+- **Visible focus-ring audit — closed 2026-09-11.** The gap flagged here
+  was real: `appStyles.js`'s own global `:focus-visible{ outline:2px
+  solid var(--forest); }` rule (added for Epic 03's WP11 audit, see the
+  Keyboard navigation section above) was never actually reaching several
+  of the app's most common interactive elements. `.search input`
+  (nearly every single-line text field in the product), `.lang-switch
+  select`, `.chat-input-row input`, `.conv-textrow-input` (the
+  homepage's own message composer), and `homeStyles.js`'s own
+  `.seg-tabpanel:focus` (a real, keyboard-focusable scroll region —
+  `TabPanel`'s own `tabIndex={0}`) each carried their own `outline:none`
+  from before the global rule existed, and each has equal-or-higher CSS
+  specificity than a bare `:focus-visible` selector — so the local reset
+  silently kept winning the cascade regardless of the global rule's own
+  intent. Fixed by deleting each local override rather than by raising
+  the global rule's specificity, which is what actually lets one rule
+  govern every interactive element as originally intended. See
+  `cssFocusVisibility.test.js` for the regression coverage this gap had
+  none of before.
 
 ## Screen reader
 

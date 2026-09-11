@@ -30,7 +30,7 @@ export const APP_CSS = `
 .segmented .seg-on{ background:var(--surface); color:var(--forest); }
 .lang-switch{ display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); border-radius:999px; padding:5px 12px; }
 .lang-switch svg{ color:#c9d6cd; }
-.lang-switch select{ background:none; border:none; color:#fff; font-size:12.5px; font-weight:600; font-family:var(--font-body); cursor:pointer; outline:none; }
+.lang-switch select{ background:none; border:none; color:#fff; font-size:12.5px; font-weight:600; font-family:var(--font-body); cursor:pointer; }
 .lang-switch select option{ color:#111; }
 /* Same control, rendered against a light page background (Profile screens) rather than
    the dark topbar — see LanguageSwitcher.jsx's own header for why it needs to render
@@ -76,7 +76,7 @@ export const APP_CSS = `
 .pin{ display:flex; align-items:center; gap:4px; font-size:11.5px; color:var(--forest); background:var(--sage-bg); padding:5px 9px; border-radius:999px; white-space:nowrap; }
 
 .search{ display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:11px 13px; margin-bottom:14px; }
-.search input{ border:none; outline:none; background:none; font-size:13.5px; width:100%; font-family:var(--font-body); color:var(--ink); }
+.search input{ border:none; background:none; font-size:13.5px; width:100%; font-family:var(--font-body); color:var(--ink); }
 
 .chiprow{ display:flex; gap:8px; overflow-x:auto; padding-bottom:14px; margin-bottom:2px; }
 .chiprow::-webkit-scrollbar{ display:none; }
@@ -220,7 +220,7 @@ export const APP_CSS = `
 .chat-translate-toggle{ display:block; margin-top:4px; padding:0; border:none; background:none; cursor:pointer; font-family:var(--font-body); font-size:11px; color:var(--ink-soft); text-decoration:underline; }
 .chat-bubble-them .chat-translate-toggle{ color:var(--ink-soft); }
 .chat-input-row{ display:flex; gap:8px; align-items:center; }
-.chat-input-row input{ flex:1; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); outline:none; }
+.chat-input-row input{ flex:1; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); }
 /* Was 38x38px, below the 44x44px minimum (docs/design/ACCESSIBILITY.md) -- and,
    unlike .sheet-close/.modal-close, hit-slop genuinely couldn't fix it here (tried
    live, 2026-08-28: this button lives inside a Drawer's own .sheet-scroll
@@ -313,7 +313,21 @@ export const APP_CSS = `
    interactive element be keyboard-reachable, and reachable-but-invisible does not meet
    it. Global rather than scoped to this epic's components — the gap is app-wide, and
    fixing only the new screens would leave the rest inconsistent.
-   :focus-visible, so it appears for keyboard use without ringing on every mouse click. */
+   :focus-visible, so it appears for keyboard use without ringing on every mouse click.
+
+   Found by a later audit, 2026-09-11: this rule alone did not actually close the gap.
+   A handful of element-scoped resets written before this rule existed each have higher
+   (or, for .conv-textrow-input below, equal-but-later) CSS specificity than a bare
+   :focus-visible selector, so their own outline:none silently kept winning the cascade
+   regardless of what this rule says — .search input (nearly every single-line text
+   field in the app), .lang-switch select, .chat-input-row input, .conv-textrow-input
+   (the homepage's own message composer) and homeStyles.js's own .seg-tabpanel:focus (a
+   real, keyboard-focusable scroll region, TabPanel's own tabIndex={0}) all still
+   computed outline:none on focus, exactly the invisible-but-reachable failure this
+   comment already names. Fixed by removing each one's own outline:none rather than by
+   raising this rule's specificity — deleting the local override is what lets the single
+   global rule actually govern every interactive element, matching this comment's own
+   stated intent instead of merely stating it. */
 :focus-visible{ outline:2px solid var(--forest); outline-offset:2px; border-radius:4px; }
 
 /* Available to any component needing a label that screen readers get and sighted users
@@ -339,7 +353,7 @@ export const APP_CSS = `
    16px band inside it. The pill reads as one tap target; before this, a tap on its
    vertical padding — most of its area — landed on the form and focused nothing. */
 .conv-textrow-input{
-  flex:1; min-width:0; align-self:stretch; border:none; background:none; outline:none;
+  flex:1; min-width:0; align-self:stretch; border:none; background:none;
   font-family:inherit; font-size:13px; color:var(--ink); padding:0;
 }
 .conv-textrow-input::placeholder{ color:var(--ink-soft); }
