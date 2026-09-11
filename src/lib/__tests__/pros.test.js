@@ -18,6 +18,7 @@ import {
   findBestProForService,
   fetchPlatformTrustStats,
   fetchProServices,
+  updateProServices,
   initialsFrom,
   MIN_REVIEWS_FOR_PLATFORM_RATING,
 } from "../pros";
@@ -339,6 +340,79 @@ describe("fetchProServices", () => {
   it("throws the real Supabase error instead of swallowing it", async () => {
     supabase.from.mockReturnValue(createQueryBuilder({ data: null, error: { message: "denied" } }));
     await expect(fetchProServices("pro-1")).rejects.toMatchObject({ message: "denied" });
+  });
+});
+
+// Found live during a UX review, 2026-09-11: this never wrote workspace_id, so a saved
+// selection was invisible to fetchProServices()'s own workspace-scoped read (above) the
+// instant a caller had a real workspace -- always, for any pro actually using the app.
+// Reproduced live against staging before writing the fix: select a service, save, reload —
+// the selection was gone. See Profile.test.jsx for the regression guard on the call site
+// that feeds this.
+describe("updateProServices", () => {
+  function insertBuilder(result = { error: null }) {
+    return { insert: vi.fn(() => Promise.resolve(result)) };
+  }
+  function deleteBuilder(result = { error: null }) {
+    const builder = {
+      delete: vi.fn(() => builder),
+      eq: vi.fn(() => builder),
+      in: vi.fn(() => Promise.resolve(result)),
+    };
+    return builder;
+  }
+
+  it("writes workspace_id on every newly added row, not just pro_id and service_id", async () => {
+    const readBuilder = createQueryBuilder({ data: [], error: null });
+    const writeBuilder = insertBuilder();
+    supabase.from.mockReturnValueOnce(readBuilder).mockReturnValueOnce(writeBuilder);
+
+    await updateProServices("pro-1", ["svc-1", "svc-2"], "ws-1");
+
+    expect(writeBuilder.insert).toHaveBeenCalledWith([
+      { pro_id: "pro-1", service_id: "svc-1", workspace_id: "ws-1" },
+      { pro_id: "pro-1", service_id: "svc-2", workspace_id: "ws-1" },
+    ]);
+  });
+
+  it("writes workspace_id as null, not omitted, when no workspace is known", async () => {
+    const readBuilder = createQueryBuilder({ data: [], error: null });
+    const writeBuilder = insertBuilder();
+    supabase.from.mockReturnValueOnce(readBuilder).mockReturnValueOnce(writeBuilder);
+
+    await updateProServices("pro-1", ["svc-1"]);
+
+    expect(writeBuilder.insert).toHaveBeenCalledWith([{ pro_id: "pro-1", service_id: "svc-1", workspace_id: null }]);
+  });
+
+  it("still diffs the current list by pro_id, not workspace_id, so pre-existing null-workspace rows aren't reinserted", async () => {
+    const readBuilder = createQueryBuilder({ data: [{ service_id: "svc-1" }], error: null });
+    supabase.from.mockReturnValueOnce(readBuilder);
+
+    await updateProServices("pro-1", ["svc-1"], "ws-1");
+
+    expect(readBuilder.eq).toHaveBeenCalledWith("pro_id", "pro-1");
+    expect(readBuilder.eq).not.toHaveBeenCalledWith("workspace_id", expect.anything());
+  });
+
+  it("throws the real Supabase error from the insert instead of swallowing it", async () => {
+    const readBuilder = createQueryBuilder({ data: [], error: null });
+    const writeBuilder = insertBuilder({ error: { message: "denied" } });
+    supabase.from.mockReturnValueOnce(readBuilder).mockReturnValueOnce(writeBuilder);
+
+    await expect(updateProServices("pro-1", ["svc-1"], "ws-1")).rejects.toMatchObject({ message: "denied" });
+  });
+
+  it("still removes services no longer selected", async () => {
+    const readBuilder = createQueryBuilder({ data: [{ service_id: "svc-1" }, { service_id: "svc-2" }], error: null });
+    const removeBuilder = deleteBuilder();
+    supabase.from.mockReturnValueOnce(readBuilder).mockReturnValueOnce(removeBuilder);
+
+    await updateProServices("pro-1", ["svc-1"], "ws-1");
+
+    expect(removeBuilder.delete).toHaveBeenCalled();
+    expect(removeBuilder.eq).toHaveBeenCalledWith("pro_id", "pro-1");
+    expect(removeBuilder.in).toHaveBeenCalledWith("service_id", ["svc-2"]);
   });
 });
 

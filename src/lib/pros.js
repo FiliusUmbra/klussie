@@ -90,7 +90,16 @@ export async function fetchProServices(proId, workspaceId) {
 }
 
 // Replaces a pro's full offered-services list with `serviceIds`.
-export async function updateProServices(proId, serviceIds) {
+//
+// Found live during a UX review, 2026-09-11: this never wrote `workspace_id`, so every row
+// it inserted was invisible to fetchProServices()'s own workspace-scoped branch above the
+// instant the caller (ProApp.jsx's refreshServices) had a real activeWorkspace -- which is
+// always, for any pro actually using the app. A pro selecting services and saving would see
+// their own choice silently revert to empty on the very next load. The `current` read below
+// deliberately stays pro_id-scoped, not workspace-scoped: it must still find pre-existing
+// rows regardless of whether *they* ever got a workspace_id, or this diff would try to
+// re-insert them and fail on the primary key.
+export async function updateProServices(proId, serviceIds, workspaceId) {
   const current = await fetchProServices(proId);
   const toAdd = serviceIds.filter((id) => !current.includes(id));
   const toRemove = current.filter((id) => !serviceIds.includes(id));
@@ -98,7 +107,7 @@ export async function updateProServices(proId, serviceIds) {
   if (toAdd.length) {
     const { error } = await supabase
       .from("pro_services")
-      .insert(toAdd.map((service_id) => ({ pro_id: proId, service_id })));
+      .insert(toAdd.map((service_id) => ({ pro_id: proId, service_id, workspace_id: workspaceId ?? null })));
     if (error) throw error;
   }
   if (toRemove.length) {

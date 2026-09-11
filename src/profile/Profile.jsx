@@ -51,7 +51,7 @@ export function Profile({
   onPauseToggled,
 }) {
   const { t, fmt, catName, serviceInfo, proBadgeLabel, CATS, BASE_SERVICES } = useLang();
-  const { user, profile, proProfile, refreshProfile, signOut } = useAuth();
+  const { user, profile, proProfile, activeWorkspace, refreshProfile, signOut } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
 
   // Pro-only local state — declared unconditionally (hooks must run every render), but the
@@ -176,7 +176,7 @@ export function Profile({
     setSaving(true);
     setSaveServicesError("");
     try {
-      await updateProServices(user.id, selected);
+      await updateProServices(user.id, selected, activeWorkspace?.workspace_id);
       onServicesChange(selected);
     } catch {
       setSaveServicesError(t.saveServicesFailed);

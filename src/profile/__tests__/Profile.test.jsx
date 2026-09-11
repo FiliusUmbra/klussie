@@ -263,6 +263,22 @@ describe("Profile — pro variant, saveServices", () => {
     await waitFor(() => expect(updateProServices).toHaveBeenCalled());
     expect(screen.queryByText("saveServicesFailed")).toBeNull();
   });
+
+  // Found live during a UX review, 2026-09-11: this call site never passed a workspace id
+  // at all, so every row updateProServices() wrote was invisible the instant
+  // fetchProServices() had a real workspace to filter by (ProApp.jsx's refreshServices,
+  // always, for any pro actually using the app) -- the selection silently reverted to
+  // empty on the very next load. Guards the wiring, not updateProServices()'s own
+  // behaviour (see pros.test.js for that half).
+  it("passes the active workspace id, not just the person and selection, to updateProServices", async () => {
+    updateProServices.mockReset();
+    updateProServices.mockResolvedValueOnce(undefined);
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("saveServicesBtn"));
+
+    await waitFor(() => expect(updateProServices).toHaveBeenCalledWith("person-1", [], "ws-pro"));
+  });
 });
 
 describe("Profile — pro variant, portfolio upload", () => {
