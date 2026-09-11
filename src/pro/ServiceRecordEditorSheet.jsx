@@ -105,7 +105,23 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
         await uploadServiceRecordEvidence(serviceRecordId, workspaceId, actorRef, p.file);
       }
 
-      await onSaved();
+      // Found by code audit, 2026-09-11: onSaved() used to sit inside this same try, so a
+      // failure in the CALLER's own post-save refresh (ProServiceRecordSection.jsx's
+      // reload(), a second network round-trip after the real save already succeeded)
+      // fell into the catch below and showed "could not save this" -- even though
+      // createServiceRecord() (and any annex/evidence) had already succeeded. A pro
+      // trusting that message and tapping Save again would call createServiceRecord() a
+      // second time for the same job, contradicting this file's own "ONE CREATION CALL,
+      // NO DRAFT" design (see this file's own header). onSaved()'s own failure is now
+      // caught separately and never blocks the sheet from closing on a save that
+      // genuinely succeeded -- the same "a downstream, best-effort step's own failure
+      // must not look like the real write failed" principle the photo-upload loop right
+      // above this already states as its own rationale.
+      try {
+        await onSaved();
+      } catch {
+        // Best-effort refresh; the record itself is already saved regardless.
+      }
       onClose();
     } catch {
       // A raw err.message here would be a raw Postgres/Storage error -- documents.js's

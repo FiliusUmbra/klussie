@@ -92,6 +92,24 @@ describe("ServiceRecordEditorSheet", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  // Found by code audit, 2026-09-11: onSaved() used to sit inside the same try as the
+  // real writes, so a failure in the CALLER's own post-save refresh (a second network
+  // round-trip after createServiceRecord() already succeeded) showed "could not save
+  // this" and kept the sheet open -- even though the record was already real. A pro
+  // trusting that message and tapping Save again would call createServiceRecord() a
+  // second time for the same job.
+  it("still closes on a real, successful save even when the caller's own onSaved() refresh fails", async () => {
+    const onSaved = vi.fn().mockRejectedValue(new Error("network blip refetching the record"));
+    const onClose = vi.fn();
+    renderEditor({ onSaved, onClose });
+    fireEvent.change(screen.getByPlaceholderText("srWorkPerformedPlaceholder"), { target: { value: "Replaced the valve." } });
+    fireEvent.click(screen.getByText("srSaveBtn"));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(createServiceRecord).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("srSaveFailed")).toBeNull();
+  });
+
   // Found by code audit: this used to assert the raw backend error ("insufficient_
   // privilege") rendered verbatim — the exact anti-pattern documents.js's own header
   // names and fixes elsewhere. Updated to pin the fix instead: a real, generic, localized
