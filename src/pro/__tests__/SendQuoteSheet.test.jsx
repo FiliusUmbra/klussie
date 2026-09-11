@@ -5,7 +5,7 @@
 // ConversationSheet.jsx/AiIntakeSheet.jsx's own Send icons — see appStyles.js's own
 // .send-icon comment. This proves the class the CSS rule depends on is actually rendered.
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 vi.mock("../../requests", () => ({
   JobDetailsSummary: () => null,
@@ -74,6 +74,35 @@ describe("SendQuoteSheet", () => {
       fireEvent.change(screen.getByDisplayValue("75"), { target: { value: "120.50" } });
       fireEvent.click(screen.getByText("sendQuoteSubmit"));
       expect(onSubmit).toHaveBeenCalledWith(120.5, "defaultProMessage");
+    });
+  });
+
+  // Found by code audit, 2026-09-11: unlike every other async submit button in this
+  // codebase (AiIntakeSheet.jsx's own canSubmit already folds in !submitting;
+  // RequestDetailSheet.jsx's accept/approve/complete buttons each disable on their own
+  // local busy flag), this button stayed tappable the whole time a quote was in
+  // flight — ProApp.jsx's sendQuote() only unmounts this sheet AFTER its own await
+  // resolves. A fast double-tap fired onSubmit() twice, sending the same quote to the
+  // same lead twice.
+  describe("a submit in flight disables Send Quote, so a fast double-tap can't send the same quote twice", () => {
+    it("disables the button and calls onSubmit only once for two rapid clicks", async () => {
+      let resolveSubmit;
+      const onSubmit = vi.fn(() => new Promise((resolve) => { resolveSubmit = resolve; }));
+      renderSheet(onSubmit);
+      const button = screen.getByText("sendQuoteSubmit").closest("button");
+
+      fireEvent.click(button);
+      expect(button.disabled).toBe(true);
+      fireEvent.click(button);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      // Mirrors ProApp.jsx's own sendQuote(): a refusal is caught and toasted there, so
+      // onSubmit's own promise always settles by resolving, whether the quote was sent
+      // or refused — this is the same "in flight, then settled" path either way, and on
+      // a refusal (this sheet staying mounted rather than the parent unmounting it on
+      // success) the button re-enabling here is exactly what lets a real retry happen.
+      resolveSubmit();
+      await waitFor(() => expect(button.disabled).toBe(false));
     });
   });
 });
