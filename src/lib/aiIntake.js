@@ -122,8 +122,21 @@ export async function startAudioLevelMeter({ onLevel }) {
   };
   tick();
 
+  // Found by code audit: VoiceCapturePanel.jsx calls this meter's stop() twice on every
+  // normal capture-then-continue flow -- once from its own Stop button handler, again
+  // from the effect's unmount cleanup once the parent stops rendering the panel (neither
+  // call nulls out the ref the other reads, and that's correct: the second call must
+  // still be safe, not merely accidental). cancelAnimationFrame() and
+  // MediaStreamTrack.stop() already tolerate being called again on an already-
+  // cancelled/stopped target -- ctx.close() does not: closing an already-closed
+  // AudioContext throws InvalidStateError, uncaught, on every real successful voice
+  // capture in a real browser. jsdom has no AudioContext at all, which is exactly why no
+  // test caught this -- every existing component test mocks this whole function away.
+  let stopped = false;
   return {
     stop: () => {
+      if (stopped) return;
+      stopped = true;
       if (frame !== null) cancelAnimationFrame(frame);
       stream.getTracks().forEach((track) => track.stop());
       ctx.close();
