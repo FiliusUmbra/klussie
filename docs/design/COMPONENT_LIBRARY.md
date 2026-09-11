@@ -82,12 +82,15 @@ site that tries `size="sm"` expecting it to do something.
 |---|---|
 | Props | `variant` (`"primary"` default \| `"secondary"`), `icon`, `iconSize` (default `15`), `children`, plus passthrough props |
 | Variants | Primary (`.btn-primary`) · Secondary (`.btn-secondary`) |
+| A11y | Inherits native `<button>` semantics; no `aria-label` fallback of its own. Checked 2026-09-11: `icon` is real at only two call sites (`RequestDetailSheet.jsx`, `ProJobDetailSheet.jsx`, both `icon={MessageCircle}`), and both also pass real text `children` — no icon-only instance exists today, but nothing in the component would catch one added later without its own `aria-label`. See `ACCESSIBILITY.md`'s Component-level status table. |
 
-**Audit finding:** only 4 real call sites use the `Button` component —
-every other primary/secondary button in the app (dozens) still renders a
-raw `<button className="btn-primary">` directly. `Button` isn't broken or
-wrong, it's under-adopted. Retrofitting the rest is `LAYOUT_SYSTEM.md` /
-ongoing cleanup work, not a defect in the component itself.
+**Audit finding, re-counted 2026-09-11:** this row's "only 4 real call
+sites" is stale — real usage is now 31, not 4. `Button` isn't broken or
+wrong, it's still under-adopted relative to the dozens of raw
+`<button className="btn-primary">` call sites elsewhere in the app, just
+less dramatically than this row used to claim. Retrofitting the rest is
+`LAYOUT_SYSTEM.md` / ongoing cleanup work, not a defect in the component
+itself.
 
 ### Card
 

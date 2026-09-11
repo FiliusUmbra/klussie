@@ -46,6 +46,15 @@ export function Rating({ value, size = 13 }) {
 
 // variant: "primary" | "secondary". icon: an optional lucide-react component,
 // rendered at a fixed size consistent with the rest of the app's buttons.
+//
+// COMPONENT_LIBRARY.md flagged icon-only usage (icon with no children) as "not checked
+// for a required label" — checked, 2026-09-11: every real call site in this codebase
+// passes real text as children alongside its icon (RequestDetailSheet.jsx,
+// ProJobDetailSheet.jsx, both icon={MessageCircle}), so no icon-only instance actually
+// exists today. This component has no aria-label fallback of its own, though — an
+// icon-only Button (icon set, children omitted) added later would silently ship with no
+// accessible name, the exact class of gap this whole file's own comments elsewhere warn
+// about. Pass a real aria-label if that ever becomes a real call site.
 export function Button({ variant = "primary", icon: Icon, iconSize = 15, children, className = "", ...props }) {
   const base = variant === "primary" ? "btn-primary" : "btn-secondary";
   return (

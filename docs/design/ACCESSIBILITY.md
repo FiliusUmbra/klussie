@@ -335,7 +335,7 @@ column, updated with this pass's fixes:
 | `Rating` | Now has an accessible name. |
 | `Avatar` | Photo `alt=""` is correct (decorative, name is adjacent text). |
 | `Badge`, `PriceTag`, `TrustBadge`, `AIMessage`, `Timeline`, `ServiceCard`, `JobCard`, `QuoteCard` | Text-based, no icon-only content — no known gaps found. |
-| `Button` | Inherits native `<button>` semantics; icon-only usage (`icon` prop with no `children`) not checked for a required label — flagged for the next pass. |
+| `Button` | Inherits native `<button>` semantics. **Checked, 2026-09-11:** the flagged icon-only case (`icon` prop with no `children`) has zero real call sites — both real usages of `icon` (`RequestDetailSheet.jsx`, `ProJobDetailSheet.jsx`, both `icon={MessageCircle}`) pass real text as `children` too. Not a live gap today; `Button`'s own comment now says so and warns that adding a genuinely icon-only instance later would need its own `aria-label`, since the component has no fallback for one. |
 
 ---
 
