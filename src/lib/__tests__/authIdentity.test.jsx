@@ -26,11 +26,18 @@ const signInWithOtp = vi.fn();
 const signInWithPassword = vi.fn();
 const signInWithOAuth = vi.fn();
 const apiRpc = vi.fn();
+// Exposed at module scope (rather than inline in the mock factory below) so a test can
+// reach in and fire the listener itself — the only way to exercise the onAuthStateChange
+// callback's own failure handling directly, matching auth.jsx's own two call sites.
+const onAuthStateChange = vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } }));
 
 // Every table touched and every update payload, so a test can assert not just what was
 // written but that nothing else was.
 const writes = [];
 const tablesTouched = [];
+// Set by a test to make the profiles select() fail — loadProfile()'s own "if (profileErr)
+// throw profileErr" path, which auth.jsx's own initial-load effects must survive.
+let profileLoadError = null;
 
 vi.mock("../supabaseClient", () => ({
   supabase: {
@@ -45,7 +52,7 @@ vi.mock("../supabaseClient", () => ({
       getSession: vi.fn().mockResolvedValue({
         data: { session: { user: { id: "01920000-0000-4000-8000-00000000f001" } } },
       }),
-      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      onAuthStateChange: (...args) => onAuthStateChange(...args),
     },
     // loadProfile resolves the caller's own attributes through this as of WP 02.06.
     // Returns a row so the merge path is exercised rather than the fallback.
@@ -60,7 +67,16 @@ vi.mock("../supabaseClient", () => ({
     from: (table) => {
       tablesTouched.push(table);
       return {
-        select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null }) }) }),
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve(
+                table === "profiles" && profileLoadError
+                  ? { data: null, error: profileLoadError }
+                  : { data: null, error: null }
+              ),
+          }),
+        }),
         update: (fields) => {
           writes.push({ table, fields });
           return { eq: () => Promise.resolve({ error: null }) };
@@ -104,6 +120,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   writes.length = 0;
   tablesTouched.length = 0;
+  profileLoadError = null;
   signUp.mockResolvedValue({ data: { session: {} }, error: null });
   signInWithOtp.mockResolvedValue({ error: null });
   signInWithPassword.mockResolvedValue({ error: null });
@@ -339,5 +356,37 @@ describe("profile changes write to the profile and nowhere else", () => {
     for (const write of writes) {
       expect(write.fields).not.toHaveProperty("person_ref");
     }
+  });
+});
+
+describe("a failed profile load does not leave the app stuck loading", () => {
+  // Found by code audit: loadProfile() throws on a real Postgres error against either of
+  // its two required reads (profiles, pro_profiles), and the initial-session effect and
+  // the onAuthStateChange listener each awaited refreshProfile() (which calls it) with no
+  // catch of their own. `loading` gates AppShell.jsx's entire render, so a real failure
+  // here meant the whole app hung on LoadingScreen forever for a signed-in person — before
+  // catalog, before workspace resolution, before anything else. This proves both call
+  // sites now survive it: `loading` still resolves to false, and `session` is still set,
+  // even though `profile` never populates.
+  it("still resolves loading to false when the initial session's own profile read fails", async () => {
+    profileLoadError = new Error('relation "profiles" does not exist');
+    const auth = renderAuth();
+
+    await waitFor(() => expect(auth()?.session).toBeTruthy());
+    expect(auth().loading).toBe(false);
+    expect(auth().profile).toBeNull();
+  });
+
+  it("still resolves loading to false when a later auth-state change's own profile read fails", async () => {
+    const auth = renderAuth();
+    await waitFor(() => expect(auth()?.session).toBeTruthy());
+    expect(auth().loading).toBe(false);
+
+    profileLoadError = new Error('relation "profiles" does not exist');
+    const [handler] = onAuthStateChange.mock.calls[0];
+    await handler("SIGNED_IN", { user: { id: "01920000-0000-4000-8000-00000000f002" } });
+
+    await waitFor(() => expect(auth().loading).toBe(false));
+    expect(auth().session.user.id).toBe("01920000-0000-4000-8000-00000000f002");
   });
 });

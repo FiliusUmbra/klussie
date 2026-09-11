@@ -146,18 +146,41 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let active = true;
 
+    // Found by code audit: loadProfile() (this refreshProfile() call's own body) throws
+    // on a real Postgres error against either of its two required reads (profiles,
+    // pro_profiles) — and neither call below had a catch of its own. A real failure here
+    // meant setLoading(false) never ran, and `loading` gates AppShell.jsx's entire render
+    // ("authLoading || ..." at the very top of its own body/branch) -- so any signed-in
+    // person whose very first profile read hit a transient failure saw the whole app
+    // stuck on LoadingScreen forever, before catalog, before workspace resolution,
+    // before anything else. The single most severe consequence this class of bug could
+    // have, on the single most foundational effect in the app. Deliberately NOT caught
+    // inside refreshProfile() itself: becomePro()/updateProfile() below both await it
+    // with no try/catch of their own and rely on a real rejection reaching them, the same
+    // split this session's own CustomerApp.jsx/Profile.jsx/ConversationSheet.jsx fixes
+    // already established for their own shared refresh functions.
     supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
       setSession(data.session);
-      if (data.session?.user) await refreshProfile(data.session.user.id);
+      if (data.session?.user) {
+        try {
+          await refreshProfile(data.session.user.id);
+        } catch (err) {
+          console.warn("initial profile load failed, continuing signed in without it:", err.message);
+        }
+      }
       if (active) setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
-      await refreshProfile(nextSession?.user?.id ?? null);
-      setLoading(false);
+      try {
+        await refreshProfile(nextSession?.user?.id ?? null);
+      } catch (err) {
+        console.warn("profile load on auth change failed, continuing signed in without it:", err.message);
+      }
+      if (active) setLoading(false);
     });
 
     return () => {
