@@ -136,7 +136,12 @@ export function ServiceLocationField({ workspaceId, onChange }) {
             className={"chip" + (selectedId === p.id ? " chip-on" : "")}
             onClick={() => selectProperty(p.id)}
           >
-            <MapPin size={13} style={{ marginRight: 4 }} />
+            {/* Found by code audit, 2026-09-11: marginRight was physical -- for an
+                Arabic/Persian reader, the icon (still visually first, .chip's own
+                display:flex already reorders per reading direction) had its gap pushed
+                to its own outer edge instead of toward the label. marginInlineEnd
+                always means "toward the next item," in either direction. */}
+            <MapPin size={13} style={{ marginInlineEnd: 4 }} />
             {i === 0 ? t.serviceLocationHome : p.name}
           </button>
         ))}
@@ -145,7 +150,7 @@ export function ServiceLocationField({ workspaceId, onChange }) {
           className={"chip" + (selectedId === "one_time" ? " chip-on" : "")}
           onClick={() => selectProperty("one_time")}
         >
-          <Plus size={13} style={{ marginRight: 4 }} />
+          <Plus size={13} style={{ marginInlineEnd: 4 }} />
           {t.serviceLocationOneTime}
         </button>
       </div>

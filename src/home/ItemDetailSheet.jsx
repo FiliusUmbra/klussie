@@ -836,7 +836,15 @@ export function ItemDetailSheet({
             <li key={schedule.id} className="maintenance-row-item">
               <div className="maintenance-row">
                 <span className="maintenance-row-title">
-                  <Repeat size={12} aria-hidden="true" style={{ marginRight: 4, verticalAlign: "-1px" }} />
+                  {/* Found by code audit, 2026-09-11: marginRight was physical, and
+                      unlike ServiceLocationField.jsx's own .chip icons above, nothing
+                      else here provides a gap as a fallback (.maintenance-row-title has
+                      no flex/gap of its own, unlike myHomeParts.jsx's own .property-fact
+                      -- display:inline-flex; gap:var(--space-1) -- the established
+                      pattern for this exact "icon before text" shape) -- for an Arabic/
+                      Persian reader this icon and the task title sat flush against each
+                      other with no gap at all, not just a gap on the wrong side. */}
+                  <Repeat size={12} aria-hidden="true" style={{ marginInlineEnd: 4, verticalAlign: "-1px" }} />
                   {schedule.title}
                 </span>
                 <span className="maintenance-row-due">{interpolate(t.myItemsMaintenanceDueOn, { date: fmtDate(schedule.nextDueOn) })}</span>

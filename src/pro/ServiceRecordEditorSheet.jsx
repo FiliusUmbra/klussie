@@ -187,7 +187,11 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
         <button
           type="button"
           className="private-annex-label"
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", width: "100%", textAlign: "left" }}
+          // Found by code audit, 2026-09-11: textAlign:"left" was physical -- for an
+          // Arabic/Persian pro (this screen's own users, not exempt the way operator
+          // tooling is), this label stayed pinned to the visual left in a right-to-left
+          // layout instead of following reading direction. "start" self-resolves.
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", width: "100%", textAlign: "start" }}
           onClick={() => setShowAnnex((v) => !v)}
           aria-expanded={showAnnex}
         >

@@ -68,7 +68,9 @@ export function ItemAssociationField({ ownerId, workspaceId, onChange }) {
             className={"chip" + (selectedId === item.id ? " chip-on" : "")}
             onClick={() => setSelectedId(item.id)}
           >
-            <Package size={13} style={{ marginRight: 4 }} />
+            {/* Found by code audit, 2026-09-11: marginRight was physical -- see
+                ServiceLocationField.jsx's own identical .chip icon fix, same pass. */}
+            <Package size={13} style={{ marginInlineEnd: 4 }} />
             {item.name}
           </button>
         ))}

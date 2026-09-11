@@ -88,6 +88,23 @@ describe("ServiceLocationField — an already-addressed My Home", () => {
   });
 });
 
+// Found by code audit, 2026-09-11: the icon in each chip used a physical marginRight —
+// for an Arabic/Persian reader the icon (still visually first; .chip's own
+// display:flex already reorders per reading direction) had its gap pushed to its own
+// outer edge instead of toward the label. marginInlineEnd always means "toward the
+// next item," in either direction.
+describe("ServiceLocationField — each chip's own icon gaps toward its label, not hardcoded right", () => {
+  it("the My Home chip's icon uses the logical margin, not the physical one", async () => {
+    fetchMyPropertiesMock.mockResolvedValue([{ id: "prop-1", name: "My Home", street: "Kerkstraat", houseNumber: "12", postcode: "2000", municipality: "Antwerpen", country: "BE", propertyType: "apartment", quotePrepNotes: "" }]);
+    renderField();
+    const label = await screen.findByText("serviceLocationHome");
+
+    const icon = label.closest("button").querySelector("svg");
+    expect(icon.style.marginInlineEnd).toBe("4px");
+    expect(icon.style.marginRight).toBe("");
+  });
+});
+
 describe("ServiceLocationField — My Home with no confirmed address yet", () => {
   const HOME = { id: "prop-1", name: "My Home", street: "", houseNumber: "", postcode: "", municipality: "", country: "BE", propertyType: null, quotePrepNotes: "" };
 

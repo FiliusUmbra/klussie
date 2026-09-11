@@ -427,6 +427,23 @@ describe("ItemDetailSheet — Recurring maintenance", () => {
     expect(screen.queryByText("Mark done")).toBeNull();
   });
 
+  // Found by code audit, 2026-09-11: the Repeat icon on this row used a physical
+  // marginRight, and unlike ServiceLocationField.jsx's own .chip icons, nothing else
+  // here provides a gap as a fallback (.maintenance-row-title has no flex/gap of its
+  // own) -- for an Arabic/Persian reader the icon and the task title sat flush against
+  // each other with no gap at all.
+  it("the recurring icon gaps toward the schedule's own title, not hardcoded right", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2026-12-01", active: true },
+    ]);
+    await renderDetail();
+
+    const title = await screen.findByText("Descale the machine");
+    const icon = title.parentElement.querySelector("svg");
+    expect(icon.style.marginInlineEnd).toBe("4px");
+    expect(icon.style.marginRight).toBe("");
+  });
+
   it("does not show an upcoming-schedule row for a schedule that already has an open task -- that task's own row carries the action instead", async () => {
     fetchMaintenanceSchedules.mockResolvedValueOnce([
       { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2027-03-01", active: true },

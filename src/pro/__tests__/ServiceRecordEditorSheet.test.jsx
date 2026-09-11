@@ -114,6 +114,14 @@ describe("ServiceRecordEditorSheet", () => {
     expect(screen.queryByLabelText("srInternalCostLabel")).toBeNull();
     expect(screen.getByText("srAnnexExpand")).toBeTruthy();
   });
+
+  // Found by code audit, 2026-09-11: this used textAlign:"left" -- physical, unlike the
+  // "start" this screen's own users (Arabic/Persian pros, not exempt the way operator
+  // tooling is) need to keep the label following reading direction.
+  it("the annex toggle label aligns by reading direction, not hardcoded left", () => {
+    renderEditor();
+    expect(screen.getByText("srAnnexExpand").style.textAlign).toBe("start");
+  });
 });
 
 // Found by code audit: URL.createObjectURL(f) used to be called inline in the photo
