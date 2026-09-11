@@ -14,9 +14,9 @@ import { AddTestimonialSheet } from "../AddTestimonialSheet.jsx";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 
-function renderSheet() {
-  const onClose = vi.fn();
-  const onAdded = vi.fn(() => Promise.resolve());
+function renderSheet(overrides = {}) {
+  const onClose = overrides.onClose ?? vi.fn();
+  const onAdded = overrides.onAdded ?? vi.fn(() => Promise.resolve());
   render(
     <LangContext.Provider value={{ t }}>
       <AddTestimonialSheet proId="pro-1" onClose={onClose} onAdded={onAdded} />
@@ -59,6 +59,27 @@ describe("AddTestimonialSheet", () => {
     await waitFor(() => expect(addTestimonial).toHaveBeenCalledWith({ proId: "pro-1", clientName: "", quoteText: "Great work!" }));
     await waitFor(() => expect(onAdded).toHaveBeenCalled());
     expect(onClose).toHaveBeenCalled();
+  });
+
+  // Found by code audit, 2026-09-11: onAdded() used to sit inside the same try as the
+  // real write, so a failure in the CALLER's own post-save refresh (Profile.jsx's
+  // refreshTestimonials(), a second network round-trip after addTestimonial() already
+  // succeeded) showed "could not add this" and kept the sheet open — even though the
+  // testimonial was already real. A pro trusting that message and tapping Add again
+  // would call addTestimonial() a second time, creating a genuine duplicate row.
+  it("still closes on a real, successful add even when the caller's own onAdded() refresh fails", async () => {
+    vi.mocked(addTestimonial).mockReset();
+    vi.mocked(addTestimonial).mockResolvedValue({ id: "t1" });
+    const onAdded = vi.fn().mockRejectedValue(new Error("network blip refetching the list"));
+    const onClose = vi.fn();
+    renderSheet({ onAdded, onClose });
+
+    fireEvent.change(screen.getByText("testimonialTextLabel").nextElementSibling, { target: { value: "Great work!" } });
+    fireEvent.click(screen.getByRole("button", { name: "addTestimonialBtn" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(addTestimonial).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("testimonialSaveFailed")).toBeNull();
   });
 
   it("shows a generic localized error, never the raw backend message, on failure", async () => {
