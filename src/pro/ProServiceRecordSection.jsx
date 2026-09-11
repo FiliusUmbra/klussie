@@ -50,12 +50,39 @@ export function ProServiceRecordSection({ job, workspaceId, actorRef, onRecordSa
     };
   }, [job.id, retryToken]);
 
+  // Found by code audit, 2026-09-11: both steps used to run as one straight-line
+  // sequence, and ServiceRecordEditorSheet.jsx's own submit() already treats this whole
+  // function as best-effort once its real write has succeeded (see that file's own
+  // header) -- so a failure in EITHER step here was silently swallowed there. That's
+  // the right call for onRecordSaved() (ProApp.jsx's refreshJobs, a purely cosmetic
+  // refresh of a different screen), but wrong for the record re-fetch immediately
+  // above it: swallowing that failure left `record` at its stale, pre-save value
+  // (usually null, since this only ever runs right after a save) with no error shown --
+  // so the section quietly went back to showing the "write it up" button for a job that
+  // already has a record, inviting createServiceRecord() to be called a second time for
+  // the same job (this file's own "ONE CREATION CALL, NO DRAFT" design, one layer up).
+  // The re-fetch's own failure now routes through the same loadError/retryToken state
+  // the initial load above already uses, rather than pretending nothing happened.
   async function reload() {
-    const r = await fetchServiceRecordForRequest(job.id);
-    setRecord(r);
+    try {
+      const r = await fetchServiceRecordForRequest(job.id);
+      setRecord(r);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    }
     // Refreshes ProApp.jsx's own jobs list too — a newly-authored record doesn't change
     // job.status, but a future badge/list treatment may want to know one exists now.
-    if (onRecordSaved) await onRecordSaved();
+    // Deliberately separate from the re-fetch above: this one's own failure must never
+    // mask or block the record re-fetch's own outcome.
+    if (onRecordSaved) {
+      try {
+        await onRecordSaved();
+      } catch {
+        // Best-effort; ProApp.jsx's own job list will pick this up on its own next
+        // natural refresh regardless.
+      }
+    }
   }
 
   // Same silent-loading restraint as ServiceRecordSummary.jsx — this sits below content
