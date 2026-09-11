@@ -115,3 +115,56 @@ describe("ServiceRecordEditorSheet", () => {
     expect(screen.getByText("srAnnexExpand")).toBeTruthy();
   });
 });
+
+// Found by code audit: URL.createObjectURL(f) used to be called inline in the photo
+// preview's own render — fresh on every single re-render (every keystroke in any of this
+// form's several text fields, not just an actual photo add or remove) for the same
+// unchanged File, with the previous render's URL never revoked. A real, unbounded memory
+// leak on this codebase's own "highest-leverage single screen in either roadmap."
+// ItemFormSheet.jsx/QuoteFormSheet.jsx both already create once (on pick) and revoke once
+// (on remove); this sheet now matches that.
+describe("ServiceRecordEditorSheet — evidence photo previews", () => {
+  const file = new File(["x"], "before.jpg", { type: "image/jpeg" });
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:mock-1");
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  it("creates exactly one object URL per picked file, not once per render", () => {
+    renderEditor();
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+    // A render triggered by something unrelated to photos (typing in a text field) must
+    // not create a second object URL for the same already-picked file.
+    fireEvent.change(screen.getByPlaceholderText("srWorkPerformedPlaceholder"), { target: { value: "Replaced the valve." } });
+    fireEvent.change(screen.getByPlaceholderText("srWorkPerformedPlaceholder"), { target: { value: "Replaced the valve, twice." } });
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  });
+
+  it("revokes the object URL for a removed photo, and only that one", () => {
+    URL.createObjectURL = vi.fn().mockReturnValueOnce("blob:mock-1").mockReturnValueOnce("blob:mock-2");
+    renderEditor();
+    fireEvent.change(document.querySelector('input[type="file"]'), {
+      target: { files: [file, new File(["y"], "after.jpg", { type: "image/jpeg" })] },
+    });
+
+    fireEvent.click(screen.getAllByLabelText("itemPhotoRemove")[0]);
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock-1");
+    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:mock-2");
+    expect(screen.getAllByLabelText("itemPhotoRemove")).toHaveLength(1);
+  });
+
+  it("uploads the real underlying file, not the preview object, once the record is saved", async () => {
+    renderEditor();
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+    fireEvent.change(screen.getByPlaceholderText("srWorkPerformedPlaceholder"), { target: { value: "Replaced the valve." } });
+    fireEvent.click(screen.getByText("srSaveBtn"));
+
+    await waitFor(() => expect(uploadServiceRecordEvidence).toHaveBeenCalledWith("rec-1", "ws-pro", "pro-1", file));
+  });
+});

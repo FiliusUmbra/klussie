@@ -43,10 +43,25 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
 
   const canSave = workPerformed.trim().length > 0 && !busy;
 
+  // Found by code audit: previewUrl used to be created inline in the render below --
+  // URL.createObjectURL(f) called fresh on every single re-render (every keystroke in
+  // any of this form's several text fields, not just when a photo is added or removed)
+  // for the same unchanged File, with the old URL from the previous render never
+  // revoked. A real, unbounded memory leak on exactly the screen this file's own header
+  // calls "the highest-leverage single screen in either roadmap." ItemFormSheet.jsx and
+  // QuoteFormSheet.jsx both already get this right -- create the object URL once, when a
+  // file is picked, and revoke it once, when that file is removed. Matched here.
   const pickPhotos = (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
-    if (files.length > 0) setPhotoFiles((prev) => [...prev, ...files]);
+    if (files.length > 0) {
+      setPhotoFiles((prev) => [...prev, ...files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))]);
+    }
+  };
+
+  const removePhoto = (previewUrl) => {
+    setPhotoFiles((prev) => prev.filter((p) => p.previewUrl !== previewUrl));
+    URL.revokeObjectURL(previewUrl);
   };
 
   const hasAnnexContent = [internalCost, margin, supplierUsed, supplierPrice, schedulingNotes, internalCommentary]
@@ -85,8 +100,8 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
       // Sequential, not parallel — a failed photo upload after the record is already
       // saved must not look like the whole save failed (the record itself is real and
       // already written); each is independent and best-effort past the first.
-      for (const file of photoFiles) {
-        await uploadServiceRecordEvidence(serviceRecordId, workspaceId, actorRef, file);
+      for (const p of photoFiles) {
+        await uploadServiceRecordEvidence(serviceRecordId, workspaceId, actorRef, p.file);
       }
 
       await onSaved();
@@ -147,13 +162,13 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
 
       <label className="field-label">{t.srEvidenceLabel}</label>
       <div className="item-photo-picker">
-        {photoFiles.map((f, i) => (
-          <div key={i} className="item-photo-preview">
-            <img src={URL.createObjectURL(f)} alt="" />
+        {photoFiles.map((p) => (
+          <div key={p.previewUrl} className="item-photo-preview">
+            <img src={p.previewUrl} alt="" />
             <button
               type="button"
               className="photo-remove-btn"
-              onClick={() => setPhotoFiles((prev) => prev.filter((_, idx) => idx !== i))}
+              onClick={() => removePhoto(p.previewUrl)}
               aria-label={t.itemPhotoRemove}
             >
               <X size={12} />
