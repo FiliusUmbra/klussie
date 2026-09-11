@@ -11,6 +11,7 @@
 // HOME_OPERATING_SYSTEM.md, but no schema holds them yet (ADR-0008), so this module
 // does not pretend to rank them. When those tables land, they become extra clauses
 // in PRIORITY below — not a rewrite.
+import { OPEN_STATUSES } from "./requestStatus.js";
 
 // Lower number wins. Ordered by how much the customer's own decision is blocking
 // something: a quote nobody has chosen stalls the job entirely; a completed job
@@ -61,7 +62,11 @@ export function pickTodayItem(requests) {
 
 // Everything else still in flight, so "Today" can show one priority without hiding
 // the rest of what's running. Excludes whatever `pickTodayItem` already surfaced.
-const IN_FLIGHT = ["collecting", "awaiting_pro", "quotes_ready", "accepted_pending_location_approval", "booked"];
+//
+// requestStatus.js's own shared OPEN_STATUSES, not a local copy — see that constant's
+// own comment for why: this file's own copy and homeTimeline.js's own copy of the same
+// set drifted out of sync once already.
+const IN_FLIGHT = OPEN_STATUSES;
 
 export function activeRequests(requests, excludeId) {
   return (requests || [])

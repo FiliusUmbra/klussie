@@ -22,6 +22,26 @@ export const REQUEST_STATUS_ORDER = [
   "collecting", "quotes_ready", "accepted_pending_location_approval", "booked", "completed", "reviewed",
 ];
 
+/**
+ * Every status meaning "this request is still open" — nothing final has happened to it
+ * yet, whether or not it's the customer's own move that's pending. Not simply
+ * REQUEST_STATUS_ORDER minus its last two entries: `awaiting_pro` is real (a directed
+ * request, ADR-0012) but lives only in the legacy table, outside that ordered lifecycle
+ * entirely (see PRESENTATION's own comment on it, below) — so this is its own explicit
+ * list, not a slice of another one.
+ *
+ * The one shared source for what used to be two independent copies of this exact set —
+ * src/lib/homeToday.js's own IN_FLIGHT (the Today card / active-requests list) and
+ * src/lib/homeTimeline.js's own IN_FLIGHT (My Home's own "Active" section) — found
+ * drifted out of sync with each other, live, not hypothetically: a real status
+ * (`accepted_pending_location_approval`) landed in one and not the other, and a request
+ * stuck there disappeared from whichever surface still had the stale copy. Both files
+ * import this now instead of keeping their own list and a comment promising to update it.
+ */
+export const OPEN_STATUSES = [
+  "collecting", "awaiting_pro", "quotes_ready", "accepted_pending_location_approval", "booked",
+];
+
 const PRESENTATION = {
   collecting: { labelKey: "statusCollecting", tone: "amber" },
   quotes_ready: { labelKey: "statusQuotesReady", tone: "forest" },

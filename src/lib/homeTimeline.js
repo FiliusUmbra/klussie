@@ -12,27 +12,26 @@
 // Pure and data-only, like homeToday.js: it takes the requests CustomerApp already
 // fetched and returns descriptors. No fetching, no copy, no JSX — the panel turns these
 // into words via `t` (ENGINEERING_STANDARDS.md, "no business logic in UI").
+import { OPEN_STATUSES } from "./requestStatus.js";
 
 // A job counts as history once the work is done. 'booked' is still in progress, so it
 // belongs to the active list, not the record.
 const FINISHED = ["completed", "reviewed"];
 
-// Everything the customer is currently waiting on -- the same statuses
-// homeToday.js's own IN_FLIGHT names, because My Home answers "what is happening to my
-// house" rather than "what needs a decision from me", but a separate list here, not a
-// shared import: nothing enforces the two staying identical.
+// Everything the customer is currently waiting on, because My Home answers "what is
+// happening to my house" rather than "what needs a decision from me" (contrast
+// homeToday.js's own PRIORITY, which is that narrower question) -- but the same
+// underlying set of open statuses either way.
 //
-// Found by code audit, exactly that risk realized: this list still said
-// ["collecting", "awaiting_pro", "quotes_ready", "booked"] after homeToday.js's own copy
-// gained accepted_pending_location_approval (the mandatory disclosure-consent step
-// between accepting a quote and an actual booking) -- a real, live duplicate this
-// module's own header names as its pattern ("pure and data-only, like homeToday.js")
-// without actually sharing the list itself. A request stuck at that status disappeared
-// from My Home's own "Active" section entirely (MyHomePanel.jsx), the same gap the Today
-// card had, on a second real surface. ActiveWorkCard (myHomeParts.jsx) already reads its
-// label through statusPresentation(), which already has a real entry for this status --
-// nothing else needed wiring.
-const IN_FLIGHT = ["collecting", "awaiting_pro", "quotes_ready", "accepted_pending_location_approval", "booked"];
+// requestStatus.js's own shared OPEN_STATUSES, not a local copy: this file used to keep
+// its own, with a comment claiming it "mirrors homeToday.js's IN_FLIGHT" — found by code
+// audit to have drifted out of sync for real, not hypothetically, when
+// accepted_pending_location_approval (the mandatory disclosure-consent step between
+// accepting a quote and an actual booking) landed in homeToday.js's copy and not this
+// one. A request stuck there disappeared from My Home's own "Active" section
+// (MyHomePanel.jsx) until that was fixed by hand, one file behind. One shared source
+// now, not two comments promising to stay in sync.
+const IN_FLIGHT = OPEN_STATUSES;
 
 const byNewest = (a, b) => b.createdAt - a.createdAt;
 
