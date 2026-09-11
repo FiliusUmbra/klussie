@@ -23,15 +23,30 @@ export function Badge({ children, tone = "sage" }) {
   return <span className={`badge badge-${tone}`}>{children}</span>;
 }
 
-export function Rating({ value, size = 13 }) {
+// Found by code audit, 2026-09-11: aria-label was a hardcoded English template string
+// -- not one of any caller's own t.* keys -- in every one of this codebase's own ten
+// call sites (RequestDetailSheet, ProDashboard, ProJobs, Profile, ProPublicProfileSheet,
+// myHomeParts, ServiceSheet, and domain.jsx's own ServiceCard/TrustBadge), the exact
+// "reachable-but-announced-in-the-wrong-language" gap ReviewSheet.jsx's own star-picker
+// had and this same pass already fixed. `label` follows this design system's own
+// established slot convention (TrustBadge's scoreLabel, ServiceCard's certifiedLabel) --
+// primitives.jsx has no lang context of its own, callers pass their own real, translated
+// t.ratingLabel (interpolated with the value) instead. The English literal stays only as
+// a last-resort default for a caller that forgets to pass one, matching Drawer's own
+// closeLabel="Close" convention -- never expected to fire against a real call site.
+export function Rating({ value, size = 13, label }) {
   return (
-    <span className="stars" role="img" aria-label={`${value} out of 5 stars`}>
+    <span className="stars" role="img" aria-label={label ?? `${value} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
+        // --amber-dark, not --amber: the aria-label above already carries the rating
+        // as real text, but the filled stars are still a real non-text UI component for
+        // a sighted low-vision user, so the 3:1 floor still applies -- #E8A33D only
+        // reaches ~2.16:1 against a white/paper card. See ACCESSIBILITY.md.
         <Star
           key={i}
           size={size}
-          fill={i <= Math.round(value) ? "var(--amber)" : "none"}
-          color={i <= Math.round(value) ? "var(--amber)" : "var(--line-strong)"}
+          fill={i <= Math.round(value) ? "var(--amber-dark)" : "none"}
+          color={i <= Math.round(value) ? "var(--amber-dark)" : "var(--line-strong)"}
           strokeWidth={1.5}
           aria-hidden="true"
         />
@@ -42,6 +57,15 @@ export function Rating({ value, size = 13 }) {
 
 // variant: "primary" | "secondary". icon: an optional lucide-react component,
 // rendered at a fixed size consistent with the rest of the app's buttons.
+//
+// COMPONENT_LIBRARY.md flagged icon-only usage (icon with no children) as "not checked
+// for a required label" — checked, 2026-09-11: every real call site in this codebase
+// passes real text as children alongside its icon (RequestDetailSheet.jsx,
+// ProJobDetailSheet.jsx, both icon={MessageCircle}), so no icon-only instance actually
+// exists today. This component has no aria-label fallback of its own, though — an
+// icon-only Button (icon set, children omitted) added later would silently ship with no
+// accessible name, the exact class of gap this whole file's own comments elsewhere warn
+// about. Pass a real aria-label if that ever becomes a real call site.
 export function Button({ variant = "primary", icon: Icon, iconSize = 15, children, className = "", ...props }) {
   const base = variant === "primary" ? "btn-primary" : "btn-secondary";
   return (

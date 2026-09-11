@@ -118,6 +118,12 @@ const HAZARD_TERMS = [
   // en
   "gas leak", "smell of gas", "smell gas", "fire", "smoke", "short circuit", "spark",
   "flood", "carbon monoxide", "electric shock", "burning smell", "collapse",
+  // es — found by code audit: missing entirely, alongside fa below, even though both are
+  // real, fully-localized APP_STRINGS/HOME_STRINGS locales (not stubs) — a Spanish-
+  // speaking customer typing "hay una fuga de gas" got no safety interrupt at all and
+  // went straight into the ordinary booking funnel while describing a gas leak.
+  "fuga de gas", "huele a gas", "olor a gas", "incendio", "humo", "cortocircuito",
+  "chispa", "inundación", "monóxido de carbono", "descarga eléctrica", "derrumbe",
   // tr
   "gaz kaçağı", "gaz kokusu", "yangın", "duman", "kısa devre", "kıvılcım",
   "su baskını", "çökme", "elektrik çarpması",
@@ -126,6 +132,10 @@ const HAZARD_TERMS = [
   "затопление", "обруш", "удар током",
   // ar
   "تسرب غاز", "رائحة غاز", "حريق", "دخان", "ماس كهربائي", "فيضان", "انهيار",
+  // fa — see the es block above for why this was missing: a real, fully-localized
+  // locale with zero hazard coverage until now.
+  "نشت گاز", "بوی گاز", "آتش‌سوزی", "دود", "اتصال کوتاه", "جرقه", "آب‌گرفتگی",
+  "مونوکسید کربن", "برق‌گرفتگی", "ریزش ساختمان",
   // zh
   "煤气", "燃气泄漏", "着火", "火灾", "冒烟", "短路", "淹水", "坍塌", "一氧化碳", "触电",
 ];

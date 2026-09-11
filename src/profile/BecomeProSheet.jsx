@@ -23,15 +23,18 @@ export function BecomeProSheet({ onClose, onDone }) {
     try {
       const { workspaceId } = await becomePro({ proType, businessName, vatNumber, bio });
       onDone(workspaceId);
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      // A raw err.message here would be a raw Postgres error from api.become_pro() --
+      // documents.js's own header names this anti-pattern and its fix: a generic,
+      // localized message, never the backend's own words.
+      setError(t.becomeProFailed);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.becomeProTitle}</div>
 
       <label className="field-label">{t.proTypeLabel}</label>

@@ -57,6 +57,7 @@ const TEMPLATES = {
   homeGreetNoName: "{greeting}",
   followUpProgress: "step {n}/{total}",
   todayQuotesBody: "todayQuotesBody {service}",
+  todayLocationApprovalBody: "todayLocationApprovalBody {service}",
   todayBookedBody: "todayBookedBody {service}",
   todayAwaitingBody: "todayAwaitingBody {service}",
   todayCollectingBody: "todayCollectingBody {service}",
@@ -132,9 +133,8 @@ describe("homepage sections", () => {
 
     fireEvent.click(tabs[1]);
     expect(screen.getByText("myHomeQuestion")).toBeTruthy();
-    // The hero and the trust strip are the surface, not the section — they stay put.
+    // The hero is the surface, not the section — it stays put.
     expect(document.querySelector(".home-hero-question")).not.toBeNull();
-    expect(screen.getByText("trustTransparentPricing")).toBeTruthy();
 
     fireEvent.click(tabs[2]);
     expect(screen.getByText("myItemsQuestion")).toBeTruthy();
@@ -339,6 +339,17 @@ describe("today for your home", () => {
     renderHome({ requests: [request({ status: "quotes_ready", quotes: [{ id: "q" }] })] });
     expect(screen.getByText("todayQuotesTitle")).toBeTruthy();
     expect(screen.getByText("todayQuotesBody name:svc-plumbing")).toBeTruthy();
+  });
+
+  // Found by code audit: accepted_pending_location_approval (the mandatory
+  // disclosure-consent step between accepting a quote and an actual booking) had no
+  // entry in homeToday.js's PRIORITY at all -- a request stalled on the customer's own
+  // next tap surfaced nothing here, even though it blocks the booking exactly as
+  // completely as an unchosen quote does.
+  it("surfaces a request awaiting location disclosure approval as Today's one thing, the same as an unchosen quote", () => {
+    renderHome({ requests: [request({ status: "accepted_pending_location_approval" })] });
+    expect(screen.getByText("todayLocationApprovalTitle")).toBeTruthy();
+    expect(screen.getByText("todayLocationApprovalBody name:svc-plumbing")).toBeTruthy();
   });
 
   it("opens that request rather than describing it and stopping there", () => {

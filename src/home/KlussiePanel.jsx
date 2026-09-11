@@ -20,6 +20,7 @@ import { useIntentFlow } from "./useIntentFlow.js";
 
 const ACTIVE_KIND_TITLE = {
   quotes_ready: "todayQuotesTitle",
+  accepted_pending_location_approval: "todayLocationApprovalTitle",
   booked: "todayBookedTitle",
   awaiting_pro: "todayAwaitingTitle",
   collecting: "todayCollectingTitle",
@@ -39,7 +40,7 @@ function ActiveRequests({ t, requests, serviceInfo, onOpenRequest }) {
                 <span className="home-active-name">{serviceInfo(r.serviceId).name}</span>
                 <span className="home-active-state">{t[ACTIVE_KIND_TITLE[kindOf(r)]] || ""}</span>
               </span>
-              <ChevronRight size={15} aria-hidden="true" />
+              <ChevronRight className="home-active-chevron" size={15} aria-hidden="true" />
             </button>
           </li>
         ))}

@@ -4,6 +4,7 @@
 import { describe, it, expect } from "vitest";
 import {
   REQUEST_STATUS_ORDER,
+  OPEN_STATUSES,
   WHEN_PREFS,
   WHEN_LABEL_KEYS,
   statusPresentation,
@@ -139,5 +140,25 @@ describe("request counts", () => {
     const withReview = req({ id: "a", status: "reviewed", review: { stars: 5 } });
     const without = req({ id: "b", status: "completed", review: null });
     expect(reviewedRequests([withReview, without]).map((r) => r.id)).toEqual(["a"]);
+  });
+});
+
+// Found by code audit: homeToday.js and homeTimeline.js each used to keep their own
+// independent copy of this exact set, with a comment claiming the two "mirror" each
+// other — they drifted out of sync for real when accepted_pending_location_approval
+// landed in one and not the other, so a request stuck there disappeared from one of the
+// two homepage surfaces until it was fixed by hand, one file behind. Both now import
+// this one shared list instead.
+describe("OPEN_STATUSES", () => {
+  it("includes every status meaning the request is still open, awaiting_pro included even though it sits outside REQUEST_STATUS_ORDER", () => {
+    expect(OPEN_STATUSES).toEqual(
+      expect.arrayContaining(["collecting", "awaiting_pro", "quotes_ready", "accepted_pending_location_approval", "booked"])
+    );
+    expect(OPEN_STATUSES).toHaveLength(5);
+  });
+
+  it("excludes every finished status", () => {
+    expect(OPEN_STATUSES).not.toContain("completed");
+    expect(OPEN_STATUSES).not.toContain("reviewed");
   });
 });

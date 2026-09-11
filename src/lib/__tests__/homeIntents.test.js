@@ -14,7 +14,7 @@ describe("intent catalogue", () => {
     expect(HOME_INTENTS.map((i) => i.id)).toEqual(["broken", "improve", "maintain", "advice", "other"]);
   });
 
-  it("has real localized copy behind every label and every question, in all 8 locales", () => {
+  it("has real localized copy behind every label and every question, in all 10 locales", () => {
     for (const locale of LOCALES) {
       for (const intent of HOME_INTENTS) {
         expect(HOME_STRINGS[locale][intent.labelKey], `${locale}/${intent.labelKey}`).toBeTruthy();
@@ -61,14 +61,21 @@ describe("questionsFor", () => {
 });
 
 describe("detectsHazard", () => {
+  // Found by code audit: HAZARD_TERMS had no es or fa entries at all -- not stubs, both
+  // are real, fully-localized APP_STRINGS/HOME_STRINGS locales -- so a Spanish- or
+  // Persian-speaking customer describing a gas leak or a fire got no safety interrupt
+  // whatsoever and went straight into the ordinary booking funnel. This list (and this
+  // test) covered only 8 of the app's 10 supported locales until now.
   it.each([
     ["nl", "ik ruik gas in de keuken"],
     ["fr", "il y a une fuite de gaz"],
     ["de", "es gab einen kurzschluss"],
     ["en", "there is a gas leak under the sink"],
+    ["es", "hay una fuga de gas en la cocina"],
+    ["ar", "هناك تسرب غاز"],
+    ["fa", "بوی گاز می‌آید"],
     ["tr", "mutfakta yangın var"],
     ["ru", "у нас утечка газа"],
-    ["ar", "هناك تسرب غاز"],
     ["zh", "厨房煤气味很重"],
   ])("interrupts on a %s hazard description", (_locale, text) => {
     expect(detectsHazard(text)).toBe(true);

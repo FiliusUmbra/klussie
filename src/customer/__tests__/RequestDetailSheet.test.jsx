@@ -4,7 +4,7 @@
 // Narrowly scoped to the new onMessage behaviour — this component has no prior test file,
 // and building full coverage of every status branch is a separate undertaking.
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 vi.mock("../../lib/auth.jsx", () => ({ useAuth: () => ({ user: { id: "customer-1" } }) }));
 // RequestDetailSheet renders RequestPhotosStrip unconditionally, which calls
@@ -114,6 +114,95 @@ describe("RequestDetailSheet — disclosure-consent card (0182/0183)", () => {
     renderSheet({ request: { ...PENDING_DISCLOSURE_REQUEST, bookedProId: null, quotes: [] } });
     expect(screen.queryByText("disclosureConsentApproveBtn")).toBeNull();
   });
+
+  // Found by code audit: none of these three buttons had a busy state, and this one
+  // had no catch either — a rejected onApproveDisclosure used to leave `approving` set
+  // forever were it not for the try/finally already in place; what was actually missing
+  // is that the rejection itself was never caught anywhere, an unhandled rejection this
+  // test would otherwise fail the whole run on.
+  it("re-enables the button rather than leaving it stuck, and never throws unhandled, when onApproveDisclosure is refused", async () => {
+    const onApproveDisclosure = vi.fn(() => Promise.reject(new Error("engagement not found")));
+    renderSheet({ request: PENDING_DISCLOSURE_REQUEST, onApproveDisclosure });
+
+    fireEvent.click(screen.getByText("disclosureConsentApproveBtn"));
+
+    await waitFor(() => expect(screen.getByText("disclosureConsentApproveBtn").closest("button").disabled).toBe(false));
+  });
+
+  // Found by code audit, 2026-09-11: this used to be
+  // `t.disclosureConsentBody.replace("{name}", ...)` — String.replace's own string-
+  // pattern overload only substitutes the FIRST occurrence, unlike interpolate()
+  // (already imported/used elsewhere in this file). No shipped locale currently repeats
+  // {name} in this one string, so the bug never actually showed — this pins the real
+  // contract (every occurrence gets substituted) rather than relying on today's
+  // translations happening not to trigger it.
+  it("substitutes every occurrence of {name} in disclosureConsentBody, not just the first", () => {
+    const localT = new Proxy({}, {
+      get: (_, key) => (key === "disclosureConsentBody" ? "Tot nu toe kende {name} enkel je gemeente. Bedank {name} straks!" : String(key)),
+    });
+    const localCtx = { ...ctx, t: localT };
+    render(
+      <LangContext.Provider value={localCtx}>
+        <RequestDetailSheet request={PENDING_DISCLOSURE_REQUEST} onClose={vi.fn()} onApproveDisclosure={vi.fn()} />
+      </LangContext.Provider>
+    );
+    expect(screen.getByText("Tot nu toe kende Pierre Pro enkel je gemeente. Bedank Pierre Pro straks!")).toBeTruthy();
+    expect(screen.queryByText(/\{name\}/)).toBeNull();
+  });
+});
+
+// Found by code audit: onAccept and onComplete had no busy state, no await and no catch
+// at all at this sheet's own call sites — a double-tap could fire either twice, and a
+// real refusal left the button sitting there re-clickable with nothing telling the
+// customer anything had gone wrong (the real toast now comes from CustomerApp.jsx's own
+// acceptQuote()/markComplete(), which this sheet's own catch here only needs to not
+// re-throw as a second unhandled rejection).
+describe("RequestDetailSheet — accepting a quote / marking complete, busy state and failure", () => {
+  const QUOTES_READY_REQUEST = { ...BOOKED_REQUEST, status: "quotes_ready", bookedProId: null };
+
+  it("disables accept while one is in flight, and calls onAccept with the right quote id", async () => {
+    let resolveAccept;
+    const onAccept = vi.fn(() => new Promise((resolve) => { resolveAccept = resolve; }));
+    renderSheet({ request: QUOTES_READY_REQUEST, onAccept });
+
+    fireEvent.click(screen.getByText("acceptQuoteBtn"));
+    expect(onAccept).toHaveBeenCalledWith("q-1");
+    expect(screen.getByText("acceptQuoteBtn").closest("button").disabled).toBe(true);
+
+    resolveAccept();
+    await waitFor(() => expect(screen.getByText("acceptQuoteBtn").closest("button").disabled).toBe(false));
+  });
+
+  it("re-enables accept rather than leaving it stuck, and never throws unhandled, when onAccept is refused", async () => {
+    const onAccept = vi.fn(() => Promise.reject(new Error("quote no longer open")));
+    renderSheet({ request: QUOTES_READY_REQUEST, onAccept });
+
+    fireEvent.click(screen.getByText("acceptQuoteBtn"));
+
+    await waitFor(() => expect(screen.getByText("acceptQuoteBtn").closest("button").disabled).toBe(false));
+  });
+
+  it("disables mark-complete while in flight, and re-enables it on success", async () => {
+    let resolveComplete;
+    const onComplete = vi.fn(() => new Promise((resolve) => { resolveComplete = resolve; }));
+    renderSheet({ request: BOOKED_REQUEST, onComplete });
+
+    fireEvent.click(screen.getByText("markCompleteBtn"));
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("markCompleteBtn").closest("button").disabled).toBe(true);
+
+    resolveComplete();
+    await waitFor(() => expect(screen.getByText("markCompleteBtn").closest("button").disabled).toBe(false));
+  });
+
+  it("re-enables mark-complete rather than leaving it stuck, and never throws unhandled, when onComplete is refused", async () => {
+    const onComplete = vi.fn(() => Promise.reject(new Error("engagement not found")));
+    renderSheet({ request: BOOKED_REQUEST, onComplete });
+
+    fireEvent.click(screen.getByText("markCompleteBtn"));
+
+    await waitFor(() => expect(screen.getByText("markCompleteBtn").closest("button").disabled).toBe(false));
+  });
 });
 
 // Found live during a UX review, 2026-09-07: `cancelled` had no branch at all here —
@@ -134,6 +223,39 @@ describe("RequestDetailSheet — cancelled request", () => {
     expect(screen.queryByText("waitingMsg")).toBeNull();
     expect(screen.queryByText("markCompleteBtn")).toBeNull();
     expect(screen.queryByText("disclosureConsentApproveBtn")).toBeNull();
+  });
+});
+
+// Found by code audit, 2026-09-11: Rating's own aria-label was a hardcoded English
+// template string here (and in every other real call site in the app) — see
+// primitives.jsx's own header. Proves this specific call site now routes the real value
+// through t.ratingLabel/interpolate() rather than building the old literal itself — a
+// real ratingLabel template (not the shared Proxy's own key-echo) is what makes the
+// interpolated result actually observable here.
+describe("RequestDetailSheet — reviewed request's own rating has a real, translated label", () => {
+  const REVIEWED_REQUEST = {
+    ...BOOKED_REQUEST, status: "reviewed", review: { stars: 5, text: "Great work!" },
+  };
+
+  it("interpolates the real star count into the real locale key, not a hardcoded English string", () => {
+    // Deliberately not "{value} out of 5 stars" -- that's also the old, buggy hardcoded
+    // fallback's own literal output for value=5, so an English template here would pass
+    // whether or not this call site actually routes through t.ratingLabel at all. A
+    // template that reads nothing like the hardcoded string is what makes this a real
+    // test of the wiring, not a coincidence.
+    const localT = new Proxy({}, { get: (_, key) => (key === "ratingLabel" ? "{value} van de 5 sterren" : String(key)) });
+    const localCtx = { ...ctx, t: localT };
+    render(
+      <LangContext.Provider value={localCtx}>
+        <RequestDetailSheet request={REVIEWED_REQUEST} onClose={vi.fn()} onAccept={vi.fn()} onComplete={vi.fn()} onReview={vi.fn()} />
+      </LangContext.Provider>
+    );
+    expect(screen.getByRole("img", { name: "5 van de 5 sterren" })).toBeTruthy();
+    // This status also mounts ServiceRecordSummary, which self-fetches -- the suite below
+    // (WP 3.2) has its own, order-sensitive "not called at all yet" assertion for other
+    // statuses, and this file resets no mock between tests. Cleared here so this test's
+    // own real call to fetchServiceRecordForRequestMock doesn't leak into that one.
+    fetchServiceRecordForRequestMock.mockClear();
   });
 });
 

@@ -8,6 +8,7 @@
 // stale claim that outlives the condition it described.
 import { documentTypeLabelKey } from "../lib/documents.js";
 import { interpolate } from "../lib/homeStrings.js";
+import { isPastLocalDate } from "../lib/dates.js";
 import { Badge } from "../design-system";
 
 // A section that shows a plain-language line when it holds nothing, and its real
@@ -39,7 +40,11 @@ export function HomeSection({ title, emptyText, children, isEmpty, action }) {
 // rows (each one a real <button>, opening a signed URL — a <ul> cannot nest inside a
 // <button>, so that caller needs the content alone, not another full list).
 export function DocumentRowContent({ t, fmtDate, doc }) {
-  const expired = doc.validUntil && new Date(doc.validUntil) < new Date();
+  // Found by code audit, 2026-09-11: this used to be
+  // `doc.validUntil && new Date(doc.validUntil) < new Date()` -- see lib/dates.js's own
+  // header for why comparing a date-only value to "now" as an instant reads a document as
+  // expired for most of the actual day it expires.
+  const expired = isPastLocalDate(doc.validUntil);
   return (
     <>
       <span className="document-row-caption">

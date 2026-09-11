@@ -24,15 +24,19 @@ export function ReportSheet({ reporterId, reportedWorkspaceId, requestId, onClos
     try {
       await submitReport({ reporterId, reportedWorkspaceId, requestId, reason, details });
       setSent(true);
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      // A raw err.message here would be a raw Postgres error (e.g. safety.
+      // file_case_for_caller()'s own "no real engagement" refusal) -- documents.js's own
+      // header names this anti-pattern and its fix: a generic, localized message, never
+      // the backend's own words.
+      setError(t.reportSubmitFailed);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.reportIssueBtn}</div>
       {sent ? (
         <div className="empty-block"><Check size={22} color="var(--forest)" /><p>{t.reportSentMsg}</p></div>

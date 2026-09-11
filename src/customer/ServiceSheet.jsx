@@ -6,14 +6,19 @@ import { ChevronRight } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Badge, Rating, PriceTag, Drawer } from "../design-system";
 import { typicalPriceRange } from "../lib/billing.js";
+import { interpolate } from "../lib/homeStrings.js";
 
 export function ServiceSheet({ service, onClose, onRequest }) {
   const { t, fmt, serviceInfo, CATS } = useLang();
   const info = serviceInfo(service.id);
   const Icon = CATS.find((c) => c.id === service.cat).icon;
   const { low, high } = typicalPriceRange(service.base);
+  // Found by code audit: closeLabel was missing here, the same regression fixed in
+  // QuoteFormSheet.jsx alongside this one -- every other customer-facing Drawer/Modal in
+  // the codebase already has it. See that file's own comment for why this is currently
+  // unreachable (CustomerApp.jsx's own header) and fixed anyway.
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-icon-lg"><Icon size={22} color="var(--forest)" /></div>
       <div className="sheet-title">{info.name}</div>
       {service.certifiedOnly && <Badge tone="forest">{t.certifiedOnlyBadge}</Badge>}
@@ -23,7 +28,7 @@ export function ServiceSheet({ service, onClose, onRequest }) {
           ENGINEERING_STANDARDS.md's known follow-up — fixing it changes what a customer
           reads, so it belongs in a copy pass, not in a refactor whose contract is
           identical behaviour. */}
-      <div className="sheet-sub">{fmt(service.pros)} {t.prosSuffix} \u00b7 <Rating value={service.rating} size={12} /> {service.rating} ({fmt(service.reviews)})</div>
+      <div className="sheet-sub">{fmt(service.pros)} {t.prosSuffix} \u00b7 <Rating value={service.rating} size={12} label={interpolate(t.ratingLabel, { value: service.rating })} /> {service.rating} ({fmt(service.reviews)})</div>
       <p className="sheet-blurb">{info.blurb}</p>
       <div className="price-hint">{t.typicalPrice} <b><PriceTag amount={low} fmt={fmt} /> \u2013 <PriceTag amount={high} fmt={fmt} /></b></div>
       <button className="btn-primary" onClick={onRequest}>{service.mode === "book" ? t.serviceBookNow : t.serviceGetQuotes} <ChevronRight size={16} /></button>

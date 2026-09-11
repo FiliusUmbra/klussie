@@ -83,6 +83,20 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
     setPhotoPreview(URL.createObjectURL(file));
   };
 
+  // Found by code audit: this cleared photoFile/photoPreview without ever revoking the
+  // object URL pickPhoto() just created for it -- a real, unbounded memory leak on every
+  // "remove photo" tap, ServiceRecordEditorSheet.jsx's own header names this file as
+  // already getting right (create once on pick, revoke once on remove) alongside
+  // QuoteFormSheet.jsx -- true there, not here. Only revokes when photoFile is set: a
+  // photoPreview carrying the item's own existing photoUrl (no local file picked yet) is
+  // a real server URL, not a blob, and revoking that would do nothing useful and log a
+  // console warning for no reason.
+  const removePhoto = () => {
+    if (photoFile && photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
   const submit = async () => {
     if (!canSaveItem({ name })) return;
     setError("");
@@ -116,8 +130,11 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       }
       await onSaved();
       onClose();
-    } catch (err) {
-      setError(err.message || String(err));
+    } catch {
+      // A raw err.message here would be a raw Postgres/Storage error -- documents.js's
+      // own header names this anti-pattern and its fix: a generic, localized message,
+      // never the backend's own words.
+      setError(t.itemSaveFailed);
     } finally {
       setBusy(false);
     }
@@ -134,14 +151,16 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       }
       await onSaved();
       onClose();
-    } catch (err) {
-      setError(err.message || String(err));
+    } catch {
+      // The same action ItemDetailSheet.jsx's own confirmedRetire() performs -- reusing
+      // its key rather than declaring a second one for the identical failure.
+      setError(t.itemDetailRetireFailed);
       setBusy(false);
     }
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{editing ? t.itemEditTitle : t.itemAddTitle}</div>
 
       <label className="field-label" htmlFor="item-name">{t.itemNameLabel}</label>
@@ -224,7 +243,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
             <button
               type="button"
               className="photo-remove-btn"
-              onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+              onClick={removePhoto}
               aria-label={t.itemPhotoRemove}
             >
               <X size={12} />
@@ -260,7 +279,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       )}
 
       {confirmDelete && (
-        <Modal onClose={() => setConfirmDelete(false)}>
+        <Modal onClose={() => setConfirmDelete(false)} closeLabel={t.closeBtn}>
           <p style={{ marginTop: 8 }}>{t.itemDeleteConfirm}</p>
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <Button variant="secondary" onClick={() => setConfirmDelete(false)}>{t.cancelBtn}</Button>

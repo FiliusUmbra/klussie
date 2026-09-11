@@ -83,6 +83,14 @@ export function OperatorApp() {
   // thread a refetch callback down" shape AuditLog/WorkspaceLookup already keep simple.
   const [openCaseId, setOpenCaseId] = useState(null);
   const [caseDetail, setCaseDetail] = useState(null);
+  // Found by code audit: fetchCaseDetail() throws on a real error (unlike every other
+  // operator read in this codebase, which is documented "never throws" -- see that
+  // function's own header in trustSafety.js) and this call had no catch of its own.
+  // With CaseDetailSheet only rendering once both openCaseId and caseDetail are set, a
+  // real failure here meant tapping a case in the queue did visibly nothing at all: no
+  // sheet, no error, not even a loading state -- worse than a raw error, since a raw
+  // error at least tells the operator an attempt was made.
+  const [caseDetailError, setCaseDetailError] = useState(false);
   const [queueRefreshKey, setQueueRefreshKey] = useState(0);
   const { user, signOut } = useAuth();
 
@@ -93,7 +101,10 @@ export function OperatorApp() {
 
   const openCase = (caseId) => {
     setOpenCaseId(caseId);
-    fetchCaseDetail(caseId).then(setCaseDetail);
+    setCaseDetailError(false);
+    fetchCaseDetail(caseId)
+      .then(setCaseDetail)
+      .catch(() => { setOpenCaseId(null); setCaseDetailError(true); });
   };
 
   const closeCase = () => {
@@ -129,6 +140,11 @@ export function OperatorApp() {
 
         {tab === "reports" && (
           <div className="pad">
+            {caseDetailError && (
+              <p className="fineprint" style={{ color: "var(--danger, #b3261e)", justifyContent: "flex-start", marginBottom: 10 }}>
+                Couldn't load that case. Try again.
+              </p>
+            )}
             <TrustSafetyQueue onOpenCase={openCase} refreshKey={queueRefreshKey} />
           </div>
         )}

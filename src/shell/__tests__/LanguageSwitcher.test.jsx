@@ -12,9 +12,11 @@ const LANGS = [
   { code: "en", label: "English", locale: "en-GB" },
 ];
 
+const t = { languageSwitcherLabel: "Language" };
+
 function renderSwitcher(overrides = {}) {
   const setLangCode = vi.fn();
-  const ctx = { langCode: "nl", setLangCode, LANGS, ...overrides };
+  const ctx = { t, langCode: "nl", setLangCode, LANGS, ...overrides };
   render(
     <LangContext.Provider value={ctx}>
       <LanguageSwitcher />
@@ -41,8 +43,16 @@ describe("LanguageSwitcher", () => {
     expect(setLangCode).toHaveBeenCalledWith("en");
   });
 
+  // Found by code audit: hardcoded aria-label="Language" -- on the one control whose
+  // whole purpose is switching language, a non-English-speaking user's screen reader
+  // still named it in English regardless of which locale they'd already picked.
+  it("uses the real localized label, not a hardcoded English one", () => {
+    renderSwitcher({ t: { languageSwitcherLabel: "Taal" } });
+    expect(screen.getByLabelText("Taal")).toBeTruthy();
+  });
+
   it("renders the light variant's class when asked, for a light page background", () => {
-    const ctx = { langCode: "nl", setLangCode: vi.fn(), LANGS };
+    const ctx = { t, langCode: "nl", setLangCode: vi.fn(), LANGS };
     const { container } = render(
       <LangContext.Provider value={ctx}>
         <LanguageSwitcher light />

@@ -10,9 +10,17 @@ import { emitEvent } from "./_lib/events.js";
 const MAX_LENGTH = 2000;
 const ENDPOINT = "translate-message";
 
+// Found by code audit: missing es and fa entirely, even though both are real, fully-
+// localized locales this app ships (src/lib/lang.js's own LANGS) -- targetLocale is
+// always a viewer's own langCode (ConversationSheet.jsx's only caller), so every single
+// translation request from a Spanish- or Persian-reading customer or pro fell through
+// to the 400 "Unsupported target language" branch below and was silently swallowed by
+// that caller's own catch ("ignore — original text stays displayed"): the whole
+// message-translation feature was completely non-functional for two of the ten
+// audiences it claims to serve, with no error ever visible to anyone.
 const LANGUAGE_NAMES = {
-  nl: "Dutch", fr: "French", de: "German", en: "English",
-  ar: "Arabic", tr: "Turkish", ru: "Russian", zh: "Chinese",
+  nl: "Dutch", fr: "French", de: "German", en: "English", es: "Spanish",
+  ar: "Arabic", fa: "Persian", tr: "Turkish", ru: "Russian", zh: "Chinese",
 };
 
 export default async function handler(req, res) {

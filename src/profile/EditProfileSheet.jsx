@@ -36,8 +36,11 @@ export function EditProfileSheet({ onClose, onSaved }) {
       await updateProfile({ avatar_url: url });
       setAvatarUrl(url);
       if (onSaved) await onSaved();
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      // A raw err.message here would be a raw Storage/Postgres error -- documents.js's
+      // own header names this anti-pattern and its fix: a generic, localized message,
+      // never the backend's own words.
+      setError(t.avatarUploadFailed);
     } finally {
       setUploadingAvatar(false);
     }
@@ -58,15 +61,16 @@ export function EditProfileSheet({ onClose, onSaved }) {
       }
       if (onSaved) await onSaved();
       onClose();
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      // Same anti-pattern, same fix as handleAvatarChange above.
+      setError(t.editProfileSaveFailed);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.editProfileTitle}</div>
 
       <div className="avatar-upload-row">

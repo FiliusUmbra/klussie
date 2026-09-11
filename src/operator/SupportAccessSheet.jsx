@@ -46,18 +46,31 @@ export function SupportAccessSheet({ workspaceId, workspaceName, actorRef, onClo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
 
+  // Found by code audit, 2026-09-11: refresh() used to sit inside the same try as the
+  // real write, the same bug shape fixed repeatedly elsewhere today (see e.g.
+  // ProApp.jsx's sendQuote() for the fullest write-up). Here it's worse than most: a
+  // grant that actually succeeded but whose refresh failed showed a raw error message
+  // and, since purpose was already cleared, an operator who didn't notice the grant
+  // already appearing above could retype the purpose and submit again -- a second,
+  // redundant elevated-access grant against a customer's workspace, not just a
+  // confusing toast. refresh() is now best-effort once the write itself is confirmed.
   const submitGrant = async () => {
     setSubmitting(true);
     setError(null);
     try {
       await grantSupportAccess({ workspaceId, purpose, durationHours, actorRef });
-      setPurpose("");
-      await refresh();
     } catch (err) {
       setError(err.message);
-    } finally {
       setSubmitting(false);
+      return;
     }
+    setPurpose("");
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the grant itself was already recorded regardless.
+    }
+    setSubmitting(false);
   };
 
   const endGrant = async (membershipId) => {
@@ -65,12 +78,18 @@ export function SupportAccessSheet({ workspaceId, workspaceName, actorRef, onClo
     setError(null);
     try {
       await endSupportAccess({ membershipId, actorRef });
-      await refresh();
     } catch (err) {
       setError(err.message);
-    } finally {
       setSubmitting(false);
+      return;
     }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the grant itself was already ended regardless -- a failed
+      // refresh here must never read as the end action itself having failed.
+    }
+    setSubmitting(false);
   };
 
   const canSubmit = purpose.trim().length > 0;

@@ -56,6 +56,20 @@ export function ProApp({ showToast }) {
   const [conversations, setConversations] = useState(null);
   const [openConversation, setOpenConversation] = useState(null);
   const [openJob, setOpenJob] = useState(null);
+  // Found by code audit: none of the five fetches this screen gates its render on below
+  // had a catch anywhere -- fetchProServices/fetchPublicProInfo/fetchProLeads/
+  // fetchProJobs/fetchConversations all throw on a real Postgres error, and with the
+  // render gated on all five being non-null, any single one failing hung the entire
+  // ProApp on a spinner forever. Same bug, same fix shape as CustomerApp.jsx's identical
+  // one (see that file's own comment) and AppShell.jsx's original catalogError before it
+  // -- one boolean per fetch, set only around the very first load so a later background
+  // refresh failure (a realtime event, a lead-category change) leaves whatever's already
+  // on screen alone instead of tearing down a working screen over a transient hiccup.
+  const [servicesLoadError, setServicesLoadError] = useState(false);
+  const [proInfoLoadError, setProInfoLoadError] = useState(false);
+  const [leadsLoadError, setLeadsLoadError] = useState(false);
+  const [jobsLoadError, setJobsLoadError] = useState(false);
+  const [conversationsLoadError, setConversationsLoadError] = useState(false);
 
   const categoryIds = offeredCategoryIds(offeredServiceIds, BASE_SERVICES);
   const categoryKey = categoryIds.join(",");
@@ -64,27 +78,58 @@ export function ProApp({ showToast }) {
   const refreshJobs = () => fetchProJobs(user.id, workspaceId).then(setJobs);
   const refreshConversations = () => fetchConversations(user.id, workspaceId).then(setConversations);
   const refreshProInfo = () => fetchPublicProInfo([user.id]).then((m) => setProInfo(m[user.id]));
+  const refreshServices = () => fetchProServices(user.id, workspaceId).then(setOfferedServiceIds);
+
+  const track = (promise, setError) => promise.then(() => setError(false)).catch(() => setError(true));
+  const loadInitial = () => {
+    track(refreshServices(), setServicesLoadError);
+    track(refreshProInfo(), setProInfoLoadError);
+    track(refreshLeads(), setLeadsLoadError);
+    track(refreshJobs(), setJobsLoadError);
+  };
+  const loadConversations = () => track(refreshConversations(), setConversationsLoadError);
 
   useEffect(() => {
-    fetchProServices(user.id, workspaceId).then(setOfferedServiceIds);
-    fetchPublicProInfo([user.id]).then((m) => setProInfo(m[user.id]));
-    refreshLeads();
-    refreshJobs();
+    loadInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, workspaceId]);
 
   useEffect(() => subscribeToProQuoteUpdates(workspaceId, refreshJobs), [workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    refreshLeads();
+    // This fires on mount too (categoryKey already has a value on first render), landing
+    // right alongside loadInitial()'s own tracked refreshLeads() above -- that one is
+    // what leadsLoadError/the render gate below actually watch, so this one only needs
+    // to not become a bare unhandled rejection if it fails; caught and found by this
+    // fix's own new test.
+    refreshLeads().catch(() => {});
     return subscribeToProLeads(categoryIds, refreshLeads);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryKey]);
 
   useEffect(() => {
-    refreshConversations();
+    loadConversations();
     return subscribeToConversationsForUser(user.id, workspaceId, refreshConversations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, workspaceId]);
+
+  if (
+    (offeredServiceIds === null && servicesLoadError) ||
+    (proInfo === null && proInfoLoadError) ||
+    (leads === null && leadsLoadError) ||
+    (jobs === null && jobsLoadError) ||
+    (conversations === null && conversationsLoadError)
+  ) {
+    return (
+      <div className="pad">
+        <div className="empty-block">
+          <p>{t.catalogLoadFailed}</p>
+          <button type="button" className="btn-secondary" onClick={() => { loadInitial(); loadConversations(); }}>
+            {t.retryBtn}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!leads || !jobs || !proInfo || !offeredServiceIds || !conversations) {
     return <LoadingScreen />;
@@ -92,11 +137,41 @@ export function ProApp({ showToast }) {
 
   const earnedGross = netEarnings([...jobs.booked, ...jobs.completed], user.id);
 
+  // Same shape as CustomerApp.jsx's own submitReview() fix: this was fire-and-forget
+  // from its own JSX call site (no await, no catch) and had none of its own either, so
+  // any failure -- 0212's own "a quote could be submitted against a request that was no
+  // longer open" guard included, a real, reachable refusal whenever two pros race the
+  // same lead -- became an unhandled promise rejection. The sheet had no busy state
+  // either, so the professional had no way to tell an attempt had even been made,
+  // let alone that it failed. setQuoteLead(null) only runs on success (unchanged from
+  // before), so a failure leaves the sheet open with the price/message already typed,
+  // ready to retry, rather than silently discarding them.
+  // Found by code audit, 2026-09-11: refreshLeads()/refreshJobs() used to sit inside
+  // this same try, so a failure in either — after sendQuoteApi() had already succeeded
+  // and the sheet had already closed — fell into the catch below and showed
+  // toastQuoteFailed, the exact opposite of what actually happened. Unlike the sheet-
+  // level bug this same shape already had (ServiceRecordEditorSheet.jsx/
+  // AddTestimonialSheet.jsx/PortfolioItemSheet.jsx/CustomerApp.jsx's own creation
+  // flows), there is no duplicate-resubmission risk here — setQuoteLead(null) has
+  // already unmounted the sheet by this point — but a pro seeing "failed to send" for a
+  // quote that genuinely went out is still a real, confusing false negative. Both
+  // refreshes are now best-effort: the quote was already sent regardless of whether the
+  // lists refresh cleanly.
   const sendQuote = async (lead, price, message) => {
-    await sendQuoteApi({ requestId: lead.id, proId: user.id, workspaceId, price, message });
+    try {
+      await sendQuoteApi({ requestId: lead.id, proId: user.id, workspaceId, price, message });
+    } catch (err) {
+      console.warn("sendQuote failed:", err.message);
+      showToast(t.toastQuoteFailed);
+      return;
+    }
     setQuoteLead(null);
-    await refreshLeads();
-    await refreshJobs();
+    try {
+      await refreshLeads();
+      await refreshJobs();
+    } catch {
+      // Best-effort; the quote itself was already sent regardless.
+    }
     showToast(t.toastQuoteSent);
   };
 
@@ -146,7 +221,13 @@ export function ProApp({ showToast }) {
           userId={user.id}
           workspaceId={workspaceId}
           otherName={openConversation.otherName}
-          onClose={() => { setOpenConversation(null); refreshConversations(); }}
+          // Found by code audit, 2026-09-11: refreshConversations() called with no catch
+          // of its own -- fetchConversations() throws on a real Postgres error, so a
+          // real failure here was a genuine unhandled promise rejection on every close.
+          // Best-effort, matching every other purely cosmetic refresh in this file: the
+          // list will pick up the change on its next successful poll or realtime event
+          // regardless.
+          onClose={() => { setOpenConversation(null); refreshConversations().catch(() => {}); }}
         />
       )}
     </div>

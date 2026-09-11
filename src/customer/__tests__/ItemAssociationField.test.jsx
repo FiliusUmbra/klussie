@@ -97,6 +97,21 @@ describe("ItemAssociationField — real items", () => {
   });
 });
 
+// Found by code audit, 2026-09-11: same physical marginRight fix as
+// ServiceLocationField.jsx's own identical .chip icons, same pass.
+describe("ItemAssociationField — each item chip's own icon gaps toward its label, not hardcoded right", () => {
+  it("uses the logical margin, not the physical one", async () => {
+    fetchMyPropertiesMock.mockResolvedValue([]);
+    fetchHouseholdItemsMock.mockResolvedValue([{ id: "asset-1", name: "Washing machine" }]);
+    renderField();
+    const label = await screen.findByText("Washing machine");
+
+    const icon = label.closest("button").querySelector("svg");
+    expect(icon.style.marginInlineEnd).toBe("4px");
+    expect(icon.style.marginRight).toBe("");
+  });
+});
+
 describe("ItemAssociationField — failure", () => {
   it("renders nothing, never throwing, when the read fails -- the default null is still reported", async () => {
     fetchMyPropertiesMock.mockRejectedValue(new Error("boom"));

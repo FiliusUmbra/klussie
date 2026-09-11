@@ -16,7 +16,6 @@ const t = {
   homeGreetNoName: "{greeting}",
   trustVerifiedPros: "Geverifieerde vakmensen",
   trustAvgRating: "gemiddeld",
-  trustTransparentPricing: "Transparante prijzen",
 };
 
 // Local time, deliberately — the greeting is about the customer's day, not UTC.
@@ -70,22 +69,24 @@ describe("greetingLine", () => {
 });
 
 describe("trustItemsFrom (ADR-0011)", () => {
-  it("claims only transparent pricing when no platform data backs anything else", () => {
-    expect(trustItemsFrom(t, null)).toEqual(["Transparante prijzen"]);
-    expect(trustItemsFrom(t, { verifiedProCount: 0, ratingAvg: null })).toEqual(["Transparante prijzen"]);
+  // The unconditional "transparent pricing" item was removed at the product's own
+  // request, 2026-09-11 — it was the one item here never actually backed by a dataset.
+  // With no real signal to show, the strip now shows nothing at all.
+  it("claims nothing when no platform data backs anything", () => {
+    expect(trustItemsFrom(t, null)).toEqual([]);
+    expect(trustItemsFrom(t, { verifiedProCount: 0, ratingAvg: null })).toEqual([]);
   });
 
   it("adds the signals that do have real numbers behind them", () => {
     expect(trustItemsFrom(t, { verifiedProCount: 12, ratingAvg: 4.72 })).toEqual([
       "Geverifieerde vakmensen",
       "4.7★ gemiddeld",
-      "Transparante prijzen",
     ]);
   });
 
   it("withholds the rating when there is no average, even with verified pros present", () => {
     expect(trustItemsFrom(t, { verifiedProCount: 3, ratingAvg: null }))
-      .toEqual(["Geverifieerde vakmensen", "Transparante prijzen"]);
+      .toEqual(["Geverifieerde vakmensen"]);
   });
 
   it("shows a genuine zero average rather than hiding it as falsy", () => {

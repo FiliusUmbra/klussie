@@ -8,6 +8,7 @@ import { Mail, Lock, User } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Drawer } from "../design-system";
+import { authErrorLabelKey } from "../lib/authErrors.js";
 
 export function EmailAuthSheet({ onClose }) {
   const { t } = useLang();
@@ -28,7 +29,11 @@ export function EmailAuthSheet({ onClose }) {
       await signInWithOtp(email);
       setNotice(t.magicLinkSentMsg);
     } catch (err) {
-      setError(err.message);
+      // A raw err.message would be raw, English-only GoTrue text -- authErrors.js's own
+      // header explains why this maps to a still-specific (never one collapsed generic)
+      // localized message instead, unlike every other sheet's simpler "one generic
+      // message" fix.
+      setError(t[authErrorLabelKey(err)]);
     } finally {
       setBusy(false);
     }
@@ -45,14 +50,15 @@ export function EmailAuthSheet({ onClose }) {
         if (needsEmailConfirmation) setNotice(t.authCheckEmail);
       }
     } catch (err) {
-      setError(err.message);
+      // Same reasoning as submitMagicLink's own catch above.
+      setError(t[authErrorLabelKey(err)]);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.continueWithEmail}</div>
       {!usePassword ? (
         <form onSubmit={submitMagicLink}>

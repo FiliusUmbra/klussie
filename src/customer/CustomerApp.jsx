@@ -65,6 +65,21 @@ export function CustomerApp({ showToast, onBecomePro }) {
   const [reviewFor, setReviewFor] = useState(null);
   const [requests, setRequests] = useState(null);
   const [conversations, setConversations] = useState(null);
+  // Found by code audit: the initial refresh()/refreshConversations() calls below had no
+  // catch of their own. fetchCustomerRequests()/fetchConversations() both throw on a real
+  // Postgres error (RLS refusal, network failure, the my_requests/my_conversations RPC
+  // itself failing) -- which, with requests/conversations gating the render below at
+  // "if (!requests || !conversations) return <LoadingScreen />", turned into the whole
+  // customer app hanging on a spinner forever: no error, no retry, nothing short of a
+  // page reload. The exact AppShell.jsx catalogError bug (see that file's own comment),
+  // one layer in. Deliberately scoped to just the FIRST load: refresh/refreshConversations
+  // stay exactly as they were everywhere else they're already called (the subscription
+  // callbacks above, and every action handler below that already has its own try/catch
+  // around `await refresh()`) -- catching inside refresh() itself would have silently
+  // swallowed those callers' own failures too, the same "no user feedback" bug this fix
+  // is closing, just moved one function down.
+  const [requestsLoadError, setRequestsLoadError] = useState(false);
+  const [conversationsLoadError, setConversationsLoadError] = useState(false);
   const [openConversation, setOpenConversation] = useState(null);
   // Which section of the homepage is showing. Lifted out of ConversationHome only
   // because the tour can end on "Stel eerst mijn woning in" and has to land the
@@ -78,8 +93,17 @@ export function CustomerApp({ showToast, onBecomePro }) {
   const refresh = () => fetchCustomerRequests(user.id, workspaceId).then(setRequests);
   const refreshConversations = () => fetchConversations(user.id, workspaceId).then(setConversations);
 
+  // Only the very first load sets requestsLoadError/conversationsLoadError -- a later
+  // background refresh (a realtime event, an action handler's own post-mutation refresh)
+  // that happens to fail leaves whatever was already on screen alone, exactly like every
+  // other "unavailable, continuing without them" background read elsewhere in the
+  // codebase, rather than yanking a working screen out from under someone over a
+  // transient hiccup.
+  const loadRequests = () => refresh().then(() => setRequestsLoadError(false)).catch(() => setRequestsLoadError(true));
+  const loadConversations = () => refreshConversations().then(() => setConversationsLoadError(false)).catch(() => setConversationsLoadError(true));
+
   useEffect(() => {
-    refresh();
+    loadRequests();
     return subscribeToCustomerRequests(user.id, workspaceId, refresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, workspaceId]);
@@ -91,10 +115,23 @@ export function CustomerApp({ showToast, onBecomePro }) {
   }, [openRequest]);
 
   useEffect(() => {
-    refreshConversations();
+    loadConversations();
     return subscribeToConversationsForUser(user.id, workspaceId, refreshConversations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, workspaceId]);
+
+  if ((requests === null && requestsLoadError) || (conversations === null && conversationsLoadError)) {
+    return (
+      <div className="pad">
+        <div className="empty-block">
+          <p>{t.catalogLoadFailed}</p>
+          <button type="button" className="btn-secondary" onClick={() => { loadRequests(); loadConversations(); }}>
+            {t.retryBtn}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!requests || !conversations) return <LoadingScreen />;
 
@@ -104,9 +141,39 @@ export function CustomerApp({ showToast, onBecomePro }) {
   // Photos upload after the request exists because they are stored against its id. A
   // failed upload therefore leaves a real request with fewer photos rather than no
   // request at all — the better of the two failure modes for someone with a leak.
+  //
+  // Found by code audit, 2026-09-11: that was this function's own stated intent, but not
+  // what the code actually did — a plain sequential loop with no catch of its own, so one
+  // failed upload threw straight out to createRequest()/createRequestFromAi() below,
+  // which had no catch either, so the failure reached AiIntakeSheet.jsx's own handler as
+  // if the WHOLE creation had failed — even though createServiceRequest() (both callers'
+  // own first line) had already succeeded. A customer trusting that false "something went
+  // wrong" and submitting again would create a genuine duplicate request.
+  // useConversation.js's own bookProfessional() already gets this right for the
+  // AI-canvas direct-booking path (the identical create-then-attach-photos shape,
+  // `.catch(() => {})` on its own photo-upload step) — matched here.
   const attachPhotos = async (requestId, photos) => {
     for (const file of photos || []) {
-      await uploadRequestPhoto(requestId, user.id, workspaceId, file);
+      try {
+        await uploadRequestPhoto(requestId, user.id, workspaceId, file);
+      } catch {
+        // Best-effort, one photo at a time — see this function's own header.
+      }
+    }
+  };
+
+  // Found by code audit, 2026-09-11: the trailing refresh() in both functions below used
+  // to sit unguarded after the real creation — the same bug shape as
+  // ServiceRecordEditorSheet.jsx/AddTestimonialSheet.jsx/PortfolioItemSheet.jsx (see
+  // those files' own headers): a failure in this purely cosmetic "refetch the list"
+  // step, after createServiceRequest() had already succeeded, showed a false creation
+  // failure and risked the exact same duplicate-resubmission consequence attachPhotos()
+  // above was just fixed for.
+  const refreshBestEffort = async () => {
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the request itself is already created regardless.
     }
   };
 
@@ -125,7 +192,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
       assetId,
     });
     await attachPhotos(created.id, photos);
-    await refresh();
+    await refreshBestEffort();
   };
 
   // AI intake already resolves its own serviceId/categoryId (with the user able to
@@ -147,7 +214,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
       assetId,
     });
     await attachPhotos(created.id, photos);
-    await refresh();
+    await refreshBestEffort();
   };
 
   // Found live during a UX review, 2026-09-08: this used to show toastBooked ("Geboekt!
@@ -158,23 +225,77 @@ export function CustomerApp({ showToast, onBecomePro }) {
   // approveLocationDisclosure() below already shows the identical toast at the moment
   // that's actually true; nothing here replaces it, on purpose — the disclosure-consent
   // card itself is the real, unmissable feedback that accepting worked.
+  // Found by code audit: fire-and-forget from RequestDetailSheet.jsx's own onClick (no
+  // await, no busy state there either) and had no catch of its own -- the same shape
+  // submitReview()'s own comment below already documents fixing, on what TESTING.md's
+  // own §5.3 calls "the highest-consequence flow in the platform." A real refusal (a
+  // race with another quote already accepted, a status that moved on, a network error)
+  // rejected silently: no toast, no error, the quote card just sitting there as if
+  // nothing had been tapped. Re-thrown after the toast so RequestDetailSheet.jsx's own
+  // caller still sees the rejection (nothing currently awaits this one, but a future
+  // busy-state guard -- the same fix onComplete/onApproveDisclosure below needed -- can
+  // rely on it without this function silently turning a failure into a resolved promise.
+  // Found by code audit, 2026-09-11: refresh() used to sit inside this same try, so a
+  // failure there -- after acceptQuoteApi() had already succeeded -- fell into the
+  // catch below and showed toastAcceptQuoteFailed, the exact opposite of what actually
+  // happened (and re-threw on top of it). Same bug shape as ProApp.jsx's own sendQuote()
+  // fix, same pass. refresh() is now best-effort once the accept itself is confirmed.
   const acceptQuote = async (quoteId) => {
-    await acceptQuoteApi(quoteId, user.id);
-    await refresh();
+    try {
+      await acceptQuoteApi(quoteId, user.id);
+    } catch (err) {
+      console.warn("acceptQuote failed:", err.message);
+      showToast(t.toastAcceptQuoteFailed);
+      throw err;
+    }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the quote itself was already accepted regardless.
+    }
   };
 
   // Beta-completion slice (0182/0183) — the disclosure-consent action. Separate from
   // acceptQuote() above: quote acceptance alone no longer books anything, this is what
   // actually does.
+  //
+  // Same real gap as acceptQuote() above: RequestDetailSheet.jsx's own onClick already
+  // has a busy-state try/finally, but no catch -- setApproving(false) ran on a real
+  // refusal, quietly re-enabling the button with nothing telling the customer why
+  // nothing happened. Re-thrown so that finally still runs exactly as before.
+  // Found by code audit, 2026-09-11: refresh() used to sit inside this same try too --
+  // see acceptQuote()'s own header, same bug, same fix shape. toastBooked now shows once
+  // approveLocationDisclosureApi() itself is confirmed, regardless of refresh's outcome.
   const approveLocationDisclosure = async (requestId) => {
-    await approveLocationDisclosureApi(requestId, user.id);
-    await refresh();
+    try {
+      await approveLocationDisclosureApi(requestId, user.id);
+    } catch (err) {
+      console.warn("approveLocationDisclosure failed:", err.message);
+      showToast(t.toastDisclosureApproveFailed);
+      throw err;
+    }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the disclosure was already approved regardless.
+    }
     showToast(t.toastBooked);
   };
 
+  // Same real gap as acceptQuote() above.
   const markComplete = async (requestId) => {
-    await markCompleteApi(requestId, user.id);
-    await refresh();
+    try {
+      await markCompleteApi(requestId, user.id);
+    } catch (err) {
+      console.warn("markComplete failed:", err.message);
+      showToast(t.toastMarkCompleteFailed);
+      throw err;
+    }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the request was already marked complete regardless.
+    }
   };
 
   const submitReview = async (request, review) => {
@@ -188,14 +309,24 @@ export function CustomerApp({ showToast, onBecomePro }) {
     // insert and work.mark_request_reviewed() in one transaction, so a caught failure
     // here means genuinely nothing was written -- "Laat een beoordeling achter" simply
     // reappears, exactly as if the attempt had never happened.
+    //
+    // Found by code audit, 2026-09-11: refresh() used to sit inside this same try too --
+    // same bug shape as acceptQuote()/approveLocationDisclosure()/markComplete() above:
+    // a failure there, after submitReviewApi() had already succeeded, showed
+    // toastReviewFailed for a review that genuinely was saved.
     try {
       await submitReviewApi({ requestId: request.id, customerId: user.id, stars: review.stars, text: review.text });
-      await refresh();
-      showToast(t.toastThanks);
     } catch (err) {
       console.warn("submitReview failed:", err.message);
       showToast(t.toastReviewFailed);
+      return;
     }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the review was already saved regardless.
+    }
+    showToast(t.toastThanks);
   };
 
   return (
@@ -272,7 +403,13 @@ export function CustomerApp({ showToast, onBecomePro }) {
           userId={user.id}
           workspaceId={workspaceId}
           otherName={openConversation.otherName}
-          onClose={() => { setOpenConversation(null); refreshConversations(); }}
+          // Found by code audit, 2026-09-11: refreshConversations() called with no catch
+          // of its own -- fetchConversations() throws on a real Postgres error, so a
+          // real failure here was a genuine unhandled promise rejection on every close.
+          // Best-effort, matching every other purely cosmetic refresh in this file: the
+          // list will pick up the change on its next successful poll or realtime event
+          // regardless.
+          onClose={() => { setOpenConversation(null); refreshConversations().catch(() => {}); }}
         />
       )}
     </div>

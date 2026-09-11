@@ -146,18 +146,41 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let active = true;
 
+    // Found by code audit: loadProfile() (this refreshProfile() call's own body) throws
+    // on a real Postgres error against either of its two required reads (profiles,
+    // pro_profiles) — and neither call below had a catch of its own. A real failure here
+    // meant setLoading(false) never ran, and `loading` gates AppShell.jsx's entire render
+    // ("authLoading || ..." at the very top of its own body/branch) -- so any signed-in
+    // person whose very first profile read hit a transient failure saw the whole app
+    // stuck on LoadingScreen forever, before catalog, before workspace resolution,
+    // before anything else. The single most severe consequence this class of bug could
+    // have, on the single most foundational effect in the app. Deliberately NOT caught
+    // inside refreshProfile() itself: becomePro()/updateProfile() below both await it
+    // with no try/catch of their own and rely on a real rejection reaching them, the same
+    // split this session's own CustomerApp.jsx/Profile.jsx/ConversationSheet.jsx fixes
+    // already established for their own shared refresh functions.
     supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
       setSession(data.session);
-      if (data.session?.user) await refreshProfile(data.session.user.id);
+      if (data.session?.user) {
+        try {
+          await refreshProfile(data.session.user.id);
+        } catch (err) {
+          console.warn("initial profile load failed, continuing signed in without it:", err.message);
+        }
+      }
       if (active) setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
-      await refreshProfile(nextSession?.user?.id ?? null);
-      setLoading(false);
+      try {
+        await refreshProfile(nextSession?.user?.id ?? null);
+      } catch (err) {
+        console.warn("profile load on auth change failed, continuing signed in without it:", err.message);
+      }
+      if (active) setLoading(false);
     });
 
     return () => {
@@ -175,11 +198,18 @@ export function AuthProvider({ children }) {
   //
   // Metadata is the only channel available: the client has no write access to the
   // `identity` schema and must not have any.
+  // Found live, 2026-09-11: unlike signInWithOtp()/signInWithOAuth() right below, this
+  // never passed emailRedirectTo -- so the confirmation link Supabase emails always fell
+  // back to the project's own dashboard-configured "Site URL" instead of wherever the
+  // signup actually happened. Harmless whenever that setting happens to already match the
+  // app's own origin; a genuine dead end (a real customer's confirmation link landing on
+  // "localhost refused to connect") the moment it doesn't -- exactly the failure mode this
+  // fix closes, matching the pattern its two siblings already got right.
   const signUp = async (email, password, fullName) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName || null, ...newAccountProvisioningIds() } },
+      options: { emailRedirectTo: window.location.origin, data: { full_name: fullName || null, ...newAccountProvisioningIds() } },
     });
     if (error) throw error;
     return { needsEmailConfirmation: !data.session };

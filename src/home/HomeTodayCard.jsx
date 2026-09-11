@@ -5,13 +5,22 @@
 // and the honest onboarding state is what shows when the account really has nothing
 // pending — an empty card that says "you have nothing" would be true and useless,
 // while a fabricated reminder would be useful-looking and false.
-import { ChevronRight, CalendarCheck, FileText, Clock, Star, Sparkles } from "lucide-react";
+import { ChevronRight, CalendarCheck, FileText, Clock, Star, Sparkles, MapPin } from "lucide-react";
 import { interpolate } from "../lib/homeStrings.js";
 
 // One entry per kind returned by pickTodayItem. Icons are Lucide only
 // (MASTER_CONTEXT.md §17: never mix icon families).
+//
+// Found by code audit: accepted_pending_location_approval had no entry here -- a
+// request genuinely stalled on the customer's own next tap (RequestDetailSheet.jsx's
+// own disclosure-approval card) rendered nothing on this card at all. amber, not
+// forest, matching quotes_ready's own tone: both are "your move" states
+// (requestStatus.js's awaitingDecisionCount() already groups them), unlike booked/
+// awaiting_pro/collecting, which are all waiting on someone else. MapPin matches the
+// disclosure card's own icon (RequestDetailSheet.jsx).
 const KIND_COPY = {
   quotes_ready: { titleKey: "todayQuotesTitle", bodyKey: "todayQuotesBody", icon: FileText, tone: "amber" },
+  accepted_pending_location_approval: { titleKey: "todayLocationApprovalTitle", bodyKey: "todayLocationApprovalBody", icon: MapPin, tone: "amber" },
   booked: { titleKey: "todayBookedTitle", bodyKey: "todayBookedBody", icon: CalendarCheck, tone: "forest" },
   awaiting_pro: { titleKey: "todayAwaitingTitle", bodyKey: "todayAwaitingBody", icon: Clock, tone: "forest" },
   collecting: { titleKey: "todayCollectingTitle", bodyKey: "todayCollectingBody", icon: Clock, tone: "forest" },

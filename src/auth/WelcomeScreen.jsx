@@ -17,6 +17,7 @@ import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { EmailAuthSheet } from "./EmailAuthSheet.jsx";
 import { AppleIcon, GoogleIcon, MicrosoftIcon, FacebookIcon } from "./ProviderIcons.jsx";
+import { authErrorLabelKey } from "../lib/authErrors.js";
 
 export function WelcomeScreen() {
   const { t } = useLang();
@@ -29,7 +30,12 @@ export function WelcomeScreen() {
     try {
       await signInWithOAuth(provider);
     } catch (err) {
-      setOauthError(err.message);
+      // A raw err.message here is raw, English-only GoTrue text (today, always
+      // "provider is not enabled" -- every provider is genuinely unconfigured, see
+      // authErrors.js's own header) on the very first screen of the app, in every
+      // locale. Same fix as EmailAuthSheet.jsx's own catch blocks: a real, localized,
+      // still-specific message from error.code, never error.message.
+      setOauthError(t[authErrorLabelKey(err)]);
     }
   };
 

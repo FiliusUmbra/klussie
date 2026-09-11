@@ -49,6 +49,7 @@ import {
 import { suggestItemDetailsFromDocument, DOCUMENT_UNREADABLE } from "../lib/documentUnderstanding.js";
 import { flattenLocationsForPicker, resolveItemRoomName } from "../lib/homeInventory.js";
 import { interpolate } from "../lib/homeStrings.js";
+import { isPastLocalDate } from "../lib/dates.js";
 
 // Document Understanding slice — maps the suggestion tool's own field names
 // (api/suggest-item-details.js's SUGGEST_TOOL) to the asset field updateAsset() expects,
@@ -155,7 +156,11 @@ function WarrantyLine({ t, fmtDate, warrantyExpiresOn }) {
       </span>
     );
   }
-  const expired = new Date(warrantyExpiresOn) < new Date();
+  // Found by code audit, 2026-09-11: this used to be
+  // `new Date(warrantyExpiresOn) < new Date()` -- see lib/dates.js's own header for why
+  // comparing a date-only value to "now" as an instant reads a warranty as expired for
+  // most of the actual day it expires.
+  const expired = isPastLocalDate(warrantyExpiresOn);
   return (
     <span className="property-fact">
       {expired ? <ShieldAlert size={13} aria-hidden="true" /> : <ShieldCheck size={13} aria-hidden="true" />}
@@ -177,7 +182,7 @@ function MoveItemModal({ t, rooms, currentLocationId, busy, error, onCancel, onC
   const options = flattenLocationsForPicker(rooms || []);
   const [locationId, setLocationId] = useState(currentLocationId || "");
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailMoveTitle}</div>
       <label className="field-label" htmlFor="item-move-room">{t.itemRoomLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
@@ -222,7 +227,7 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfir
   const [recurrence, setRecurrence] = useState(RECURRENCE_OPTIONS[1].value);
   const canSave = !!title.trim() && !!dueOn;
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailAddMaintenanceAction}</div>
       <div className="chiprow" style={{ marginBottom: 14 }}>
         <button type="button" className={"chip" + (mode === "once" ? " chip-on" : "")} onClick={() => setMode("once")}>
@@ -298,7 +303,7 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfir
 // be undone (work.cancel_maintenance_schedule()'s own comment, 0074).
 function StopScheduleModal({ t, busy, error, onCancel, onConfirm }) {
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailScheduleStopAction}</div>
       <p style={{ marginTop: 8 }}>{t.itemDetailScheduleStopConfirm}</p>
       {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{error}</div>}
@@ -317,7 +322,7 @@ function StopScheduleModal({ t, busy, error, onCancel, onConfirm }) {
 function CancelMaintenanceModal({ t, busy, error, onCancel, onConfirm }) {
   const [reason, setReason] = useState("");
   return (
-    <Modal onClose={onCancel}>
+    <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailMaintenanceCancelTask}</div>
       <label className="field-label" htmlFor="maintenance-cancel-reason">{t.itemDetailMaintenanceCancelReasonLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
@@ -672,7 +677,7 @@ export function ItemDetailSheet({
   const citedSources = groundedIn.map((source) => GROUND_SOURCE_LABELS[source]).filter(Boolean);
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{item.name}</div>
 
       <div className="item-detail-photo">
@@ -831,7 +836,15 @@ export function ItemDetailSheet({
             <li key={schedule.id} className="maintenance-row-item">
               <div className="maintenance-row">
                 <span className="maintenance-row-title">
-                  <Repeat size={12} aria-hidden="true" style={{ marginRight: 4, verticalAlign: "-1px" }} />
+                  {/* Found by code audit, 2026-09-11: marginRight was physical, and
+                      unlike ServiceLocationField.jsx's own .chip icons above, nothing
+                      else here provides a gap as a fallback (.maintenance-row-title has
+                      no flex/gap of its own, unlike myHomeParts.jsx's own .property-fact
+                      -- display:inline-flex; gap:var(--space-1) -- the established
+                      pattern for this exact "icon before text" shape) -- for an Arabic/
+                      Persian reader this icon and the task title sat flush against each
+                      other with no gap at all, not just a gap on the wrong side. */}
+                  <Repeat size={12} aria-hidden="true" style={{ marginInlineEnd: 4, verticalAlign: "-1px" }} />
                   {schedule.title}
                 </span>
                 <span className="maintenance-row-due">{interpolate(t.myItemsMaintenanceDueOn, { date: fmtDate(schedule.nextDueOn) })}</span>
@@ -891,7 +904,7 @@ export function ItemDetailSheet({
       </div>
 
       {suggestDoc && (
-        <Modal onClose={closeSuggest}>
+        <Modal onClose={closeSuggest} closeLabel={t.closeBtn}>
           <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailSuggestTitle}</div>
           {suggestLoading ? (
             <p className="home-group-empty">{t.myItemsLoading}</p>
@@ -949,7 +962,7 @@ export function ItemDetailSheet({
       )}
 
       {confirmRetire && (
-        <Modal onClose={() => setConfirmRetire(false)}>
+        <Modal onClose={() => setConfirmRetire(false)} closeLabel={t.closeBtn}>
           <p style={{ marginTop: 8 }}>{t.itemDetailRetireConfirm}</p>
           {retireError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{retireError}</div>}
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>

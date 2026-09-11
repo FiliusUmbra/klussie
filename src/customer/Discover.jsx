@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Search, MapPin, ChevronRight, Sparkles } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { ServiceCard } from "../design-system";
+import { interpolate } from "../lib/homeStrings.js";
 
 export function Discover({ onOpenService, onOpenAiIntake }) {
   const { t, fmt, catName, serviceInfo, CATS, BASE_SERVICES } = useLang();
@@ -52,6 +53,7 @@ export function Discover({ onOpenService, onOpenAiIntake }) {
               certifiedLabel={t.certifiedOnlyBadge}
               proCountLabel={`${fmt(s.pros)} ${t.prosSuffix}`}
               rating={s.rating}
+              ratingLabel={interpolate(t.ratingLabel, { value: s.rating })}
               ctaVariant={s.mode === "book" ? "book" : "quote"}
               ctaLabel={s.mode === "book" ? t.serviceBookNow : t.serviceGetQuotes}
               onClick={() => onOpenService(s)}

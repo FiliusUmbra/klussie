@@ -10,7 +10,7 @@ export const APP_CSS = `
 
 :root{
   --forest:#1F4D3A; --forest-dark:#163828; --sage:#8FB996; --sage-bg:#E7F0E5;
-  --paper:#EFEEE6; --surface:#FFFFFF; --amber:#E8A33D; --amber-bg:#FBEBD2;
+  --paper:#EFEEE6; --surface:#FFFFFF; --amber:#E8A33D; --amber-dark:#8a5c14; --amber-bg:#FBEBD2;
   --ink:#16231C; --ink-soft:#5B6B60; --ink-faint:#8B978D; --line:rgba(22,35,28,0.10); --line-strong:rgba(22,35,28,0.28);
   --line-soft:rgba(22,35,28,0.06);
   --shadow-card:0 1px 2px rgba(31,77,58,0.05), 0 2px 10px rgba(31,77,58,0.06);
@@ -30,7 +30,7 @@ export const APP_CSS = `
 .segmented .seg-on{ background:var(--surface); color:var(--forest); }
 .lang-switch{ display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); border-radius:999px; padding:5px 12px; }
 .lang-switch svg{ color:#c9d6cd; }
-.lang-switch select{ background:none; border:none; color:#fff; font-size:12.5px; font-weight:600; font-family:var(--font-body); cursor:pointer; outline:none; }
+.lang-switch select{ background:none; border:none; color:#fff; font-size:12.5px; font-weight:600; font-family:var(--font-body); cursor:pointer; }
 .lang-switch select option{ color:#111; }
 /* Same control, rendered against a light page background (Profile screens) rather than
    the dark topbar — see LanguageSwitcher.jsx's own header for why it needs to render
@@ -76,7 +76,7 @@ export const APP_CSS = `
 .pin{ display:flex; align-items:center; gap:4px; font-size:11.5px; color:var(--forest); background:var(--sage-bg); padding:5px 9px; border-radius:999px; white-space:nowrap; }
 
 .search{ display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:11px 13px; margin-bottom:14px; }
-.search input{ border:none; outline:none; background:none; font-size:13.5px; width:100%; font-family:var(--font-body); color:var(--ink); }
+.search input{ border:none; background:none; font-size:13.5px; width:100%; font-family:var(--font-body); color:var(--ink); }
 
 .chiprow{ display:flex; gap:8px; overflow-x:auto; padding-bottom:14px; margin-bottom:2px; }
 .chiprow::-webkit-scrollbar{ display:none; }
@@ -107,7 +107,7 @@ export const APP_CSS = `
 .svc-meta{ font-size:11px; color:var(--ink-soft); margin-bottom:3px; }
 .svc-rating{ display:flex; align-items:center; gap:4px; font-size:11px; color:var(--ink-soft); margin-bottom:10px; }
 .svc-cta{ font-size:11.5px; font-weight:700; padding:6px 0; text-align:center; border-radius:8px; }
-.cta-quote{ background:var(--amber-bg); color:#8a5c14; }
+.cta-quote{ background:var(--amber-bg); color:var(--amber-dark); }
 .cta-book{ background:var(--sage-bg); color:var(--forest-dark); }
 .empty{ grid-column:1/-1; color:var(--ink-soft); font-size:13px; padding:20px 0; text-align:center; }
 
@@ -119,7 +119,7 @@ export const APP_CSS = `
 .badge{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; white-space:nowrap; }
 .badge-sage{ background:var(--sage-bg); color:var(--forest-dark); }
 .badge-forest{ background:var(--forest); color:#fff; }
-.badge-amber{ background:var(--amber-bg); color:#8a5c14; }
+.badge-amber{ background:var(--amber-bg); color:var(--amber-dark); }
 
 .ticket{ position:relative; width:100%; display:block; text-align:start; background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:16px; margin-bottom:14px; cursor:pointer; font-family:var(--font-body); overflow:hidden; }
 .tear{ height:1px; background:var(--line-soft); }
@@ -129,7 +129,22 @@ export const APP_CSS = `
 .ticket-sub{ font-size:11.5px; color:var(--ink-soft); }
 .ticket-divider{ border-top:1.5px dashed var(--line-strong); margin:11px 0; }
 .ticket-foot{ display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft); }
-.waiting{ display:flex; align-items:center; gap:5px; color:var(--amber); font-weight:600; }
+/* Found by a later audit, 2026-09-11: a "this card leads forward" chevron, same
+   meaning as myHomeParts.jsx's own .timeline-card-chevron (which does get flipped) —
+   this one never did. Only RequestsList.jsx's own JobCard footer uses this; ProDashboard.jsx's
+   own JobCard footer is a real button, not a chevron, so this stays scoped to a class
+   rather than a structural .ticket-foot > svg:last-child selector that would reach
+   further than intended if a future footer ever ends in an unrelated icon. */
+.ticket-foot-chevron{ flex-shrink:0; }
+[dir="rtl"] .ticket-foot-chevron{ transform:scaleX(-1); }
+/* --amber-dark, not the bare --amber ACCESSIBILITY.md's own audit named as unchecked:
+   #E8A33D on #FFFFFF/#EFEEE6 is ~2.16:1, nowhere near the 4.5:1 normal-text floor --
+   the exact --ink-faint class of bug that audit already found and fixed once. --amber
+   itself stays defined (still a valid large-scale/decorative accent) but every place
+   below that puts amber pixels directly under text or a small icon now uses the darker,
+   already-verified pair instead -- the same #8a5c14 .cta-quote/.badge-amber already
+   proved passes at ~5:1, now a real token. See DESIGN_TOKENS.md and ACCESSIBILITY.md. */
+.waiting{ display:flex; align-items:center; gap:5px; color:var(--amber-dark); font-weight:600; }
 
 .empty-block{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; color:var(--ink-soft); font-size:13px; padding:34px 14px; background:var(--surface); border:1px dashed var(--line-strong); border-radius:16px; }
 
@@ -170,7 +185,10 @@ export const APP_CSS = `
 .tab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:44px; gap:3px; background:none; border:none; font-size:10px; color:var(--ink-soft); font-family:var(--font-body); font-weight:600; cursor:pointer; }
 .tab-on{ color:var(--forest); }
 .tab-icon-wrap{ position:relative; }
-.tab-badge{ position:absolute; top:-5px; right:-8px; background:var(--amber); color:#fff; font-size:9px; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+/* --amber-dark, not --amber: white text on #E8A33D is ~2.16:1, failing even at this
+   badge's own bold weight -- the unread count itself is real text (a number), not
+   decoration, so the 4.5:1 floor applies. #8a5c14 gets white text to ~5.8:1. */
+.tab-badge{ position:absolute; top:-5px; right:-8px; background:var(--amber-dark); color:#fff; font-size:9px; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
 
 .sheet-overlay{ position:absolute; inset:0; background:rgba(13,21,18,0.45); display:flex; align-items:flex-end; z-index:20; }
 .sheet{ position:relative; width:100%; max-height:88%; background:var(--paper); border-radius:24px 24px 0 0; padding:10px 20px 26px; box-shadow:0 -10px 30px rgba(0,0,0,0.2); }
@@ -205,26 +223,44 @@ export const APP_CSS = `
 .chat-scroll{ display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; padding:4px 2px 14px; }
 .chat-empty-state{ text-align:center; color:var(--ink-soft); font-size:13px; padding:24px 12px; margin:0; }
 .chat-bubble{ max-width:78%; padding:9px 13px; border-radius:16px; font-size:13px; line-height:1.45; }
-.chat-bubble-them{ align-self:flex-start; background:var(--surface); border:1px solid var(--line); color:var(--ink); border-bottom-left-radius:4px; }
-.chat-bubble-me{ align-self:flex-end; background:var(--forest); color:#fff; border-bottom-right-radius:4px; }
+/* Found by code audit, 2026-09-11: border-bottom-left/-right-radius, physical -- the
+   bubble's own tail (the sharp corner pointing toward the edge it hugs) already follows
+   reading direction via align-self:flex-start/flex-end, which is logical, but its corner
+   radius didn't: for an Arabic or Persian reader, a them-bubble correctly moves to the
+   right side of the thread while its sharp corner stayed pinned to the visual bottom-
+   left -- now on the far side, pointing away from the edge the bubble actually sits
+   against. border-end-start/-end-end-radius (block-end + inline-start/-end) follow the
+   same align-self flip automatically. */
+.chat-bubble-them{ align-self:flex-start; background:var(--surface); border:1px solid var(--line); color:var(--ink); border-end-start-radius:4px; }
+.chat-bubble-me{ align-self:flex-end; background:var(--forest); color:#fff; border-end-end-radius:4px; }
 .chat-translate-toggle{ display:block; margin-top:4px; padding:0; border:none; background:none; cursor:pointer; font-family:var(--font-body); font-size:11px; color:var(--ink-soft); text-decoration:underline; }
 .chat-bubble-them .chat-translate-toggle{ color:var(--ink-soft); }
 .chat-input-row{ display:flex; gap:8px; align-items:center; }
-.chat-input-row input{ flex:1; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); outline:none; }
-/* 38x38px, below the 44x44px minimum (docs/design/ACCESSIBILITY.md) -- and, unlike
-   .sheet-close/.modal-close, hit-slop genuinely cannot fix it here. Tried the same
-   pseudo-element technique live, 2026-08-28: this button lives inside a Drawer's own
-   .sheet-scroll (overflow-y:auto), and CSS's own overflow spec forces overflow-x to
-   compute as "auto" too whenever the other axis isn't "visible" -- explicitly setting
-   overflow-x:visible on .sheet-scroll does not override this; the browser coerces it
-   back, confirmed against the real computed style, not just the source. A hit-slop
-   pseudo-element bleeding outside this button's own box is clipped by that same
-   computed overflow, same as any other content would be. A real fix exists (move
-   .chat-input-row outside Drawer's scrolling children) but is a structural change to
-   every conversation sheet in the app, not a touch-target tweak -- named here rather
-   than attempted under this pass's scope, the same restraint this file's own
-   .photo-remove-btn comment already uses. */
-.chat-input-row button{ width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+.chat-input-row input{ flex:1; border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:999px; padding:11px 15px; font-size:13px; font-family:var(--font-body); color:var(--ink); }
+/* Was 38x38px, below the 44x44px minimum (docs/design/ACCESSIBILITY.md) -- and,
+   unlike .sheet-close/.modal-close, hit-slop genuinely couldn't fix it here (tried
+   live, 2026-08-28: this button lives inside a Drawer's own .sheet-scroll
+   (overflow-y:auto), and CSS's own overflow spec forces overflow-x to compute as
+   "auto" too whenever the other axis isn't "visible" -- a hit-slop pseudo-element
+   bleeding outside this button's own box got clipped by that same computed overflow).
+   Closed 2026-09-08 a different way: grown to a real 44x44px box instead of an
+   invisible hit-slop extension -- sidesteps the clipping problem entirely, since
+   nothing bleeds outside the button's own bounds for the ancestor's overflow to clip.
+   A visibly larger send button reads as more, not less, tappable, unlike the small
+   utility icons (.sheet-close/.photo-remove-btn) hit-slop was chosen for instead. */
+.chat-input-row button{ width:44px; height:44px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+/* Found by a later audit, 2026-09-11, in the same pass that found the .conv-textrow-send
+   gap: Send (lucide-react) is a paper plane pointing toward where the message is headed
+   -- the same "leads forward" meaning as a chevron, and ConversationSheet.jsx's own
+   button here has exactly one child icon, so svg (not a class) safely and unambiguously
+   targets it. Every real conversation in the app (customer<->pro messaging) goes through
+   this one button. */
+[dir="rtl"] .chat-input-row button svg{ transform:scaleX(-1); }
+/* Same icon, same meaning, two more real call sites (AiIntakeSheet.jsx's own final
+   submit, SendQuoteSheet.jsx's own quote send) -- both render Send inside a shared
+   .btn-primary alongside other, unrelated buttons/icons, so a dedicated class is what
+   keeps this scoped to just these two rather than reaching every .btn-primary icon. */
+[dir="rtl"] .send-icon{ transform:scaleX(-1); }
 
 .avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
 .avatar-upload-row{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
@@ -288,7 +324,10 @@ export const APP_CSS = `
   width:38px; height:38px; border-radius:50%; background:var(--forest); color:#fff;
   display:flex; align-items:center; justify-content:center; margin-bottom:var(--space-1);
 }
-.conv-action-photo .conv-action-glyph{ background:var(--amber); }
+/* --amber-dark, not --amber: this circle carries a white icon that identifies the
+   action (camera vs. mic) -- a meaningful graphic, not decoration, so it needs the
+   3:1 non-text floor at minimum; #E8A33D only gets ~2.16:1. */
+.conv-action-photo .conv-action-glyph{ background:var(--amber-dark); }
 /* Two lines are reserved whether or not the title needs them, so the two tiles' subtitles
    sit on the same baseline in every locale. Without this the layout depends on string
    length: Dutch "Vertel het me gewoon" wraps while "Laat het me zien" doesn't, and the
@@ -302,7 +341,21 @@ export const APP_CSS = `
    interactive element be keyboard-reachable, and reachable-but-invisible does not meet
    it. Global rather than scoped to this epic's components — the gap is app-wide, and
    fixing only the new screens would leave the rest inconsistent.
-   :focus-visible, so it appears for keyboard use without ringing on every mouse click. */
+   :focus-visible, so it appears for keyboard use without ringing on every mouse click.
+
+   Found by a later audit, 2026-09-11: this rule alone did not actually close the gap.
+   A handful of element-scoped resets written before this rule existed each have higher
+   (or, for .conv-textrow-input below, equal-but-later) CSS specificity than a bare
+   :focus-visible selector, so their own outline:none silently kept winning the cascade
+   regardless of what this rule says — .search input (nearly every single-line text
+   field in the app), .lang-switch select, .chat-input-row input, .conv-textrow-input
+   (the homepage's own message composer) and homeStyles.js's own .seg-tabpanel:focus (a
+   real, keyboard-focusable scroll region, TabPanel's own tabIndex={0}) all still
+   computed outline:none on focus, exactly the invisible-but-reachable failure this
+   comment already names. Fixed by removing each one's own outline:none rather than by
+   raising this rule's specificity — deleting the local override is what lets the single
+   global rule actually govern every interactive element, matching this comment's own
+   stated intent instead of merely stating it. */
 :focus-visible{ outline:2px solid var(--forest); outline-offset:2px; border-radius:4px; }
 
 /* Available to any component needing a label that screen readers get and sighted users
@@ -319,8 +372,15 @@ export const APP_CSS = `
 .conv-textrow{
   display:flex; align-items:center; gap:var(--space-2); width:100%;
   background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card);
-  border-radius:999px; padding:0 var(--space-2) 0 var(--space-4);
-  text-align:left; min-height:44px;
+  border-radius:999px;
+  /* Found by code audit, 2026-09-11: physical padding/left align, unlike .ai-intake-cta's
+     own text-align:start right below this file -- silently un-mirrored for an Arabic or
+     Persian reader, whose own typed text in this exact composer pill stayed left-aligned
+     with the roomier inset on the wrong side. Logical properties self-resolve off the
+     dir attribute itself, no [dir="rtl"] override needed the way an icon
+     transform:scaleX(-1) does. */
+  padding-block:0; padding-inline-end:var(--space-2); padding-inline-start:var(--space-4);
+  text-align:start; min-height:44px;
   transition:box-shadow var(--motion-base);
 }
 .conv-textrow:focus-within{ box-shadow:0 3px 14px rgba(31,77,58,0.10); }
@@ -328,7 +388,7 @@ export const APP_CSS = `
    16px band inside it. The pill reads as one tap target; before this, a tap on its
    vertical padding — most of its area — landed on the form and focused nothing. */
 .conv-textrow-input{
-  flex:1; min-width:0; align-self:stretch; border:none; background:none; outline:none;
+  flex:1; min-width:0; align-self:stretch; border:none; background:none;
   font-family:inherit; font-size:13px; color:var(--ink); padding:0;
 }
 .conv-textrow-input::placeholder{ color:var(--ink-soft); }
@@ -344,6 +404,12 @@ export const APP_CSS = `
 .conv-textrow-send::after{ content:""; position:absolute; inset:-6px; border-radius:50%; }
 /* Disabled rather than erroring on an empty draft — nothing to say yet isn't a mistake. */
 .conv-textrow-send:disabled{ opacity:0.4; cursor:default; }
+/* Found by a later audit, 2026-09-11, while fixing the three sibling "leads forward"
+   chevron gaps this same pass found: KlussiePanel.jsx's own icon={<ChevronRight/>} here
+   IS the send button for the whole homepage composer -- its own icon prop has exactly
+   one real caller, so svg (not a class) safely and unambiguously targets it. Same bug,
+   same fix, one screen every message send action on the app actually goes through. */
+[dir="rtl"] .conv-textrow-send svg{ transform:scaleX(-1); }
 
 /* ---- booking + relief (Epic 03, WP9 / ADR-0012) ---- */
 .conv-actions-row{ display:flex; flex-direction:column; gap:var(--space-2); }
@@ -394,21 +460,30 @@ export const APP_CSS = `
 .conv-recap{
   align-self:flex-start; max-width:85%; background:var(--forest); color:#fff;
   font-size:13px; line-height:1.45; padding:var(--space-2) var(--space-3);
-  border-radius:13px; border-bottom-left-radius:4px;
+  /* Same tail-corner fix as .chat-bubble-them just above -- this bubble sits at the
+     start edge too (align-self:flex-start), so its own sharp corner needs the same
+     border-end-start-radius to keep pointing at the edge it actually hugs once that
+     edge is the right, not the left, for an Arabic/Persian reader. */
+  border-radius:13px; border-end-start-radius:4px;
 }
 .conv-thinking{ display:flex; align-items:center; gap:var(--space-2); font-size:12.5px; color:var(--ink-soft); }
 /* --ink, not the --amber-text the HTML prototypes used: that token has never existed in
    this codebase's :root, so referencing it silently fell back to an inherited grey at
    roughly 2.2:1 on the amber tint. Same undefined-token trap DESIGN_TOKENS.md's audit
    has now caught three times. --ink on --amber-bg is ~14:1. */
-.conv-understanding-line{ font-size:13px; font-weight:600; color:var(--ink); text-align:left; }
-.conv-recap{ text-align:left; }
+/* Found by code audit, 2026-09-11: these three (this line's own selector plus
+   .conv-recap/.conv-pro right below) used text-align:left, not the :start this same
+   file already establishes for .ai-intake-cta -- silently unmirrored for Arabic/Persian,
+   whose own recap of what they typed, and the AI's own read of it, stayed pinned to the
+   visual left in a right-to-left layout instead of following reading direction. */
+.conv-understanding-line{ font-size:13px; font-weight:600; color:var(--ink); text-align:start; }
+.conv-recap{ text-align:start; }
 .conv-continue{ margin-top:var(--space-1); }
 
 /* ---- professional recommendation (Epic 03, WP8) ---- */
 /* text-align is inherited as centre from .view app-wide; the greeting and trust strip
    want that, this card's content does not. */
-.conv-pro{ display:flex; flex-direction:column; gap:var(--space-3); text-align:left; }
+.conv-pro{ display:flex; flex-direction:column; gap:var(--space-3); text-align:start; }
 .conv-pro-top{ display:flex; align-items:center; gap:var(--space-3); }
 .conv-pro-meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .conv-pro-name{ display:flex; align-items:center; gap:var(--space-2); font-size:14px; font-weight:700; color:var(--ink); }
@@ -479,7 +554,11 @@ export const APP_CSS = `
   gap:var(--space-1) var(--space-2); list-style:none; margin:var(--space-1) 0 0; padding:0;
 }
 .trust-strip-item{ font-size:11px; color:var(--ink-soft); }
-.trust-strip-item + .trust-strip-item::before{ content:"·"; color:var(--line-strong); margin-right:var(--space-2); }
+/* Found by code audit, 2026-09-11: margin-right, physical -- the separator dot sat on
+   the wrong side of each trust-strip item for an Arabic/Persian reader, since the item
+   it visually separates from is the next one in READING order, not the next one to the
+   right. margin-inline-end always means "toward the next item," in either direction. */
+.trust-strip-item + .trust-strip-item::before{ content:"·"; color:var(--line-strong); margin-inline-end:var(--space-2); }
 
 @media (prefers-reduced-motion: reduce){
   .conv-action, .conv-textrow{ transition:none; }
@@ -498,7 +577,10 @@ export const APP_CSS = `
 @keyframes ai-spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
 .ai-analysis-summary{ background:var(--amber-bg); border-radius:10px; padding:10px 12px; margin:8px 0; }
 .ai-analysis-header{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--forest); margin-bottom:6px; }
-.ai-analysis-summary ul{ margin:4px 0 0; padding-left:18px; }
+/* Found by code audit, 2026-09-11: padding-left, physical -- the bullet indent sat on
+   the wrong side of the list for an Arabic/Persian reader, whose own list markers belong
+   at the START of each line (the right, in RTL), not hardcoded to the left. */
+.ai-analysis-summary ul{ margin:4px 0 0; padding-inline-start:18px; }
 .ai-analysis-summary li{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
 
 /* ---- motion: subtle, purposeful, fast — see docs/design/DESIGN_SYSTEM.md ---- */
@@ -527,7 +609,10 @@ button.ds-card{ cursor:pointer; }
 .timeline-step.timeline-done:not(:last-child)::after{ background:var(--forest); }
 .timeline-dot{ width:11px; height:11px; border-radius:50%; background:var(--surface); border:2px solid var(--line-strong); z-index:1; }
 .timeline-step.timeline-done .timeline-dot{ background:var(--forest); border-color:var(--forest); }
-.timeline-step.timeline-active .timeline-dot{ background:var(--amber); border-color:var(--amber); }
+/* --amber-dark, not --amber: this dot is a real status indicator (which step is
+   active), so WCAG 1.4.11's 3:1 non-text floor applies against the white track it
+   sits on -- #E8A33D only reaches ~2.16:1 there. */
+.timeline-step.timeline-active .timeline-dot{ background:var(--amber-dark); border-color:var(--amber-dark); }
 .timeline-label{ font-size:10.5px; color:var(--ink-soft); margin-top:6px; max-width:70px; line-height:1.3; }
 .timeline-step.timeline-done .timeline-label{ color:var(--ink-soft); }
 .timeline-step.timeline-active .timeline-label{ color:var(--ink); font-weight:600; }

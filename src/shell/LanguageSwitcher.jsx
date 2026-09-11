@@ -15,12 +15,15 @@ import { Globe } from "lucide-react";
 import { useLang } from "../lib/lang";
 
 export function LanguageSwitcher({ light = false }) {
-  const { langCode, setLangCode, LANGS } = useLang();
+  const { t, langCode, setLangCode, LANGS } = useLang();
 
   return (
     <div className={light ? "lang-switch lang-switch-light" : "lang-switch"}>
       <Globe size={13} />
-      <select value={langCode} onChange={(e) => setLangCode(e.target.value)} aria-label="Language">
+      {/* Found by code audit: hardcoded English "Language" -- on the one control whose
+          whole purpose is switching language, a non-English-speaking user's screen
+          reader named it in English regardless of which locale they'd already picked. */}
+      <select value={langCode} onChange={(e) => setLangCode(e.target.value)} aria-label={t.languageSwitcherLabel}>
         {LANGS.map((l) => (
           <option key={l.code} value={l.code}>{l.label}</option>
         ))}

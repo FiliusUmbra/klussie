@@ -48,34 +48,96 @@ Almost everything interactive is a real `<button>`, `<input>`, or
 Tab/Enter/Space work by default without special handling. Two real gaps,
 not fixed here:
 
-- **No focus trap in `Drawer` or `Modal`.** Both now close on `Escape`,
-  but while open, `Tab` can still move focus to elements behind the
-  overlay. This is a genuinely non-trivial fix (a real focus-trap
-  implementation, not a one-line addition) — named here as the clearest
-  next task for this document, not attempted in this pass.
-- **No visible focus-ring audit performed.** Browsers supply a default
-  focus outline, but nothing in `src/App.jsx` confirms it's never
-  suppressed (a stray `outline:none` without a replacement would be
-  invisible in a `grep` for this pass's scope) — flagged for a dedicated
-  pass, not checked exhaustively here.
+- **Focus trap — closed 2026-09-08, `overlays.jsx`'s own `useFocusTrap()`.**
+  Both close on `Escape` and now trap `Tab`/`Shift+Tab` inside the open
+  dialog, focus the panel on open (the close button, in practice — it's
+  the first focusable element in both), and restore focus to whatever
+  was focused before the dialog opened, once it closes. Found live: the
+  shared hook's own header already claimed both overlays used it, and
+  `Modal` genuinely did — but `Drawer`, the far more heavily used of the
+  two (every sheet in the app; `Modal` is only the two delete
+  confirmations and the onboarding tour), never actually called it.
+  Closing this needed no new implementation, only wiring the existing
+  hook into `Drawer` the same way `Modal` already had it — see
+  `overlays.test.jsx` for the regression coverage neither overlay had
+  before.
+- **Visible focus-ring audit — closed 2026-09-11.** The gap flagged here
+  was real: `appStyles.js`'s own global `:focus-visible{ outline:2px
+  solid var(--forest); }` rule (added for Epic 03's WP11 audit, see the
+  Keyboard navigation section above) was never actually reaching several
+  of the app's most common interactive elements. `.search input`
+  (nearly every single-line text field in the product), `.lang-switch
+  select`, `.chat-input-row input`, `.conv-textrow-input` (the
+  homepage's own message composer), and `homeStyles.js`'s own
+  `.seg-tabpanel:focus` (a real, keyboard-focusable scroll region —
+  `TabPanel`'s own `tabIndex={0}`) each carried their own `outline:none`
+  from before the global rule existed, and each has equal-or-higher CSS
+  specificity than a bare `:focus-visible` selector — so the local reset
+  silently kept winning the cascade regardless of the global rule's own
+  intent. Fixed by deleting each local override rather than by raising
+  the global rule's specificity, which is what actually lets one rule
+  govern every interactive element as originally intended. See
+  `cssFocusVisibility.test.js` for the regression coverage this gap had
+  none of before.
 
 ## Screen reader
 
 Fixed this pass: see the table above. Two real gaps remain, deliberately
 not fixed here because each needs more than a label:
 
-- **`aria-label`s in this codebase are hardcoded English, never
-  localized** — including the ones just added, and the pre-existing ones
-  on `Modal`. A screen-reader user on the `ar`, `fr`, or `zh` locale hears
-  "Close" and "Remove photo" in English while every other word on screen
-  is translated. Real, consistent with the rest of the app's localization
-  effort not yet reaching this layer — flagged as a real task (add these
-  to `STRINGS` across all 10 locales, the same pattern used for every
-  other piece of copy in the app), not solved by hardcoding yet more
-  English strings in this pass.
-- **No live-region announcements exist** for async state changes (a quote
-  arriving, a request status changing) — a screen-reader user gets no
-  notification unless they happen to be focused on the changed content.
+- **`Drawer`/`Modal`'s own close button — closed 2026-09-08, corrected
+  2026-09-11.** Every ordinary sheet in the app (EditProfileSheet,
+  ItemFormSheet, ReportSheet, AiIntakeSheet, ConversationSheet,
+  RequestDetailSheet, 20+ more) now passes its own real `t.closeBtn`
+  (new key, all 10 locales) as `closeLabel`, rather than relying on
+  `overlays.jsx`'s own hardcoded `"Close"` default. That default itself
+  is deliberately kept — it is the correct, real answer for the operator
+  tool's own two sheets (`CaseDetailSheet`/`SupportAccessSheet`), which
+  have no `t`/i18n context at all and are English-only by design.
+  **The "every" above overclaimed:** `QuoteFormSheet.jsx` and
+  `ServiceSheet.jsx` were both missed by that pass — found by a later
+  audit and fixed 2026-09-11, alongside the "Remove photo" correction
+  below.
+- **`AiIntakeSheet.jsx`'s own photo-remove button — closed 2026-09-08.**
+  Hardcoded `aria-label="Remove photo"`, even though its two sibling
+  buttons (`ItemFormSheet.jsx`, `ServiceRecordEditorSheet.jsx`) already
+  used the real, existing `t.itemPhotoRemove` — this one simply never
+  did. Wired to the same key, no new string needed.
+- **`LanguageSwitcher.jsx`'s own `aria-label="Language"` — also closed
+  2026-09-08.** The one control whose entire purpose is switching
+  language had a screen reader announce it in English regardless of
+  which locale a person had already picked — the most on-the-nose
+  instance of this whole category of gap. New key, `languageSwitcherLabel`,
+  all 10 locales.
+- **A full grep of every `aria-label="literal string"` in `src/` was run
+  closing the 2026-09-08 pass** — the three above were logged as the
+  only real, reachable ones found, with `QuoteFormSheet.jsx`'s own
+  identical "Remove photo" explicitly left unfixed on purpose as dead,
+  unreachable code (`CustomerApp.jsx`'s own header: no live trigger sets
+  `activeService`/`quoteForm` today). **Revisited and fixed anyway,
+  2026-09-11:** dead code today is not dead code forever — this surface
+  stays in the codebase specifically because no agreed replacement exists
+  yet, not because it is slated for removal, so a trivial, already-proven
+  fix (the same `t.itemPhotoRemove` swap, verbatim) was worth making now
+  rather than leaving a known bug for whoever reconnects it later to
+  rediscover. `AuditLog.jsx`/`WorkspaceLookup.jsx`'s own hardcoded labels
+  remain correctly untouched — the operator tool's own, genuinely
+  English-only by design, no `t`/i18n context to localize with. This
+  category of gap is genuinely closed, not merely reduced.
+- **The one shared toast — closed 2026-09-08.** `AppShell.jsx`'s own
+  `{toast && <div className="toast">...}` (every confirmation in the app
+  goes through this one render site: a booking confirmed, a review
+  sent, a quote sent, a request accepted) had no `aria-live`/`role` at
+  all — it appeared and disappeared with zero announcement to a screen
+  reader. Now `role="status"`. One shared render site, so this closes
+  it for every toast in the app at once, not per call site.
+- **Still open: state changes that never go through the shared toast**
+  (a quote arriving on the dashboard, a request's own status pill
+  changing while its detail sheet is open) still announce nothing —
+  a screen-reader user gets no notification unless already focused on
+  the changed content. Real, and a materially bigger task than the
+  toast fix above: each such surface needs its own live region wired to
+  its own real-time update, not one shared fix.
 
 ## Color contrast
 
@@ -90,10 +152,14 @@ hex/rgba values in `DESIGN_TOKENS.md` — not estimated:
 | `--ink-soft` `#5B6B60` | `--paper` `#EFEEE6` | 4.86:1 | Pass |
 | `#FFFFFF` | `--forest` `#1F4D3A` | 9.63:1 | Pass (AAA) |
 | `--forest-dark` `#163828` | `--sage-bg` `#E7F0E5` | 11.0:1 | Pass (AAA) |
-| `#8a5c14` (hardcoded, not a token — `.cta-quote`/boost text) | `--amber-bg` `#FBEBD2` | 4.94:1 | Pass |
+| `--amber-dark` `#8a5c14` (was hardcoded — `.cta-quote`/boost text) | `--amber-bg` `#FBEBD2` | 4.94:1 | Pass |
+| `--amber-dark` `#8a5c14` | `--surface` `#FFFFFF` | 5.8:1 | Pass |
+| `--amber-dark` `#8a5c14` | `--paper` `#EFEEE6` | 4.98:1 | Pass |
+| ~~`--amber` `#E8A33D`~~ | `--surface` `#FFFFFF` | **2.16:1** | **Fail** |
 | ~~`--ink-faint` `#8B978D`~~ | `--surface` `#FFFFFF` | **3.04:1** | **Fail** |
+| ~~`--ink-faint` `#8B978D`~~ | `--paper` `#EFEEE6` | **2.61:1** | **Fail** |
 
-**The one real failure found, and how it was resolved:** `--ink-faint`
+**The first real failure found, and how it was resolved:** `--ink-faint`
 (added in the Phase 2 token pass) was used on `.timeline-label` at
 10.5px — normal-size text, so the 4.5:1 threshold applies, not the 3:1
 large-text one. It measured 3.04:1 against white. Rather than guess a new
@@ -101,23 +167,58 @@ hex value under the same time pressure that produced the first miss, the
 fix reuses `--ink-soft` (already verified above at ≥4.5:1 against both
 real backgrounds) for that one usage. `--ink-faint` itself is still
 defined in `:root` (removing a token is a bigger call than fixing its one
-usage) but now has **zero real usages anywhere** — see
-`DESIGN_TOKENS.md`'s Audit section, worth a note there too. If a genuinely
-lighter text tier is wanted later, the real constraint this audit found is
-worth knowing: there's very little room between `--ink-soft`'s 4.86:1 (on
-paper, the stricter of the two real backgrounds) and the 4.5:1 floor — a
-meaningfully lighter tier that still passes normal-text AA on `--paper`
-may not be achievable without changing the background it sits on too.
+usage) and had **zero real usages anywhere** at the time of that pass.
 
-**Also confirmed:** the hardcoded `#8a5c14` (used for amber-tinted CTA
-text, never tokenized — see `DESIGN_TOKENS.md`'s "not yet tokenized" list)
-does pass at 4.94:1, so it isn't a contrast bug, just an un-tokenized
-value.
+**That regressed once, and has now been fixed a second time:**
+`src/home/homeStyles.js`, added after the Phase 6 pass above, had picked
+up ten real `color:var(--ink-faint)` usages, all at the same 10.5–11px
+size class that already failed once (`.home-group-count`,
+`.location-node-type`, `.location-node-edit`, `.timeline-card-date`,
+`.timeline-card-chevron`, `.trusted-pro`, `.home-photo-missing`,
+`.item-card-room`, `.item-card-edit`, `.item-detail-document-chevron`).
+Measured against `--paper` for the first time this pass, it's actually
+worse there than the documented `--surface` failure: 2.61:1. Same fix as
+the original: all ten now use `--ink-soft` instead (5.65:1 / 4.85:1 —
+comfortably clears 4.5:1 against both real backgrounds). `--ink-faint`
+stays defined, zero real usages again — see `DESIGN_TOKENS.md`'s Audit
+section for the full regression history. This time the fix ships with a
+regression test (`src/shell/__tests__/cssTokenContrast.test.js`) that
+fails CI if `var(--ink-faint)` reappears in either stylesheet string, so
+a third silent regression isn't just possible again. If a genuinely
+lighter text tier is wanted later, the real constraint the original audit
+found is worth knowing: there's very little room between `--ink-soft`'s
+4.85:1 (on paper, the stricter of the two real backgrounds) and the 4.5:1
+floor — a meaningfully lighter tier that still passes normal-text AA on
+`--paper` may not be achievable without changing the background it sits
+on too.
+
+**The second real failure found, and how it was resolved:** `--amber`
+(`#E8A33D`) was never checked against a real background before this pass
+— DESIGN_TOKENS.md carried it as a plain accent color with no contrast
+note. It measures 2.16:1 against both `--surface` and `--paper`, failing
+not just the 4.5:1 text floor but the 3:1 non-text floor too. Every real
+usage of bare `var(--amber)` in the app put that color directly under
+text or a meaningful icon/dot: `.waiting`'s "waiting for quotes" text,
+`.tab-badge`'s unread-count number, both timeline-active status dots
+(`appStyles.js` and `homeStyles.js`), the photo conversation-action
+glyph's icon, both star-rating components' filled stars, and the AI
+intake sheet's error text. Same fix shape as `--ink-faint` above: reuse
+an already-verified value rather than invent one. The hardcoded `#8a5c14`
+used for `.cta-quote`/`.badge-amber` text was already confirmed passing
+(4.94:1 on `--amber-bg`, and — now separately verified — 5.8:1 on
+`--surface` and 4.98:1 on `--paper`), so it's now the real `--amber-dark`
+token, and every usage above switched to it. `--amber` itself stays
+defined and untouched, for any future large-scale/decorative use where it
+isn't sitting directly under text or a small icon. `var(--amber)` reappearing
+as a foreground color is also covered by
+`src/shell/__tests__/cssTokenContrast.test.js` now, same as `--ink-faint`
+above — that test's own header comment is honest about what it doesn't
+cover: an inline `style={{ color: "var(--amber)" }}` prop outside the two
+shared stylesheet strings.
 
 **Not audited in this pass:** every color pairing in the app — this is a
 representative sample of the highest-frequency real pairings, not
-exhaustive. `--amber` text-on-text combinations and disabled-state colors
-weren't checked.
+exhaustive. Disabled-state colors weren't checked.
 
 ## Motion sensitivity
 
@@ -141,7 +242,7 @@ measured icon-only controls met it:**
 |---|---|---|---|
 | `.sheet-close` (`Drawer`) | 28×28px | 44×44px (fixed, 2026-08-28) | Yes |
 | `.modal-close` (`Modal`) | 28×28px | 44×44px (fixed, 2026-08-28) | Yes |
-| `.chat-input-row button` (send) | 38×38px | 38×38px — attempted, genuinely can't be hit-slopped, see below | No |
+| `.chat-input-row button` (send) | 44×44px (grown, 2026-09-08 — see below) | 44×44px | Yes |
 | `.photo-remove-btn` | 20×20px | 28×28px (fixed, 2026-08-28) | No — deliberately partial, see below |
 
 **Fixed via hit-slop** (`src/shell/appStyles.js`): a transparent
@@ -153,7 +254,7 @@ verified by measuring the real hit-test (`document.elementFromPoint()`)
 at a point just outside the visible circle, live, not just by reading
 the CSS.
 
-**`.chat-input-row button` (the message-send button) genuinely cannot be
+**`.chat-input-row button` (the message-send button) genuinely could not be
 hit-slopped, tried live, 2026-08-28** — a real CSS constraint, not an
 oversight: this button lives inside a `Drawer`'s own `.sheet-scroll`
 (`overflow-y:auto`), and the CSS Overflow spec forces `overflow-x` to
@@ -162,11 +263,22 @@ compute as `auto` too whenever the other axis isn't `visible` — setting
 coerces it back, confirmed against the real computed style live, not
 just the source. Any hit-slop pseudo-element bleeding outside this
 button's own box gets clipped by that same computed overflow, exactly
-like any other content would be. A real fix exists — move
-`.chat-input-row` outside the Drawer's scrolling children — but that is
-a structural change to every conversation sheet in the app, not a
-touch-target tweak, so it's named here rather than attempted under this
-pass's scope.
+like any other content would be. Two real fixes were named at the time:
+move `.chat-input-row` outside the Drawer's scrolling children (a
+structural change to every conversation sheet in the app), or grow the
+button's own visible box, which sidesteps the clipping problem
+entirely — nothing bleeds outside the button's own bounds for the
+ancestor's overflow to clip against. **Closed 2026-09-08 the second
+way**: grown from 38×38px to a real 44×44px. A visibly larger round send
+button reads as more tappable, not as a design regression, unlike the
+small utility icons (`.sheet-close`/`.photo-remove-btn`) hit-slop was
+chosen for instead. Verified against the source CSS and the surrounding
+flex layout (`.chat-input-row input` is `flex:1`, so the 6px larger
+button simply takes 6px more from the space the input already yields);
+**not re-verified live in a real browser this pass** — the same
+limitation this session's own other real-browser-dependent findings
+(this codebase's voice capture chief among them) already named plainly
+rather than glossed over.
 
 **`.photo-remove-btn` stays a deliberately partial fix, exactly the
 "real design decision per control" this section originally called for
@@ -231,12 +343,12 @@ column, updated with this pass's fixes:
 
 | Component | Status |
 |---|---|
-| `Drawer` | Close button labeled, now closes on Escape. No focus trap. |
-| `Modal` | Close button labeled, closes on Escape, `role="dialog"`. No focus trap. |
+| `Drawer` | Close button labeled, closes on Escape, `role="dialog"`, real focus trap and restoration (2026-09-08). |
+| `Modal` | Close button labeled, closes on Escape, `role="dialog"`, real focus trap and restoration. |
 | `Rating` | Now has an accessible name. |
 | `Avatar` | Photo `alt=""` is correct (decorative, name is adjacent text). |
 | `Badge`, `PriceTag`, `TrustBadge`, `AIMessage`, `Timeline`, `ServiceCard`, `JobCard`, `QuoteCard` | Text-based, no icon-only content — no known gaps found. |
-| `Button` | Inherits native `<button>` semantics; icon-only usage (`icon` prop with no `children`) not checked for a required label — flagged for the next pass. |
+| `Button` | Inherits native `<button>` semantics. **Checked, 2026-09-11:** the flagged icon-only case (`icon` prop with no `children`) has zero real call sites — both real usages of `icon` (`RequestDetailSheet.jsx`, `ProJobDetailSheet.jsx`, both `icon={MessageCircle}`) pass real text as `children` too. Not a live gap today; `Button`'s own comment now says so and warns that adding a genuinely icon-only instance later would need its own `aria-label`, since the component has no fallback for one. |
 
 ---
 

@@ -19,13 +19,12 @@ import { Camera, X, DollarSign } from "lucide-react";
 import { Drawer, Button } from "../design-system";
 import { useLang } from "../lib/lang";
 import { createServiceRecord, writePerformingAnnex, uploadServiceRecordEvidence } from "../lib/serviceRecords.js";
-
-const today = () => new Date().toISOString().slice(0, 10);
+import { todayLocalDateString } from "../lib/dates.js";
 
 export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, onSaved }) {
   const { t } = useLang();
   const [workPerformed, setWorkPerformed] = useState("");
-  const [performedAt, setPerformedAt] = useState(today());
+  const [performedAt, setPerformedAt] = useState(todayLocalDateString());
   const [agreedPrice, setAgreedPrice] = useState(job.quotes?.[0]?.price ?? "");
   const [recommendations, setRecommendations] = useState("");
   const [warrantyUntil, setWarrantyUntil] = useState("");
@@ -43,10 +42,27 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
 
   const canSave = workPerformed.trim().length > 0 && !busy;
 
+  // Found by code audit: previewUrl used to be created inline in the render below --
+  // URL.createObjectURL(f) called fresh on every single re-render (every keystroke in
+  // any of this form's several text fields, not just when a photo is added or removed)
+  // for the same unchanged File, with the old URL from the previous render never
+  // revoked. A real, unbounded memory leak on exactly the screen this file's own header
+  // calls "the highest-leverage single screen in either roadmap." QuoteFormSheet.jsx
+  // already got this right -- create the object URL once, when a file is picked, and
+  // revoke it once, when that file is removed. Matched here. (ItemFormSheet.jsx's own
+  // remove button did NOT get this right until a later, separate audit found and fixed
+  // it there too -- see that file's own header.)
   const pickPhotos = (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
-    if (files.length > 0) setPhotoFiles((prev) => [...prev, ...files]);
+    if (files.length > 0) {
+      setPhotoFiles((prev) => [...prev, ...files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))]);
+    }
+  };
+
+  const removePhoto = (previewUrl) => {
+    setPhotoFiles((prev) => prev.filter((p) => p.previewUrl !== previewUrl));
+    URL.revokeObjectURL(previewUrl);
   };
 
   const hasAnnexContent = [internalCost, margin, supplierUsed, supplierPrice, schedulingNotes, internalCommentary]
@@ -85,21 +101,42 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
       // Sequential, not parallel — a failed photo upload after the record is already
       // saved must not look like the whole save failed (the record itself is real and
       // already written); each is independent and best-effort past the first.
-      for (const file of photoFiles) {
-        await uploadServiceRecordEvidence(serviceRecordId, workspaceId, actorRef, file);
+      for (const p of photoFiles) {
+        await uploadServiceRecordEvidence(serviceRecordId, workspaceId, actorRef, p.file);
       }
 
-      await onSaved();
+      // Found by code audit, 2026-09-11: onSaved() used to sit inside this same try, so a
+      // failure in the CALLER's own post-save refresh (ProServiceRecordSection.jsx's
+      // reload(), a second network round-trip after the real save already succeeded)
+      // fell into the catch below and showed "could not save this" -- even though
+      // createServiceRecord() (and any annex/evidence) had already succeeded. A pro
+      // trusting that message and tapping Save again would call createServiceRecord() a
+      // second time for the same job, contradicting this file's own "ONE CREATION CALL,
+      // NO DRAFT" design (see this file's own header). onSaved()'s own failure is now
+      // caught separately and never blocks the sheet from closing on a save that
+      // genuinely succeeded -- the same "a downstream, best-effort step's own failure
+      // must not look like the real write failed" principle the photo-upload loop right
+      // above this already states as its own rationale.
+      try {
+        await onSaved();
+      } catch {
+        // Best-effort refresh; the record itself is already saved regardless.
+      }
       onClose();
-    } catch (err) {
-      setError(err.message || String(err));
+    } catch {
+      // A raw err.message here would be a raw Postgres/Storage error -- documents.js's
+      // own header names this anti-pattern and its fix: a generic, localized message,
+      // never the backend's own words. Worth getting right here specifically: this is
+      // "the highest-leverage single screen in either roadmap" per
+      // PLATFORM_ACTIVATION_PROGRAMME.md, not a minor form.
+      setError(t.srSaveFailed);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.srEditorTitle}</div>
       <div className="sheet-sub">{t.srEditorSub}</div>
 
@@ -142,13 +179,13 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
 
       <label className="field-label">{t.srEvidenceLabel}</label>
       <div className="item-photo-picker">
-        {photoFiles.map((f, i) => (
-          <div key={i} className="item-photo-preview">
-            <img src={URL.createObjectURL(f)} alt="" />
+        {photoFiles.map((p) => (
+          <div key={p.previewUrl} className="item-photo-preview">
+            <img src={p.previewUrl} alt="" />
             <button
               type="button"
               className="photo-remove-btn"
-              onClick={() => setPhotoFiles((prev) => prev.filter((_, idx) => idx !== i))}
+              onClick={() => removePhoto(p.previewUrl)}
               aria-label={t.itemPhotoRemove}
             >
               <X size={12} />
@@ -166,7 +203,11 @@ export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, 
         <button
           type="button"
           className="private-annex-label"
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", width: "100%", textAlign: "left" }}
+          // Found by code audit, 2026-09-11: textAlign:"left" was physical -- for an
+          // Arabic/Persian pro (this screen's own users, not exempt the way operator
+          // tooling is), this label stayed pinned to the visual left in a right-to-left
+          // layout instead of following reading direction. "start" self-resolves.
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", width: "100%", textAlign: "start" }}
           onClick={() => setShowAnnex((v) => !v)}
           aria-expanded={showAnnex}
         >

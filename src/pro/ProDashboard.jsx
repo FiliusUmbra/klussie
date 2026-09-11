@@ -8,6 +8,7 @@ import { Avatar, Badge, Rating, JobCard } from "../design-system";
 import { trustScore } from "../lib/pros";
 import { JobDetailsSummary, AiAnalysisSummary, RequestPhotosStrip } from "../requests";
 import { PRO_TYPE_FLEXI } from "../lib/proStatus.js";
+import { interpolate } from "../lib/homeStrings.js";
 
 export function ProDashboard({ leads, onQuote, proInfo }) {
   const { t, fmt, serviceInfo, whenLabel } = useLang();
@@ -17,7 +18,7 @@ export function ProDashboard({ leads, onQuote, proInfo }) {
       <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{proInfo.name || t.proFallbackName}</div></div><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} /></div>
 
       <div className="stat-row">
-        <div className="stat"><div className="stat-num"><Rating value={proInfo.rating} size={12} /></div><div className="stat-label">{proInfo.rating} {t.statScore}</div></div>
+        <div className="stat"><div className="stat-num"><Rating value={proInfo.rating} size={12} label={interpolate(t.ratingLabel, { value: proInfo.rating })} /></div><div className="stat-label">{proInfo.rating} {t.statScore}</div></div>
         <div className="stat"><div className="stat-num">{fmt(proInfo.reviews)}</div><div className="stat-label">{t.statReviewsLabel}</div></div>
         <div className="stat"><div className="stat-num">{trustScore(proInfo)}</div><div className="stat-label">{t.trustScoreLabel}</div></div>
       </div>

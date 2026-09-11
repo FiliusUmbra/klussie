@@ -323,7 +323,7 @@ built from.
 | X3 | Bottom navigation switches tabs in both apps | `BottomNav` |
 | X4 | Loading states appear and clear | `Loading` |
 | X5 | Toasts appear and dismiss | `AppShell` |
-| X6 | Modal focus trap and focus restoration work | `overlays.jsx` |
+| X6 | Focus trap and focus restoration work for both overlays — Drawer, not only Modal, closed 2026-09-08 (found via code audit: `useFocusTrap()`'s own header already claimed both used it, but `Drawer` never actually called it) | `overlays.jsx` *(automated)* |
 | X7 | Touch targets stay at least 44px | All surfaces |
 | X8 | No console errors on any surface | All surfaces |
 | X9 | A single-workspace person sees no workspace chrome at all — the old "Previewing as" demo toggle was retired 2026-08-22 (PR #87) once becoming a pro reliably created a real second membership; `role` state still exists as defence-in-depth but nothing in the UI sets it any more | `AppShell` |

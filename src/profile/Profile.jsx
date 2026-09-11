@@ -33,6 +33,7 @@ import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../
 import { fetchTestimonials, deleteTestimonial } from "../lib/testimonials";
 import { FLEXI_TAX_FREE_THRESHOLD, BOOST_WEEKLY_PRICE, flexiProgressPct } from "../lib/billing.js";
 import { isBoosted, isCategoryLocked, PRO_TYPE_FLEXI } from "../lib/proStatus.js";
+import { interpolate } from "../lib/homeStrings.js";
 
 export function Profile({
   variant,
@@ -66,6 +67,14 @@ export function Profile({
   const [testimonials, setTestimonials] = useState(null);
   const [addTestimonialOpen, setAddTestimonialOpen] = useState(false);
   const [confirmDeleteTestimonialId, setConfirmDeleteTestimonialId] = useState(null);
+  const [portfolioError, setPortfolioError] = useState("");
+  const [testimonialError, setTestimonialError] = useState("");
+  const [testimonialBusy, setTestimonialBusy] = useState(false);
+  const [saveServicesError, setSaveServicesError] = useState("");
+  const [boosting, setBoosting] = useState(false);
+  const [boostError, setBoostError] = useState("");
+  const [pausing, setPausing] = useState(false);
+  const [pauseError, setPauseError] = useState("");
   const portfolioFileRef = useRef(null);
 
   const refreshPortfolio = () => fetchPortfolioItems(user.id).then(setPortfolioItems);
@@ -73,8 +82,20 @@ export function Profile({
 
   useEffect(() => {
     if (variant !== "pro") return;
-    refreshPortfolio();
-    refreshTestimonials();
+    // Found by code audit: fetchPortfolioItems()/fetchTestimonials() both throw on a
+    // real Postgres error, and neither call here had a catch of its own -- a genuine
+    // unhandled promise rejection on every failure. Harmless for what actually renders
+    // (both lists already fall back to [] when their state is still null --
+    // "(portfolioItems || []).map(...)" below -- so a failed load looked identical to a
+    // genuinely empty portfolio/testimonials list either way), but a real defect
+    // regardless, the same shape RequestPhotosStrip.jsx had and was fixed the same way:
+    // resolve to an empty list on failure rather than leaving the rejection unhandled.
+    // Deliberately not baked into refreshPortfolio()/refreshTestimonials() themselves --
+    // handlePortfolioUpload() and removeTestimonial() below both await those inside their
+    // own try/catch and need a real rejection to reach it, the same reasoning
+    // CustomerApp.jsx's identical refresh()/loadRequests() split already established.
+    refreshPortfolio().catch(() => setPortfolioItems([]));
+    refreshTestimonials().catch(() => setTestimonials([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variant, user.id]);
 
@@ -82,29 +103,86 @@ export function Profile({
   // (never called, so never evaluated) rather than branching on variant here too, same
   // reasoning as the fetch effect above.
   const toggle = (id) => setSelected((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+  // Found by code audit: try/finally but no catch -- uploadingPhoto always reset
+  // correctly (the finally already did that much), but a real failure (Storage, RLS,
+  // network) was never shown at all, an unhandled rejection with nothing on screen.
+  //
+  // Found by code audit, 2026-09-11: refreshPortfolio() used to sit inside this same
+  // try too -- the same bug shape fixed repeatedly elsewhere today (see e.g. ProApp.jsx's
+  // sendQuote() for the fullest write-up): a refresh-only failure right after a genuinely
+  // successful upload+addPortfolioItem() showed portfolioUploadFailed for an upload that
+  // had actually gone through. refreshPortfolio() is now best-effort once the real
+  // writes are confirmed.
   const handlePortfolioUpload = async (e) => {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
     setUploadingPhoto(true);
+    setPortfolioError("");
     try {
       const { url, path } = await uploadPortfolioImage(user.id, file);
       await addPortfolioItem({ proId: user.id, imageUrl: url, storagePath: path });
+    } catch {
+      setPortfolioError(t.portfolioUploadFailed);
+      setUploadingPhoto(false);
+      return;
+    }
+    try {
       await refreshPortfolio();
+    } catch {
+      // Best-effort; the upload itself already succeeded regardless.
     } finally {
       setUploadingPhoto(false);
     }
   };
+  // Found by code audit: no try/catch at all -- a real refusal left the confirm modal's
+  // own Delete button re-clickable with no explanation, and never closed the modal
+  // (setConfirmDeleteTestimonialId(null) only ran on success), an unhandled rejection.
+  //
+  // Found by code audit, 2026-09-11: refreshTestimonials() used to sit inside this same
+  // try, with the modal-closing setConfirmDeleteTestimonialId(null) gated behind it
+  // succeeding too -- so a refresh-only failure right after a genuinely successful
+  // deleteTestimonial() both showed testimonialDeleteFailed for a deletion that had
+  // already gone through AND kept the confirm modal open on a testimonial that no longer
+  // existed. The modal now closes as soon as the real deletion is confirmed, and
+  // refreshTestimonials() is best-effort from there.
   const removeTestimonial = async (id) => {
-    await deleteTestimonial(id);
-    await refreshTestimonials();
+    setTestimonialBusy(true);
+    setTestimonialError("");
+    try {
+      await deleteTestimonial(id);
+    } catch {
+      setTestimonialError(t.testimonialDeleteFailed);
+      setTestimonialBusy(false);
+      return;
+    }
     setConfirmDeleteTestimonialId(null);
+    try {
+      await refreshTestimonials();
+    } catch {
+      // Best-effort; the deletion itself already succeeded regardless.
+    } finally {
+      setTestimonialBusy(false);
+    }
   };
+  // Found by code audit: no try/catch, and critically no finally either -- a real
+  // refusal left `saving` stuck at true forever (setSaving(false) sat after the await
+  // with nothing to run it on rejection), the button permanently disabled with no way
+  // back in short of leaving and re-opening this screen. The exact "no dead end" shape
+  // this codebase has already found and fixed repeatedly elsewhere (PortfolioItemSheet.jsx's
+  // own identical gap, ServiceRecordSummary.jsx's own identical gap, among others) --
+  // just not yet swept in this file, on the pro's own core "which services do I offer" setting.
   const saveServices = async () => {
     setSaving(true);
-    await updateProServices(user.id, selected);
-    onServicesChange(selected);
-    setSaving(false);
+    setSaveServicesError("");
+    try {
+      await updateProServices(user.id, selected);
+      onServicesChange(selected);
+    } catch {
+      setSaveServicesError(t.saveServicesFailed);
+    } finally {
+      setSaving(false);
+    }
   };
   // Found live during a UX review, 2026-09-06: switching to "business" here failed with
   // zero visible feedback whenever business_name/vat_number were still unset — the real,
@@ -114,25 +192,82 @@ export function Profile({
   // never clobbers business_name/vat_number saved separately through EditProfileSheet.jsx
   // -- fill those in first (now reachable there regardless of the caller's current
   // pro_type, closing the chicken-and-egg gap this same review found), then this succeeds.
+  // Found by code audit, 2026-09-11: refreshProfile() used to sit inside this same try
+  // -- the same bug shape fixed repeatedly elsewhere today (see e.g. ProApp.jsx's
+  // sendQuote() for the fullest write-up): a refresh-only failure right after a
+  // genuinely successful switch fell into the catch below and showed proTypeSwitchFailed
+  // for a switch that had actually gone through. refreshProfile() is now best-effort
+  // once the real write is confirmed.
   const setProType = async (proType) => {
     setProTypeError("");
     try {
       await updateProProfile(user.id, { pro_type: proType });
-      await refreshProfile();
     } catch (err) {
       setProTypeError(
         err.message?.includes("business_requires_details") ? t.proTypeBusinessRequiresDetails : t.proTypeSwitchFailed
       );
+      return;
+    }
+    try {
+      await refreshProfile();
+    } catch {
+      // Best-effort; the pro_type switch itself already succeeded regardless.
     }
   };
+  // Found by code audit, 2026-09-11: refreshProfile() used to sit inside the same try as
+  // boostProfile() itself -- worse than most instances of this same bug shape (see e.g.
+  // ProApp.jsx's sendQuote() for the fullest write-up), since Boost is a genuine paid
+  // action (€{BOOST_WEEKLY_PRICE}/week): a false boostFailed for a purchase that had
+  // actually gone through could invite a pro to tap Boost again, risking a second charge
+  // for the same week. refreshProfile() is now best-effort once the purchase itself is
+  // confirmed.
   const boost = async () => {
-    await boostProfile(user.id);
-    await refreshProfile();
+    setBoosting(true);
+    setBoostError("");
+    try {
+      await boostProfile(user.id);
+    } catch {
+      setBoostError(t.boostFailed);
+      setBoosting(false);
+      return;
+    }
+    try {
+      await refreshProfile();
+    } catch {
+      // Best-effort; the boost itself was already purchased regardless.
+    } finally {
+      setBoosting(false);
+    }
   };
+  // Found by code audit, 2026-09-11: refreshProfile() and onPauseToggled() both used to
+  // sit inside the same try as updateProProfile() itself -- worse than most instances of
+  // this same bug shape, since togglePaused() is a TOGGLE, not an idempotent write: a
+  // pro who saw the false togglePausedFailed and, believing their first tap never took
+  // effect, tapped Pause/Resume again would flip the real, already-applied change
+  // straight back -- silently leaving them un-paused (still receiving new leads) while
+  // believing the opposite. Both refreshes are now best-effort once the real toggle is
+  // confirmed.
   const togglePaused = async () => {
-    await updateProProfile(user.id, { paused: !proProfile.paused });
-    await refreshProfile();
-    if (onPauseToggled) await onPauseToggled();
+    setPausing(true);
+    setPauseError("");
+    try {
+      await updateProProfile(user.id, { paused: !proProfile.paused });
+    } catch {
+      setPauseError(t.togglePausedFailed);
+      setPausing(false);
+      return;
+    }
+    try {
+      await refreshProfile();
+    } catch {
+      // Best-effort; the pause toggle itself already succeeded regardless.
+    }
+    try {
+      if (onPauseToggled) await onPauseToggled();
+    } catch {
+      // Best-effort; same as refreshProfile() above.
+    }
+    setPausing(false);
   };
 
   const displayName = profile?.full_name || t.profileYou;
@@ -153,7 +288,7 @@ export function Profile({
           avatarUrl={proInfo.avatarUrl}
           initials={proInfo.initials}
           name={proInfo.name || t.proFallbackName}
-          subtitle={<TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} />}
+          subtitle={<TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: proInfo.rating })} />}
         />
       )}
 
@@ -182,7 +317,7 @@ export function Profile({
           <div className="section-title">{t.yourReviews}</div>
           {reviewedRequests(requests).length === 0 && <div className="empty-block"><p>{t.noReviewsYet}</p></div>}
           {reviewedRequests(requests).map((r) => (
-            <QuoteCard key={r.id}><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Rating value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></QuoteCard>
+            <QuoteCard key={r.id}><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Rating value={r.review.stars} size={12} label={interpolate(t.ratingLabel, { value: r.review.stars })} /><p className="quote-msg">"{r.review.text}"</p></QuoteCard>
           ))}
           {/* The real, reachable "become a pro" entry point (UNIFIED_PRODUCT_IA_REVIEW.md
               §5). Only for someone who hasn't already (proProfile null); a real dual-role
@@ -199,9 +334,10 @@ export function Profile({
 
       {variant === "pro" && (
         <>
-          <button className="btn-secondary" style={{ marginBottom: 14 }} onClick={togglePaused}>
+          <button className="btn-secondary" style={{ marginBottom: pauseError ? 6 : 14 }} disabled={pausing} onClick={togglePaused}>
             {proProfile.paused ? t.resumeProfileBtn : t.pauseProfileBtn}
           </button>
+          {pauseError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 14 }}>{pauseError}</div>}
 
           <div className="section-title">{t.proTypeLabel}</div>
           <div className="segmented segmented-block">
@@ -237,7 +373,8 @@ export function Profile({
               </div>
             );
           })}
-          <button className="btn-secondary" style={{ marginBottom: 14 }} disabled={saving} onClick={saveServices}>{t.saveServicesBtn}</button>
+          <button className="btn-secondary" style={{ marginBottom: saveServicesError ? 6 : 14 }} disabled={saving} onClick={saveServices}>{t.saveServicesBtn}</button>
+          {saveServicesError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 14 }}>{saveServicesError}</div>}
 
           <div className="section-title">{t.portfolioTitle}</div>
           <div className="portfolio-grid">
@@ -251,6 +388,7 @@ export function Profile({
             </button>
             <input ref={portfolioFileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePortfolioUpload} />
           </div>
+          {portfolioError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 8 }}>{portfolioError}</div>}
           {portfolioItems && portfolioItems.length === 0 && <div className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 14 }}>{t.noPortfolioYet}</div>}
 
           <div className="section-title">{t.testimonialsTitle}</div>
@@ -260,15 +398,16 @@ export function Profile({
             <QuoteCard key={tst.id}>
               {tst.client_name && <div className="quote-name">{tst.client_name}</div>}
               <p className="quote-msg">"{tst.quote_text}"</p>
-              <button className="btn-secondary" onClick={() => setConfirmDeleteTestimonialId(tst.id)}>{t.deleteBtn}</button>
+              <button className="btn-secondary" onClick={() => { setTestimonialError(""); setConfirmDeleteTestimonialId(tst.id); }}>{t.deleteBtn}</button>
             </QuoteCard>
           ))}
           {confirmDeleteTestimonialId && (
-            <Modal onClose={() => setConfirmDeleteTestimonialId(null)}>
+            <Modal onClose={() => setConfirmDeleteTestimonialId(null)} closeLabel={t.closeBtn}>
               <p style={{ marginTop: 8 }}>{t.confirmDeleteMsg}</p>
+              {testimonialError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginTop: 8 }}>{testimonialError}</div>}
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                <Button variant="secondary" onClick={() => setConfirmDeleteTestimonialId(null)}>{t.cancelBtn}</Button>
-                <Button variant="primary" onClick={() => removeTestimonial(confirmDeleteTestimonialId)}>{t.deleteBtn}</Button>
+                <Button variant="secondary" disabled={testimonialBusy} onClick={() => setConfirmDeleteTestimonialId(null)}>{t.cancelBtn}</Button>
+                <Button variant="primary" disabled={testimonialBusy} onClick={() => removeTestimonial(confirmDeleteTestimonialId)}>{t.deleteBtn}</Button>
               </div>
             </Modal>
           )}
@@ -280,7 +419,10 @@ export function Profile({
             {boosted ? (
               <Badge tone="amber">{t.boostActive}</Badge>
             ) : (
-              <button className="btn-primary" onClick={boost}>{t.boostBtn} €{BOOST_WEEKLY_PRICE}</button>
+              <>
+                <button className="btn-primary" disabled={boosting} onClick={boost}>{t.boostBtn} €{BOOST_WEEKLY_PRICE}</button>
+                {boostError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginTop: 8 }}>{boostError}</div>}
+              </>
             )}
           </div>
 

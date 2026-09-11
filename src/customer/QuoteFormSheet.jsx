@@ -43,8 +43,18 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
     URL.revokeObjectURL(previewUrl);
   };
 
+  // Found by code audit, both real regressions: closeLabel was missing here (every other
+  // customer-facing Drawer/Modal in the codebase has had it since the sweep that added
+  // it everywhere -- see overlays.jsx's own header), and the "Remove photo" button below
+  // was still hardcoded English instead of the real, already-localized t.itemPhotoRemove
+  // three sibling .photo-remove-btn instances already use (AiIntakeSheet.jsx,
+  // ItemFormSheet.jsx, ServiceRecordEditorSheet.jsx). CustomerApp.jsx's own header notes
+  // this screen (and ServiceSheet.jsx before it) is currently unreachable -- no live
+  // onOpenService trigger sets activeService/quoteForm today -- so neither bug is live
+  // for a real customer right now; fixed anyway since both are real bugs the moment this
+  // surface is reconnected, and the fix is a trivial, already-proven pattern match.
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.quoteFormTitle}</div>
       <div className="sheet-sub">{t.forService} {info.name}</div>
 
@@ -92,7 +102,7 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
         {photos.map((p) => (
           <div key={p.previewUrl} className="portfolio-thumb">
             <img src={p.previewUrl} alt="" />
-            <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)} aria-label="Remove photo"><X size={12} /></button>
+            <button type="button" className="photo-remove-btn" onClick={() => removePhoto(p.previewUrl)} aria-label={t.itemPhotoRemove}><X size={12} /></button>
           </div>
         ))}
         <button type="button" className="portfolio-thumb portfolio-add" onClick={() => photoInputRef.current.click()}>

@@ -273,6 +273,31 @@ describe("OperatorApp — Reports tab (Trust & Safety, WP 5.2)", () => {
     await waitFor(() => expect(screen.queryByText("Record a decision")).toBeNull());
   });
 
+  // Found by code audit: fetchCaseDetail() throws on a real error, and CaseDetailSheet
+  // only renders once both openCaseId and caseDetail are set -- so a real failure here
+  // used to mean tapping a case in the queue did visibly nothing at all: no sheet, no
+  // error, not even a loading state.
+  it("shows a real error, not silence, when opening a case fails", async () => {
+    apiRpc.mockImplementation((_schema, fn) => {
+      if (fn === "trust_safety_queue") return Promise.resolve({ data: [CASE_ROW], error: null });
+      if (fn === "case_detail") return Promise.reject(new Error("relation \"cases\" does not exist"));
+      return Promise.resolve({ data: [], error: null });
+    });
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Reports"));
+    await waitFor(() => expect(screen.getByText("Pierre's Painting")).toBeTruthy());
+    fireEvent.click(screen.getByText("Pierre's Painting"));
+
+    await waitFor(() => expect(screen.getByText("Couldn't load that case. Try again.")).toBeTruthy());
+    expect(screen.queryByText("No decisions recorded yet.")).toBeNull();
+
+    // A real way to try again, not a dead end: opening a different (successful) case works.
+    mockTrustSafetyApi();
+    fireEvent.click(screen.getByText("Pierre's Painting"));
+    await waitFor(() => expect(screen.getByText("Never showed up.")).toBeTruthy());
+  });
+
   it("suspend requires a capability key and a confirming step before it actually submits", async () => {
     mockTrustSafetyApi();
     render(<OperatorApp />);

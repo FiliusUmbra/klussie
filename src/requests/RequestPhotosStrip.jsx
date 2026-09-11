@@ -11,7 +11,17 @@ export function RequestPhotosStrip({ requestId, legacy = false }) {
   const [photos, setPhotos] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    fetchRequestPhotos(requestId, { legacy }).then((p) => { if (!cancelled) setPhotos(p); });
+    // Found by code audit: fetchRequestPhotos() throws on a real Postgres error and this
+    // call had no catch of its own -- an unhandled rejection on every failure, with
+    // `photos` left stuck at its initial null forever (harmless here only because the
+    // render below already treats null the same as "no photos," but a dangling promise
+    // and a real unhandled rejection all the same). HomePhotoGallery (myHomeParts.jsx),
+    // this component's own sibling and the OTHER caller of this exact function, already
+    // has the right idiom: "a request whose photos fail to load contributes none rather
+    // than failing the gallery." Matched here rather than invented anew.
+    fetchRequestPhotos(requestId, { legacy })
+      .then((p) => { if (!cancelled) setPhotos(p); })
+      .catch(() => { if (!cancelled) setPhotos([]); });
     return () => { cancelled = true; };
   }, [requestId, legacy]);
   if (!photos || photos.length === 0) return null;

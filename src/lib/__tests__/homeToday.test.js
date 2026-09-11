@@ -52,6 +52,25 @@ describe("pickTodayItem", () => {
     ]);
     expect(picked.request.id).toBe("newer");
   });
+
+  // Found by code audit: accepted_pending_location_approval (migrations 0182/0183, the
+  // mandatory disclosure-consent step between accepting a quote and an actual booking)
+  // had no entry in PRIORITY at all -- a request genuinely stalled on the customer's own
+  // next action fell through classify() entirely and never surfaced as Today's one thing,
+  // even though requestStatus.js's own awaitingDecisionCount() already treats it as
+  // exactly as blocking as quotes_ready.
+  it("surfaces a request awaiting location disclosure approval as blocking, the same as an unchosen quote", () => {
+    const picked = pickTodayItem([req({ status: "accepted_pending_location_approval" })]);
+    expect(picked.kind).toBe("accepted_pending_location_approval");
+  });
+
+  it("ranks awaiting location disclosure approval alongside quotes_ready — both are the customer's own move — breaking the tie on recency like any other tie", () => {
+    const picked = pickTodayItem([
+      req({ id: "quotes", status: "quotes_ready", quotes: [{ id: "q1" }], createdAt: 1 }),
+      req({ id: "location", status: "accepted_pending_location_approval", createdAt: 99 }),
+    ]);
+    expect(picked.request.id).toBe("location");
+  });
 });
 
 describe("activeRequests", () => {
@@ -67,6 +86,11 @@ describe("activeRequests", () => {
   it("excludes finished work so 'in progress' means in progress", () => {
     const list = activeRequests([req({ id: "c", status: "completed" })], null);
     expect(list).toEqual([]);
+  });
+
+  it("includes a request awaiting location disclosure approval — it is still very much in flight", () => {
+    const list = activeRequests([req({ id: "d", status: "accepted_pending_location_approval" })], null);
+    expect(list.map((r) => r.id)).toEqual(["d"]);
   });
 });
 
@@ -85,5 +109,9 @@ describe("kindOf", () => {
   it("names the kind for a single request, or null when nothing applies", () => {
     expect(kindOf(req({ status: "awaiting_pro" }))).toBe("awaiting_pro");
     expect(kindOf(req({ status: "reviewed", review: { stars: 3 } }))).toBeNull();
+  });
+
+  it("names accepted_pending_location_approval too — the same shape ActiveRequests (KlussiePanel.jsx) reads to label each row", () => {
+    expect(kindOf(req({ status: "accepted_pending_location_approval" }))).toBe("accepted_pending_location_approval");
   });
 });

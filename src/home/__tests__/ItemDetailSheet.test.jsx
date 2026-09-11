@@ -14,7 +14,7 @@
 // flakiness here (a later test's own button clicks silently missing their handler).
 // renderDetail() waits for both fetches to have actually been called and settled before
 // returning, so every test starts from a fully quiesced component.
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
 vi.mock("../../lib/householdItems.js", () => ({
@@ -198,6 +198,35 @@ describe("ItemDetailSheet — Identity", () => {
   it("shows an expired-warranty state for a past date", async () => {
     await renderDetail({ item: { ...ITEM, warrantyExpiresOn: "2020-01-01" } });
     expect(screen.getByText("Warranty ended on 2020-01-01")).toBeTruthy();
+  });
+
+  // Found by code audit, 2026-09-11: this used to compare
+  // `new Date(warrantyExpiresOn) < new Date()` — a date-only value parses as UTC
+  // midnight, so for klussie's own Belgian users (always ahead of UTC) a warranty
+  // expiring "today" already read as expired from the early hours of local morning
+  // onward, nearly the entire day it was still meant to be covered. See lib/dates.js's
+  // own header for the full explanation.
+  describe("warranty expiring exactly today stays covered all day, not just past local midnight", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      vi.useRealTimers();
+    });
+
+    it("still shows 'covered' at local noon on the warranty's own last day", async () => {
+      vi.stubEnv("TZ", "Europe/Brussels");
+      // Faking only Date (not timers) leaves renderDetail()'s own waitFor() polling on
+      // real setInterval/microtasks, which fake timers would otherwise hang forever.
+      vi.useFakeTimers({ toFake: ["Date"] });
+      // 2026-09-15T10:00Z = 2026-09-15 12:00 local (CEST, UTC+2 in September) — well
+      // past the UTC-midnight instant the old comparison anchored on, but still the
+      // same local calendar day the warranty covers.
+      vi.setSystemTime(new Date(Date.UTC(2026, 8, 15, 10, 0, 0)));
+
+      await renderDetail({ item: { ...ITEM, warrantyExpiresOn: "2026-09-15" } });
+
+      expect(screen.getByText("Covered by warranty until 2026-09-15")).toBeTruthy();
+      expect(screen.queryByText("Warranty ended on 2026-09-15")).toBeNull();
+    });
   });
 
   it("calls onEdit when 'Edit details' is tapped", async () => {
@@ -396,6 +425,23 @@ describe("ItemDetailSheet — Recurring maintenance", () => {
     expect(screen.getByText("Due 2026-12-01")).toBeTruthy();
     expect(screen.getByText("Stop future reminders")).toBeTruthy();
     expect(screen.queryByText("Mark done")).toBeNull();
+  });
+
+  // Found by code audit, 2026-09-11: the Repeat icon on this row used a physical
+  // marginRight, and unlike ServiceLocationField.jsx's own .chip icons, nothing else
+  // here provides a gap as a fallback (.maintenance-row-title has no flex/gap of its
+  // own) -- for an Arabic/Persian reader the icon and the task title sat flush against
+  // each other with no gap at all.
+  it("the recurring icon gaps toward the schedule's own title, not hardcoded right", async () => {
+    fetchMaintenanceSchedules.mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine", description: null, recurrence: "3 mons", nextDueOn: "2026-12-01", active: true },
+    ]);
+    await renderDetail();
+
+    const title = await screen.findByText("Descale the machine");
+    const icon = title.parentElement.querySelector("svg");
+    expect(icon.style.marginInlineEnd).toBe("4px");
+    expect(icon.style.marginRight).toBe("");
   });
 
   it("does not show an upcoming-schedule row for a schedule that already has an open task -- that task's own row carries the action instead", async () => {
@@ -640,7 +686,10 @@ describe("ItemDetailSheet — Move", () => {
     fireEvent.click(screen.getByText("Move to another room"));
     fireEvent.click(screen.getByText("Save"));
 
-    const dialog = await screen.findByRole("dialog");
+    // .modal-panel, not role="dialog" -- the enclosing Drawer now carries that role too
+    // (overlays.jsx's own focus-trap fix), so a bare role query is ambiguous here.
+    await waitFor(() => expect(document.querySelector(".modal-panel")).toBeTruthy());
+    const dialog = document.querySelector(".modal-panel");
     await waitFor(() => expect(within(dialog).getByText("Couldn't move this item. Please try again.")).toBeTruthy());
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -687,7 +736,10 @@ describe("ItemDetailSheet — Retire", () => {
     fireEvent.click(screen.getByText("Retire item"));
     fireEvent.click(screen.getAllByText("Retire item")[1]);
 
-    const dialog = await screen.findByRole("dialog");
+    // .modal-panel, not role="dialog" -- the enclosing Drawer now carries that role too
+    // (overlays.jsx's own focus-trap fix), so a bare role query is ambiguous here.
+    await waitFor(() => expect(document.querySelector(".modal-panel")).toBeTruthy());
+    const dialog = document.querySelector(".modal-panel");
     await waitFor(() => expect(within(dialog).getByText("Couldn't retire this item. Please try again.")).toBeTruthy());
   });
 });

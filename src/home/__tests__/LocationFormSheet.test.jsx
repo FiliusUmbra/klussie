@@ -34,6 +34,8 @@ const t = {
   locationMoveFieldLabel: "Move to", locationMoveTopLevel: "Top level",
   locationMoveSummary: "This room will be: {location}", locationMoveSave: "Move",
   locationMoveFailed: "Couldn't move this room. Please try again.",
+  locationFormSaveFailed: "We couldn't save the room. Please try again.",
+  locationRetireFailed: "We couldn't remove this room. Please try again.",
   cancelBtn: "Cancel",
 };
 
@@ -87,7 +89,11 @@ describe("LocationFormSheet", () => {
     await waitFor(() => expect(createLocation).toHaveBeenCalledWith(expect.objectContaining({ parentId: null })));
   });
 
-  it("shows the real error and stays open when the save fails", async () => {
+  // Found by code audit: this used to assert the raw backend error ("insufficient_
+  // privilege") rendered verbatim — the exact anti-pattern documents.js's own header
+  // names and fixes elsewhere. Updated to pin the fix instead of leaving a stale
+  // duplicate test behind.
+  it("shows a generic localized error and stays open when the save fails", async () => {
     createLocation.mockRejectedValue(new Error("insufficient_privilege"));
     const onClose = vi.fn();
     render(<LocationFormSheet t={t} propertyId="prop-1" actorRef="owner-1" rooms={[]} onClose={onClose} onSaved={() => {}} />);
@@ -95,7 +101,8 @@ describe("LocationFormSheet", () => {
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Attic" } });
     fireEvent.click(screen.getByText("Save room"));
 
-    await waitFor(() => expect(screen.getByText("insufficient_privilege")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(t.locationFormSaveFailed)).toBeTruthy());
+    expect(screen.queryByText("insufficient_privilege")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
   });
 });
@@ -181,6 +188,17 @@ describe("LocationFormSheet — edit mode (Home Builder slice)", () => {
     fireEvent.click(screen.getAllByText("Remove room")[1]);
 
     await waitFor(() => expect(screen.getByText(t.locationRetireBlockedItems)).toBeTruthy());
+  });
+
+  it("shows a generic localized error, never the raw backend message, for any other retirement failure", async () => {
+    retireLocation.mockRejectedValueOnce(new Error("network error"));
+    render(<LocationFormSheet t={t} propertyId="prop-1" actorRef="owner-1" rooms={[KITCHEN]} room={KITCHEN} onClose={() => {}} onSaved={() => {}} onAddItemHere={() => {}} />);
+
+    fireEvent.click(screen.getByText("Remove room"));
+    fireEvent.click(screen.getAllByText("Remove room")[1]);
+
+    await waitFor(() => expect(screen.getByText(t.locationRetireFailed)).toBeTruthy());
+    expect(screen.queryByText("network error")).toBeNull();
   });
 });
 

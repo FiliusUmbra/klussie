@@ -114,6 +114,32 @@ describe("WorkspaceLookup", () => {
     expect(screen.getAllByText("Cathy Customer")).toHaveLength(WORKSPACE_LOOKUP_PAGE_SIZE);
   });
 
+  // Found by code audit: the identical gap AuditLog.jsx's own loadMore() had — no guard
+  // against a second call landing while the first was still in flight, so a real
+  // double-click fired the fetch twice with the exact same offset and both responses
+  // appended their own copy of the same page: every profile shown twice.
+  it("a double-click on Load more fetches the next page only once, not twice", async () => {
+    const fullPage = Array.from({ length: WORKSPACE_LOOKUP_PAGE_SIZE }, (_, i) => ({
+      ...PROFILE, workspace_id: `11111111-1111-4111-8111-0000000006${String(i).padStart(2, "0")}`,
+    }));
+    apiRpc.mockResolvedValueOnce({ data: fullPage, error: null });
+    render(<WorkspaceLookup />);
+    await waitFor(() => expect(screen.getAllByText("Cathy Customer")).toHaveLength(WORKSPACE_LOOKUP_PAGE_SIZE));
+
+    let resolveSecondPage;
+    apiRpc.mockReturnValueOnce(new Promise((resolve) => { resolveSecondPage = resolve; }));
+    const loadMoreBtn = screen.getByRole("button", { name: /load more/i });
+    fireEvent.click(loadMoreBtn);
+    expect(loadMoreBtn.disabled).toBe(true);
+    fireEvent.click(loadMoreBtn);
+
+    resolveSecondPage({ data: [ARCHIVED_PROFILE], error: null });
+    await waitFor(() => expect(screen.getByText("Old Business")).toBeTruthy());
+
+    expect(apiRpc).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByText("Old Business")).toHaveLength(1);
+  });
+
   it("calls onViewAudit with the workspace id when its button is pressed", async () => {
     apiRpc.mockResolvedValue({ data: [PROFILE], error: null });
     const onViewAudit = vi.fn();

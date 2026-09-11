@@ -85,7 +85,13 @@ export const HOME_CSS = `
   background:var(--forest); margin:3px auto 0;
 }
 .seg-tabpanel{ display:flex; flex-direction:column; gap:var(--space-4); }
-.seg-tabpanel:focus{ outline:none; }
+/* Found by a later audit, 2026-09-11 (appStyles.js's own :focus-visible rule carries the
+   full explanation): this used :focus, not :focus-visible, and its own selector's
+   specificity beats the app's single global focus-ring rule regardless — so this real,
+   keyboard-focusable scroll region (TabPanel's own tabIndex={0}, "so a keyboard user can
+   reach the tabs but not scroll what they selected" — its own comment in tabs.jsx) never
+   showed a focus indicator to anyone. Removed rather than re-scoped to :focus-visible:
+   deleting the local override is what lets the app's one global rule actually govern it. */
 
 /* ---- intent suggestions ---- */
 .intent-row{ display:flex; flex-wrap:wrap; gap:var(--space-2); }
@@ -128,7 +134,7 @@ export const HOME_CSS = `
 }
 .conv-textrow-tool::after{ content:""; position:absolute; inset:-6px; border-radius:50%; }
 .conv-textrow-tool:disabled{ opacity:0.4; cursor:default; }
-.conv-textrow-tool-on{ background:var(--amber-bg); color:#8a5c14; }
+.conv-textrow-tool-on{ background:var(--amber-bg); color:var(--amber-dark); }
 
 /* ---- safety interruption ---- */
 .safety-notice{
@@ -136,7 +142,7 @@ export const HOME_CSS = `
   display:flex; flex-direction:column; gap:var(--space-3);
 }
 .safety-notice-head{ display:flex; align-items:center; gap:var(--space-2); }
-.safety-notice-glyph{ color:#8a5c14; display:flex; }
+.safety-notice-glyph{ color:var(--amber-dark); display:flex; }
 .safety-notice-title{ margin:0; font-size:14px; font-weight:700; color:var(--ink); }
 .safety-notice-body{ margin:0; font-size:12.5px; line-height:1.5; color:var(--ink); }
 .safety-notice-actions{ display:flex; flex-direction:column; gap:var(--space-2); }
@@ -161,12 +167,16 @@ export const HOME_CSS = `
   display:flex; align-items:center; justify-content:center;
   background:var(--sage-bg); color:var(--forest-dark);
 }
-.today-card-amber .today-card-glyph{ background:var(--amber-bg); color:#8a5c14; }
+.today-card-amber .today-card-glyph{ background:var(--amber-bg); color:var(--amber-dark); }
 .today-card-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .today-card-title{ font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.3; }
 .today-card-body{ font-size:12px; color:var(--ink-soft); line-height:1.45; }
 .today-card-cta{ margin-top:var(--space-1); font-size:12px; font-weight:700; color:var(--forest); }
 .today-card-chev{ color:var(--ink-soft); flex-shrink:0; align-self:center; }
+/* Found by a later audit, 2026-09-11: the same "leads forward" chevron .timeline-card-chevron
+   already flips for RTL below -- the Today card is the single most prominent card on
+   the whole homepage, and this one was simply missed. */
+[dir="rtl"] .today-card-chev{ transform:scaleX(-1); }
 .today-empty-cta{ margin-top:var(--space-2); min-height:44px; }
 
 /* ---- what is already running ---- */
@@ -180,6 +190,10 @@ export const HOME_CSS = `
 .home-active-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
 .home-active-name{ font-size:13px; font-weight:600; color:var(--ink); }
 .home-active-state{ font-size:11.5px; color:var(--ink-soft); }
+.home-active-chevron{ flex-shrink:0; }
+/* Same gap as .today-card-chev and .ticket-foot-chevron (appStyles.js) -- see that
+   file's own comment for the full explanation. */
+[dir="rtl"] .home-active-chevron{ transform:scaleX(-1); }
 
 /* ---- my home / my items ---- */
 .home-panel{ display:flex; flex-direction:column; gap:var(--space-4); }
@@ -189,7 +203,18 @@ export const HOME_CSS = `
   margin:0; font-size:13px; font-weight:700; color:var(--ink);
   display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-2);
 }
-.home-group-count{ font-family:var(--font-mono); font-size:11px; font-weight:500; color:var(--ink-faint); }
+/* --ink-soft, not --ink-faint, here and at every other former --ink-faint usage in this
+   file (.location-node-type, .location-node-edit, .timeline-card-date, .timeline-card-chevron,
+   .trusted-pro, .home-photo-missing, .item-card-room, .item-card-edit,
+   .item-detail-document-chevron) -- the exact bug ACCESSIBILITY.md's Color contrast
+   section already found and fixed once, at .timeline-label: --ink-faint measures 3.04:1
+   on --surface and 2.61:1 on --paper, both well under the 4.5:1 normal-text floor (all
+   of these render at 10.5-11px, and several are real text, not decoration). It
+   regressed back in when this file was added after that first fix -- DESIGN_TOKENS.md
+   had stopped being true the moment the first of these was written. Same fix as before:
+   --ink-soft (5.65:1 / 4.85:1, comfortably clearing both real backgrounds either way) --
+   ink-faint itself stays defined, with zero real usages again. */
+.home-group-count{ font-family:var(--font-mono); font-size:11px; font-weight:500; color:var(--ink-soft); }
 .home-group-empty{ margin:0; font-size:12px; color:var(--ink-soft); line-height:1.45; }
 
 /* ---- My Items, WP 1.3: the location tree, maintenance list, document list ---- */
@@ -197,7 +222,7 @@ export const HOME_CSS = `
 .location-tree-root > .location-node{ font-weight:600; }
 .location-node .location-tree{ margin-inline-start:var(--space-4); padding-block-start:var(--space-1); font-weight:400; }
 .location-node-name{ display:flex; align-items:baseline; gap:var(--space-2); font-size:13px; color:var(--ink); }
-.location-node-type{ font-size:11px; color:var(--ink-faint); }
+.location-node-type{ font-size:11px; color:var(--ink-soft); }
 /* Home Builder slice: every room is now a real, tappable row — never a bare name next
    to an icon nobody was told means "edit". Full-width and 44px tall so the whole row is
    the target, not just the small pencil glyph. */
@@ -208,7 +233,7 @@ export const HOME_CSS = `
   font-family:var(--font-body); transition:background var(--motion-base);
 }
 .location-node-btn:active{ background:var(--sage-bg); }
-.location-node-edit{ flex:none; color:var(--ink-faint); }
+.location-node-edit{ flex:none; color:var(--ink-soft); }
 
 .maintenance-list, .document-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
 .maintenance-row, .document-row{
@@ -296,7 +321,10 @@ export const HOME_CSS = `
   position:absolute; inset-inline-start:calc(-1 * var(--space-4) + 0px); top:16px;
   width:7px; height:7px; border-radius:50%; background:var(--sage); border:1px solid var(--surface);
 }
-.timeline-card-active .timeline-card-dot{ background:var(--amber); }
+/* --amber-dark, not --amber -- see appStyles.js's identical .timeline-dot fix and
+   ACCESSIBILITY.md's Color contrast section: #E8A33D fails the 3:1 non-text floor
+   this status dot needs against its white track. */
+.timeline-card-active .timeline-card-dot{ background:var(--amber-dark); }
 .timeline-card{
   position:relative; display:flex; flex-direction:column; gap:var(--space-2);
   width:100%; text-align:start; cursor:pointer;
@@ -306,19 +334,19 @@ export const HOME_CSS = `
 }
 .timeline-card-head{ display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-3); }
 .timeline-card-title{ font-size:13.5px; font-weight:600; color:var(--ink); }
-.timeline-card-date{ font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); white-space:nowrap; }
+.timeline-card-date{ font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); white-space:nowrap; }
 .timeline-card-pro{ display:inline-flex; align-items:center; gap:var(--space-2); font-size:12px; color:var(--ink-soft); }
 .timeline-card-detail{ margin:0; font-size:12px; line-height:1.5; color:var(--ink-soft); font-style:italic; }
 .timeline-card-ai{ margin:0; font-size:11.5px; line-height:1.45; color:var(--forest); }
 .timeline-card-status{
-  align-self:flex-start; font-size:11px; font-weight:600; color:#8a5c14;
+  align-self:flex-start; font-size:11px; font-weight:600; color:var(--amber-dark);
   background:var(--amber-bg); border-radius:999px; padding:2px var(--space-3);
 }
 .timeline-card-review{ display:flex; flex-direction:column; gap:var(--space-1); }
 .timeline-card-quote{ margin:0; font-size:12px; line-height:1.5; color:var(--ink-soft); }
 .timeline-card-chevron{
   position:absolute; inset-inline-end:var(--space-2); top:50%; transform:translateY(-50%);
-  color:var(--ink-faint);
+  color:var(--ink-soft);
 }
 [dir="rtl"] .timeline-card-chevron{ transform:translateY(-50%) scaleX(-1); }
 
@@ -327,7 +355,7 @@ export const HOME_CSS = `
   display:flex; align-items:center; gap:var(--space-3); width:100%; min-height:56px;
   text-align:start; cursor:pointer; background:var(--surface);
   border:1px solid var(--line-soft); border-radius:14px;
-  padding:var(--space-2) var(--space-4); font-family:var(--font-body); color:var(--ink-faint);
+  padding:var(--space-2) var(--space-4); font-family:var(--font-body); color:var(--ink-soft);
 }
 .trusted-pro-text{ flex:1; display:flex; flex-direction:column; gap:1px; }
 .trusted-pro-name{ font-size:13px; font-weight:600; color:var(--ink); }
@@ -348,7 +376,7 @@ export const HOME_CSS = `
   display:flex; align-items:center; justify-content:center;
 }
 .home-photo img{ width:100%; height:100%; object-fit:cover; }
-.home-photo-missing{ color:var(--ink-faint); }
+.home-photo-missing{ color:var(--ink-soft); }
 
 /* ---- My Items ---- */
 
@@ -375,8 +403,8 @@ export const HOME_CSS = `
 .item-card-text{ flex:1; display:flex; flex-direction:column; gap:1px; min-width:0; }
 .item-card-name{ font-size:12.5px; font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
 .item-card-sub{ font-size:11px; color:var(--ink-soft); overflow-wrap:anywhere; }
-.item-card-room{ font-size:10.5px; color:var(--ink-faint); }
-.item-card-edit{ flex:none; color:var(--ink-faint); }
+.item-card-room{ font-size:10.5px; color:var(--ink-soft); }
+.item-card-edit{ flex:none; color:var(--ink-soft); }
 
 /* ---- Item Detail (the icon+fact identity block, and the tappable document rows) ---- */
 .item-detail-photo{
@@ -395,7 +423,7 @@ export const HOME_CSS = `
 .item-detail-document-open:disabled{ opacity:0.6; cursor:default; }
 .item-detail-document-icon{ flex:none; color:var(--forest-dark); }
 .item-detail-document-content{ flex:1; min-width:0; display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-2); }
-.item-detail-document-chevron{ flex:none; color:var(--ink-faint); }
+.item-detail-document-chevron{ flex:none; color:var(--ink-soft); }
 [dir="rtl"] .item-detail-document-chevron{ transform:scaleX(-1); }
 .item-detail-document-suggest{
   display:flex; align-items:center; gap:var(--space-1); min-height:44px;

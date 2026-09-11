@@ -23,7 +23,9 @@ vi.mock("../../lib/testimonials", () => ({
 
 import { LangContext } from "../../lib/lang";
 import { Profile } from "../Profile.jsx";
-import { updateProProfile } from "../../lib/pros";
+import { updateProProfile, updateProServices, boostProfile } from "../../lib/pros";
+import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../../lib/portfolio";
+import { deleteTestimonial, fetchTestimonials } from "../../lib/testimonials";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = {
@@ -33,12 +35,12 @@ const ctx = {
   langCode: "en", setLangCode: () => {}, LANGS: [{ code: "en", label: "English", locale: "en-GB" }],
 };
 
-function renderProfile(variant, workspaceMemberships, { proProfile = null, ...props } = {}) {
+function renderProfile(variant, workspaceMemberships, { proProfile = null, refreshProfile = vi.fn(), ...props } = {}) {
   useAuthMock.mockReturnValue({
     user: { id: "person-1", email: "cathy@example.test" },
     profile: { full_name: "Cathy Customer", avatar_url: null },
     proProfile,
-    refreshProfile: vi.fn(),
+    refreshProfile,
     signOut: vi.fn(),
     workspaceMemberships,
     activeWorkspace: { workspace_id: workspaceMemberships[0]?.workspace_id },
@@ -100,7 +102,7 @@ describe("Profile — customer variant, become a pro", () => {
   });
 });
 
-function renderPro(workspaceMemberships) {
+function renderPro(workspaceMemberships, overrides = {}) {
   return renderProfile("pro", workspaceMemberships, {
     proProfile: PRO_PROFILE,
     proInfo: PRO_INFO,
@@ -110,6 +112,7 @@ function renderPro(workspaceMemberships) {
     onServicesChange: vi.fn(),
     onProfileSaved: vi.fn(),
     onPauseToggled: vi.fn(),
+    ...overrides,
   });
 }
 
@@ -209,5 +212,276 @@ describe("Profile — pro variant, switching pro type", () => {
     await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { pro_type: "business" }));
     expect(screen.queryByText("proTypeBusinessRequiresDetails")).toBeNull();
     expect(screen.queryByText("proTypeSwitchFailed")).toBeNull();
+  });
+
+  // Found by code audit, 2026-09-11: refreshProfile() used to sit inside the same try
+  // as the real write, the same bug shape fixed repeatedly elsewhere today (see e.g.
+  // ProApp.jsx's sendQuote() for the fullest write-up). A refresh-only failure right
+  // after a genuinely successful switch showed proTypeSwitchFailed for a switch that
+  // had actually gone through.
+  it("shows no error at all when the switch succeeds but the post-switch refreshProfile() fails", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    const refreshProfile = vi.fn(() => Promise.reject(new Error("network blip refreshing the profile")));
+    renderPro([{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }], { refreshProfile });
+
+    fireEvent.click(screen.getByText("proTypeBusiness"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { pro_type: "business" }));
+    expect(screen.queryByText("proTypeBusinessRequiresDetails")).toBeNull();
+    expect(screen.queryByText("proTypeSwitchFailed")).toBeNull();
+  });
+});
+
+// Found by code audit: five pro-only actions in this file had no real error handling —
+// some no catch at all, one (saveServices) not even a finally, so a real refusal left
+// its own busy flag stuck true forever (the exact "no dead end" shape this codebase has
+// already found and fixed repeatedly elsewhere — PortfolioItemSheet.jsx's own identical
+// gap, ServiceRecordSummary.jsx's own identical gap — just not yet swept in this file).
+const PRO_WORKSPACES = [{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }];
+
+describe("Profile — pro variant, saveServices", () => {
+  it("re-enables the button rather than leaving it stuck, and shows a real error, when saving fails", async () => {
+    updateProServices.mockReset();
+    updateProServices.mockRejectedValueOnce(new Error("insufficient_privilege"));
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("saveServicesBtn"));
+
+    await waitFor(() => expect(screen.getByText("saveServicesFailed")).toBeTruthy());
+    expect(screen.queryByText("insufficient_privilege")).toBeNull();
+    expect(screen.getByText("saveServicesBtn").closest("button").disabled).toBe(false);
+  });
+
+  it("shows no error at all when saving succeeds", async () => {
+    updateProServices.mockReset();
+    updateProServices.mockResolvedValueOnce(undefined);
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("saveServicesBtn"));
+
+    await waitFor(() => expect(updateProServices).toHaveBeenCalled());
+    expect(screen.queryByText("saveServicesFailed")).toBeNull();
+  });
+});
+
+describe("Profile — pro variant, portfolio upload", () => {
+  it("shows a real error, never the raw backend message, when the upload fails", async () => {
+    uploadPortfolioImage.mockReset();
+    uploadPortfolioImage.mockRejectedValueOnce(new Error("storage quota exceeded"));
+    renderPro(PRO_WORKSPACES);
+
+    const file = new File(["x"], "photo.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    await waitFor(() => expect(screen.getByText("portfolioUploadFailed")).toBeTruthy());
+    expect(screen.queryByText("storage quota exceeded")).toBeNull();
+    expect(addPortfolioItem).not.toHaveBeenCalled();
+  });
+
+  it("uploads and refreshes the grid on success", async () => {
+    uploadPortfolioImage.mockReset();
+    uploadPortfolioImage.mockResolvedValueOnce({ url: "https://example.test/p.jpg", path: "pro-1/p" });
+    addPortfolioItem.mockReset();
+    addPortfolioItem.mockResolvedValueOnce({});
+    fetchPortfolioItems.mockClear();
+    renderPro(PRO_WORKSPACES);
+
+    const file = new File(["x"], "photo.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    await waitFor(() => expect(addPortfolioItem).toHaveBeenCalled());
+    expect(screen.queryByText("portfolioUploadFailed")).toBeNull();
+  });
+
+  // Found by code audit, 2026-09-11: refreshPortfolio() used to sit inside the same try
+  // as the real writes — a refresh-only failure right after a genuinely successful
+  // upload+addPortfolioItem() showed portfolioUploadFailed for an upload that had
+  // actually gone through.
+  it("shows no error at all when the upload succeeds but the post-upload refreshPortfolio() fails", async () => {
+    uploadPortfolioImage.mockReset();
+    uploadPortfolioImage.mockResolvedValueOnce({ url: "https://example.test/p.jpg", path: "pro-1/p" });
+    addPortfolioItem.mockReset();
+    addPortfolioItem.mockResolvedValueOnce({});
+    fetchPortfolioItems.mockReset();
+    fetchPortfolioItems.mockResolvedValueOnce([]); // initial load
+    renderPro(PRO_WORKSPACES);
+    await waitFor(() => expect(fetchPortfolioItems).toHaveBeenCalledTimes(1));
+    fetchPortfolioItems.mockRejectedValueOnce(new Error("network blip refreshing the portfolio grid"));
+
+    const file = new File(["x"], "photo.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    await waitFor(() => expect(addPortfolioItem).toHaveBeenCalled());
+    await waitFor(() => expect(document.querySelector(".portfolio-add").disabled).toBe(false));
+    expect(screen.queryByText("portfolioUploadFailed")).toBeNull();
+  });
+});
+
+// Found by code audit: fetchPortfolioItems()/fetchTestimonials() both throw on a real
+// Postgres error, and the initial-load effect had no catch of its own — a genuine
+// unhandled promise rejection on every failure. Harmless for what actually renders
+// ("(portfolioItems || []).map(...)" already falls back to an empty list), but a real
+// defect regardless, the same shape RequestPhotosStrip.jsx had and was fixed the same way.
+describe("Profile — pro variant, portfolio/testimonials initial load failure", () => {
+  it("degrades to the real empty states, never an unhandled rejection, when both fetches fail", async () => {
+    fetchPortfolioItems.mockReset();
+    fetchPortfolioItems.mockRejectedValueOnce(new Error("relation \"portfolio_items\" does not exist"));
+    fetchTestimonials.mockReset();
+    fetchTestimonials.mockRejectedValueOnce(new Error("relation \"testimonials\" does not exist"));
+
+    renderPro(PRO_WORKSPACES);
+
+    await waitFor(() => expect(screen.getByText("noPortfolioYet")).toBeTruthy());
+    expect(screen.getByText("noTestimonialsYet")).toBeTruthy();
+    expect(screen.queryByText(/does not exist/)).toBeNull();
+  });
+});
+
+describe("Profile — pro variant, removing a testimonial", () => {
+  function renderProWithTestimonial() {
+    fetchTestimonials.mockReset();
+    fetchTestimonials.mockResolvedValue([{ id: "tst-1", client_name: "Cathy", quote_text: "Great work!" }]);
+    return renderPro(PRO_WORKSPACES);
+  }
+
+  it("shows a real error and keeps the confirm modal open, re-enabling both buttons, when deletion fails", async () => {
+    deleteTestimonial.mockReset();
+    deleteTestimonial.mockRejectedValueOnce(new Error("network error"));
+    renderProWithTestimonial();
+
+    await screen.findByText("Cathy");
+    fireEvent.click(screen.getByText("deleteBtn"));
+    fireEvent.click(screen.getAllByText("deleteBtn")[1]);
+
+    await waitFor(() => expect(screen.getByText("testimonialDeleteFailed")).toBeTruthy());
+    expect(screen.queryByText("network error")).toBeNull();
+    // Still open — Cancel is still there to click.
+    expect(screen.getByText("cancelBtn")).toBeTruthy();
+  });
+
+  it("deletes and closes the modal on success", async () => {
+    deleteTestimonial.mockReset();
+    deleteTestimonial.mockResolvedValueOnce(undefined);
+    renderProWithTestimonial();
+
+    await screen.findByText("Cathy");
+    fireEvent.click(screen.getByText("deleteBtn"));
+    fireEvent.click(screen.getAllByText("deleteBtn")[1]);
+
+    await waitFor(() => expect(deleteTestimonial).toHaveBeenCalledWith("tst-1"));
+    await waitFor(() => expect(screen.queryByText("cancelBtn")).toBeNull());
+  });
+
+  // Found by code audit, 2026-09-11: refreshTestimonials() used to sit inside the same
+  // try as deleteTestimonial() itself, with the modal-closing
+  // setConfirmDeleteTestimonialId(null) gated behind it succeeding too — so a
+  // refresh-only failure right after a genuinely successful deletion both showed
+  // testimonialDeleteFailed AND kept the confirm modal open on a testimonial that no
+  // longer existed.
+  it("closes the modal with no error even when deletion succeeds but the post-delete refreshTestimonials() fails", async () => {
+    deleteTestimonial.mockReset();
+    deleteTestimonial.mockResolvedValueOnce(undefined);
+    renderProWithTestimonial();
+    await screen.findByText("Cathy");
+    fetchTestimonials.mockRejectedValueOnce(new Error("network blip refreshing testimonials"));
+
+    fireEvent.click(screen.getByText("deleteBtn"));
+    fireEvent.click(screen.getAllByText("deleteBtn")[1]);
+
+    await waitFor(() => expect(deleteTestimonial).toHaveBeenCalledWith("tst-1"));
+    await waitFor(() => expect(screen.queryByText("cancelBtn")).toBeNull());
+    expect(screen.queryByText("testimonialDeleteFailed")).toBeNull();
+  });
+});
+
+describe("Profile — pro variant, boost", () => {
+  it("re-enables the button and shows a real error when Boost fails to start", async () => {
+    boostProfile.mockReset();
+    boostProfile.mockRejectedValueOnce(new Error("payment required"));
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText(/boostBtn/));
+
+    await waitFor(() => expect(screen.getByText("boostFailed")).toBeTruthy());
+    expect(screen.queryByText("payment required")).toBeNull();
+    expect(screen.getByText(/boostBtn/).closest("button").disabled).toBe(false);
+  });
+
+  // Found by code audit, 2026-09-11: refreshProfile() used to sit inside the same try
+  // as boostProfile() itself — a real refusal here mattered more than most instances of
+  // this bug class fixed today, since Boost is a genuine paid action
+  // (€{BOOST_WEEKLY_PRICE}/week): a false boostFailed for a purchase that had actually
+  // gone through could invite a pro to tap Boost again, risking a second charge for the
+  // same week.
+  it("re-enables the button with no error when Boost succeeds but the post-boost refreshProfile() fails", async () => {
+    boostProfile.mockReset();
+    boostProfile.mockResolvedValueOnce(undefined);
+    const refreshProfile = vi.fn(() => Promise.reject(new Error("network blip refreshing the profile")));
+    renderPro(PRO_WORKSPACES, { refreshProfile });
+
+    fireEvent.click(screen.getByText(/boostBtn/));
+
+    await waitFor(() => expect(boostProfile).toHaveBeenCalledWith("person-1"));
+    await waitFor(() => expect(screen.getByText(/boostBtn/).closest("button").disabled).toBe(false));
+    expect(screen.queryByText("boostFailed")).toBeNull();
+  });
+});
+
+describe("Profile — pro variant, pause/resume", () => {
+  it("re-enables the button and shows a real error when the toggle fails", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockRejectedValueOnce(new Error("network error"));
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("pauseProfileBtn"));
+
+    await waitFor(() => expect(screen.getByText("togglePausedFailed")).toBeTruthy());
+    expect(screen.queryByText("network error")).toBeNull();
+    expect(screen.getByText("pauseProfileBtn").closest("button").disabled).toBe(false);
+  });
+
+  it("shows no error and calls onPauseToggled on success", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    renderPro(PRO_WORKSPACES);
+
+    fireEvent.click(screen.getByText("pauseProfileBtn"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { paused: true }));
+    expect(screen.queryByText("togglePausedFailed")).toBeNull();
+  });
+
+  // Found by code audit, 2026-09-11: refreshProfile() and onPauseToggled() both used to
+  // sit inside the same try as updateProProfile() itself. Worse than most instances of
+  // this bug class: togglePaused() is a TOGGLE, not an idempotent write — a pro who saw
+  // the false togglePausedFailed and, believing their first tap never took effect,
+  // tapped Pause again would flip the real, already-applied change straight back,
+  // silently leaving them un-paused (still receiving new leads) while believing the
+  // opposite.
+  it("re-enables the button with no error when the toggle succeeds but the post-toggle refreshProfile() fails", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    const refreshProfile = vi.fn(() => Promise.reject(new Error("network blip refreshing the profile")));
+    renderPro(PRO_WORKSPACES, { refreshProfile });
+
+    fireEvent.click(screen.getByText("pauseProfileBtn"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { paused: true }));
+    await waitFor(() => expect(screen.getByText("pauseProfileBtn").closest("button").disabled).toBe(false));
+    expect(screen.queryByText("togglePausedFailed")).toBeNull();
+  });
+
+  it("re-enables the button with no error when the toggle succeeds but onPauseToggled() itself fails", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    const onPauseToggled = vi.fn(() => Promise.reject(new Error("network blip refreshing the lead list")));
+    renderPro(PRO_WORKSPACES, { onPauseToggled });
+
+    fireEvent.click(screen.getByText("pauseProfileBtn"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { paused: true }));
+    await waitFor(() => expect(screen.getByText("pauseProfileBtn").closest("button").disabled).toBe(false));
+    expect(screen.queryByText("togglePausedFailed")).toBeNull();
   });
 });

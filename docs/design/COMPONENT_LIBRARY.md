@@ -24,8 +24,8 @@ used, that's stated plainly rather than presented as if it were adopted.
 | `Button` | `primitives.jsx` | 4 | In Progress — see Audit |
 | `Card` | `primitives.jsx` | 0 | In Progress — see Audit |
 | `PriceTag` | `primitives.jsx` | 6 | Implemented |
-| `Drawer` | `overlays.jsx` | 15 (always via the `Sheet` alias) | Implemented |
-| `Modal` | `overlays.jsx` | 2 | Implemented |
+| `Drawer` | `overlays.jsx` | 25 (was 15 at the pass this table was first written; re-counted 2026-09-11) | Implemented |
+| `Modal` | `overlays.jsx` | 14 (was 2; re-counted 2026-09-11) | Implemented |
 | `TicketTear` | `domain.jsx` | 0 direct — internal to `JobCard` only | In Progress — see Audit |
 | `ServiceCard` | `domain.jsx` | 1 call site (looped) | Implemented |
 | `JobCard` | `domain.jsx` | 4 call sites (each looped) | Implemented |
@@ -69,8 +69,12 @@ site that tries `size="sm"` expecting it to do something.
 |---|---|
 | Props | `value`, `size` (default `13`) |
 | States | Five stars, filled up to `Math.round(value)` |
-| A11y | No accessible name — a screen reader hears five unlabeled star
-  icons, not "4 out of 5 stars." Flagged for `ACCESSIBILITY.md` (Phase 6), not fixed here. |
+| A11y | **Corrected, 2026-09-11 — this row was stale.** Fixed in
+  `ACCESSIBILITY.md`'s Phase 6 pass, not left open as this row claimed:
+  the wrapping `<span>` now carries `role="img"` and a real
+  `aria-label="N out of 5 stars"`, with the five individual star icons
+  `aria-hidden` so a screen reader hears the one real sentence instead
+  of five unlabeled icons. |
 
 ### Button
 
@@ -78,12 +82,15 @@ site that tries `size="sm"` expecting it to do something.
 |---|---|
 | Props | `variant` (`"primary"` default \| `"secondary"`), `icon`, `iconSize` (default `15`), `children`, plus passthrough props |
 | Variants | Primary (`.btn-primary`) · Secondary (`.btn-secondary`) |
+| A11y | Inherits native `<button>` semantics; no `aria-label` fallback of its own. Checked 2026-09-11: `icon` is real at only two call sites (`RequestDetailSheet.jsx`, `ProJobDetailSheet.jsx`, both `icon={MessageCircle}`), and both also pass real text `children` — no icon-only instance exists today, but nothing in the component would catch one added later without its own `aria-label`. See `ACCESSIBILITY.md`'s Component-level status table. |
 
-**Audit finding:** only 4 real call sites use the `Button` component —
-every other primary/secondary button in the app (dozens) still renders a
-raw `<button className="btn-primary">` directly. `Button` isn't broken or
-wrong, it's under-adopted. Retrofitting the rest is `LAYOUT_SYSTEM.md` /
-ongoing cleanup work, not a defect in the component itself.
+**Audit finding, re-counted 2026-09-11:** this row's "only 4 real call
+sites" is stale — real usage is now 31, not 4. `Button` isn't broken or
+wrong, it's still under-adopted relative to the dozens of raw
+`<button className="btn-primary">` call sites elsewhere in the app, just
+less dramatically than this row used to claim. Retrofitting the rest is
+`LAYOUT_SYSTEM.md` / ongoing cleanup work, not a defect in the component
+itself.
 
 ### Card
 
@@ -120,20 +127,28 @@ The two full-screen interruption patterns — see
 
 | | |
 |---|---|
-| Props | `children`, `onClose` |
-| Consumed as | `Sheet` — a local alias (`const Sheet = Drawer` in `App.jsx`) formalizing the pre-existing name without a 15-call-site rename |
-| A11y | Close button now has `aria-label="Close"` (fixed in this pass — it matched `Modal`'s pattern everywhere except here) |
+| Props | `children`, `onClose`, `closeLabel` (default `"Close"` — every real customer/pro-facing call site passes its own `t.closeBtn` instead; see below), `labelledBy`, `describedBy` (both wire straight to the dialog's own `aria-labelledby`/`aria-describedby`) |
+| Consumed as | `Drawer`, directly — the `Sheet` local alias (`const Sheet = Drawer`) this row used to describe lived in the old `App.jsx` monolith and is gone along with it; every current call site imports `Drawer` from `../design-system` by its real name |
+| A11y | `role="dialog"`, `aria-modal="true"`, a real focus trap (Tab wraps within the dialog, focus returns to the trigger on close), `Escape` closes it, close button has a real accessible name via `closeLabel` |
 
-No focus trap and no `Escape`-to-close handler exist yet (`Modal` has
-`Escape`, `Drawer` doesn't) — flagged for `ACCESSIBILITY.md`, not fixed
-here since it's a real behavior change, not a one-line label.
+**Corrected, 2026-09-11 — this section badly undersold current reality.**
+It used to claim Drawer had neither a focus trap nor an `Escape`
+handler ("`Modal` has `Escape`, `Drawer` doesn't"), flagging the gap as
+"not fixed here." Both claims are wrong as of the current code:
+`Escape`-to-close has existed on both overlays all along (the `onClose`
+prop table above just never listed it), and the focus trap gap — real,
+and the one genuinely missing piece — was closed on 2026-09-08 (see
+`overlays.jsx`'s own `useFocusTrap`, shared by both `Drawer` and
+`Modal`). The `closeLabel`/`labelledBy`/`describedBy` props were also
+missing from this table entirely; all three are real, current API, not
+a future plan.
 
 ### Modal
 
 | | |
 |---|---|
-| Props | `children`, `onClose` |
-| A11y | `role="dialog"`, `aria-modal="true"`, `Escape` key closes it, close button has `aria-label="Close"` — the more complete of the two overlays |
+| Props | `children`, `onClose`, `closeLabel` (same default/override shape as `Drawer`, above), `labelledBy`, `describedBy` |
+| A11y | `role="dialog"`, `aria-modal="true"`, the same shared focus trap as `Drawer`, `Escape` key closes it, close button has a real accessible name via `closeLabel` — `Drawer` and `Modal` are now identical in every accessibility respect, not "the more complete of the two overlays" |
 
 ---
 

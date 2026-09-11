@@ -17,7 +17,20 @@ import { messagesNeedingTranslation } from "../lib/conversationSelectors.js";
 export function ConversationSheet({ conversationId, userId, workspaceId, otherName, onClose }) {
   const { t, langCode } = useLang();
   const [messages, setMessages] = useState(null);
+  // Found by code audit: fetchMessages() throws on a real Postgres error, and the
+  // initial refresh() call in the mount effect below had no catch of its own -- a
+  // genuine unhandled promise rejection on every failure, and messages stuck at null
+  // forever means the empty-state text below ("messages && messages.length === 0")
+  // never shows either -- just a blank chat area with no explanation, worse than showing
+  // "no messages yet" would be, since a real failure would read as an empty conversation
+  // rather than a failed load. Tracked separately from CustomerApp.jsx's identical fix:
+  // showing a false "no messages yet" here specifically risks someone re-sending
+  // something already sent, so this gets the fuller error+retry treatment rather than
+  // the softer "degrade to []" one RequestPhotosStrip.jsx/Profile.jsx use for
+  // supplementary lists.
+  const [messagesLoadError, setMessagesLoadError] = useState(false);
   const [draft, setDraft] = useState("");
+  const [sendError, setSendError] = useState("");
   const [showOriginalFor, setShowOriginalFor] = useState(() => new Set());
   const translatingRef = useRef(new Set());
   const scrollRef = useRef(null);
@@ -35,11 +48,23 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
+  // refresh() itself stays capable of rejecting -- loadMessages() below needs a real
+  // rejection to reach its own catch and set messagesLoadError. send() no longer awaits
+  // this one directly inside its own try (see that function's own header for why:
+  // 2026-09-11's audit found the split this comment used to justify by reference to
+  // CustomerApp.jsx was itself modeled on a bug there, since fixed).
   const refresh = () => fetchMessages(conversationId, workspaceId).then(setMessages);
+  const loadMessages = () =>
+    refresh().then(() => setMessagesLoadError(false)).catch(() => setMessagesLoadError(true));
 
   useEffect(() => {
-    refresh();
-    markConversationRead(conversationId, workspaceId);
+    loadMessages();
+    // Found by code audit: also called with no catch of its own -- best-effort,
+    // deliberately, the same restraint markConversationNotificationsSeen() below already
+    // documents for itself ("a failure here must never block reading an actual
+    // message"): marking read/seen is a courtesy update, not something the customer is
+    // ever shown a retry for.
+    markConversationRead(conversationId, workspaceId).catch(() => {});
     // Slice 4, WP 4.2 — the Notification engine's write contract (WP 4.0) gets its first
     // real caller here: opening a conversation is the moment any notification naming it
     // is genuinely "seen" and "acted on," the same real-world event
@@ -47,8 +72,8 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     // header for why this ships instead of a separate, duplicate inbox screen.
     markConversationNotificationsSeen(conversationId, userId);
     const unsubscribe = subscribeToMessages(conversationId, () => {
-      refresh();
-      markConversationRead(conversationId, workspaceId);
+      loadMessages();
+      markConversationRead(conversationId, workspaceId).catch(() => {});
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,12 +106,40 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     });
   }, [messages, langCode, userId, workspaceId]);
 
+  // Found by code audit: no try/catch at all, and the draft was cleared optimistically
+  // before the send even started -- a real refusal (RLS, network) meant the words the
+  // customer just typed were gone, with no error shown and no way to recover them short
+  // of retyping from memory. Restoring the draft on failure, not just showing an error,
+  // is the actual fix: the message text itself is the thing that must never be
+  // silently destroyed.
+  //
+  // Found by code audit, 2026-09-11: refresh() used to sit inside this same try -- the
+  // same bug shape as CustomerApp.jsx's/ProApp.jsx's own action handlers (see those
+  // files' own headers), just with a worse consequence here specifically: a failure in
+  // refresh() after sendMessage() had already succeeded restored the ALREADY-SENT body
+  // into the draft box and showed chatSendFailed, inviting the customer to tap Send
+  // again on words that had already reached the other person -- a genuine duplicate
+  // message, not just a confusing toast. refresh() is now best-effort once the send
+  // itself is confirmed; its own failure just leaves the fresh message to appear via the
+  // next successful poll or realtime event, exactly like any other "unavailable,
+  // continuing without it" background read in this codebase.
   const send = async () => {
     const body = draft.trim();
     if (!body) return;
     setDraft("");
-    await sendMessage({ conversationId, senderId: userId, senderWorkspaceId: workspaceId, body });
-    await refresh();
+    setSendError("");
+    try {
+      await sendMessage({ conversationId, senderId: userId, senderWorkspaceId: workspaceId, body });
+    } catch {
+      setDraft(body);
+      setSendError(t.chatSendFailed);
+      return;
+    }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the message itself was already sent regardless.
+    }
   };
 
   const toggleOriginal = (id) => {
@@ -99,29 +152,38 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{otherName || t.counterpartFallbackName}</div>
-      <div className="chat-scroll" ref={scrollRef}>
-        {messages && messages.length === 0 && (
-          <p className="chat-empty-state">{t.messagesConversationEmpty}</p>
-        )}
-        {(messages || []).map((m) => {
-          const isMine = m.senderId === userId;
-          const translated = !isMine ? m.translations?.[langCode] : null;
-          const showingOriginal = showOriginalFor.has(m.id);
-          const displayText = translated && !showingOriginal ? translated : m.body;
-          return (
-            <div key={m.id} className={"chat-bubble " + (isMine ? "chat-bubble-me" : "chat-bubble-them")}>
-              <div>{displayText}</div>
-              {translated && (
-                <button type="button" className="chat-translate-toggle" onClick={() => toggleOriginal(m.id)}>
-                  {showingOriginal ? t.viewTranslationBtn : t.viewOriginalBtn}
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {messages === null && messagesLoadError ? (
+        <div className="pad">
+          <div className="empty-block">
+            <p>{t.catalogLoadFailed}</p>
+            <button type="button" className="btn-secondary" onClick={loadMessages}>{t.retryBtn}</button>
+          </div>
+        </div>
+      ) : (
+        <div className="chat-scroll" ref={scrollRef}>
+          {messages && messages.length === 0 && (
+            <p className="chat-empty-state">{t.messagesConversationEmpty}</p>
+          )}
+          {(messages || []).map((m) => {
+            const isMine = m.senderId === userId;
+            const translated = !isMine ? m.translations?.[langCode] : null;
+            const showingOriginal = showOriginalFor.has(m.id);
+            const displayText = translated && !showingOriginal ? translated : m.body;
+            return (
+              <div key={m.id} className={"chat-bubble " + (isMine ? "chat-bubble-me" : "chat-bubble-them")}>
+                <div>{displayText}</div>
+                {translated && (
+                  <button type="button" className="chat-translate-toggle" onClick={() => toggleOriginal(m.id)}>
+                    {showingOriginal ? t.viewTranslationBtn : t.viewOriginalBtn}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="chat-input-row">
         <input
           placeholder={t.messagePlaceholder}
@@ -135,6 +197,7 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
             "Document toevoegen"), which already name themselves this way. */}
         <button type="button" aria-label={t.chatSendBtn} onClick={send}><Send size={16} /></button>
       </div>
+      {sendError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{sendError}</div>}
     </Drawer>
   );
 }

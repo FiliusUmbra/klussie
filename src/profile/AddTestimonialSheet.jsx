@@ -13,6 +13,13 @@ export function AddTestimonialSheet({ proId, onClose, onAdded }) {
   const [quoteText, setQuoteText] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Found by code audit, 2026-09-11: the required-field guard lived only inside submit()
+  // as a silent no-op (`if (!quoteText.trim()) return;`) -- every other form in this
+  // codebase with a genuinely required field (DocumentUploadSheet.jsx, LocationFormSheet.jsx,
+  // ItemFormSheet.jsx, ServiceRecordEditorSheet.jsx) reflects that on the button itself via
+  // a canSave/canSubmit check, so tapping Submit with nothing typed does nothing at all
+  // visible here -- not an error, not a disabled affordance, just silence.
+  const canSubmit = quoteText.trim().length > 0;
 
   const submit = async () => {
     if (!quoteText.trim()) return;
@@ -20,17 +27,36 @@ export function AddTestimonialSheet({ proId, onClose, onAdded }) {
     setBusy(true);
     try {
       await addTestimonial({ proId, clientName, quoteText });
-      await onAdded();
+      // Found by code audit, 2026-09-11: onAdded() (Profile.jsx's own refreshTestimonials,
+      // which re-fetches and can genuinely reject) used to sit inside this same try, so a
+      // failure there -- after addTestimonial() had already succeeded -- showed the same
+      // "could not add this" as a real save failure and left the sheet open. Unlike
+      // EditProfileSheet.jsx's own refreshProfile() (deliberately left to propagate,
+      // auth.jsx's own header explains why: an out-of-sync local profile cache is worse
+      // than a visible error), a stale testimonial list here is corrected by the next
+      // real read with nothing to reconcile -- and the real risk cuts the other way: a
+      // pro trusting the false failure and tapping Add again would call addTestimonial()
+      // a second time, creating a genuine duplicate row (this is a create, not an
+      // idempotent update). onAdded()'s own failure is now caught separately and never
+      // blocks the sheet from closing on an add that genuinely succeeded.
+      try {
+        await onAdded();
+      } catch {
+        // Best-effort refresh; the testimonial itself is already saved regardless.
+      }
       onClose();
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      // A raw err.message here would be a raw Postgres error (an RLS refusal, a
+      // constraint violation) -- documents.js's own header names this exact anti-pattern
+      // and the fix for it: a generic, localized message, never the backend's own words.
+      setError(t.testimonialSaveFailed);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{t.addTestimonialBtn}</div>
 
       <label className="field-label">{t.clientNameLabel}</label>
@@ -42,7 +68,7 @@ export function AddTestimonialSheet({ proId, onClose, onAdded }) {
       <textarea className="textarea" rows={3} value={quoteText} onChange={(e) => setQuoteText(e.target.value)} />
 
       {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
-      <button className="btn-primary" disabled={busy} onClick={submit}>{t.addTestimonialBtn}</button>
+      <button className="btn-primary" disabled={busy || !canSubmit} onClick={submit}>{t.addTestimonialBtn}</button>
     </Drawer>
   );
 }

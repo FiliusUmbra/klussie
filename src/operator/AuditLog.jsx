@@ -49,6 +49,13 @@ export function AuditLog({ initialWorkspaceId } = {}) {
   // `appliedFilters` value by reference, or `loading` below would read false before the
   // first fetch has even started.
   const [result, setResult] = useState({ filters: null, records: [], hasMore: false });
+  // Found by code audit: loadMore() had no guard at all against a second call landing
+  // while the first is still in flight -- a real double-click (easy to do on a "Load
+  // more" button, especially on a slow connection) fired the fetch twice with the exact
+  // same offset (`records.length`, read before either request's own setResult had
+  // updated it), and both responses appended their own copy of the same page: every
+  // record in it shown twice.
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,8 +72,14 @@ export function AuditLog({ initialWorkspaceId } = {}) {
   // Pagination offset is simply how many rows are already shown — no separate counter
   // to keep in sync with `records` by hand.
   const loadMore = async () => {
-    const page = await fetchAuditRecords({ ...appliedFilters, offset: records.length });
-    setResult((prev) => ({ ...prev, records: [...prev.records, ...page], hasMore: page.length === AUDIT_PAGE_SIZE }));
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await fetchAuditRecords({ ...appliedFilters, offset: records.length });
+      setResult((prev) => ({ ...prev, records: [...prev.records, ...page], hasMore: page.length === AUDIT_PAGE_SIZE }));
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const applyFilters = (e) => {
@@ -150,8 +163,8 @@ export function AuditLog({ initialWorkspaceId } = {}) {
       ))}
 
       {!loading && hasMore && (
-        <button type="button" className="btn-secondary" onClick={loadMore} style={{ width: "100%" }}>
-          Load more
+        <button type="button" className="btn-secondary" onClick={loadMore} disabled={loadingMore} style={{ width: "100%" }}>
+          {loadingMore ? "Loading…" : "Load more"}
         </button>
       )}
     </div>

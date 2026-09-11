@@ -45,12 +45,15 @@ export function MyBusinessPanel({ t, fmtDate }) {
     setCreateError("");
     createPropertyForCaller({ workspaceId, actorRef: ownerId, name: DEFAULT_PROPERTY_NAME })
       .then(() => refreshItems())
-      .catch((err) => {
-        setCreateError(err.message || String(err));
+      .catch(() => {
+        // A raw err.message here would be a raw Postgres error -- documents.js's own
+        // header names this anti-pattern and its fix: a generic, localized message,
+        // never the backend's own words.
+        setCreateError(t.myBusinessSetupFailed);
         attemptedRef.current = false;
       })
       .finally(() => setCreating(false));
-  }, [workspaceId, ownerId, homeProfile, refreshItems, retryToken]);
+  }, [workspaceId, ownerId, homeProfile, refreshItems, retryToken, t.myBusinessSetupFailed]);
 
   if (homeProfile === null || creating) {
     return <LoadingScreen />;

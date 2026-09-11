@@ -16,6 +16,7 @@ import { InvoiceSheet } from "./InvoiceSheet.jsx";
 import { ReportSheet } from "./ReportSheet.jsx";
 import { timelineSteps } from "../lib/requestStatus.js";
 import { platformFee, netPayout } from "../lib/billing.js";
+import { interpolate } from "../lib/homeStrings.js";
 
 export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
@@ -24,12 +25,17 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
   const [showReport, setShowReport] = useState(false);
   const [openProId, setOpenProId] = useState(null);
   const [approving, setApproving] = useState(false);
+  // Which quote id is currently being accepted, if any — a single flag (not per-quote)
+  // is enough since accepting one quote is the one mutually-exclusive action this
+  // sheet's quotes_ready state offers.
+  const [acceptingId, setAcceptingId] = useState(null);
+  const [completing, setCompleting] = useState(false);
   const info = serviceInfo(request.serviceId);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
   const steps = timelineSteps(request.status);
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-title">{info.name}</div>
       <div className="sheet-sub">{whenLabel(request.answers.when)} {"·"} "{request.answers.details}"</div>
       {steps && (
@@ -71,12 +77,28 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                     <Avatar url={pro.avatarUrl} initials={pro.initials} />
                     <div style={{ flex: 1 }}>
                       <div className="quote-name">{pro.name || t.proFallbackName} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
-                    <TrustBadge rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} />
+                    <TrustBadge rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} />
                   </div>
                   </button>
                   <PriceTag amount={q.price} fmt={fmt} />
                 </div>
-                <button className="btn-secondary" onClick={() => onAccept(q.id)}>{t.acceptQuoteBtn}</button>
+                {/* Found by code audit: no busy state at all -- a real refusal (a race
+                    with another quote already accepted, a status that moved on) used
+                    to leave this button sitting there, tappable again, with nothing
+                    telling the customer their tap had even registered, let alone that
+                    it failed (acceptQuote()'s own new catch, CustomerApp.jsx, shows the
+                    real toast; this only needs to not double-submit while one is in
+                    flight and not throw here a second time). */}
+                <button
+                  className="btn-secondary"
+                  disabled={acceptingId !== null}
+                  onClick={async () => {
+                    setAcceptingId(q.id);
+                    try { await onAccept(q.id); } catch { /* toasted by acceptQuote() */ } finally { setAcceptingId(null); }
+                  }}
+                >
+                  {acceptingId === q.id ? <Loader2 size={15} className="spin" /> : null} {t.acceptQuoteBtn}
+                </button>
               </QuoteCard>
             );
           })}
@@ -95,20 +117,36 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
                 <Avatar url={pro.avatarUrl} initials={pro.initials} />
-                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
+                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
             <div className="ticket-divider" />
             <div className="quote-msg" style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               <MapPin size={14} style={{ marginTop: 2, flexShrink: 0 }} />
-              <span>{t.disclosureConsentBody.replace("{name}", pro.name || t.proFallbackName)}</span>
+              {/* Found by code audit, 2026-09-11: this used to be a raw
+                  `.replace("{name}", ...)` -- String.replace's own string-pattern
+                  overload only substitutes the FIRST occurrence, unlike interpolate()
+                  (already imported here for ratingLabel above), which replaces every
+                  occurrence. No locale's own disclosureConsentBody happens to repeat
+                  {"{name}"} today, so this never actually rendered a broken literal
+                  placeholder -- but nothing enforced that, and a future translation
+                  that names the pro twice (grammatically ordinary) would have silently
+                  shipped one unsubstituted "{"{name}"}" straight to a customer. */}
+              <span>{interpolate(t.disclosureConsentBody, { name: pro.name || t.proFallbackName })}</span>
             </div>
             <button
               className="btn-primary"
               style={{ marginTop: 12 }}
               disabled={approving}
-              onClick={async () => { setApproving(true); try { await onApproveDisclosure(); } finally { setApproving(false); } }}
+              onClick={async () => {
+                setApproving(true);
+                // Found by code audit: this try/finally had no catch -- approveLocationDisclosure()'s
+                // own new catch (CustomerApp.jsx) now shows the real toast and re-throws;
+                // catching (and doing nothing further) here is what stops that from also
+                // becoming an unhandled rejection at this level.
+                try { await onApproveDisclosure(); } catch { /* toasted by approveLocationDisclosure() */ } finally { setApproving(false); }
+              }}
             >
               {approving ? <Loader2 size={15} className="spin" /> : <MapPin size={15} />} {t.disclosureConsentApproveBtn}
             </button>
@@ -127,7 +165,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
               <Avatar url={pro.avatarUrl} initials={pro.initials} />
-              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
+              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
@@ -135,7 +173,21 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="fee-row"><span>{t.platformFeeLabel}</span><PriceTag amount={fee} fmt={fmt} size="sm" /></div>
             <div className="fee-row fee-row-net"><span>{t.netPayoutLabel}</span><PriceTag amount={net} fmt={fmt} size="sm" /></div>
             <div className="fineprint" style={{ marginTop: 10 }}><ShieldCheck size={12} /> {t.guaranteeNote}</div>
-            <button className="btn-primary" style={{ marginTop: 12 }} onClick={onComplete}>{t.markCompleteBtn}</button>
+            {/* Found by code audit: no busy state, no await, no catch at all -- a real
+                refusal (complete_engagement()'s own refusal, a network error) used to
+                leave the button sitting there tappable again with no feedback at all
+                (markComplete()'s own new catch, CustomerApp.jsx, shows the real toast). */}
+            <button
+              className="btn-primary"
+              style={{ marginTop: 12 }}
+              disabled={completing}
+              onClick={async () => {
+                setCompleting(true);
+                try { await onComplete(); } catch { /* toasted by markComplete() */ } finally { setCompleting(false); }
+              }}
+            >
+              {completing ? <Loader2 size={15} className="spin" /> : null} {t.markCompleteBtn}
+            </button>
             <button className="btn-secondary" style={{ marginTop: 8 }} onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button>
           </QuoteCard>
         );
@@ -146,7 +198,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
       )}
 
       {request.status === "reviewed" && (
-        <QuoteCard><div className="quote-top"><Rating value={request.review.stars} size={16} /></div><p className="quote-msg">"{request.review.text}"</p><button className="btn-secondary" onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button></QuoteCard>
+        <QuoteCard><div className="quote-top"><Rating value={request.review.stars} size={16} label={interpolate(t.ratingLabel, { value: request.review.stars })} /></div><p className="quote-msg">"{request.review.text}"</p><button className="btn-secondary" onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button></QuoteCard>
       )}
 
       {(request.status === "completed" || request.status === "reviewed") && (

@@ -12,15 +12,26 @@
 // Pure and data-only, like homeToday.js: it takes the requests CustomerApp already
 // fetched and returns descriptors. No fetching, no copy, no JSX — the panel turns these
 // into words via `t` (ENGINEERING_STANDARDS.md, "no business logic in UI").
+import { OPEN_STATUSES } from "./requestStatus.js";
 
 // A job counts as history once the work is done. 'booked' is still in progress, so it
 // belongs to the active list, not the record.
 const FINISHED = ["completed", "reviewed"];
 
-// Everything the customer is currently waiting on. Mirrors homeToday.js's IN_FLIGHT plus
-// 'booked', because My Home answers "what is happening to my house" rather than "what
-// needs a decision from me".
-const IN_FLIGHT = ["collecting", "awaiting_pro", "quotes_ready", "booked"];
+// Everything the customer is currently waiting on, because My Home answers "what is
+// happening to my house" rather than "what needs a decision from me" (contrast
+// homeToday.js's own PRIORITY, which is that narrower question) -- but the same
+// underlying set of open statuses either way.
+//
+// requestStatus.js's own shared OPEN_STATUSES, not a local copy: this file used to keep
+// its own, with a comment claiming it "mirrors homeToday.js's IN_FLIGHT" — found by code
+// audit to have drifted out of sync for real, not hypothetically, when
+// accepted_pending_location_approval (the mandatory disclosure-consent step between
+// accepting a quote and an actual booking) landed in homeToday.js's copy and not this
+// one. A request stuck there disappeared from My Home's own "Active" section
+// (MyHomePanel.jsx) until that was fixed by hand, one file behind. One shared source
+// now, not two comments promising to stay in sync.
+const IN_FLIGHT = OPEN_STATUSES;
 
 const byNewest = (a, b) => b.createdAt - a.createdAt;
 

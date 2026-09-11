@@ -179,13 +179,19 @@ describe("ConversationHome — rest state", () => {
 });
 
 describe("ConversationHome — trust strip (ADR-0011)", () => {
-  it("shows only transparent pricing when no platform data backs the other signals", async () => {
+  // The unconditional "transparent pricing" item was removed at the product's own
+  // request, 2026-09-11 — it was the one item here never actually backed by a dataset.
+  // With no real signal to show, the strip now renders nothing at all rather than a
+  // permanent placeholder.
+  it("shows no trust strip at all when no platform data backs any signal", async () => {
     renderHome();
-    await waitFor(() => expect(screen.getByText("trustTransparentPricing")).toBeTruthy());
+    await waitFor(() => expect(fetchPlatformTrustStats).toHaveBeenCalled());
 
-    // Verified-pro count is 0 and the rating is withheld, so neither may be claimed.
+    // Verified-pro count is 0 and the rating is withheld, so neither may be claimed —
+    // and with nothing left to show, the strip itself is absent, not empty.
     expect(screen.queryByText("trustVerifiedPros")).toBeNull();
-    expect(document.querySelectorAll(".trust-strip-item")).toHaveLength(1);
+    expect(document.querySelectorAll(".trust-strip-item")).toHaveLength(0);
+    expect(document.querySelector(".trust-strip")).toBeNull();
   });
 
   it("adds the signals that do have data behind them", async () => {
@@ -196,12 +202,13 @@ describe("ConversationHome — trust strip (ADR-0011)", () => {
     expect(screen.getByText("4.7★ trustAvgRating")).toBeTruthy();
   });
 
-  it("drops the data-backed signals rather than breaking when the fetch fails", async () => {
+  it("shows no trust strip, rather than breaking, when the fetch fails", async () => {
     vi.mocked(fetchPlatformTrustStats).mockRejectedValue(new Error("offline"));
     renderHome();
 
-    await waitFor(() => expect(screen.getByText("trustTransparentPricing")).toBeTruthy());
+    await waitFor(() => expect(fetchPlatformTrustStats).toHaveBeenCalled());
     expect(screen.queryByText("trustVerifiedPros")).toBeNull();
+    expect(document.querySelector(".trust-strip")).toBeNull();
   });
 });
 
@@ -475,6 +482,49 @@ describe("ConversationHome — voice capture", () => {
     expect(screen.getByLabelText("convComposerLabel")).toBeTruthy();
     expect(document.querySelector(".voice-capture")).toBeNull();
     expect(analyzeJobRequest).not.toHaveBeenCalled();
+  });
+
+  // A real, observed Web Speech API inconsistency, not a hypothetical: the recognizer is
+  // never guaranteed to convert the last words spoken into a final result before ending —
+  // a trailing pause, the browser's own silence timeout, or an explicit stop can all end
+  // recognition while the tail of what was said is still sitting in `interimText`, never
+  // finalized. Before this fix, that content was silently discarded.
+  it("keeps what was said even when recognition ends before finalizing it", async () => {
+    const recognizer = captureRecognizer();
+    renderHome();
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
+
+    // Never finalized — this is exactly the interim-only case some browsers hit.
+    await act(async () => { recognizer.handlers.onResult({ finalText: "", interimText: "my sink is leaking" }); });
+    await act(async () => { recognizer.handlers.onEnd(); });
+
+    // The panel stays open with a real transcript to confirm, rather than reading "no
+    // final text" as "nothing was said" and silently closing.
+    expect(document.querySelector(".voice-capture")).not.toBeNull();
+    expect(screen.getByText("my sink is leaking")).toBeTruthy();
+
+    await act(async () => { screen.getByText("convContinue").click(); });
+    await waitFor(() => expect(analyzeJobRequest).toHaveBeenCalledWith(expect.objectContaining({ text: "my sink is leaking" })));
+  });
+
+  it("keeps a trailing never-finalized word when the customer taps stop themselves", async () => {
+    const recognizer = captureRecognizer();
+    renderHome();
+    await act(async () => { screen.getByLabelText("homeVoiceAction").click(); });
+
+    await act(async () => { recognizer.handlers.onResult({ finalText: "my sink is leaking", interimText: "" }); });
+    // A further clause is spoken but never makes it to a final result before the tap.
+    await act(async () => { recognizer.handlers.onResult({ finalText: "", interimText: "and the toilet too" }); });
+    await act(async () => { document.querySelector(".voice-stop").click(); });
+
+    // Both the already-final and the rescued trailing clause show, exactly once each —
+    // not the trailing clause echoed twice (finalText and the still-set interim).
+    expect(screen.getByText("my sink is leaking and the toilet too")).toBeTruthy();
+
+    await act(async () => { screen.getByText("convContinue").click(); });
+    await waitFor(() => expect(analyzeJobRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "my sink is leaking and the toilet too" }),
+    ));
   });
 
   it("returns to rest when the recognizer errors out", async () => {
