@@ -72,16 +72,20 @@ not fixed here:
 Fixed this pass: see the table above. Two real gaps remain, deliberately
 not fixed here because each needs more than a label:
 
-- **`Drawer`/`Modal`'s own close button — closed 2026-09-08.** Every
-  ordinary sheet in the app (EditProfileSheet, ItemFormSheet,
-  ReportSheet, AiIntakeSheet, ConversationSheet, RequestDetailSheet,
-  20+ more) now passes its own real `t.closeBtn` (new key, all 10
-  locales) as `closeLabel`, rather than relying on `overlays.jsx`'s own
-  hardcoded `"Close"` default. That default itself is deliberately kept
-  — it is the correct, real answer for the operator tool's own two
-  sheets (`CaseDetailSheet`/`SupportAccessSheet`), which have no `t`/i18n
-  context at all and are English-only by design.
-- **`AiIntakeSheet.jsx`'s own photo-remove button — also closed 2026-09-08.**
+- **`Drawer`/`Modal`'s own close button — closed 2026-09-08, corrected
+  2026-09-11.** Every ordinary sheet in the app (EditProfileSheet,
+  ItemFormSheet, ReportSheet, AiIntakeSheet, ConversationSheet,
+  RequestDetailSheet, 20+ more) now passes its own real `t.closeBtn`
+  (new key, all 10 locales) as `closeLabel`, rather than relying on
+  `overlays.jsx`'s own hardcoded `"Close"` default. That default itself
+  is deliberately kept — it is the correct, real answer for the operator
+  tool's own two sheets (`CaseDetailSheet`/`SupportAccessSheet`), which
+  have no `t`/i18n context at all and are English-only by design.
+  **The "every" above overclaimed:** `QuoteFormSheet.jsx` and
+  `ServiceSheet.jsx` were both missed by that pass — found by a later
+  audit and fixed 2026-09-11, alongside the "Remove photo" correction
+  below.
+- **`AiIntakeSheet.jsx`'s own photo-remove button — closed 2026-09-08.**
   Hardcoded `aria-label="Remove photo"`, even though its two sibling
   buttons (`ItemFormSheet.jsx`, `ServiceRecordEditorSheet.jsx`) already
   used the real, existing `t.itemPhotoRemove` — this one simply never
@@ -93,12 +97,19 @@ not fixed here because each needs more than a label:
   instance of this whole category of gap. New key, `languageSwitcherLabel`,
   all 10 locales.
 - **A full grep of every `aria-label="literal string"` in `src/` was run
-  closing this pass** — the three above are the only real, reachable
-  ones found (`QuoteFormSheet.jsx`'s own identical "Remove photo" is
-  dead, unreachable code, ADR/`ENGINEERING_STANDARDS.md`'s own
-  long-standing finding, not fixed here on purpose; `AuditLog.jsx`/
-  `WorkspaceLookup.jsx`'s own hardcoded labels are the operator tool's,
-  correctly English-only, no `t`/i18n context to localize with). This
+  closing the 2026-09-08 pass** — the three above were logged as the
+  only real, reachable ones found, with `QuoteFormSheet.jsx`'s own
+  identical "Remove photo" explicitly left unfixed on purpose as dead,
+  unreachable code (`CustomerApp.jsx`'s own header: no live trigger sets
+  `activeService`/`quoteForm` today). **Revisited and fixed anyway,
+  2026-09-11:** dead code today is not dead code forever — this surface
+  stays in the codebase specifically because no agreed replacement exists
+  yet, not because it is slated for removal, so a trivial, already-proven
+  fix (the same `t.itemPhotoRemove` swap, verbatim) was worth making now
+  rather than leaving a known bug for whoever reconnects it later to
+  rediscover. `AuditLog.jsx`/`WorkspaceLookup.jsx`'s own hardcoded labels
+  remain correctly untouched — the operator tool's own, genuinely
+  English-only by design, no `t`/i18n context to localize with. This
   category of gap is genuinely closed, not merely reduced.
 - **The one shared toast — closed 2026-09-08.** `AppShell.jsx`'s own
   `{toast && <div className="toast">...}` (every confirmation in the app

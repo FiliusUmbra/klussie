@@ -12,8 +12,12 @@ export function ServiceSheet({ service, onClose, onRequest }) {
   const info = serviceInfo(service.id);
   const Icon = CATS.find((c) => c.id === service.cat).icon;
   const { low, high } = typicalPriceRange(service.base);
+  // Found by code audit: closeLabel was missing here, the same regression fixed in
+  // QuoteFormSheet.jsx alongside this one -- every other customer-facing Drawer/Modal in
+  // the codebase already has it. See that file's own comment for why this is currently
+  // unreachable (CustomerApp.jsx's own header) and fixed anyway.
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
       <div className="sheet-icon-lg"><Icon size={22} color="var(--forest)" /></div>
       <div className="sheet-title">{info.name}</div>
       {service.certifiedOnly && <Badge tone="forest">{t.certifiedOnlyBadge}</Badge>}
