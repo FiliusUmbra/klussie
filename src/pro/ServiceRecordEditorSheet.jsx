@@ -20,7 +20,20 @@ import { Drawer, Button } from "../design-system";
 import { useLang } from "../lib/lang";
 import { createServiceRecord, writePerformingAnnex, uploadServiceRecordEvidence } from "../lib/serviceRecords.js";
 
-const today = () => new Date().toISOString().slice(0, 10);
+// Found by code audit: this used to be `new Date().toISOString().slice(0, 10)` --
+// toISOString() is always UTC, but klussie's own users are Belgian tradespeople
+// (billing.js's own VAT rate and flexi-job ceiling are Belgian), who are never behind
+// UTC and are one or two hours ahead of it for the whole year. In the first one-or-two
+// hours after local midnight, the UTC calendar day is still yesterday, so the old
+// today() silently pre-filled "performed at" with yesterday's date on precisely the
+// jobs most likely to be finished late at night. This uses the local calendar date
+// instead -- the same date the <input type="date"> itself already shows and expects.
+const today = () => {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+};
 
 export function ServiceRecordEditorSheet({ job, workspaceId, actorRef, onClose, onSaved }) {
   const { t } = useLang();
