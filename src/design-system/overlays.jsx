@@ -71,7 +71,18 @@ export function Drawer({ children, onClose, closeLabel = "Close", labelledBy, de
     <div
       className="sheet-overlay"
       onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+      // Found by code audit, 2026-09-11: no stopPropagation, unlike Modal's own
+      // identical handler just below -- and several sheets nest a second Drawer-based
+      // sheet inside their own children rather than as a sibling (RequestDetailSheet
+      // opening InvoiceSheet/ReportSheet/ProPublicProfileSheet from within its own
+      // <Drawer>...</Drawer>, all three themselves Drawer-based). Pressing Escape
+      // while one of those nested sheets is focused bubbled straight through the
+      // outer Drawer's own sheet-overlay and closed it too -- one Escape press
+      // dismissing both the invoice/report/pro-profile popup AND the whole request
+      // detail view underneath it, losing the customer's place. Modal already guards
+      // against exactly this for its own nesting (see its onKeyDown just below); this
+      // brings Drawer, the far more heavily nested of the two, in line with it.
+      onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}
     >
       <div
         ref={panelRef}

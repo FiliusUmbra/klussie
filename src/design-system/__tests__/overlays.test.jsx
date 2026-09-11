@@ -120,4 +120,34 @@ describe("Drawer/Modal — Escape and backdrop click", () => {
     fireEvent.click(container.querySelector(".sheet-overlay"));
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  // Found by code audit, 2026-09-11: several sheets nest a second Drawer-based sheet
+  // inside their own children rather than as a sibling — RequestDetailSheet.jsx opens
+  // InvoiceSheet/ReportSheet/ProPublicProfileSheet, all three themselves Drawer-based,
+  // from within its own <Drawer>...</Drawer> — and Drawer's own Escape handler had no
+  // stopPropagation, unlike Modal's identical one just below. One Escape press while a
+  // nested sheet was focused used to bubble straight through and close the outer
+  // Drawer too, not just the nested one.
+  describe.each([
+    ["Drawer", Drawer],
+    ["Modal", Modal],
+  ])("%s nested inside a Drawer (e.g. RequestDetailSheet's own InvoiceSheet/ReportSheet/ProPublicProfileSheet)", (name, Inner) => {
+    it(`Escape inside the nested ${name} closes only the nested one, not the outer Drawer too`, () => {
+      const onCloseOuter = vi.fn();
+      const onCloseInner = vi.fn();
+      const { container } = render(
+        <Drawer onClose={onCloseOuter}>
+          <Inner onClose={onCloseInner}>
+            <button>Inside</button>
+          </Inner>
+        </Drawer>
+      );
+      const innerOverlay = container.querySelector(Inner === Drawer ? ".sheet-overlay .sheet-overlay" : ".sheet-overlay .modal-overlay");
+
+      fireEvent.keyDown(innerOverlay, { key: "Escape" });
+
+      expect(onCloseInner).toHaveBeenCalledTimes(1);
+      expect(onCloseOuter).not.toHaveBeenCalled();
+    });
+  });
 });
