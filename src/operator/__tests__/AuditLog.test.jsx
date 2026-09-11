@@ -96,6 +96,36 @@ describe("AuditLog", () => {
     expect(screen.getAllByText("workspace.membership.granted")).toHaveLength(AUDIT_PAGE_SIZE);
   });
 
+  // Found by code audit: loadMore() had no guard against a second call landing while the
+  // first was still in flight — a real double-click fired the fetch twice with the exact
+  // same offset (read before either request's own setResult had updated it), and both
+  // responses appended their own copy of the same page: every record shown twice.
+  it("a double-click on Load more fetches the next page only once, not twice", async () => {
+    const fullPage = Array.from({ length: AUDIT_PAGE_SIZE }, (_, i) => ({
+      ...PERMITTED, audit_id: `11111111-1111-4111-8111-0000000005${String(i).padStart(2, "0")}`,
+    }));
+    apiRpc.mockResolvedValueOnce({ data: fullPage, error: null });
+    render(<AuditLog />);
+    await waitFor(() => expect(screen.getAllByText("workspace.membership.granted")).toHaveLength(AUDIT_PAGE_SIZE));
+
+    let resolveSecondPage;
+    apiRpc.mockReturnValueOnce(new Promise((resolve) => { resolveSecondPage = resolve; }));
+    const loadMoreBtn = screen.getByRole("button", { name: /load more/i });
+    fireEvent.click(loadMoreBtn);
+    // The button disables itself the instant the first request starts — a second click
+    // while it's still in flight must not reach loadMore() at all.
+    expect(loadMoreBtn.disabled).toBe(true);
+    fireEvent.click(loadMoreBtn);
+
+    resolveSecondPage({ data: [DENIED], error: null });
+    await waitFor(() => expect(screen.getByText("workspace.membership.revoked")).toBeTruthy());
+
+    // Exactly one call for the second page (plus the one on mount) — not two — and
+    // exactly one copy of it in the list, never a duplicate.
+    expect(apiRpc).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByText("workspace.membership.revoked")).toHaveLength(1);
+  });
+
   it("does not offer Load more when a page comes back short of a full page", async () => {
     apiRpc.mockResolvedValue({ data: [PERMITTED], error: null });
 

@@ -40,6 +40,12 @@ export function WorkspaceLookup({ onViewAudit }) {
   // `query: null` on purpose, not "" — it must never equal the initial `appliedQuery`
   // value, or `loading` below would read false before the first fetch has even started.
   const [result, setResult] = useState({ query: null, profiles: [], hasMore: false });
+  // Found by code audit: the identical gap AuditLog.jsx's own loadMore() had -- no guard
+  // against a second call landing while the first is still in flight, so a real double-
+  // click fired the fetch twice with the exact same offset (`profiles.length`, read
+  // before either request's own setResult had updated it), and both responses appended
+  // their own copy of the same page: every profile in it shown twice.
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,8 +60,14 @@ export function WorkspaceLookup({ onViewAudit }) {
   const { profiles, hasMore } = result;
 
   const loadMore = async () => {
-    const page = await searchWorkspaces({ query: appliedQuery, offset: profiles.length });
-    setResult((prev) => ({ ...prev, profiles: [...prev.profiles, ...page], hasMore: page.length === WORKSPACE_LOOKUP_PAGE_SIZE }));
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await searchWorkspaces({ query: appliedQuery, offset: profiles.length });
+      setResult((prev) => ({ ...prev, profiles: [...prev.profiles, ...page], hasMore: page.length === WORKSPACE_LOOKUP_PAGE_SIZE }));
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const applyQuery = (e) => {
@@ -139,8 +151,8 @@ export function WorkspaceLookup({ onViewAudit }) {
       ))}
 
       {!loading && hasMore && (
-        <button type="button" className="btn-secondary" onClick={loadMore} style={{ width: "100%" }}>
-          Load more
+        <button type="button" className="btn-secondary" onClick={loadMore} disabled={loadingMore} style={{ width: "100%" }}>
+          {loadingMore ? "Loading…" : "Load more"}
         </button>
       )}
 
