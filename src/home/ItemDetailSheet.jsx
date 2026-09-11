@@ -49,6 +49,7 @@ import {
 import { suggestItemDetailsFromDocument, DOCUMENT_UNREADABLE } from "../lib/documentUnderstanding.js";
 import { flattenLocationsForPicker, resolveItemRoomName } from "../lib/homeInventory.js";
 import { interpolate } from "../lib/homeStrings.js";
+import { isPastLocalDate } from "../lib/dates.js";
 
 // Document Understanding slice — maps the suggestion tool's own field names
 // (api/suggest-item-details.js's SUGGEST_TOOL) to the asset field updateAsset() expects,
@@ -155,7 +156,11 @@ function WarrantyLine({ t, fmtDate, warrantyExpiresOn }) {
       </span>
     );
   }
-  const expired = new Date(warrantyExpiresOn) < new Date();
+  // Found by code audit, 2026-09-11: this used to be
+  // `new Date(warrantyExpiresOn) < new Date()` -- see lib/dates.js's own header for why
+  // comparing a date-only value to "now" as an instant reads a warranty as expired for
+  // most of the actual day it expires.
+  const expired = isPastLocalDate(warrantyExpiresOn);
   return (
     <span className="property-fact">
       {expired ? <ShieldAlert size={13} aria-hidden="true" /> : <ShieldCheck size={13} aria-hidden="true" />}
