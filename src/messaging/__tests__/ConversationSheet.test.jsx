@@ -117,6 +117,17 @@ describe("ConversationSheet — send button has a real accessible name", () => {
       expect.objectContaining({ conversationId: "conv-1", senderId: "person-1", senderWorkspaceId: "ws-1", body: "Hallo!" })
     ));
   });
+
+  // Found by code audit, 2026-09-11: this button's own Send icon never flipped for RTL
+  // locales — see appStyles.js's own [dir="rtl"] .chat-input-row button svg comment.
+  // Proves the button's own structure (an svg child of .chat-input-row button) is what
+  // that structural CSS selector actually depends on.
+  it("renders the send icon where its own RTL flip rule (a structural .chat-input-row button svg selector) can reach it", async () => {
+    renderSheet();
+    const button = await screen.findByRole("button", { name: "Verstuur bericht" });
+    expect(button.closest(".chat-input-row").contains(button)).toBe(true);
+    expect(button.querySelector("svg")).toBeTruthy();
+  });
 });
 
 // Found by code audit: no try/catch at all, and the draft was cleared optimistically

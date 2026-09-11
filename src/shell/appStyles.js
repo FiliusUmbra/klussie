@@ -241,6 +241,18 @@ export const APP_CSS = `
    A visibly larger send button reads as more, not less, tappable, unlike the small
    utility icons (.sheet-close/.photo-remove-btn) hit-slop was chosen for instead. */
 .chat-input-row button{ width:44px; height:44px; border-radius:50%; background:var(--forest); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+/* Found by a later audit, 2026-09-11, in the same pass that found the .conv-textrow-send
+   gap: Send (lucide-react) is a paper plane pointing toward where the message is headed
+   -- the same "leads forward" meaning as a chevron, and ConversationSheet.jsx's own
+   button here has exactly one child icon, so svg (not a class) safely and unambiguously
+   targets it. Every real conversation in the app (customer<->pro messaging) goes through
+   this one button. */
+[dir="rtl"] .chat-input-row button svg{ transform:scaleX(-1); }
+/* Same icon, same meaning, two more real call sites (AiIntakeSheet.jsx's own final
+   submit, SendQuoteSheet.jsx's own quote send) -- both render Send inside a shared
+   .btn-primary alongside other, unrelated buttons/icons, so a dedicated class is what
+   keeps this scoped to just these two rather than reaching every .btn-primary icon. */
+[dir="rtl"] .send-icon{ transform:scaleX(-1); }
 
 .avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
 .avatar-upload-row{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }

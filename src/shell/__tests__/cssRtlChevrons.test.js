@@ -39,3 +39,16 @@ describe("RTL — every 'leads forward' chevron flips direction", () => {
     expect(APP_CSS).toContain('[dir="rtl"] .conv-textrow-send svg{ transform:scaleX(-1); }');
   });
 });
+
+// Same bug family, same audit pass, one icon over: Send (lucide-react) is a paper plane
+// pointing toward where the message is headed — the same "leads forward" meaning as a
+// chevron, and just as silently unflipped in every real place it's used.
+describe("RTL — every send icon flips direction", () => {
+  it("flips ConversationSheet.jsx's own message-send button (every real conversation in the app)", () => {
+    expect(APP_CSS).toContain('[dir="rtl"] .chat-input-row button svg{ transform:scaleX(-1); }');
+  });
+
+  it("flips the shared .send-icon class (AiIntakeSheet.jsx's final submit, SendQuoteSheet.jsx's quote send)", () => {
+    expect(APP_CSS).toContain('[dir="rtl"] .send-icon{ transform:scaleX(-1); }');
+  });
+});

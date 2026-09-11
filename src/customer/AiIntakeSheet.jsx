@@ -342,7 +342,7 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
           {error && <div className="fineprint" style={{ color: "var(--amber-dark)", justifyContent: "flex-start" }}><AlertTriangle size={12} /> {error}</div>}
 
           <button className="btn-primary" disabled={!canSubmit} onClick={handleFinalSubmit}>
-            {submitting ? <Loader2 size={15} className="spin" /> : <Send size={15} />} {t.sendRequestBtn}
+            {submitting ? <Loader2 size={15} className="spin" /> : <Send size={15} className="send-icon" />} {t.sendRequestBtn}
           </button>
           <div className="fineprint"><ShieldCheck size={12} /> {t.privacyNote}</div>
         </>

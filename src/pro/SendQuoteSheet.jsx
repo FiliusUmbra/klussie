@@ -33,7 +33,7 @@ export function SendQuoteSheet({ lead, onClose, onSubmit }) {
       <label className="field-label">{t.messageToCustomerLabel}</label>
       <textarea className="textarea" rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} />
 
-      <button className="btn-primary" onClick={() => onSubmit(price, msg)}><Send size={15} /> {t.sendQuoteSubmit}</button>
+      <button className="btn-primary" onClick={() => onSubmit(price, msg)}><Send size={15} className="send-icon" /> {t.sendQuoteSubmit}</button>
     </Drawer>
   );
 }

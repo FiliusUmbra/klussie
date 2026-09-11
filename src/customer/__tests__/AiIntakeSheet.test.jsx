@@ -71,6 +71,14 @@ describe("AiIntakeSheet — final submit", () => {
     expect(screen.getByText("aiReviewTitle")).toBeTruthy();
   });
 
+  // Found by code audit, 2026-09-11: this Send icon never flipped for RTL locales,
+  // unlike a chevron's own identical "leads forward" meaning — see appStyles.js's own
+  // .send-icon comment. Proves the class the CSS rule depends on is actually rendered.
+  it("gives the submit icon the class its own RTL flip rule targets", () => {
+    renderSheet();
+    expect(document.querySelector(".send-icon")).toBeTruthy();
+  });
+
   it("submits and closes on success", async () => {
     const { onSubmitted, onClose } = renderSheet();
 
