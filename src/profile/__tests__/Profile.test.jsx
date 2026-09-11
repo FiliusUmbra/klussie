@@ -35,12 +35,12 @@ const ctx = {
   langCode: "en", setLangCode: () => {}, LANGS: [{ code: "en", label: "English", locale: "en-GB" }],
 };
 
-function renderProfile(variant, workspaceMemberships, { proProfile = null, ...props } = {}) {
+function renderProfile(variant, workspaceMemberships, { proProfile = null, refreshProfile = vi.fn(), ...props } = {}) {
   useAuthMock.mockReturnValue({
     user: { id: "person-1", email: "cathy@example.test" },
     profile: { full_name: "Cathy Customer", avatar_url: null },
     proProfile,
-    refreshProfile: vi.fn(),
+    refreshProfile,
     signOut: vi.fn(),
     workspaceMemberships,
     activeWorkspace: { workspace_id: workspaceMemberships[0]?.workspace_id },
@@ -102,7 +102,7 @@ describe("Profile — customer variant, become a pro", () => {
   });
 });
 
-function renderPro(workspaceMemberships) {
+function renderPro(workspaceMemberships, overrides = {}) {
   return renderProfile("pro", workspaceMemberships, {
     proProfile: PRO_PROFILE,
     proInfo: PRO_INFO,
@@ -112,6 +112,7 @@ function renderPro(workspaceMemberships) {
     onServicesChange: vi.fn(),
     onProfileSaved: vi.fn(),
     onPauseToggled: vi.fn(),
+    ...overrides,
   });
 }
 
@@ -212,6 +213,24 @@ describe("Profile — pro variant, switching pro type", () => {
     expect(screen.queryByText("proTypeBusinessRequiresDetails")).toBeNull();
     expect(screen.queryByText("proTypeSwitchFailed")).toBeNull();
   });
+
+  // Found by code audit, 2026-09-11: refreshProfile() used to sit inside the same try
+  // as the real write, the same bug shape fixed repeatedly elsewhere today (see e.g.
+  // ProApp.jsx's sendQuote() for the fullest write-up). A refresh-only failure right
+  // after a genuinely successful switch showed proTypeSwitchFailed for a switch that
+  // had actually gone through.
+  it("shows no error at all when the switch succeeds but the post-switch refreshProfile() fails", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    const refreshProfile = vi.fn(() => Promise.reject(new Error("network blip refreshing the profile")));
+    renderPro([{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }], { refreshProfile });
+
+    fireEvent.click(screen.getByText("proTypeBusiness"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { pro_type: "business" }));
+    expect(screen.queryByText("proTypeBusinessRequiresDetails")).toBeNull();
+    expect(screen.queryByText("proTypeSwitchFailed")).toBeNull();
+  });
 });
 
 // Found by code audit: five pro-only actions in this file had no real error handling —
@@ -274,6 +293,29 @@ describe("Profile — pro variant, portfolio upload", () => {
     await waitFor(() => expect(addPortfolioItem).toHaveBeenCalled());
     expect(screen.queryByText("portfolioUploadFailed")).toBeNull();
   });
+
+  // Found by code audit, 2026-09-11: refreshPortfolio() used to sit inside the same try
+  // as the real writes — a refresh-only failure right after a genuinely successful
+  // upload+addPortfolioItem() showed portfolioUploadFailed for an upload that had
+  // actually gone through.
+  it("shows no error at all when the upload succeeds but the post-upload refreshPortfolio() fails", async () => {
+    uploadPortfolioImage.mockReset();
+    uploadPortfolioImage.mockResolvedValueOnce({ url: "https://example.test/p.jpg", path: "pro-1/p" });
+    addPortfolioItem.mockReset();
+    addPortfolioItem.mockResolvedValueOnce({});
+    fetchPortfolioItems.mockReset();
+    fetchPortfolioItems.mockResolvedValueOnce([]); // initial load
+    renderPro(PRO_WORKSPACES);
+    await waitFor(() => expect(fetchPortfolioItems).toHaveBeenCalledTimes(1));
+    fetchPortfolioItems.mockRejectedValueOnce(new Error("network blip refreshing the portfolio grid"));
+
+    const file = new File(["x"], "photo.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    await waitFor(() => expect(addPortfolioItem).toHaveBeenCalled());
+    await waitFor(() => expect(document.querySelector(".portfolio-add").disabled).toBe(false));
+    expect(screen.queryByText("portfolioUploadFailed")).toBeNull();
+  });
 });
 
 // Found by code audit: fetchPortfolioItems()/fetchTestimonials() both throw on a real
@@ -330,6 +372,27 @@ describe("Profile — pro variant, removing a testimonial", () => {
     await waitFor(() => expect(deleteTestimonial).toHaveBeenCalledWith("tst-1"));
     await waitFor(() => expect(screen.queryByText("cancelBtn")).toBeNull());
   });
+
+  // Found by code audit, 2026-09-11: refreshTestimonials() used to sit inside the same
+  // try as deleteTestimonial() itself, with the modal-closing
+  // setConfirmDeleteTestimonialId(null) gated behind it succeeding too — so a
+  // refresh-only failure right after a genuinely successful deletion both showed
+  // testimonialDeleteFailed AND kept the confirm modal open on a testimonial that no
+  // longer existed.
+  it("closes the modal with no error even when deletion succeeds but the post-delete refreshTestimonials() fails", async () => {
+    deleteTestimonial.mockReset();
+    deleteTestimonial.mockResolvedValueOnce(undefined);
+    renderProWithTestimonial();
+    await screen.findByText("Cathy");
+    fetchTestimonials.mockRejectedValueOnce(new Error("network blip refreshing testimonials"));
+
+    fireEvent.click(screen.getByText("deleteBtn"));
+    fireEvent.click(screen.getAllByText("deleteBtn")[1]);
+
+    await waitFor(() => expect(deleteTestimonial).toHaveBeenCalledWith("tst-1"));
+    await waitFor(() => expect(screen.queryByText("cancelBtn")).toBeNull());
+    expect(screen.queryByText("testimonialDeleteFailed")).toBeNull();
+  });
 });
 
 describe("Profile — pro variant, boost", () => {
@@ -343,6 +406,25 @@ describe("Profile — pro variant, boost", () => {
     await waitFor(() => expect(screen.getByText("boostFailed")).toBeTruthy());
     expect(screen.queryByText("payment required")).toBeNull();
     expect(screen.getByText(/boostBtn/).closest("button").disabled).toBe(false);
+  });
+
+  // Found by code audit, 2026-09-11: refreshProfile() used to sit inside the same try
+  // as boostProfile() itself — a real refusal here mattered more than most instances of
+  // this bug class fixed today, since Boost is a genuine paid action
+  // (€{BOOST_WEEKLY_PRICE}/week): a false boostFailed for a purchase that had actually
+  // gone through could invite a pro to tap Boost again, risking a second charge for the
+  // same week.
+  it("re-enables the button with no error when Boost succeeds but the post-boost refreshProfile() fails", async () => {
+    boostProfile.mockReset();
+    boostProfile.mockResolvedValueOnce(undefined);
+    const refreshProfile = vi.fn(() => Promise.reject(new Error("network blip refreshing the profile")));
+    renderPro(PRO_WORKSPACES, { refreshProfile });
+
+    fireEvent.click(screen.getByText(/boostBtn/));
+
+    await waitFor(() => expect(boostProfile).toHaveBeenCalledWith("person-1"));
+    await waitFor(() => expect(screen.getByText(/boostBtn/).closest("button").disabled).toBe(false));
+    expect(screen.queryByText("boostFailed")).toBeNull();
   });
 });
 
@@ -367,6 +449,39 @@ describe("Profile — pro variant, pause/resume", () => {
     fireEvent.click(screen.getByText("pauseProfileBtn"));
 
     await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { paused: true }));
+    expect(screen.queryByText("togglePausedFailed")).toBeNull();
+  });
+
+  // Found by code audit, 2026-09-11: refreshProfile() and onPauseToggled() both used to
+  // sit inside the same try as updateProProfile() itself. Worse than most instances of
+  // this bug class: togglePaused() is a TOGGLE, not an idempotent write — a pro who saw
+  // the false togglePausedFailed and, believing their first tap never took effect,
+  // tapped Pause again would flip the real, already-applied change straight back,
+  // silently leaving them un-paused (still receiving new leads) while believing the
+  // opposite.
+  it("re-enables the button with no error when the toggle succeeds but the post-toggle refreshProfile() fails", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    const refreshProfile = vi.fn(() => Promise.reject(new Error("network blip refreshing the profile")));
+    renderPro(PRO_WORKSPACES, { refreshProfile });
+
+    fireEvent.click(screen.getByText("pauseProfileBtn"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { paused: true }));
+    await waitFor(() => expect(screen.getByText("pauseProfileBtn").closest("button").disabled).toBe(false));
+    expect(screen.queryByText("togglePausedFailed")).toBeNull();
+  });
+
+  it("re-enables the button with no error when the toggle succeeds but onPauseToggled() itself fails", async () => {
+    updateProProfile.mockReset();
+    updateProProfile.mockResolvedValueOnce(undefined);
+    const onPauseToggled = vi.fn(() => Promise.reject(new Error("network blip refreshing the lead list")));
+    renderPro(PRO_WORKSPACES, { onPauseToggled });
+
+    fireEvent.click(screen.getByText("pauseProfileBtn"));
+
+    await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { paused: true }));
+    await waitFor(() => expect(screen.getByText("pauseProfileBtn").closest("button").disabled).toBe(false));
     expect(screen.queryByText("togglePausedFailed")).toBeNull();
   });
 });

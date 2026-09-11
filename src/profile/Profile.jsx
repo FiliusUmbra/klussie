@@ -106,6 +106,13 @@ export function Profile({
   // Found by code audit: try/finally but no catch -- uploadingPhoto always reset
   // correctly (the finally already did that much), but a real failure (Storage, RLS,
   // network) was never shown at all, an unhandled rejection with nothing on screen.
+  //
+  // Found by code audit, 2026-09-11: refreshPortfolio() used to sit inside this same
+  // try too -- the same bug shape fixed repeatedly elsewhere today (see e.g. ProApp.jsx's
+  // sendQuote() for the fullest write-up): a refresh-only failure right after a genuinely
+  // successful upload+addPortfolioItem() showed portfolioUploadFailed for an upload that
+  // had actually gone through. refreshPortfolio() is now best-effort once the real
+  // writes are confirmed.
   const handlePortfolioUpload = async (e) => {
     const file = e.target.files[0];
     e.target.value = "";
@@ -115,9 +122,15 @@ export function Profile({
     try {
       const { url, path } = await uploadPortfolioImage(user.id, file);
       await addPortfolioItem({ proId: user.id, imageUrl: url, storagePath: path });
-      await refreshPortfolio();
     } catch {
       setPortfolioError(t.portfolioUploadFailed);
+      setUploadingPhoto(false);
+      return;
+    }
+    try {
+      await refreshPortfolio();
+    } catch {
+      // Best-effort; the upload itself already succeeded regardless.
     } finally {
       setUploadingPhoto(false);
     }
@@ -125,15 +138,29 @@ export function Profile({
   // Found by code audit: no try/catch at all -- a real refusal left the confirm modal's
   // own Delete button re-clickable with no explanation, and never closed the modal
   // (setConfirmDeleteTestimonialId(null) only ran on success), an unhandled rejection.
+  //
+  // Found by code audit, 2026-09-11: refreshTestimonials() used to sit inside this same
+  // try, with the modal-closing setConfirmDeleteTestimonialId(null) gated behind it
+  // succeeding too -- so a refresh-only failure right after a genuinely successful
+  // deleteTestimonial() both showed testimonialDeleteFailed for a deletion that had
+  // already gone through AND kept the confirm modal open on a testimonial that no longer
+  // existed. The modal now closes as soon as the real deletion is confirmed, and
+  // refreshTestimonials() is best-effort from there.
   const removeTestimonial = async (id) => {
     setTestimonialBusy(true);
     setTestimonialError("");
     try {
       await deleteTestimonial(id);
-      await refreshTestimonials();
-      setConfirmDeleteTestimonialId(null);
     } catch {
       setTestimonialError(t.testimonialDeleteFailed);
+      setTestimonialBusy(false);
+      return;
+    }
+    setConfirmDeleteTestimonialId(null);
+    try {
+      await refreshTestimonials();
+    } catch {
+      // Best-effort; the deletion itself already succeeded regardless.
     } finally {
       setTestimonialBusy(false);
     }
@@ -165,45 +192,82 @@ export function Profile({
   // never clobbers business_name/vat_number saved separately through EditProfileSheet.jsx
   // -- fill those in first (now reachable there regardless of the caller's current
   // pro_type, closing the chicken-and-egg gap this same review found), then this succeeds.
+  // Found by code audit, 2026-09-11: refreshProfile() used to sit inside this same try
+  // -- the same bug shape fixed repeatedly elsewhere today (see e.g. ProApp.jsx's
+  // sendQuote() for the fullest write-up): a refresh-only failure right after a
+  // genuinely successful switch fell into the catch below and showed proTypeSwitchFailed
+  // for a switch that had actually gone through. refreshProfile() is now best-effort
+  // once the real write is confirmed.
   const setProType = async (proType) => {
     setProTypeError("");
     try {
       await updateProProfile(user.id, { pro_type: proType });
-      await refreshProfile();
     } catch (err) {
       setProTypeError(
         err.message?.includes("business_requires_details") ? t.proTypeBusinessRequiresDetails : t.proTypeSwitchFailed
       );
+      return;
+    }
+    try {
+      await refreshProfile();
+    } catch {
+      // Best-effort; the pro_type switch itself already succeeded regardless.
     }
   };
-  // Found by code audit: no try/catch, no busy state at all -- a real refusal left
-  // nothing telling the pro their tap on a paid action (€{BOOST_WEEKLY_PRICE}/week) had
-  // failed, and nothing stopped a double-tap from firing it twice.
+  // Found by code audit, 2026-09-11: refreshProfile() used to sit inside the same try as
+  // boostProfile() itself -- worse than most instances of this same bug shape (see e.g.
+  // ProApp.jsx's sendQuote() for the fullest write-up), since Boost is a genuine paid
+  // action (€{BOOST_WEEKLY_PRICE}/week): a false boostFailed for a purchase that had
+  // actually gone through could invite a pro to tap Boost again, risking a second charge
+  // for the same week. refreshProfile() is now best-effort once the purchase itself is
+  // confirmed.
   const boost = async () => {
     setBoosting(true);
     setBoostError("");
     try {
       await boostProfile(user.id);
-      await refreshProfile();
     } catch {
       setBoostError(t.boostFailed);
+      setBoosting(false);
+      return;
+    }
+    try {
+      await refreshProfile();
+    } catch {
+      // Best-effort; the boost itself was already purchased regardless.
     } finally {
       setBoosting(false);
     }
   };
-  // Found by code audit: same gap as boost() above -- no try/catch, no busy state.
+  // Found by code audit, 2026-09-11: refreshProfile() and onPauseToggled() both used to
+  // sit inside the same try as updateProProfile() itself -- worse than most instances of
+  // this same bug shape, since togglePaused() is a TOGGLE, not an idempotent write: a
+  // pro who saw the false togglePausedFailed and, believing their first tap never took
+  // effect, tapped Pause/Resume again would flip the real, already-applied change
+  // straight back -- silently leaving them un-paused (still receiving new leads) while
+  // believing the opposite. Both refreshes are now best-effort once the real toggle is
+  // confirmed.
   const togglePaused = async () => {
     setPausing(true);
     setPauseError("");
     try {
       await updateProProfile(user.id, { paused: !proProfile.paused });
-      await refreshProfile();
-      if (onPauseToggled) await onPauseToggled();
     } catch {
       setPauseError(t.togglePausedFailed);
-    } finally {
       setPausing(false);
+      return;
     }
+    try {
+      await refreshProfile();
+    } catch {
+      // Best-effort; the pause toggle itself already succeeded regardless.
+    }
+    try {
+      if (onPauseToggled) await onPauseToggled();
+    } catch {
+      // Best-effort; same as refreshProfile() above.
+    }
+    setPausing(false);
   };
 
   const displayName = profile?.full_name || t.profileYou;
