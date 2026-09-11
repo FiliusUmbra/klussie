@@ -141,9 +141,39 @@ export function CustomerApp({ showToast, onBecomePro }) {
   // Photos upload after the request exists because they are stored against its id. A
   // failed upload therefore leaves a real request with fewer photos rather than no
   // request at all — the better of the two failure modes for someone with a leak.
+  //
+  // Found by code audit, 2026-09-11: that was this function's own stated intent, but not
+  // what the code actually did — a plain sequential loop with no catch of its own, so one
+  // failed upload threw straight out to createRequest()/createRequestFromAi() below,
+  // which had no catch either, so the failure reached AiIntakeSheet.jsx's own handler as
+  // if the WHOLE creation had failed — even though createServiceRequest() (both callers'
+  // own first line) had already succeeded. A customer trusting that false "something went
+  // wrong" and submitting again would create a genuine duplicate request.
+  // useConversation.js's own bookProfessional() already gets this right for the
+  // AI-canvas direct-booking path (the identical create-then-attach-photos shape,
+  // `.catch(() => {})` on its own photo-upload step) — matched here.
   const attachPhotos = async (requestId, photos) => {
     for (const file of photos || []) {
-      await uploadRequestPhoto(requestId, user.id, workspaceId, file);
+      try {
+        await uploadRequestPhoto(requestId, user.id, workspaceId, file);
+      } catch {
+        // Best-effort, one photo at a time — see this function's own header.
+      }
+    }
+  };
+
+  // Found by code audit, 2026-09-11: the trailing refresh() in both functions below used
+  // to sit unguarded after the real creation — the same bug shape as
+  // ServiceRecordEditorSheet.jsx/AddTestimonialSheet.jsx/PortfolioItemSheet.jsx (see
+  // those files' own headers): a failure in this purely cosmetic "refetch the list"
+  // step, after createServiceRequest() had already succeeded, showed a false creation
+  // failure and risked the exact same duplicate-resubmission consequence attachPhotos()
+  // above was just fixed for.
+  const refreshBestEffort = async () => {
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the request itself is already created regardless.
     }
   };
 
@@ -162,7 +192,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
       assetId,
     });
     await attachPhotos(created.id, photos);
-    await refresh();
+    await refreshBestEffort();
   };
 
   // AI intake already resolves its own serviceId/categoryId (with the user able to
@@ -184,7 +214,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
       assetId,
     });
     await attachPhotos(created.id, photos);
-    await refresh();
+    await refreshBestEffort();
   };
 
   // Found live during a UX review, 2026-09-08: this used to show toastBooked ("Geboekt!
