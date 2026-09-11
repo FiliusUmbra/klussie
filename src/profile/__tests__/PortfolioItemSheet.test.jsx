@@ -20,9 +20,9 @@ const t = new Proxy({}, { get: (_, key) => String(key) });
 
 const ITEM = { id: "photo-1", image_url: "https://example.test/photo.jpg", storage_path: "pro-1/photo-1", caption: "Before" };
 
-function renderSheet() {
-  const onClose = vi.fn();
-  const onChanged = vi.fn(() => Promise.resolve());
+function renderSheet(overrides = {}) {
+  const onClose = overrides.onClose ?? vi.fn();
+  const onChanged = overrides.onChanged ?? vi.fn(() => Promise.resolve());
   render(
     <LangContext.Provider value={{ t }}>
       <PortfolioItemSheet item={ITEM} onClose={onClose} onChanged={onChanged} />
@@ -55,6 +55,24 @@ describe("PortfolioItemSheet — save", () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText("saveChangesBtn").disabled).toBe(false);
   });
+
+  // Found by code audit, 2026-09-11: onChanged() used to sit inside the same try as the
+  // real write, the same bug shape already fixed in ServiceRecordEditorSheet.jsx/
+  // AddTestimonialSheet.jsx — a failure in the CALLER's own post-save refresh (after the
+  // caption was already updated) showed "could not save" and left the sheet open.
+  it("still closes on a real, successful save even when the caller's own onChanged() refresh fails", async () => {
+    vi.mocked(updatePortfolioCaption).mockReset();
+    vi.mocked(updatePortfolioCaption).mockResolvedValue();
+    const onChanged = vi.fn().mockRejectedValue(new Error("network blip refetching the list"));
+    const onClose = vi.fn();
+    renderSheet({ onChanged, onClose });
+
+    fireEvent.click(screen.getByText("saveChangesBtn"));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(updatePortfolioCaption).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("portfolioSaveFailed")).toBeNull();
+  });
 });
 
 describe("PortfolioItemSheet — delete", () => {
@@ -81,5 +99,21 @@ describe("PortfolioItemSheet — delete", () => {
     expect(screen.queryByText("confirmDeleteMsg")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText("deletePhotoBtn").disabled).toBe(false);
+  });
+
+  // Same bug shape as save()'s own fix above, same pass.
+  it("still closes on a real, successful delete even when the caller's own onChanged() refresh fails", async () => {
+    vi.mocked(deletePortfolioItem).mockReset();
+    vi.mocked(deletePortfolioItem).mockResolvedValue();
+    const onChanged = vi.fn().mockRejectedValue(new Error("network blip refetching the list"));
+    const onClose = vi.fn();
+    renderSheet({ onChanged, onClose });
+
+    fireEvent.click(screen.getByText("deletePhotoBtn"));
+    fireEvent.click(screen.getAllByText("deletePhotoBtn")[1]);
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(deletePortfolioItem).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("portfolioDeleteFailed")).toBeNull();
   });
 });

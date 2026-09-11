@@ -18,12 +18,24 @@ export function PortfolioItemSheet({ item, onClose, onChanged }) {
   // false, and the sheet was left open with its buttons permanently disabled and nothing
   // telling the pro anything went wrong. A raw err.message is never shown, matching
   // documents.js's own "generic, localized error, never a raw one" convention.
+  // Found by code audit, 2026-09-11: onChanged() (Profile.jsx's own refreshPortfolio(),
+  // which re-fetches and can genuinely reject) used to sit inside both of these same
+  // try blocks, the same bug shape already fixed in ServiceRecordEditorSheet.jsx/
+  // AddTestimonialSheet.jsx — a failure in that CALLER-side refresh, after the real
+  // write had already succeeded, showed the same save/delete-failed message a genuine
+  // failure would, even though the caption was already updated or the photo already
+  // gone. onChanged()'s own failure is now caught separately in both handlers and never
+  // blocks the sheet from closing on a write that genuinely succeeded.
   const save = async () => {
     setError("");
     setBusy(true);
     try {
       await updatePortfolioCaption(item.id, caption);
-      await onChanged();
+      try {
+        await onChanged();
+      } catch {
+        // Best-effort refresh; the caption itself is already saved regardless.
+      }
       onClose();
     } catch {
       setError(t.portfolioSaveFailed);
@@ -36,7 +48,11 @@ export function PortfolioItemSheet({ item, onClose, onChanged }) {
     setBusy(true);
     try {
       await deletePortfolioItem(item.id, item.storage_path);
-      await onChanged();
+      try {
+        await onChanged();
+      } catch {
+        // Best-effort refresh; the photo itself is already gone regardless.
+      }
       onClose();
     } catch {
       setError(t.portfolioDeleteFailed);
