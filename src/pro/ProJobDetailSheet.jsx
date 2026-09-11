@@ -31,12 +31,23 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
     if (!job.propertyId) return;
 
     let cancelled = false;
-    fetchPropertyTwin(job.propertyId).then((result) => {
-      if (!cancelled) {
-        setTwin(result);
-        setTwinLoading(false);
-      }
-    });
+    fetchPropertyTwin(job.propertyId)
+      .then((result) => {
+        if (!cancelled) {
+          setTwin(result);
+          setTwinLoading(false);
+        }
+      })
+      // Found by code audit: fetchPropertyTwin() throws on a real Postgres error (unlike
+      // most twin-adjacent reads elsewhere, which swallow and return an empty shape) and
+      // this call had no catch of its own -- twinLoading stayed true forever, so the
+      // Property twin section below rendered nothing at all: no data, no error, not even
+      // a loading state. twin is left at its initial null on a real failure, which the
+      // existing "job.propertyId && !twinLoading && !twin?.property" branch already
+      // renders as t.twinUnavailableMsg -- the same message this section already shows
+      // for "no property/no twin data yet," a reasonable fallback for "couldn't load
+      // it either," no new locale key needed.
+      .catch(() => { if (!cancelled) setTwinLoading(false); });
     return () => {
       cancelled = true;
     };

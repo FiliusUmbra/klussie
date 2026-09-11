@@ -159,6 +159,18 @@ describe("ProJobDetailSheet", () => {
     expect(screen.queryByText("twinNoDataMsg")).toBeNull();
   });
 
+  // Found by code audit: fetchPropertyTwin() throws on a real Postgres error and the
+  // effect had no catch of its own -- twinLoading stayed true forever, so this section
+  // rendered nothing at all: no data, no error, not even a loading state.
+  it("shows twinUnavailableMsg, never a permanently blank section, when the twin fetch fails", async () => {
+    fetchPropertyTwin.mockRejectedValue(new Error("relation \"properties\" does not exist"));
+
+    renderSheet();
+
+    await waitFor(() => expect(screen.getByText("twinUnavailableMsg")).toBeTruthy());
+    expect(screen.queryByText(/does not exist/)).toBeNull();
+  });
+
   it("falls back to the raw type_key for a document type this codebase has no label for", async () => {
     fetchPropertyTwin.mockResolvedValue({
       property: { id: "prop-1", name: "X" },
