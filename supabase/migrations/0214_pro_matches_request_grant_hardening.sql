@@ -1,0 +1,58 @@
+-- Found by code audit, 2026-09-11, sweeping every SECURITY DEFINER function in this
+-- repository for the exact gap 0028_identity_read_path.sql found live: "PostgreSQL grants
+-- EXECUTE on a new function to PUBLIC, which on a SECURITY DEFINER function reading every
+-- person's row would be the whole protection inverted."
+--
+-- public.pro_matches_request(p_pro_id, p_request_id) (0004, redefined by 0005 and again by
+-- 0013) is exactly that shape -- SECURITY DEFINER, bypassing RLS to evaluate whether a pro
+-- matches a request (city, certification, paused status) -- and is the single gate 0013's
+-- own comment names for "may this pro see this request?", used inside the RLS policies on
+-- service_requests, quotes and storage.objects (0004, 0007). No migration in this
+-- repository has ever revoked its default PUBLIC execute grant. Unlike 0028's own two
+-- resolvers, this one predates 0028 by 23 migrations -- it was never retrofitted once the
+-- lesson was learned.
+--
+-- THE RISK, AND WHY IT DOES NOT DEPEND ON SUPABASE'S OWN ANON-BY-NAME QUIRK
+--
+-- 0028's own finding (anon reachable by name, surviving `revoke ... from public`) is a
+-- Supabase-specific default-privileges rule scoped to schema public -- the one schema
+-- Supabase's own project bootstrapping configures that way (0192's later live check found
+-- no such rule active on schema public "currently", which does not establish it was never
+-- active, nor says anything about whether it ever governed this function specifically).
+-- This fix does not depend on resolving that: ordinary PostgreSQL, with no Supabase
+-- involvement at all, grants EXECUTE on every newly created function to PUBLIC by default,
+-- and nothing has ever revoked it here. PUBLIC membership is implicit for every role,
+-- anon included. A SECURITY DEFINER function with an unrevoked PUBLIC grant is callable by
+-- an anonymous, unauthenticated caller regardless of which anon-specific mechanism (if
+-- any) is currently live -- the base grant alone is sufficient, and closing it costs
+-- nothing legitimate needs.
+--
+-- WHAT AN ANONYMOUS CALLER COULD DO TODAY
+--
+-- `select public.pro_matches_request(any_pro_id, any_request_id)` bypasses RLS entirely
+-- (that is the whole point of SECURITY DEFINER here) and returns a real boolean for any
+-- (pro, request) pair supplied, without needing to be signed in as that pro or to hold any
+-- visibility into that request otherwise -- a real information leak, not merely a
+-- theoretical one, on a function that exists specifically to gate access.
+--
+-- WHY THE FIX IS SAFE FOR EVERY LEGITIMATE CALLER
+--
+-- Nothing in src/ ever calls this function directly (grep-confirmed: it is reached only as
+-- an RLS policy predicate, never from client code) -- so there is no direct RPC caller to
+-- preserve. The real, legitimate need is different and easy to miss: when PostgreSQL
+-- evaluates an RLS policy that references this function, the ROLE RUNNING THE QUERY (the
+-- signed-in pro's own `authenticated` session) still needs its own EXECUTE privilege to
+-- have that policy check succeed -- RLS does not bypass ordinary function-call permission
+-- checking for functions named inside a policy expression. Revoking PUBLIC without adding
+-- an explicit grant to `authenticated` would silently break every pro's own ability to see
+-- their own matching leads and send quotes. This migration revokes broadly and re-grants
+-- narrowly, mirroring 0028/0031's own established shape exactly: `authenticated` keeps
+-- working exactly as before; `anon` loses the one real gap that shape exists to close.
+--
+-- SAME SIGNATURE, SAME BODY -- NOT A NEW DECISION
+--
+-- No `create or replace function` here: 0013's own definition is untouched. This is a pure
+-- grant-posture fix, nothing else.
+
+revoke all on function public.pro_matches_request(uuid, uuid) from public, anon, service_role;
+grant execute on function public.pro_matches_request(uuid, uuid) to authenticated;
