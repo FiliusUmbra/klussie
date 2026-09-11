@@ -112,6 +112,27 @@ describe("ProApp — sendQuote", () => {
     // attempt silently vanishing.
     expect(screen.getByText("submit-quote")).toBeTruthy();
   });
+
+  // Found by code audit, 2026-09-11: refreshLeads()/refreshJobs() used to sit inside the
+  // same try as sendQuoteApi() itself, so a failure in either — after the quote had
+  // already been sent and the sheet had already closed — showed toastQuoteFailed, the
+  // exact opposite of what actually happened.
+  it("shows the real success toast even when the post-send lead/job list refresh fails", async () => {
+    sendQuoteApiMock.mockResolvedValue();
+    const { showToast } = renderApp();
+    await screen.findByText("open-quote-sheet");
+    // The initial load above already consumed the default resolved value; only the
+    // refreshLeads() triggered by sending the quote below should fail.
+    fetchProLeadsMock.mockRejectedValueOnce(new Error("network blip refetching leads"));
+
+    fireEvent.click(screen.getByText("open-quote-sheet"));
+    await screen.findByText("submit-quote");
+    fireEvent.click(screen.getByText("submit-quote"));
+
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith("toastQuoteSent"));
+    expect(showToast).not.toHaveBeenCalledWith("toastQuoteFailed");
+    await waitFor(() => expect(screen.queryByText("submit-quote")).toBeNull());
+  });
 });
 
 // Found by code audit: none of the five fetches ProApp gates its render on had a catch —

@@ -146,17 +146,33 @@ export function ProApp({ showToast }) {
   // let alone that it failed. setQuoteLead(null) only runs on success (unchanged from
   // before), so a failure leaves the sheet open with the price/message already typed,
   // ready to retry, rather than silently discarding them.
+  // Found by code audit, 2026-09-11: refreshLeads()/refreshJobs() used to sit inside
+  // this same try, so a failure in either — after sendQuoteApi() had already succeeded
+  // and the sheet had already closed — fell into the catch below and showed
+  // toastQuoteFailed, the exact opposite of what actually happened. Unlike the sheet-
+  // level bug this same shape already had (ServiceRecordEditorSheet.jsx/
+  // AddTestimonialSheet.jsx/PortfolioItemSheet.jsx/CustomerApp.jsx's own creation
+  // flows), there is no duplicate-resubmission risk here — setQuoteLead(null) has
+  // already unmounted the sheet by this point — but a pro seeing "failed to send" for a
+  // quote that genuinely went out is still a real, confusing false negative. Both
+  // refreshes are now best-effort: the quote was already sent regardless of whether the
+  // lists refresh cleanly.
   const sendQuote = async (lead, price, message) => {
     try {
       await sendQuoteApi({ requestId: lead.id, proId: user.id, workspaceId, price, message });
-      setQuoteLead(null);
-      await refreshLeads();
-      await refreshJobs();
-      showToast(t.toastQuoteSent);
     } catch (err) {
       console.warn("sendQuote failed:", err.message);
       showToast(t.toastQuoteFailed);
+      return;
     }
+    setQuoteLead(null);
+    try {
+      await refreshLeads();
+      await refreshJobs();
+    } catch {
+      // Best-effort; the quote itself was already sent regardless.
+    }
+    showToast(t.toastQuoteSent);
   };
 
   return (
