@@ -143,6 +143,23 @@ describe("signup carries an application-generated person reference", () => {
     expect(options.email).toBe("new@example.test");
   });
 
+  // Found live, 2026-09-11: signInWithOtp()/signInWithOAuth() both already pass
+  // emailRedirectTo/redirectTo (see the test right below and signInWithOAuth's own
+  // header) -- signUp() was the one sibling that never did, so its confirmation email
+  // always fell back to the project's own dashboard-configured Site URL regardless of
+  // where the signup actually happened. A real production dead end when that setting
+  // doesn't match: a genuine customer's confirmation link landing on a page that refuses
+  // to connect.
+  it("password signup redirects the confirmation link back to wherever the app actually is, not a stale dashboard default", async () => {
+    const auth = renderAuth();
+    await waitFor(() => expect(auth()).toBeTruthy());
+
+    await auth().signUp("new@example.test", "hunter2", "New Person");
+
+    const [options] = signUp.mock.calls[0];
+    expect(options.options.emailRedirectTo).toBe(window.location.origin);
+  });
+
   it("magic link sends one too, because a link to an unknown address creates a user", async () => {
     // The path most likely to be forgotten: it reads as sign-in and is the primary email
     // path per the Authentication UX Redesign, but for an address Supabase has never seen

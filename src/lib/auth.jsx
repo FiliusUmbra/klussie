@@ -198,11 +198,18 @@ export function AuthProvider({ children }) {
   //
   // Metadata is the only channel available: the client has no write access to the
   // `identity` schema and must not have any.
+  // Found live, 2026-09-11: unlike signInWithOtp()/signInWithOAuth() right below, this
+  // never passed emailRedirectTo -- so the confirmation link Supabase emails always fell
+  // back to the project's own dashboard-configured "Site URL" instead of wherever the
+  // signup actually happened. Harmless whenever that setting happens to already match the
+  // app's own origin; a genuine dead end (a real customer's confirmation link landing on
+  // "localhost refused to connect") the moment it doesn't -- exactly the failure mode this
+  // fix closes, matching the pattern its two siblings already got right.
   const signUp = async (email, password, fullName) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName || null, ...newAccountProvisioningIds() } },
+      options: { emailRedirectTo: window.location.origin, data: { full_name: fullName || null, ...newAccountProvisioningIds() } },
     });
     if (error) throw error;
     return { needsEmailConfirmation: !data.session };
