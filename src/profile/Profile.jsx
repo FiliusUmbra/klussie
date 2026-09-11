@@ -81,8 +81,20 @@ export function Profile({
 
   useEffect(() => {
     if (variant !== "pro") return;
-    refreshPortfolio();
-    refreshTestimonials();
+    // Found by code audit: fetchPortfolioItems()/fetchTestimonials() both throw on a
+    // real Postgres error, and neither call here had a catch of its own -- a genuine
+    // unhandled promise rejection on every failure. Harmless for what actually renders
+    // (both lists already fall back to [] when their state is still null --
+    // "(portfolioItems || []).map(...)" below -- so a failed load looked identical to a
+    // genuinely empty portfolio/testimonials list either way), but a real defect
+    // regardless, the same shape RequestPhotosStrip.jsx had and was fixed the same way:
+    // resolve to an empty list on failure rather than leaving the rejection unhandled.
+    // Deliberately not baked into refreshPortfolio()/refreshTestimonials() themselves --
+    // handlePortfolioUpload() and removeTestimonial() below both await those inside their
+    // own try/catch and need a real rejection to reach it, the same reasoning
+    // CustomerApp.jsx's identical refresh()/loadRequests() split already established.
+    refreshPortfolio().catch(() => setPortfolioItems([]));
+    refreshTestimonials().catch(() => setTestimonials([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variant, user.id]);
 

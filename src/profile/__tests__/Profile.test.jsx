@@ -276,6 +276,26 @@ describe("Profile — pro variant, portfolio upload", () => {
   });
 });
 
+// Found by code audit: fetchPortfolioItems()/fetchTestimonials() both throw on a real
+// Postgres error, and the initial-load effect had no catch of its own — a genuine
+// unhandled promise rejection on every failure. Harmless for what actually renders
+// ("(portfolioItems || []).map(...)" already falls back to an empty list), but a real
+// defect regardless, the same shape RequestPhotosStrip.jsx had and was fixed the same way.
+describe("Profile — pro variant, portfolio/testimonials initial load failure", () => {
+  it("degrades to the real empty states, never an unhandled rejection, when both fetches fail", async () => {
+    fetchPortfolioItems.mockReset();
+    fetchPortfolioItems.mockRejectedValueOnce(new Error("relation \"portfolio_items\" does not exist"));
+    fetchTestimonials.mockReset();
+    fetchTestimonials.mockRejectedValueOnce(new Error("relation \"testimonials\" does not exist"));
+
+    renderPro(PRO_WORKSPACES);
+
+    await waitFor(() => expect(screen.getByText("noPortfolioYet")).toBeTruthy());
+    expect(screen.getByText("noTestimonialsYet")).toBeTruthy();
+    expect(screen.queryByText(/does not exist/)).toBeNull();
+  });
+});
+
 describe("Profile — pro variant, removing a testimonial", () => {
   function renderProWithTestimonial() {
     fetchTestimonials.mockReset();
