@@ -13,6 +13,13 @@ export function AddTestimonialSheet({ proId, onClose, onAdded }) {
   const [quoteText, setQuoteText] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Found by code audit, 2026-09-11: the required-field guard lived only inside submit()
+  // as a silent no-op (`if (!quoteText.trim()) return;`) -- every other form in this
+  // codebase with a genuinely required field (DocumentUploadSheet.jsx, LocationFormSheet.jsx,
+  // ItemFormSheet.jsx, ServiceRecordEditorSheet.jsx) reflects that on the button itself via
+  // a canSave/canSubmit check, so tapping Submit with nothing typed does nothing at all
+  // visible here -- not an error, not a disabled affordance, just silence.
+  const canSubmit = quoteText.trim().length > 0;
 
   const submit = async () => {
     if (!quoteText.trim()) return;
@@ -45,7 +52,7 @@ export function AddTestimonialSheet({ proId, onClose, onAdded }) {
       <textarea className="textarea" rows={3} value={quoteText} onChange={(e) => setQuoteText(e.target.value)} />
 
       {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
-      <button className="btn-primary" disabled={busy} onClick={submit}>{t.addTestimonialBtn}</button>
+      <button className="btn-primary" disabled={busy || !canSubmit} onClick={submit}>{t.addTestimonialBtn}</button>
     </Drawer>
   );
 }

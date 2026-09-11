@@ -32,6 +32,23 @@ describe("AddTestimonialSheet", () => {
     expect(addTestimonial).not.toHaveBeenCalled();
   });
 
+  // Found by code audit, 2026-09-11: the required-field guard lived only inside submit()
+  // as a silent no-op — the button itself stayed enabled and gave no visible sign that
+  // anything was required, unlike every other form in this codebase with a real required
+  // field (DocumentUploadSheet.jsx, LocationFormSheet.jsx, ItemFormSheet.jsx,
+  // ServiceRecordEditorSheet.jsx), which all disable their own submit button instead.
+  it("disables the submit button until a real quote is typed, matching every other required-field form in this codebase", () => {
+    renderSheet();
+    const button = screen.getByRole("button", { name: "addTestimonialBtn" });
+    expect(button.disabled).toBe(true);
+
+    fireEvent.change(screen.getByText("testimonialTextLabel").nextElementSibling, { target: { value: "   " } });
+    expect(button.disabled).toBe(true);
+
+    fireEvent.change(screen.getByText("testimonialTextLabel").nextElementSibling, { target: { value: "Great work!" } });
+    expect(button.disabled).toBe(false);
+  });
+
   it("saves and closes on success", async () => {
     vi.mocked(addTestimonial).mockResolvedValue({ id: "t1" });
     const { onClose, onAdded } = renderSheet();
