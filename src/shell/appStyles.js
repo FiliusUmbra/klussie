@@ -364,8 +364,15 @@ export const APP_CSS = `
 .conv-textrow{
   display:flex; align-items:center; gap:var(--space-2); width:100%;
   background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card);
-  border-radius:999px; padding:0 var(--space-2) 0 var(--space-4);
-  text-align:left; min-height:44px;
+  border-radius:999px;
+  /* Found by code audit, 2026-09-11: physical padding/left align, unlike .ai-intake-cta's
+     own text-align:start right below this file -- silently un-mirrored for an Arabic or
+     Persian reader, whose own typed text in this exact composer pill stayed left-aligned
+     with the roomier inset on the wrong side. Logical properties self-resolve off the
+     dir attribute itself, no [dir="rtl"] override needed the way an icon
+     transform:scaleX(-1) does. */
+  padding-block:0; padding-inline-end:var(--space-2); padding-inline-start:var(--space-4);
+  text-align:start; min-height:44px;
   transition:box-shadow var(--motion-base);
 }
 .conv-textrow:focus-within{ box-shadow:0 3px 14px rgba(31,77,58,0.10); }
@@ -452,14 +459,19 @@ export const APP_CSS = `
    this codebase's :root, so referencing it silently fell back to an inherited grey at
    roughly 2.2:1 on the amber tint. Same undefined-token trap DESIGN_TOKENS.md's audit
    has now caught three times. --ink on --amber-bg is ~14:1. */
-.conv-understanding-line{ font-size:13px; font-weight:600; color:var(--ink); text-align:left; }
-.conv-recap{ text-align:left; }
+/* Found by code audit, 2026-09-11: these three (this line's own selector plus
+   .conv-recap/.conv-pro right below) used text-align:left, not the :start this same
+   file already establishes for .ai-intake-cta -- silently unmirrored for Arabic/Persian,
+   whose own recap of what they typed, and the AI's own read of it, stayed pinned to the
+   visual left in a right-to-left layout instead of following reading direction. */
+.conv-understanding-line{ font-size:13px; font-weight:600; color:var(--ink); text-align:start; }
+.conv-recap{ text-align:start; }
 .conv-continue{ margin-top:var(--space-1); }
 
 /* ---- professional recommendation (Epic 03, WP8) ---- */
 /* text-align is inherited as centre from .view app-wide; the greeting and trust strip
    want that, this card's content does not. */
-.conv-pro{ display:flex; flex-direction:column; gap:var(--space-3); text-align:left; }
+.conv-pro{ display:flex; flex-direction:column; gap:var(--space-3); text-align:start; }
 .conv-pro-top{ display:flex; align-items:center; gap:var(--space-3); }
 .conv-pro-meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .conv-pro-name{ display:flex; align-items:center; gap:var(--space-2); font-size:14px; font-weight:700; color:var(--ink); }
@@ -530,7 +542,11 @@ export const APP_CSS = `
   gap:var(--space-1) var(--space-2); list-style:none; margin:var(--space-1) 0 0; padding:0;
 }
 .trust-strip-item{ font-size:11px; color:var(--ink-soft); }
-.trust-strip-item + .trust-strip-item::before{ content:"·"; color:var(--line-strong); margin-right:var(--space-2); }
+/* Found by code audit, 2026-09-11: margin-right, physical -- the separator dot sat on
+   the wrong side of each trust-strip item for an Arabic/Persian reader, since the item
+   it visually separates from is the next one in READING order, not the next one to the
+   right. margin-inline-end always means "toward the next item," in either direction. */
+.trust-strip-item + .trust-strip-item::before{ content:"·"; color:var(--line-strong); margin-inline-end:var(--space-2); }
 
 @media (prefers-reduced-motion: reduce){
   .conv-action, .conv-textrow{ transition:none; }
@@ -549,7 +565,10 @@ export const APP_CSS = `
 @keyframes ai-spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
 .ai-analysis-summary{ background:var(--amber-bg); border-radius:10px; padding:10px 12px; margin:8px 0; }
 .ai-analysis-header{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--forest); margin-bottom:6px; }
-.ai-analysis-summary ul{ margin:4px 0 0; padding-left:18px; }
+/* Found by code audit, 2026-09-11: padding-left, physical -- the bullet indent sat on
+   the wrong side of the list for an Arabic/Persian reader, whose own list markers belong
+   at the START of each line (the right, in RTL), not hardcoded to the left. */
+.ai-analysis-summary ul{ margin:4px 0 0; padding-inline-start:18px; }
 .ai-analysis-summary li{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
 
 /* ---- motion: subtle, purposeful, fast — see docs/design/DESIGN_SYSTEM.md ---- */

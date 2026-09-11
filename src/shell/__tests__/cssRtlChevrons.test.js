@@ -52,3 +52,35 @@ describe("RTL — every send icon flips direction", () => {
     expect(APP_CSS).toContain('[dir="rtl"] .send-icon{ transform:scaleX(-1); }');
   });
 });
+
+// Different bug, same underlying gap, found in the same pass: text-align:left and
+// margin-right/padding-left are physical-direction CSS -- they never flip for RTL at
+// all, [dir="rtl"] override or not. Unlike an icon transform, these have a real,
+// self-resolving fix: CSS logical properties (text-align:start,
+// margin-inline-end, padding-inline-start), already this file's own established idiom
+// for .ai-intake-cta, just not yet applied to the conversation canvas's own recap,
+// AI-understanding line, professional card, composer pill, trust strip separator, or
+// analysis bullet list. No [dir="rtl"] selector is needed for any of these — the
+// logical property itself follows the `dir` attribute, so the regression guard is
+// simply that the physical property is gone and the logical one is present.
+describe("RTL — physical-direction CSS replaced with logical properties that self-resolve", () => {
+  it("the homepage composer pill aligns text and insets padding by reading direction, not hardcoded left", () => {
+    expect(APP_CSS).toContain("padding-inline-end:var(--space-2); padding-inline-start:var(--space-4)");
+    expect(APP_CSS).toContain("text-align:start; min-height:44px;");
+    expect(APP_CSS).not.toMatch(/\.conv-textrow\{[^}]*padding:0 var\(--space-2\) 0 var\(--space-4\)/);
+  });
+
+  it("the AI-understanding line, the recap, and the professional card all align by reading direction", () => {
+    expect(APP_CSS).toContain(".conv-understanding-line{ font-size:13px; font-weight:600; color:var(--ink); text-align:start; }");
+    expect(APP_CSS).toContain(".conv-recap{ text-align:start; }");
+    expect(APP_CSS).toContain(".conv-pro{ display:flex; flex-direction:column; gap:var(--space-3); text-align:start; }");
+  });
+
+  it("the trust-strip separator dot sits toward the next item in reading order, not hardcoded right", () => {
+    expect(APP_CSS).toContain('.trust-strip-item + .trust-strip-item::before{ content:"·"; color:var(--line-strong); margin-inline-end:var(--space-2); }');
+  });
+
+  it("the AI analysis summary's bullet list indents from the start of the line, not hardcoded left", () => {
+    expect(APP_CSS).toContain(".ai-analysis-summary ul{ margin:4px 0 0; padding-inline-start:18px; }");
+  });
+});
