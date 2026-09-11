@@ -159,6 +159,29 @@ describe("ConversationSheet — send failure restores the draft", () => {
     expect(screen.getByPlaceholderText("Typ een bericht...").value).toBe("");
     expect(screen.queryByText("Kon dit bericht niet versturen.")).toBeNull();
   });
+
+  // Found by code audit, 2026-09-11: refresh() used to sit inside send()'s own try —
+  // a failure there, after sendMessage() had already succeeded, fell into the catch
+  // below and restored the ALREADY-SENT body into the draft box while showing
+  // chatSendFailed, inviting the customer to tap Send again on words that had already
+  // reached the other person — a genuine duplicate message, not just a confusing
+  // false-negative toast. refresh() is now best-effort once the send itself is
+  // confirmed, so its own failure must never resurrect the draft or show an error.
+  it("keeps the draft cleared and shows no error when the post-send refresh fails — the message itself was already sent", async () => {
+    vi.mocked(sendMessage).mockResolvedValueOnce(undefined);
+    renderSheet();
+    const input = await screen.findByPlaceholderText("Typ een bericht...");
+    // The initial load above already consumed the default resolved value; only the
+    // refresh() triggered by sending below should fail.
+    fetchMessagesMock.mockRejectedValueOnce(new Error("network blip refetching messages"));
+
+    fireEvent.change(input, { target: { value: "Hallo, ben je er nog?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verstuur bericht" }));
+
+    await waitFor(() => expect(sendMessage).toHaveBeenCalled());
+    expect(screen.getByPlaceholderText("Typ een bericht...").value).toBe("");
+    expect(screen.queryByText("Kon dit bericht niet versturen.")).toBeNull();
+  });
 });
 
 // Found by code audit: fetchMessages() throws on a real Postgres error, and the initial

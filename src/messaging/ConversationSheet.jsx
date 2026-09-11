@@ -48,10 +48,11 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  // refresh() itself stays capable of rejecting -- send() below awaits it inside its own
-  // try/catch and needs a real rejection to reach that, the same reasoning
-  // CustomerApp.jsx's refresh()/loadRequests() split already established. loadMessages()
-  // is the tracked wrapper the mount effect and the realtime subscription actually call.
+  // refresh() itself stays capable of rejecting -- loadMessages() below needs a real
+  // rejection to reach its own catch and set messagesLoadError. send() no longer awaits
+  // this one directly inside its own try (see that function's own header for why:
+  // 2026-09-11's audit found the split this comment used to justify by reference to
+  // CustomerApp.jsx was itself modeled on a bug there, since fixed).
   const refresh = () => fetchMessages(conversationId, workspaceId).then(setMessages);
   const loadMessages = () =>
     refresh().then(() => setMessagesLoadError(false)).catch(() => setMessagesLoadError(true));
@@ -111,6 +112,17 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   // of retyping from memory. Restoring the draft on failure, not just showing an error,
   // is the actual fix: the message text itself is the thing that must never be
   // silently destroyed.
+  //
+  // Found by code audit, 2026-09-11: refresh() used to sit inside this same try -- the
+  // same bug shape as CustomerApp.jsx's/ProApp.jsx's own action handlers (see those
+  // files' own headers), just with a worse consequence here specifically: a failure in
+  // refresh() after sendMessage() had already succeeded restored the ALREADY-SENT body
+  // into the draft box and showed chatSendFailed, inviting the customer to tap Send
+  // again on words that had already reached the other person -- a genuine duplicate
+  // message, not just a confusing toast. refresh() is now best-effort once the send
+  // itself is confirmed; its own failure just leaves the fresh message to appear via the
+  // next successful poll or realtime event, exactly like any other "unavailable,
+  // continuing without it" background read in this codebase.
   const send = async () => {
     const body = draft.trim();
     if (!body) return;
@@ -118,10 +130,15 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
     setSendError("");
     try {
       await sendMessage({ conversationId, senderId: userId, senderWorkspaceId: workspaceId, body });
-      await refresh();
     } catch {
       setDraft(body);
       setSendError(t.chatSendFailed);
+      return;
+    }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the message itself was already sent regardless.
     }
   };
 
