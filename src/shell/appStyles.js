@@ -377,6 +377,12 @@ export const APP_CSS = `
 .conv-textrow-send::after{ content:""; position:absolute; inset:-6px; border-radius:50%; }
 /* Disabled rather than erroring on an empty draft — nothing to say yet isn't a mistake. */
 .conv-textrow-send:disabled{ opacity:0.4; cursor:default; }
+/* Found by a later audit, 2026-09-11, while fixing the three sibling "leads forward"
+   chevron gaps this same pass found: KlussiePanel.jsx's own icon={<ChevronRight/>} here
+   IS the send button for the whole homepage composer -- its own icon prop has exactly
+   one real caller, so svg (not a class) safely and unambiguously targets it. Same bug,
+   same fix, one screen every message send action on the app actually goes through. */
+[dir="rtl"] .conv-textrow-send svg{ transform:scaleX(-1); }
 
 /* ---- booking + relief (Epic 03, WP9 / ADR-0012) ---- */
 .conv-actions-row{ display:flex; flex-direction:column; gap:var(--space-2); }

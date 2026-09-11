@@ -1,11 +1,14 @@
-// A regression guard for a real RTL gap, found by code audit 2026-09-11: three "this
+// A regression guard for a real RTL gap, found by code audit 2026-09-11: several "this
 // leads forward" chevrons — HomeTodayCard.jsx's own Today card (the single most
-// prominent card on the whole homepage), KlussiePanel.jsx's own Active Requests row, and
-// RequestsList.jsx's own JobCard footer (the customer's real, reachable Requests tab) —
-// never got the `[dir="rtl"]{ transform:scaleX(-1); }` flip myHomeParts.jsx's own
-// identical-meaning `.timeline-card-chevron`/`.trusted-pro` chevrons already have. For an
-// Arabic or Persian reader, a chevron pointing right in a right-to-left layout points
-// backward, not forward — the wrong direction on three real, everyday screens.
+// prominent card on the whole homepage), KlussiePanel.jsx's own Active Requests row,
+// RequestsList.jsx's own JobCard footer (the customer's real, reachable Requests tab),
+// and the homepage composer's own send button (KlussiePanel.jsx's own
+// icon={<ChevronRight/>}, found in a follow-up pass immediately after the first three —
+// the one screen every message send action in the app actually goes through) — never got
+// the `[dir="rtl"]{ transform:scaleX(-1); }` flip myHomeParts.jsx's own identical-meaning
+// `.timeline-card-chevron`/`.trusted-pro` chevrons already have. For an Arabic or Persian
+// reader, a chevron pointing right in a right-to-left layout points backward, not
+// forward — the wrong direction on four real, everyday screens.
 //
 // Deliberately plain substring checks on the raw CSS text, matching
 // cssTokenContrast.test.js/cssFocusVisibility.test.js's own established idiom in this
@@ -30,5 +33,9 @@ describe("RTL — every 'leads forward' chevron flips direction", () => {
 
   it("flips the JobCard footer's own chevron (RequestsList.jsx's real Requests tab)", () => {
     expect(APP_CSS).toContain('[dir="rtl"] .ticket-foot-chevron{ transform:scaleX(-1); }');
+  });
+
+  it("flips the homepage composer's own send-button icon", () => {
+    expect(APP_CSS).toContain('[dir="rtl"] .conv-textrow-send svg{ transform:scaleX(-1); }');
   });
 });
