@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useLang } from "../lib/lang";
 import { Badge, Rating, JobCard } from "../design-system";
+import { interpolate } from "../lib/homeStrings.js";
 
 const SEGMENTS = ["sent", "booked", "completed"];
 
@@ -42,7 +43,7 @@ export function ProJobs({ sent, booked, completed, proId, onOpenJob }) {
             badge={<Badge tone={badge.tone}>{t[badge.labelKey]}</Badge>}
             subtitle={`${t.yourQuoteLabel} €${fmt(myQuote?.price ?? 0)}`}
           >
-            {seg === "completed" && r.review && (<><div className="ticket-divider" /><Rating value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></>)}
+            {seg === "completed" && r.review && (<><div className="ticket-divider" /><Rating value={r.review.stars} size={12} label={interpolate(t.ratingLabel, { value: r.review.stars })} /><p className="quote-msg">"{r.review.text}"</p></>)}
             {seg === "completed" && !r.review && <div className="ticket-sub" style={{ marginTop: 6 }}>{t.noReviewYet}</div>}
           </JobCard>
         );

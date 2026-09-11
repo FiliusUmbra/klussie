@@ -177,7 +177,7 @@ export function MyHomePanel({
       <HomeSection title={t.myHomeReviewsTitle} emptyText={t.myHomeReviewsEmpty} isEmpty={reviews.length === 0}>
         <ul className="home-reviews">
           {reviews.map((entry) => (
-            <ReviewRow key={entry.id} serviceInfo={serviceInfo} entry={entry} />
+            <ReviewRow key={entry.id} t={t} serviceInfo={serviceInfo} entry={entry} />
           ))}
         </ul>
       </HomeSection>

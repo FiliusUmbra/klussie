@@ -9,6 +9,7 @@ import { fetchPublicProInfo, fetchReviewsForPro, trustScore } from "../lib/pros"
 import { fetchPortfolioItems } from "../lib/portfolio";
 import { fetchTestimonials } from "../lib/testimonials";
 import { LoadingScreen } from "../ui/Loading.jsx";
+import { interpolate } from "../lib/homeStrings.js";
 
 export function ProPublicProfileSheet({ proId, onClose }) {
   const { t, fmt, proBadgeLabel } = useLang();
@@ -61,7 +62,7 @@ export function ProPublicProfileSheet({ proId, onClose }) {
         <Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" />
         <div>
           <div className="h1" style={{ fontSize: 19 }}>{proInfo.name || t.proFallbackName}</div>
-          <TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} score={trustScore(proInfo)} scoreLabel={t.trustScoreLabel} fmt={fmt} />
+          <TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} score={trustScore(proInfo)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: proInfo.rating })} />
         </div>
       </div>
       <div className="chiprow" style={{ marginTop: 4 }}>
@@ -86,7 +87,7 @@ export function ProPublicProfileSheet({ proId, onClose }) {
       <div className="section-title">{t.proReviewsTitle}</div>
       {(!reviews || reviews.length === 0) && <div className="fineprint" style={{ justifyContent: "flex-start" }}>{t.noReviewsYet}</div>}
       {(reviews || []).map((r) => (
-        <QuoteCard key={r.id}><Rating value={r.stars} size={12} /><p className="quote-msg">"{r.text}"</p></QuoteCard>
+        <QuoteCard key={r.id}><Rating value={r.stars} size={12} label={interpolate(t.ratingLabel, { value: r.stars })} /><p className="quote-msg">"{r.text}"</p></QuoteCard>
       ))}
 
       {testimonials && testimonials.length > 0 && (

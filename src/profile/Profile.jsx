@@ -33,6 +33,7 @@ import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../
 import { fetchTestimonials, deleteTestimonial } from "../lib/testimonials";
 import { FLEXI_TAX_FREE_THRESHOLD, BOOST_WEEKLY_PRICE, flexiProgressPct } from "../lib/billing.js";
 import { isBoosted, isCategoryLocked, PRO_TYPE_FLEXI } from "../lib/proStatus.js";
+import { interpolate } from "../lib/homeStrings.js";
 
 export function Profile({
   variant,
@@ -223,7 +224,7 @@ export function Profile({
           avatarUrl={proInfo.avatarUrl}
           initials={proInfo.initials}
           name={proInfo.name || t.proFallbackName}
-          subtitle={<TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} />}
+          subtitle={<TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: proInfo.rating })} />}
         />
       )}
 
@@ -252,7 +253,7 @@ export function Profile({
           <div className="section-title">{t.yourReviews}</div>
           {reviewedRequests(requests).length === 0 && <div className="empty-block"><p>{t.noReviewsYet}</p></div>}
           {reviewedRequests(requests).map((r) => (
-            <QuoteCard key={r.id}><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Rating value={r.review.stars} size={12} /><p className="quote-msg">"{r.review.text}"</p></QuoteCard>
+            <QuoteCard key={r.id}><div className="quote-name">{serviceInfo(r.serviceId).name}</div><Rating value={r.review.stars} size={12} label={interpolate(t.ratingLabel, { value: r.review.stars })} /><p className="quote-msg">"{r.review.text}"</p></QuoteCard>
           ))}
           {/* The real, reachable "become a pro" entry point (UNIFIED_PRODUCT_IA_REVIEW.md
               §5). Only for someone who hasn't already (proProfile null); a real dual-role

@@ -205,6 +205,39 @@ describe("RequestDetailSheet — cancelled request", () => {
   });
 });
 
+// Found by code audit, 2026-09-11: Rating's own aria-label was a hardcoded English
+// template string here (and in every other real call site in the app) — see
+// primitives.jsx's own header. Proves this specific call site now routes the real value
+// through t.ratingLabel/interpolate() rather than building the old literal itself — a
+// real ratingLabel template (not the shared Proxy's own key-echo) is what makes the
+// interpolated result actually observable here.
+describe("RequestDetailSheet — reviewed request's own rating has a real, translated label", () => {
+  const REVIEWED_REQUEST = {
+    ...BOOKED_REQUEST, status: "reviewed", review: { stars: 5, text: "Great work!" },
+  };
+
+  it("interpolates the real star count into the real locale key, not a hardcoded English string", () => {
+    // Deliberately not "{value} out of 5 stars" -- that's also the old, buggy hardcoded
+    // fallback's own literal output for value=5, so an English template here would pass
+    // whether or not this call site actually routes through t.ratingLabel at all. A
+    // template that reads nothing like the hardcoded string is what makes this a real
+    // test of the wiring, not a coincidence.
+    const localT = new Proxy({}, { get: (_, key) => (key === "ratingLabel" ? "{value} van de 5 sterren" : String(key)) });
+    const localCtx = { ...ctx, t: localT };
+    render(
+      <LangContext.Provider value={localCtx}>
+        <RequestDetailSheet request={REVIEWED_REQUEST} onClose={vi.fn()} onAccept={vi.fn()} onComplete={vi.fn()} onReview={vi.fn()} />
+      </LangContext.Provider>
+    );
+    expect(screen.getByRole("img", { name: "5 van de 5 sterren" })).toBeTruthy();
+    // This status also mounts ServiceRecordSummary, which self-fetches -- the suite below
+    // (WP 3.2) has its own, order-sensitive "not called at all yet" assertion for other
+    // statuses, and this file resets no mock between tests. Cleared here so this test's
+    // own real call to fetchServiceRecordForRequestMock doesn't leak into that one.
+    fetchServiceRecordForRequestMock.mockClear();
+  });
+});
+
 describe("RequestDetailSheet — ServiceRecordSummary (WP 3.2)", () => {
   const COMPLETED_REQUEST = { ...BOOKED_REQUEST, status: "completed", review: null };
   const REVIEWED_REQUEST = {

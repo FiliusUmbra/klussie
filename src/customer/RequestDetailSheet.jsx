@@ -16,6 +16,7 @@ import { InvoiceSheet } from "./InvoiceSheet.jsx";
 import { ReportSheet } from "./ReportSheet.jsx";
 import { timelineSteps } from "../lib/requestStatus.js";
 import { platformFee, netPayout } from "../lib/billing.js";
+import { interpolate } from "../lib/homeStrings.js";
 
 export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
@@ -76,7 +77,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                     <Avatar url={pro.avatarUrl} initials={pro.initials} />
                     <div style={{ flex: 1 }}>
                       <div className="quote-name">{pro.name || t.proFallbackName} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
-                    <TrustBadge rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} />
+                    <TrustBadge rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} />
                   </div>
                   </button>
                   <PriceTag amount={q.price} fmt={fmt} />
@@ -116,7 +117,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
                 <Avatar url={pro.avatarUrl} initials={pro.initials} />
-                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
+                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
@@ -155,7 +156,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
               <Avatar url={pro.avatarUrl} initials={pro.initials} />
-              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} /></div>
+              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
@@ -188,7 +189,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
       )}
 
       {request.status === "reviewed" && (
-        <QuoteCard><div className="quote-top"><Rating value={request.review.stars} size={16} /></div><p className="quote-msg">"{request.review.text}"</p><button className="btn-secondary" onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button></QuoteCard>
+        <QuoteCard><div className="quote-top"><Rating value={request.review.stars} size={16} label={interpolate(t.ratingLabel, { value: request.review.stars })} /></div><p className="quote-msg">"{request.review.text}"</p><button className="btn-secondary" onClick={() => setShowInvoice(true)}>{t.viewInvoiceBtn}</button></QuoteCard>
       )}
 
       {(request.status === "completed" || request.status === "reviewed") && (

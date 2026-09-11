@@ -10,6 +10,7 @@ import {
   UnfoldPanel, UnfoldItem, RecentWorkStrip,
 } from "../design-system";
 import { trustScore } from "../lib/pros";
+import { interpolate } from "../lib/homeStrings.js";
 
 // "Supply-line leak · Plumbing · Urgent" — the customer's own problem reflected back,
 // structured. Only parts the model actually returned are shown.
@@ -35,6 +36,7 @@ function ProfessionalCard({ conversation, t, fmt, proBadgeLabel }) {
             score={trustScore(conversation.pro)}
             scoreLabel={t.trustScoreLabel}
             fmt={fmt}
+            ratingLabel={interpolate(t.ratingLabel, { value: conversation.pro.rating })}
           />
         </div>
       </div>

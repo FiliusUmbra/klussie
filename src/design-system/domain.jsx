@@ -221,14 +221,14 @@ export function PhotoCapture({ previewUrl, analyzing, tag, alt, analyzingLabel, 
 }
 
 // The service tile grid on the Discover screen.
-export function ServiceCard({ icon: Icon, name, certifiedOnly, certifiedLabel, proCountLabel, rating, ctaLabel, ctaVariant = "quote", onClick }) {
+export function ServiceCard({ icon: Icon, name, certifiedOnly, certifiedLabel, proCountLabel, rating, ratingLabel, ctaLabel, ctaVariant = "quote", onClick }) {
   return (
     <button type="button" className="svc-card" onClick={onClick}>
       <div className="svc-icon"><Icon size={18} color="var(--forest)" /></div>
       <div className="svc-name">{name}</div>
       {certifiedOnly && <div className="svc-certified"><BadgeCheck size={11} /> {certifiedLabel}</div>}
       <div className="svc-meta">{proCountLabel}</div>
-      <div className="svc-rating"><Rating value={rating} size={11} /> <span>{rating}</span></div>
+      <div className="svc-rating"><Rating value={rating} size={11} label={ratingLabel} /> <span>{rating}</span></div>
       <div className={"svc-cta " + (ctaVariant === "book" ? "cta-book" : "cta-quote")}>{ctaLabel}</div>
     </button>
   );
@@ -278,10 +278,10 @@ export function QuoteCard({ children, booked = false, className = "" }) {
 // repeated across quote cards, pro dashboards, and public pro profiles. `score` is
 // optional: some contexts (e.g. ProProfile's own header) show only rating + review
 // count, without the trust score.
-export function TrustBadge({ rating, reviewCount, score, scoreLabel, fmt }) {
+export function TrustBadge({ rating, reviewCount, score, scoreLabel, fmt, ratingLabel }) {
   return (
     <div className="quote-rating">
-      <Rating value={rating} size={11} /> {rating}
+      <Rating value={rating} size={11} label={ratingLabel} /> {rating}
       {reviewCount != null ? ` (${fmt ? fmt(reviewCount) : reviewCount})` : ""}
       {score != null ? ` · ${score} ${scoreLabel}` : ""}
     </div>

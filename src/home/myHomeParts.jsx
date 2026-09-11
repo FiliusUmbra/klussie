@@ -75,7 +75,7 @@ export function HomeTimelineCard({ t, event, serviceInfo, fmtDate, onOpenRequest
 
         {event.kind === "review" ? (
           <div className="timeline-card-review">
-            <Rating value={request.review.stars} size={12} />
+            <Rating value={request.review.stars} size={12} label={interpolate(t.ratingLabel, { value: request.review.stars })} />
             <p className="timeline-card-quote">"{request.review.text}"</p>
           </div>
         ) : (
@@ -191,11 +191,11 @@ export function HomePhotoGallery({ t, sources }) {
 }
 
 /** A review the household wrote, outside the timeline — used by the reviews section. */
-export function ReviewRow({ serviceInfo, entry }) {
+export function ReviewRow({ t, serviceInfo, entry }) {
   return (
     <li className="home-review-row">
       <span className="home-review-service">{serviceInfo(entry.serviceId).name}</span>
-      <Rating value={entry.review.stars} size={12} />
+      <Rating value={entry.review.stars} size={12} label={interpolate(t.ratingLabel, { value: entry.review.stars })} />
       <p className="timeline-card-quote">"{entry.review.text}"</p>
     </li>
   );
