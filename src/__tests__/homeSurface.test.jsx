@@ -546,16 +546,17 @@ describe("My Items", () => {
     expect(screen.getByText("Sofa").closest(".item-card").querySelector(".item-card-sub")).toBeNull();
   });
 
-  it("opens the form to add an item, with only the name required", async () => {
+  it("opens the add wizard on its first, name-only-required step", async () => {
     renderHome();
     openMyItems();
     await waitFor(() => expect(screen.getByText("myItemsEmptyTitle")).toBeTruthy());
     fireEvent.click(screen.getByText("itemAddTitle").closest("button"));
 
-    const save = screen.getByText("itemSaveNew").closest("button");
-    expect(save.disabled).toBe(true);
+    expect(screen.getByText("itemNameLabel")).toBeTruthy();
+    const next = screen.getByText("tourNext").closest("button");
+    expect(next.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText("itemNameLabel"), { target: { value: "Dishwasher" } });
-    expect(save.disabled).toBe(false);
+    expect(next.disabled).toBe(false);
   });
 
   it("says so when the inventory could not be read, instead of looking empty", async () => {

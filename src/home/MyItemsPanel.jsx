@@ -22,6 +22,7 @@ import { Plus, Pencil } from "lucide-react";
 import { groupByCategory } from "../lib/itemCategories.js";
 import { resolveItemRoomName } from "../lib/homeInventory.js";
 import { ItemFormSheet } from "./ItemFormSheet.jsx";
+import { ItemAddWizard } from "./ItemAddWizard.jsx";
 import { ItemDetailSheet } from "./ItemDetailSheet.jsx";
 import { LocationFormSheet } from "./LocationFormSheet.jsx";
 import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
@@ -247,13 +248,23 @@ export function MyItemsPanel({
         <DocumentList t={t} fmtDate={fmtDate} documents={documents || []} />
       </HomeSection>
 
-      {activeSheet?.type === "item" && (
-        <ItemFormSheet
+      {activeSheet?.type === "item" && !activeSheet.item && (
+        <ItemAddWizard
           t={t}
           ownerId={ownerId}
           propertyId={propertyId}
           rooms={rooms || []}
           initialLocationId={activeSheet.initialRoom?.id}
+          onClose={() => setActiveSheet(null)}
+          onSaved={onRefresh}
+        />
+      )}
+
+      {activeSheet?.type === "item" && activeSheet.item && (
+        <ItemFormSheet
+          t={t}
+          ownerId={ownerId}
+          propertyId={propertyId}
           item={activeSheet.item}
           onClose={() => setActiveSheet(null)}
           onSaved={onRefresh}

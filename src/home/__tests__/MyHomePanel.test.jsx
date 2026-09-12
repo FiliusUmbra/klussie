@@ -57,10 +57,14 @@ const t = {
   locationRetireBlockedChildren: "This room still contains another room. Remove that one first.",
   locationRetireBlockedItems: "Something is still placed in this room. Remove or move it first.",
   cancelBtn: "Cancel",
-  // ItemFormSheet (rendered from "add something to this room")
+  // ItemAddWizard (rendered from "add something to this room")
   itemAddTitle: "Add item", itemEditTitle: "Edit item",
+  itemWizardStepProgress: "Step {n} of {total}",
+  itemWizardPhotoTitle: "A photo of the nameplate", itemWizardPhotoHint: "Usually printed on a small plate or sticker on the item itself.",
+  itemWizardExtraTitle: "Anything else to add?",
+  tourNext: "Next", tourBack: "Back", tourSkip: "Skip",
   itemNameLabel: "Name", itemNamePlaceholder: "e.g. washing machine",
-  itemCategoryLabel: "Category", itemRoomLabel: "Room", itemRoomPlaceholder: "e.g. kitchen",
+  itemCategoryLabel: "Category", itemRoomLabel: "Room", itemRoomPlaceholder: "e.g. kitchen", itemRoomNone: "No room chosen",
   itemBrandLabel: "Brand", itemModelLabel: "Model",
   itemPhotoLabel: "Photo", itemPhotoAdd: "Add photo", itemPhotoRemove: "Remove photo",
   itemPurchasedLabel: "Purchased on", itemNotesLabel: "Notes",
@@ -170,18 +174,24 @@ describe("MyHomePanel — HomeBuilderSection actions", () => {
     expect(screen.getByLabelText("Name").value).toBe("Kitchen");
   });
 
-  it("goes from a room's 'Add something to this room' straight into ItemFormSheet, pre-selecting that room", async () => {
+  it("goes from a room's 'Add something to this room' straight into ItemAddWizard, pre-selecting that room on its own extra-details step", async () => {
     const rooms = [{ id: "loc-1", name: "Kitchen", type: "kitchen", children: [] }];
     render(<MyHomePanel {...BASE_PROPS} homeCtx={baseHomeCtx({ propertyId: "prop-1", homeProfile: { rooms } })} />);
 
     fireEvent.click(screen.getByText("Kitchen"));
     fireEvent.click(screen.getByText("Add something to this room"));
 
-    expect(screen.getByText("Add item")).toBeTruthy();
+    expect(screen.getByText("Name")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Washing machine" } });
+    fireEvent.click(screen.getByText("Next"));
+    fireEvent.click(screen.getByText("Skip")); // photo
+    fireEvent.click(screen.getByText("Skip")); // brand
+    fireEvent.click(screen.getByText("Skip")); // model
+
+    expect(screen.getByText("Anything else to add?")).toBeTruthy();
     // The real room picker, pre-selected to the room the customer just came from.
     expect(screen.getByLabelText("Room").value).toBe("loc-1");
 
-    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Washing machine" } });
     fireEvent.click(screen.getByText("Save item"));
 
     await waitFor(() => expect(createAsset).toHaveBeenCalledWith(expect.objectContaining({

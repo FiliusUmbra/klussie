@@ -442,6 +442,19 @@ export const HOME_CSS = `
 .item-photo-preview{ position:relative; width:96px; height:96px; border-radius:14px; overflow:hidden; }
 .item-photo-preview img{ width:100%; height:100%; object-fit:cover; }
 
+/* Item-intake wizard's own Brand/Model steps — "klein pictogram" (small icon), not the
+   full-size picker the wizard's own Photo step already offers: this is a way back into
+   that same one photo slot (there is one photo per item, household_items/property.assets
+   both have exactly one photo column — never a second, brand-specific or model-specific
+   photo), not a way to attach more of them. */
+.item-photo-mini-btn{
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:32px; height:32px; border-radius:50%; padding:0; cursor:pointer;
+  background:var(--surface); border:1px solid var(--line-strong); color:var(--ink-soft); overflow:hidden;
+}
+.item-photo-mini-btn.item-photo-mini-on{ background:var(--sage-bg); border-color:var(--sage); color:var(--forest-dark); }
+.item-photo-mini-btn img{ width:100%; height:100%; object-fit:cover; }
+
 /* ---- first-login tour ---- */
 .tour{ display:flex; flex-direction:column; gap:var(--space-3); }
 .tour-progress{ margin:0; font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-soft); }
