@@ -41,7 +41,7 @@ import {
 import { ProPublicProfileSheet } from "../profile/ProPublicProfileSheet.jsx";
 import { LocationTree } from "./MyItemsPanel.jsx";
 import { LocationFormSheet } from "./LocationFormSheet.jsx";
-import { ItemFormSheet } from "./ItemFormSheet.jsx";
+import { ItemAddWizard } from "./ItemAddWizard.jsx";
 import { reviewsGiven, aiSummaries } from "../lib/homeTimeline.js";
 
 // Home Builder vertical slice — "building your home" belongs here, in My Home, not
@@ -136,7 +136,7 @@ export function MyHomePanel({
   t, homeCtx, ownerId, serviceInfo, fmtDate, onReportProblem, onOpenRequest, requests,
 }) {
   const [openProId, setOpenProId] = useState(null);
-  // null | existingRoom — opens ItemFormSheet pre-filled with that room, the direct
+  // null | existingRoom — opens ItemAddWizard pre-filled with that room, the direct
   // "add something to this room" next action a freshly-built room needs.
   const [addItemToRoom, setAddItemToRoom] = useState(undefined);
   const { property, openWork, trustedPros, history, photoSources, propertyId, refreshItems } = homeCtx;
@@ -226,13 +226,12 @@ export function MyHomePanel({
       {openProId && <ProPublicProfileSheet proId={openProId} onClose={() => setOpenProId(null)} />}
 
       {addItemToRoom !== undefined && (
-        <ItemFormSheet
+        <ItemAddWizard
           t={t}
           ownerId={ownerId}
           propertyId={propertyId}
           rooms={homeCtx.homeProfile?.rooms || []}
           initialLocationId={addItemToRoom?.id}
-          item={null}
           onClose={() => setAddItemToRoom(undefined)}
           onSaved={refreshItems}
         />

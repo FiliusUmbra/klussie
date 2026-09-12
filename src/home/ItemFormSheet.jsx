@@ -1,38 +1,44 @@
-// Adding or editing something the household owns.
+// Editing something the household already owns.
 //
 // Eight fields, one of them required. That asymmetry is the whole design: a person often
 // genuinely does not know the brand of the boiler that came with the house, and a form
 // that refuses to save until they do teaches them to type something plausible instead —
 // which would poison the record this table exists to be. Only the name is asked for.
 //
-// The photo is uploaded after the row exists, because storage paths are keyed by item id.
-// A failed upload therefore leaves a real item without a picture rather than losing the
-// whole entry.
+// EDIT-ONLY NOW — ADDING SOMETHING NEW LIVES IN ItemAddWizard.jsx
+//
+// Product remark, 2026-09-12: a first-time capture benefits from being walked through
+// one question at a time (what is it, a photo of its own nameplate, brand, model, then
+// whatever else); editing is a person who already knows what the thing is, correcting or
+// filling in a detail, which this flat form already suited. Every caller now only ever
+// hands this component a real `item` — creation went to ItemAddWizard.jsx, its own file,
+// matching the precedent ItemDetailSheet.jsx's own header already set (a genuinely
+// different task gets its own component rather than a growing set of ternaries in one).
+// The room field keeps its edit-time behaviour exactly as it was: free text with
+// suggested chips, never the real-room picker — that stayed a create-only affordance
+// even before this split (see the comment on that below).
 //
 // Platform Activation Slice 1, WP 1.8 — TWO WRITE PATHS, CHOSEN BY WHETHER A REAL
 // PROPERTY EXISTS
 //
-// `propertyId` present means the real contract (api.create_asset()/update_asset()/
-// retire_asset(), WP 1.4) is used — every account WP 1.0 provisions. Its absence falls
-// back to the legacy household_items functions, the same two-tier shape
-// fetchHouseholdItems() already established for reads. "Delete" on the real path is
-// retire_asset() (active -> retired, never a hard delete) rather than deleteHouseholdItem
-// — api.my_assets() excludes retired assets (0054, silently regressed by 0161's own
-// rewrite of the same WHERE clause, restored in 0200), so the item disappears from this
-// list exactly as a delete would, while its history is kept.
+// `propertyId` present means the real contract (api.update_asset()/retire_asset(), WP
+// 1.4) is used — every account WP 1.0 provisions. Its absence falls back to the legacy
+// household_items functions, the same two-tier shape fetchHouseholdItems() already
+// established for reads. "Delete" on the real path is retire_asset() (active -> retired,
+// never a hard delete) rather than deleteHouseholdItem — api.my_assets() excludes
+// retired assets (0054, silently regressed by 0161's own rewrite of the same WHERE
+// clause, restored in 0200), so the item disappears from this list exactly as a delete
+// would, while its history is kept.
 //
-// Home Builder slice — THE ROOM FIELD IS A REAL PICKER ON CREATE, UNCHANGED FREE TEXT ON
-// EDIT
+// THE ROOM FIELD STAYS FREE TEXT ON EDIT
 //
-// property.create_asset() always accepted a real location_id; only this form ever
-// hardcoded it to null (see createAsset()'s own header). Creating now offers the
-// customer's own actual rooms, when any real ones exist, alongside the free-text field
-// for anyone without one yet (or the legacy path, which has no rooms concept at all).
-// Editing keeps today's behaviour exactly as it was for THIS field specifically — the
-// room name stays free text on edit even though property.move_asset_for_caller() (Item
-// Detail slice, 0201) now exists: that real relocation is reached from ItemDetailSheet.jsx
-// as its own "Move item" action instead, matching this whole slice's own separation of
-// "what this item is" (this form) from "what to do with it" (Item Detail's actions).
+// property.create_asset() always accepted a real location_id, and ItemAddWizard.jsx's
+// own "extra" step now offers the customer's own actual rooms on create. Editing keeps
+// today's behaviour exactly as it was for THIS field specifically, even though real
+// rooms exist — property.move_asset_for_caller() (Item Detail slice, 0201) now exists
+// for that, reached from ItemDetailSheet.jsx as its own "Move item" action instead,
+// matching this whole slice's own separation of "what this item is" (this form) from
+// "what to do with it" (Item Detail's actions).
 //
 // PURE FORM AGAIN — DOCUMENTS AND ASK KLUSSIE MOVED TO ItemDetailSheet.jsx
 //
@@ -40,35 +46,30 @@
 // onto this form directly. The Item Detail slice reconsiders that: tapping an item now
 // opens ItemDetailSheet.jsx first — a calm, read-first view — and "Edit details" is one
 // action reached from there, matching how Move/Retire/Add-a-document/Ask all work. This
-// file goes back to being only the form; nothing about its own create/update/retire
-// write logic changed.
+// file goes back to being only the form; nothing about its own update/retire write logic
+// changed by either that slice or this one.
 import { useState, useRef } from "react";
 import { Camera, X, Trash2 } from "lucide-react";
 import { Drawer, Modal, Button } from "../design-system";
 import { ITEM_CATEGORIES, SUGGESTED_ROOMS, DEFAULT_ITEM_CATEGORY, canSaveItem } from "../lib/itemCategories.js";
-import { createHouseholdItem, updateHouseholdItem, setHouseholdItemPhoto, deleteHouseholdItem, createAsset, updateAsset, retireAsset } from "../lib/householdItems.js";
-import { flattenLocationsForPicker } from "../lib/homeInventory.js";
+import { updateHouseholdItem, deleteHouseholdItem, updateAsset, retireAsset } from "../lib/householdItems.js";
 
-export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId, item, onClose, onSaved }) {
-  const editing = !!item;
+export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }) {
   // The caller's own auth id doubles as ADR-0019's actor_ref — public.profiles.id
   // references auth.users.id directly (0001), so ownerId already IS that value; no
   // separate prop is threaded down just to carry the same id under a second name.
   const usingRealContract = !!propertyId;
   const actorRef = ownerId;
-  const roomOptions = flattenLocationsForPicker(rooms || []);
-  const initialRoomOption = roomOptions.find((opt) => opt.id === initialLocationId);
-  const [name, setName] = useState(item?.name || "");
-  const [category, setCategory] = useState(item?.category || DEFAULT_ITEM_CATEGORY);
-  const [room, setRoom] = useState(item?.room || initialRoomOption?.name || "");
-  const [locationId, setLocationId] = useState(editing ? null : initialLocationId || "");
-  const [brand, setBrand] = useState(item?.brand || "");
-  const [model, setModel] = useState(item?.model || "");
-  const [purchasedOn, setPurchasedOn] = useState(item?.purchasedOn || "");
-  const [notes, setNotes] = useState(item?.notes || "");
+  const [name, setName] = useState(item.name || "");
+  const [category, setCategory] = useState(item.category || DEFAULT_ITEM_CATEGORY);
+  const [room, setRoom] = useState(item.room || "");
+  const [brand, setBrand] = useState(item.brand || "");
+  const [model, setModel] = useState(item.model || "");
+  const [purchasedOn, setPurchasedOn] = useState(item.purchasedOn || "");
+  const [notes, setNotes] = useState(item.notes || "");
   // A picked file is held until save so an abandoned form uploads nothing.
   const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(item?.photoUrl || null);
+  const [photoPreview, setPhotoPreview] = useState(item.photoUrl || null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -104,29 +105,20 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
     try {
       const fields = { name, category, room, brand, model, purchasedOn, notes };
       if (usingRealContract) {
-        if (editing) {
-          // This form has no inputs for serial number/installed date/expected service
-          // life/warranty end/condition — passing the item's OWN current values for them
-          // (rather than leaving updateAsset()'s null defaults) is what stops an ordinary
-          // rename or note edit from silently erasing a fact the Document Understanding
-          // slice's own suggestion-confirmation flow (or any future capability) has set.
-          await updateAsset(item.id, {
-            ownerId, actorRef, previousPhotoPath: item.photoPath, photoFile,
-            serialNumber: item.serialNumber, installedOn: item.installedOn,
-            expectedServiceLifeMonths: item.expectedServiceLifeMonths,
-            warrantyExpiresOn: item.warrantyExpiresOn, condition: item.condition,
-            ...fields,
-          });
-        } else {
-          await createAsset({ propertyId, ownerId, actorRef, locationId: locationId || null, photoFile, ...fields });
-        }
+        // This form has no inputs for serial number/installed date/expected service
+        // life/warranty end/condition — passing the item's OWN current values for them
+        // (rather than leaving updateAsset()'s null defaults) is what stops an ordinary
+        // rename or note edit from silently erasing a fact the Document Understanding
+        // slice's own suggestion-confirmation flow (or any future capability) has set.
+        await updateAsset(item.id, {
+          ownerId, actorRef, previousPhotoPath: item.photoPath, photoFile,
+          serialNumber: item.serialNumber, installedOn: item.installedOn,
+          expectedServiceLifeMonths: item.expectedServiceLifeMonths,
+          warrantyExpiresOn: item.warrantyExpiresOn, condition: item.condition,
+          ...fields,
+        });
       } else {
-        const saved = editing
-          ? await updateHouseholdItem(item.id, { ownerId, ...fields })
-          : await createHouseholdItem({ ownerId, ...fields });
-        if (photoFile) {
-          await setHouseholdItemPhoto(saved.id, ownerId, photoFile, item?.photoPath || null);
-        }
+        await updateHouseholdItem(item.id, { ownerId, ...fields });
       }
       await onSaved();
       onClose();
@@ -161,7 +153,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
 
   return (
     <Drawer onClose={onClose} closeLabel={t.closeBtn}>
-      <div className="sheet-title">{editing ? t.itemEditTitle : t.itemAddTitle}</div>
+      <div className="sheet-title">{t.itemEditTitle}</div>
 
       <label className="field-label" htmlFor="item-name">{t.itemNameLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
@@ -183,47 +175,25 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       </div>
 
       <label className="field-label" htmlFor="item-room">{t.itemRoomLabel}</label>
-      {!editing && roomOptions.length > 0 ? (
-        // A real room, once any exist — the exact rooms this same customer just built
-        // in My Home, not a fixed suggestion list standing in for them.
-        <div className="search" style={{ marginBottom: 14 }}>
-          <select
-            id="item-room"
-            value={locationId}
-            onChange={(e) => {
-              const picked = roomOptions.find((opt) => opt.id === e.target.value);
-              setLocationId(e.target.value);
-              setRoom(picked?.name || "");
-            }}
+      {/* Free text with suggestions, always — the column itself has always accepted
+          anything, so a fixed vocabulary would still refuse "zolderkamer" here
+          regardless. See this file's own header for why edit never offers the real-room
+          picker ItemAddWizard.jsx's create flow does. */}
+      <div className="chiprow">
+        {SUGGESTED_ROOMS.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
+            onClick={() => setRoom(room === t[r.labelKey] ? "" : t[r.labelKey])}
           >
-            <option value="">{t.itemRoomNone}</option>
-            {roomOptions.map((opt) => (
-              <option key={opt.id} value={opt.id}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-      ) : (
-        <>
-          {/* No real rooms yet, or editing an existing item: free text, with suggestions
-              — the column itself has always accepted anything, so a fixed vocabulary
-              would still refuse "zolderkamer" here regardless. */}
-          <div className="chiprow">
-            {SUGGESTED_ROOMS.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
-                onClick={() => setRoom(room === t[r.labelKey] ? "" : t[r.labelKey])}
-              >
-                {t[r.labelKey]}
-              </button>
-            ))}
-          </div>
-          <div className="search" style={{ marginBottom: 14 }}>
-            <input id="item-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder={t.itemRoomPlaceholder} />
-          </div>
-        </>
-      )}
+            {t[r.labelKey]}
+          </button>
+        ))}
+      </div>
+      <div className="search" style={{ marginBottom: 14 }}>
+        <input id="item-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder={t.itemRoomPlaceholder} />
+      </div>
 
       <label className="field-label" htmlFor="item-brand">{t.itemBrandLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>
@@ -269,14 +239,12 @@ export function ItemFormSheet({ t, ownerId, propertyId, rooms, initialLocationId
       {error && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{error}</div>}
 
       <button className="btn-primary" disabled={busy || !canSaveItem({ name })} onClick={submit}>
-        {editing ? t.itemSaveChanges : t.itemSaveNew}
+        {t.itemSaveChanges}
       </button>
 
-      {editing && (
-        <button className="btn-secondary" style={{ marginTop: 8 }} disabled={busy} onClick={() => setConfirmDelete(true)}>
-          <Trash2 size={13} aria-hidden="true" /> {t.itemDelete}
-        </button>
-      )}
+      <button className="btn-secondary" style={{ marginTop: 8 }} disabled={busy} onClick={() => setConfirmDelete(true)}>
+        <Trash2 size={13} aria-hidden="true" /> {t.itemDelete}
+      </button>
 
       {confirmDelete && (
         <Modal onClose={() => setConfirmDelete(false)} closeLabel={t.closeBtn}>

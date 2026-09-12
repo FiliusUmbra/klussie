@@ -232,7 +232,8 @@ something it depends on.
 |---|---|---|
 | C23 | My Home shows the derived property timeline | `MyHomePanel` *(automated)* |
 | C24 | My Items lists household items | `MyItemsPanel` *(automated)* |
-| C25 | Adding an item persists it with a photo | `ItemFormSheet` |
+| C25 | Adding an item, one question per screen (what it is, its nameplate photo, brand, model, then room/purchase date/notes), persists it with a photo | `ItemAddWizard` *(automated)* |
+| C25b | Editing an existing item's details, or retiring it | `ItemFormSheet` *(automated)* |
 | C26 | Item categories render and filter | *(automated)* |
 | C27 | Adding a room persists it under the property, nested under a chosen parent | `LocationFormSheet` |
 | C28 | Adding a document uploads its file and persists it attached to the property | `DocumentUploadSheet` |
