@@ -41,6 +41,7 @@ const t = {
   homeBuilderTitle: "Rooms",
   homeBuilderLoading: "Loading rooms…",
   homeBuilderNoPropertyYet: "We're still setting up your home. Please check back soon.",
+  retryBtn: "Try again",
   homeBuilderEmptyTitle: "Start building your home",
   homeBuilderEmptyHint: "Add your first room — for example the kitchen or living room — and build from there.",
   homeBuilderAddFirstRoom: "Add your first room",
@@ -104,6 +105,21 @@ describe("MyHomePanel — HomeBuilderSection states", () => {
     render(<MyHomePanel {...BASE_PROPS} homeCtx={baseHomeCtx({ propertyId: null, homeProfile: { rooms: [] } })} />);
     expect(screen.getByText("We're still setting up your home. Please check back soon.")).toBeTruthy();
     expect(screen.queryByText("Start building your home")).toBeNull();
+  });
+
+  // Found by code audit: usePropertyTwin()'s own fetchHomeProfile() failure used to be
+  // swallowed entirely, leaving homeProfile stuck at null forever and this section stuck
+  // on "Loading rooms…" permanently -- indistinguishable from a fetch that is still
+  // genuinely in flight, with no way back short of reloading the whole app.
+  it("offers a real retry, not a permanent loading line, when homeProfile failed to load rather than merely not having resolved yet", () => {
+    const refreshItems = vi.fn();
+    render(<MyHomePanel {...BASE_PROPS} homeCtx={baseHomeCtx({ homeProfile: null, homeProfileError: "network error", refreshItems })} />);
+
+    expect(screen.queryByText("Loading rooms…")).toBeNull();
+    expect(screen.getByText("We're still setting up your home. Please check back soon.")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Try again"));
+    expect(refreshItems).toHaveBeenCalled();
   });
 
   it("shows the first-room empty state, with a labeled primary action, once a real property exists with no rooms yet", () => {

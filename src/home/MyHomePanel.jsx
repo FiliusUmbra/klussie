@@ -51,10 +51,28 @@ import { reviewsGiven, aiSummaries } from "../lib/homeTimeline.js";
 // same existing "My Home" tab, exactly the shape that ADR already sanctions.
 function HomeBuilderSection({ t, homeCtx, ownerId, onAddItem }) {
   const [activeSheet, setActiveSheet] = useState(null); // null | { room: existingRoom | null }
-  const { homeProfile, propertyId, refreshItems } = homeCtx;
+  const { homeProfile, homeProfileError, propertyId, refreshItems } = homeCtx;
   const rooms = homeProfile?.rooms || [];
   const loading = homeProfile === null;
   const hasProperty = !!propertyId;
+
+  // Found by code audit: usePropertyTwin()'s own fetchHomeProfile() failure used to be
+  // swallowed entirely, leaving homeProfile stuck at null forever -- `loading` above
+  // used to be the only thing this section checked, which read that stuck null as
+  // "still loading" and showed that line permanently, with no error and no way back
+  // short of reloading the whole app. Reuses the existing "still setting up your home"
+  // recovery line below rather than a new one -- from a customer's point of view, "not
+  // resolved yet" and "failed to resolve" both mean the same honest thing here: come
+  // back soon (or tap to try now).
+  if (loading && homeProfileError) {
+    return (
+      <section className="home-group home-builder">
+        <h3 className="home-group-title">{t.homeBuilderTitle}</h3>
+        <p className="home-group-empty" role="status">{t.homeBuilderNoPropertyYet}</p>
+        <button type="button" className="home-panel-action" onClick={refreshItems}>{t.retryBtn}</button>
+      </section>
+    );
+  }
 
   if (loading) {
     return (

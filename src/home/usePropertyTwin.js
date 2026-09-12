@@ -30,6 +30,15 @@ export function usePropertyTwin() {
   const workspaceId = activeWorkspace?.workspace_id;
 
   const [homeProfile, setHomeProfile] = useState(null);
+  // Found by code audit: fetchHomeProfile()'s own failure used to be swallowed outright
+  // (`.catch(() => {})`), leaving homeProfile stuck at its initial `null` forever with no
+  // way to tell "still loading" from "never going to resolve." Every caller that gates on
+  // `homeProfile === null` -- MyHomePanel.jsx's own HomeBuilderSection, and (more
+  // severely) MyBusinessPanel.jsx's whole-panel loading gate -- rendered a permanent
+  // spinner or "loading" line on a real fetch failure, with no error and no way back
+  // short of reloading the whole app. Surfaced here the same way itemsError already is,
+  // so a caller can offer the retry refreshItems() already gives it.
+  const [homeProfileError, setHomeProfileError] = useState(null);
   // null means "not loaded yet" and [] means "genuinely nothing recorded" — My Items
   // renders a different thing for each, so they must not collapse into one value.
   const [items, setItems] = useState(null);
@@ -45,8 +54,10 @@ export function usePropertyTwin() {
   useEffect(() => {
     let cancelled = false;
     fetchHomeProfile()
-      .then((p) => { if (!cancelled) setHomeProfile(p); })
-      .catch(() => {});
+      // Clears any stale error from a previous failed pass -- a successful retry must
+      // not keep shadowing itself behind the failure it just recovered from.
+      .then((p) => { if (!cancelled) { setHomeProfile(p); setHomeProfileError(null); } })
+      .catch((err) => { if (!cancelled) setHomeProfileError(err.message || String(err)); });
     return () => { cancelled = true; };
   }, [reloadToken]);
 
@@ -80,6 +91,7 @@ export function usePropertyTwin() {
     ownerId,
     workspaceId,
     homeProfile,
+    homeProfileError,
     propertyId,
     items,
     itemsError,

@@ -29,7 +29,7 @@ import { LoadingScreen } from "../ui/Loading.jsx";
 const DEFAULT_PROPERTY_NAME = "My Business";
 
 export function MyBusinessPanel({ t, fmtDate }) {
-  const { ownerId, workspaceId, homeProfile, propertyId, items, itemsError, maintenance, refreshItems } =
+  const { ownerId, workspaceId, homeProfile, homeProfileError, propertyId, items, itemsError, maintenance, refreshItems } =
     usePropertyTwin();
   const attemptedRef = useRef(false);
   const [creating, setCreating] = useState(false);
@@ -54,6 +54,27 @@ export function MyBusinessPanel({ t, fmtDate }) {
       })
       .finally(() => setCreating(false));
   }, [workspaceId, ownerId, homeProfile, refreshItems, retryToken, t.myBusinessSetupFailed]);
+
+  // Found by code audit: usePropertyTwin()'s own fetchHomeProfile() failure used to be
+  // swallowed entirely, leaving homeProfile stuck at null forever -- the check below used
+  // to be `homeProfile === null || creating` alone, which read that stuck null as "still
+  // loading" and rendered a full-screen spinner permanently, with no error and no way
+  // back short of reloading the whole app. Checked before the loading gate (both are
+  // `homeProfile === null`) and reuses the exact same generic message/retry the
+  // property-creation failure below already has -- from a customer's or pro's own point
+  // of view this is the same thing: "your business workspace couldn't be set up."
+  if (homeProfile === null && homeProfileError && !creating) {
+    return (
+      <div className="pad">
+        <div className="empty-block">
+          <p>{t.myBusinessSetupFailed}</p>
+          <button type="button" className="btn-secondary" onClick={refreshItems}>
+            {t.retryBtn}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (homeProfile === null || creating) {
     return <LoadingScreen />;
