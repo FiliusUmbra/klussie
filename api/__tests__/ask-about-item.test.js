@@ -84,6 +84,22 @@ describe("ask-about-item handler", () => {
     expect(reasonMock).not.toHaveBeenCalled();
   });
 
+  // Found by code audit (the same shared pattern already fixed in
+  // api/source-providers.js, migration 0217's own commit, flagged there as latent here
+  // too): checkAndLogUsage() can throw a raw Postgres error (e.g. a constraint
+  // violation) that isn't AuthError/RateLimitError -- that must never reach the client
+  // verbatim.
+  it("returns a generic message, never the raw error, when checkAndLogUsage fails for a reason that isn't AuthError/RateLimitError", async () => {
+    checkAndLogUsageMock.mockRejectedValue(new Error('new row for relation "ai_usage_log" violates check constraint "ai_usage_log_endpoint_check"'));
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).not.toMatch(/ai_usage_log/);
+    expect(reasonMock).not.toHaveBeenCalled();
+  });
+
   it("rejects a missing itemId", async () => {
     const { req, res } = fakeReqRes({ body: { question: "When does it expire?" } });
     await handler(req, res);
