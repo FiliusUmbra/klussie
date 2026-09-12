@@ -27,6 +27,12 @@ function createQueryBuilder(result) {
 const DOCUMENT_ROW = {
   id: "doc-1", owning_workspace_id: "ws-1", type_key: "portfolio_photo",
   storage_bucket: "portfolio", storage_path: "pro-1/x.jpg", caption: "Nice tiling job",
+  // The real, mutable public.portfolio_items row this document mirrors (0061's dual-write)
+  // — always present for a real portfolio_photo row (0218 restored it to my_documents()'s
+  // own return shape). Distinct from `id` on purpose: doc-1 is property.documents' own,
+  // read-only mirror identity, which updatePortfolioCaption()/deletePortfolioItem() cannot
+  // act on at all — see the dedicated test below for the bug this shape reproduces.
+  portfolio_item_id: "item-1",
   created_at: "2026-08-06T00:00:00Z",
 };
 
@@ -60,9 +66,41 @@ describe("fetchPortfolioItems", () => {
     expect(rpcMock).toHaveBeenCalledWith("my_documents", { p_workspace_id: "ws-1" });
     expect(supabase.from).not.toHaveBeenCalled();
     expect(result).toEqual([{
-      id: "doc-1", image_url: "https://public.example/x.jpg", storage_path: "pro-1/x.jpg",
+      id: "item-1", image_url: "https://public.example/x.jpg", storage_path: "pro-1/x.jpg",
       caption: "Nice tiling job", created_at: "2026-08-06T00:00:00Z",
     }]);
+  });
+
+  // Found live during a UX review, 2026-09-12: this used to return the document row's own
+  // `id` (property.documents' own, read-only mirror identity) as the portfolio item's id.
+  // updatePortfolioCaption()/deletePortfolioItem() (called by PortfolioItemSheet.jsx) both
+  // operate on public.portfolio_items by id — called with a mirror's id, both silently
+  // matched zero rows, no error, the sheet closing as if the edit or delete had worked.
+  it("uses portfolio_item_id, not the document's own id, as the item's identity — the id updatePortfolioCaption()/deletePortfolioItem() can actually act on", async () => {
+    rpcMock.mockImplementation((fn) =>
+      fn === "resolve_public_professional_workspace"
+        ? Promise.resolve({ data: "ws-1", error: null })
+        : Promise.resolve({ data: [DOCUMENT_ROW], error: null })
+    );
+
+    const [result] = await fetchPortfolioItems("pro-1");
+
+    expect(result.id).toBe("item-1");
+    expect(result.id).not.toBe(DOCUMENT_ROW.id);
+  });
+
+  it("falls back to the document's own id only when portfolio_item_id is genuinely absent", async () => {
+    const rowWithoutMirrorId = { ...DOCUMENT_ROW };
+    delete rowWithoutMirrorId.portfolio_item_id;
+    rpcMock.mockImplementation((fn) =>
+      fn === "resolve_public_professional_workspace"
+        ? Promise.resolve({ data: "ws-1", error: null })
+        : Promise.resolve({ data: [rowWithoutMirrorId], error: null })
+    );
+
+    const [result] = await fetchPortfolioItems("pro-1");
+
+    expect(result.id).toBe("doc-1");
   });
 
   it("rebuilds a public URL from storage_bucket/storage_path rather than expecting one from the document row", async () => {
@@ -105,8 +143,8 @@ describe("fetchPortfolioItems", () => {
   });
 
   it("orders documents newest first, matching the legacy query's own order", async () => {
-    const older = { ...DOCUMENT_ROW, id: "doc-old", created_at: "2026-08-01T00:00:00Z" };
-    const newer = { ...DOCUMENT_ROW, id: "doc-new", created_at: "2026-08-10T00:00:00Z" };
+    const older = { ...DOCUMENT_ROW, id: "doc-old", portfolio_item_id: "item-old", created_at: "2026-08-01T00:00:00Z" };
+    const newer = { ...DOCUMENT_ROW, id: "doc-new", portfolio_item_id: "item-new", created_at: "2026-08-10T00:00:00Z" };
     rpcMock.mockImplementation((fn) =>
       fn === "resolve_public_professional_workspace"
         ? Promise.resolve({ data: "ws-1", error: null })
@@ -115,7 +153,7 @@ describe("fetchPortfolioItems", () => {
 
     const result = await fetchPortfolioItems("pro-1");
 
-    expect(result.map((r) => r.id)).toEqual(["doc-new", "doc-old"]);
+    expect(result.map((r) => r.id)).toEqual(["item-new", "item-old"]);
   });
 
   it("still throws when the legacy fallback itself errors — a real failure is never swallowed", async () => {
