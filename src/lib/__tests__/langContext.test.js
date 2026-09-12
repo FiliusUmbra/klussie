@@ -1,7 +1,7 @@
 // The lang context is read by every screen, so its failure modes are everyone's failure
 // modes. The cases that matter are the degraded ones: no catalog yet, and a translation
 // that doesn't exist.
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { buildLangContext } from "../langContext.js";
 import { LANGS } from "../lang.js";
 
@@ -31,6 +31,34 @@ describe("buildLangContext", () => {
     expect(fmt(1234.5)).toBe((1234.5).toLocaleString("nl-BE"));
     const ts = Date.UTC(2026, 7, 11);
     expect(fmtDate(ts)).toBe(new Date(ts).toLocaleDateString("nl-BE"));
+  });
+
+  // Found live during a UX review, 2026-09-12: a maintenance due date typed as 1 December
+  // displayed as 30 November. Root cause -- new Date("2026-12-01") parses a bare date-only
+  // string as UTC midnight, and toLocaleDateString() renders it in the *viewer's* local
+  // zone; anyone west of UTC sees the previous calendar day. Forcing TZ here is what makes
+  // this reproduce (and stay caught) regardless of which timezone CI itself runs in.
+  describe("fmtDate — a bare date-only value must not shift with the viewer's timezone", () => {
+    // globalThis.process, not bare `process`: this file is linted with browser globals
+    // (eslint.config.js scopes Node globals to api/** only), but the test still runs
+    // under Node/vitest regardless, where process really is there at runtime.
+    const originalTz = globalThis.process.env.TZ;
+    beforeEach(() => { globalThis.process.env.TZ = "America/Los_Angeles"; });
+    afterEach(() => { globalThis.process.env.TZ = originalTz; });
+
+    it("keeps a due date, purchase date, or warranty date on the same calendar day everywhere", () => {
+      const { fmtDate } = buildLangContext("nl", catalog);
+      // The reference itself is built the same local-components way the fix uses, so this
+      // genuinely fails against the old `new Date(ts).toLocaleDateString()` behaviour under
+      // the forced timezone above -- not just self-consistent with the fix's own formula.
+      expect(fmtDate("2026-12-01")).toBe(new Date(2026, 11, 1).toLocaleDateString("nl-BE"));
+    });
+
+    it("still shows a real timestamp (created_at, performed_at) shifted to the viewer's local day — unchanged, not a bug", () => {
+      const { fmtDate } = buildLangContext("nl", catalog);
+      const ts = "2026-08-12T02:00:00.000Z";
+      expect(fmtDate(ts)).toBe(new Date(ts).toLocaleDateString("nl-BE"));
+    });
   });
 
   it("passes an optional second argument straight through to toLocaleString — what PriceTag needs for money to always show two decimals", () => {
