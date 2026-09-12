@@ -40,13 +40,19 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher.jsx";
 import { LanguageSwitcher } from "./LanguageSwitcher.jsx";
 import { deriveEffectiveRole } from "../lib/workspaceContext.js";
 import { isOperatorWorkspace } from "../lib/operatorContext.js";
+import { getPreferredLangCode, setPreferredLangCode } from "../lib/langPreference.js";
 
 // How long a toast stays up. Long enough to read a short confirmation, short enough that
 // it never sits over the thing the customer tapped next.
 const TOAST_DURATION_MS = 2600;
 
 export function AppShell() {
-  const [langCode, setLangCode] = useState("nl");
+  // Found live during a UX review, 2026-09-12: this had nowhere to live but memory --
+  // every reload reverted to Dutch, for every one of the 10 shipped locales, no matter
+  // what a customer had explicitly picked. getPreferredLangCode() (langPreference.js)
+  // reads whatever this browser last set; "nl" only when nothing was ever chosen yet, or
+  // localStorage itself is unavailable (private browsing).
+  const [langCode, setLangCode] = useState(() => getPreferredLangCode() || "nl");
   const [role, setRole] = useState("customer");
   const [toast, setToast] = useState(null);
   const [catalog, setCatalog] = useState(null);
@@ -116,6 +122,16 @@ export function AppShell() {
   // docs/design/ACCESSIBILITY.md.
   useEffect(() => {
     document.documentElement.lang = langCode;
+  }, [langCode]);
+
+  // Remembers an explicit choice for next time (langPreference.js) -- a separate effect
+  // from the one above on purpose: one keeps the DOM in sync for accessibility, this one
+  // keeps localStorage in sync for persistence, and neither should have to care about the
+  // other's reason for existing. Fires on the initial "nl" default too, which is a
+  // harmless no-op write (setting the key to the value it already is, or to "nl" for a
+  // browser that had never chosen anything) rather than something worth special-casing.
+  useEffect(() => {
+    setPreferredLangCode(langCode);
   }, [langCode]);
 
   const showToast = (msg) => {
