@@ -46,7 +46,20 @@ export function EditProfileSheet({ onClose, onSaved }) {
     }
   };
 
+  // Found by code audit: pro_profiles' own business_requires_details check constraint
+  // (0001) requires business_name and vat_number to be set once pro_type is "business" --
+  // Profile.jsx's own setProType() already anticipates hitting this constraint and shows
+  // t.proTypeBusinessRequiresDetails for it, but this form's own submit() had no
+  // equivalent: an already-business pro clearing either field got the same generic
+  // t.editProfileSaveFailed every other failure gets, and nothing stopped the submission
+  // before that round trip. Live-verified: clearing "Bedrijfsnaam" on a real business
+  // pro and saving hit exactly this constraint, silently discarding nothing (the update
+  // never persisted) but explaining nothing either.
+  const businessDetailsMissing = proProfile?.pro_type === "business" && (!businessName.trim() || !vatNumber.trim());
+  const canSubmit = !businessDetailsMissing && !busy;
+
   const submit = async () => {
+    if (!canSubmit) return;
     setError("");
     setBusy(true);
     try {
@@ -61,9 +74,11 @@ export function EditProfileSheet({ onClose, onSaved }) {
       }
       if (onSaved) await onSaved();
       onClose();
-    } catch {
-      // Same anti-pattern, same fix as handleAvatarChange above.
-      setError(t.editProfileSaveFailed);
+    } catch (err) {
+      // Same anti-pattern, same fix as handleAvatarChange above -- specific rather than
+      // generic when it's this one known, actionable cause, matching Profile.jsx's own
+      // setProType() for the identical constraint.
+      setError(err.message?.includes("business_requires_details") ? t.proTypeBusinessRequiresDetails : t.editProfileSaveFailed);
     } finally {
       setBusy(false);
     }
@@ -118,7 +133,7 @@ export function EditProfileSheet({ onClose, onSaved }) {
       )}
 
       {error && <div className="fineprint" style={{ color: "#b3432f" }}>{error}</div>}
-      <button className="btn-primary" disabled={busy} onClick={submit}>{t.saveChangesBtn}</button>
+      <button className="btn-primary" disabled={!canSubmit} onClick={submit}>{t.saveChangesBtn}</button>
     </Drawer>
   );
 }

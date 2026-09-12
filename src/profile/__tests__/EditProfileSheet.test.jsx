@@ -101,6 +101,58 @@ describe("EditProfileSheet — business details, reachable regardless of current
     expect(inputAfterLabel("businessNameLabel").value).toBe("Pierre BV");
     expect(inputAfterLabel("vatNumberLabel").value).toBe("BE0123456789");
   });
+
+  // Found by code audit, then live-verified: clearing "Bedrijfsnaam" on a real business
+  // pro and saving hits pro_profiles' own business_requires_details check constraint
+  // (0001) -- the update never persists, but nothing stopped the submission beforehand,
+  // and (before this fix) the failure showed only the generic editProfileSaveFailed
+  // message even though Profile.jsx's own setProType() already has a specific one for
+  // this exact constraint.
+  it("disables save for an already-business pro once business name or VAT number is cleared", () => {
+    updateProProfile.mockReset();
+    renderSheet({
+      proProfile: { pro_type: "business", bio: "", business_name: "Pierre BV", vat_number: "BE0123456789" },
+    });
+
+    fireEvent.change(inputAfterLabel("businessNameLabel"), { target: { value: "" } });
+    expect(screen.getByText("saveChangesBtn").disabled).toBe(true);
+
+    fireEvent.click(screen.getByText("saveChangesBtn"));
+    expect(updateProProfile).not.toHaveBeenCalled();
+  });
+
+  it("still disables save when business name is cleared to whitespace only, not just empty", () => {
+    renderSheet({
+      proProfile: { pro_type: "business", bio: "", business_name: "Pierre BV", vat_number: "BE0123456789" },
+    });
+
+    fireEvent.change(inputAfterLabel("businessNameLabel"), { target: { value: "   " } });
+
+    expect(screen.getByText("saveChangesBtn").disabled).toBe(true);
+  });
+
+  it("never requires business name or VAT number for a flexi pro, even blank", () => {
+    renderSheet({ proProfile: { pro_type: "flexi", bio: "" } });
+    expect(screen.getByText("saveChangesBtn").disabled).toBe(false);
+  });
+
+  // Defense in depth: if this constraint is ever hit anyway (a race, or a future path
+  // that bypasses the client-side guard above), the error shown matches Profile.jsx's
+  // own setProType() for the identical constraint, not the generic fallback.
+  it("shows the specific business-details-required message, not the generic one, if the constraint is hit anyway", async () => {
+    updateProProfile.mockReset();
+    renderSheet({
+      proProfile: { pro_type: "business", bio: "", business_name: "Pierre BV", vat_number: "BE0123456789" },
+    });
+    updateProProfile.mockRejectedValueOnce(
+      new Error('new row for relation "pro_profiles" violates check constraint "business_requires_details"')
+    );
+
+    fireEvent.click(screen.getByText("saveChangesBtn"));
+
+    await waitFor(() => expect(screen.getByText("proTypeBusinessRequiresDetails")).toBeTruthy());
+    expect(screen.queryByText("editProfileSaveFailed")).toBeNull();
+  });
 });
 
 // Found by code audit: both catch blocks did `setError(err.message)`, showing a raw
