@@ -31,7 +31,7 @@ const t = { retryBtn: "Try again", myBusinessSetupFailed: "Couldn't set up your 
 const fmtDate = (iso) => iso;
 
 const twinState = (overrides) => ({
-  ownerId: "owner-1", workspaceId: "ws-1", homeProfile: null, propertyId: null,
+  ownerId: "owner-1", workspaceId: "ws-1", homeProfile: null, homeProfileError: null, propertyId: null,
   items: null, itemsError: null, maintenance: null, refreshItems: vi.fn(),
   ...overrides,
 });
@@ -49,6 +49,25 @@ describe("MyBusinessPanel — loading and property-exists cases", () => {
     expect(container.querySelector(".empty-block")).toBeTruthy();
     expect(screen.queryByTestId("my-items-panel")).toBeNull();
     expect(createPropertyForCaller).not.toHaveBeenCalled();
+  });
+
+  // Found by code audit: usePropertyTwin()'s own fetchHomeProfile() failure used to be
+  // swallowed entirely, leaving homeProfile stuck at null forever -- indistinguishable
+  // from "still resolving," which meant this whole tab showed a full-screen spinner
+  // permanently on a real fetch failure, with no error and no way back short of
+  // reloading the whole app.
+  it("offers a real retry, not a permanent loading screen, when the initial fetch itself fails", () => {
+    const refreshItems = vi.fn();
+    usePropertyTwinMock.mockReturnValue(twinState({ homeProfile: null, homeProfileError: "network error", refreshItems }));
+
+    render(<MyBusinessPanel t={t} fmtDate={fmtDate} />);
+
+    expect(screen.getByText(t.myBusinessSetupFailed)).toBeTruthy();
+    expect(screen.queryByTestId("my-items-panel")).toBeNull();
+    expect(createPropertyForCaller).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText("Try again"));
+    expect(refreshItems).toHaveBeenCalled();
   });
 
   it("renders MyItemsPanel, pointed at the real property/workspace, once a property already exists", () => {

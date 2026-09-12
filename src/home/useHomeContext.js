@@ -60,7 +60,7 @@ export function useHomeContext({ t, profile, requests }) {
   // items/maintenance) is now usePropertyTwin.js's own concern, shared with ProApp.jsx's
   // "My Business" tab. See that hook's own header for why trust stayed behind here
   // instead of moving with it.
-  const { workspaceId, homeProfile, propertyId, items, itemsError, maintenance, refreshItems } =
+  const { workspaceId, homeProfile, homeProfileError, propertyId, items, itemsError, maintenance, refreshItems } =
     usePropertyTwin();
 
   useEffect(() => {
@@ -95,6 +95,7 @@ export function useHomeContext({ t, profile, requests }) {
     greeting: greetingLine(t, profile?.full_name),
     trustItems: trustItemsFrom(t, trust),
     homeProfile,
+    homeProfileError,
     knownFacts,
     today,
     activeRequests: active,
