@@ -15,7 +15,7 @@
 // for why forcing it through here would change Operator's actual visual output. Operator
 // reuses WorkspaceSwitcher and SignOutButton directly instead (OperatorApp.jsx).
 import { useState, useEffect, useRef } from "react";
-import { Camera, HelpCircle, Briefcase, ThumbsUp } from "lucide-react";
+import { Camera, HelpCircle, Briefcase, ThumbsUp, Users } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Badge, Button, QuoteCard, Rating, TrustBadge, Modal } from "../design-system";
@@ -27,10 +27,12 @@ import { SignOutButton } from "./SignOutButton.jsx";
 import { EditProfileSheet } from "./EditProfileSheet.jsx";
 import { PortfolioItemSheet } from "./PortfolioItemSheet.jsx";
 import { AddTestimonialSheet } from "./AddTestimonialSheet.jsx";
+import { JoinBusinessSheet } from "./JoinBusinessSheet.jsx";
 import { completedCount, reviewedRequests } from "../lib/requestStatus.js";
 import { updateProServices, updateProProfile, boostProfile, trustScore } from "../lib/pros";
 import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../lib/portfolio";
 import { fetchTestimonials, deleteTestimonial } from "../lib/testimonials";
+import { fetchJoinRequests, decideJoinRequest } from "../lib/workspaceJoin.js";
 import { FLEXI_TAX_FREE_THRESHOLD, BOOST_WEEKLY_PRICE, flexiProgressPct } from "../lib/billing.js";
 import { isBoosted, isCategoryLocked, PRO_TYPE_FLEXI } from "../lib/proStatus.js";
 import { interpolate } from "../lib/homeStrings.js";
@@ -75,6 +77,14 @@ export function Profile({
   const [boostError, setBoostError] = useState("");
   const [pausing, setPausing] = useState(false);
   const [pauseError, setPauseError] = useState("");
+  // null while unresolved, [] once resolved with nothing pending — see the fetch effect
+  // below for why a permission refusal (not the workspace's own owner/admin) also
+  // resolves to [], the same "silently show nothing" shape membership.join.approve's own
+  // deny-by-default already gives every other real caller.
+  const [joinRequests, setJoinRequests] = useState(null);
+  const [decidingRequestId, setDecidingRequestId] = useState(null);
+  const [joinRequestsError, setJoinRequestsError] = useState("");
+  const [joinBusinessOpen, setJoinBusinessOpen] = useState(false);
   const portfolioFileRef = useRef(null);
 
   const refreshPortfolio = () => fetchPortfolioItems(user.id).then(setPortfolioItems);
@@ -98,6 +108,44 @@ export function Profile({
     refreshTestimonials().catch(() => setTestimonials([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variant, user.id]);
+
+  const refreshJoinRequests = () => fetchJoinRequests(activeWorkspace?.workspace_id).then(setJoinRequests);
+
+  // Pro Workspace remarks, 2026-09-12 (Theme C) — api.list_join_requests() itself refuses
+  // (throws) a caller without membership.join.approve on this workspace (ADR-0027,
+  // case-fixed 0219); every real professional workspace today has exactly one member, its
+  // owner, so that refusal is not yet reachable live, but the moment a second, non-owner
+  // membership exists (this same slice's own approval path creates one), this must fail
+  // closed, not open — resolving to [] on ANY failure, permission refusal included, is
+  // deliberately indistinguishable from "nothing pending": an employee with no approval
+  // rights sees no section at all, never an error banner for a capability they don't have.
+  useEffect(() => {
+    if (variant !== "pro" || !activeWorkspace?.workspace_id) return;
+    refreshJoinRequests().catch(() => setJoinRequests([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant, activeWorkspace?.workspace_id]);
+
+  // Approve/decline each carry their own busy state (decidingRequestId), not a single
+  // shared `saving` flag — two real pending requests must be independently actionable,
+  // never both disabled because one is mid-flight.
+  const decideRequest = async (requestId, decision) => {
+    setDecidingRequestId(requestId);
+    setJoinRequestsError("");
+    try {
+      await decideJoinRequest(requestId, decision, user.id);
+    } catch {
+      setJoinRequestsError(t.joinRequestDecideFailed);
+      setDecidingRequestId(null);
+      return;
+    }
+    try {
+      await refreshJoinRequests();
+    } catch {
+      // Best-effort; the decision itself already succeeded regardless.
+    } finally {
+      setDecidingRequestId(null);
+    }
+  };
 
   // Only ever invoked from the variant === "pro" JSX below — safe to define unconditionally
   // (never called, so never evaluated) rather than branching on variant here too, same
@@ -355,6 +403,32 @@ export function Profile({
             </div>
           )}
 
+          {/* Pro Workspace remarks, 2026-09-12 (Theme C) — absent entirely rather than an
+              empty "no requests" line, matching this file's own restraint elsewhere
+              (portfolio/testimonials show their own explicit empty state because a
+              customer chose to look at that section; a join-request queue nobody has
+              asked to see yet is not worth a permanent row for zero rows). */}
+          {joinRequests && joinRequests.length > 0 && (
+            <>
+              <div className="section-title">{t.joinRequestsTitle}</div>
+              {joinRequestsError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 10 }}>{joinRequestsError}</div>}
+              {joinRequests.map((req) => (
+                <QuoteCard key={req.request_id}>
+                  <div className="quote-name">{req.full_name || t.counterpartFallbackName}</div>
+                  {req.message && <p className="quote-msg">"{req.message}"</p>}
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <Button variant="secondary" disabled={decidingRequestId === req.request_id} onClick={() => decideRequest(req.request_id, "declined")}>
+                      {t.joinRequestDeclineBtn}
+                    </Button>
+                    <Button variant="primary" disabled={decidingRequestId === req.request_id} onClick={() => decideRequest(req.request_id, "approved")}>
+                      {t.joinRequestApproveBtn}
+                    </Button>
+                  </div>
+                </QuoteCard>
+              ))}
+            </>
+          )}
+
           <div className="section-title">{t.proServicesTitle}</div>
           {CATS.map((c) => {
             const services = BASE_SERVICES.filter((s) => s.cat === c.id);
@@ -443,6 +517,12 @@ export function Profile({
         </>
       )}
       <button className="btn-secondary" style={{ marginTop: variant === "pro" ? 10 : 14 }} onClick={() => setEditOpen(true)}>{t.editProfileBtn}</button>
+      {/* Pro Workspace remarks, 2026-09-12 (Theme C) — available to either variant: a
+          customer taking on staff work for someone else's business, or a pro joining a
+          second one, are both real, not gated behind already being a pro oneself. */}
+      <button className="btn-secondary" style={{ marginTop: 8 }} onClick={() => setJoinBusinessOpen(true)}>
+        <Users size={13} aria-hidden="true" /> {t.joinBusinessBtn}
+      </button>
       <SignOutButton onClick={signOut} label={t.authSignOut} style={{ marginTop: 8 }} />
 
       {editOpen && (
@@ -453,6 +533,9 @@ export function Profile({
       )}
       {variant === "pro" && addTestimonialOpen && (
         <AddTestimonialSheet proId={user.id} onClose={() => setAddTestimonialOpen(false)} onAdded={refreshTestimonials} />
+      )}
+      {joinBusinessOpen && (
+        <JoinBusinessSheet t={t} actorRef={user.id} onClose={() => setJoinBusinessOpen(false)} />
       )}
     </div>
   );

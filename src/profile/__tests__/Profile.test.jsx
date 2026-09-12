@@ -2,7 +2,7 @@
 // ProProfile.jsx (this file replaces their own test files, one variant each, same
 // scenarios and same assertions those files already established: the mobile-reachability
 // fix for WorkspaceSwitcher/LanguageSwitcher, and the "become a pro" invitation).
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const setActiveWorkspaceId = vi.fn();
@@ -20,12 +20,19 @@ vi.mock("../../lib/portfolio", () => ({
 vi.mock("../../lib/testimonials", () => ({
   fetchTestimonials: vi.fn(() => Promise.resolve([])), deleteTestimonial: vi.fn(),
 }));
+vi.mock("../../lib/workspaceJoin.js", () => ({
+  fetchJoinRequests: vi.fn(() => Promise.resolve([])),
+  decideJoinRequest: vi.fn(() => Promise.resolve()),
+  searchProfessionalWorkspaces: vi.fn(() => Promise.resolve([])),
+  requestToJoinWorkspace: vi.fn(() => Promise.resolve()),
+}));
 
 import { LangContext } from "../../lib/lang";
 import { Profile } from "../Profile.jsx";
 import { updateProProfile, updateProServices, boostProfile } from "../../lib/pros";
 import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../../lib/portfolio";
 import { deleteTestimonial, fetchTestimonials } from "../../lib/testimonials";
+import { fetchJoinRequests, decideJoinRequest, requestToJoinWorkspace } from "../../lib/workspaceJoin.js";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = {
@@ -499,5 +506,119 @@ describe("Profile — pro variant, pause/resume", () => {
     await waitFor(() => expect(updateProProfile).toHaveBeenCalledWith("person-1", { paused: true }));
     await waitFor(() => expect(screen.getByText("pauseProfileBtn").closest("button").disabled).toBe(false));
     expect(screen.queryByText("togglePausedFailed")).toBeNull();
+  });
+});
+
+// Pro Workspace remarks, 2026-09-12 (Theme C) — the write side of ADR-0027's own
+// membership.join.approve (migration 0220), reachable from Profile.jsx for the first
+// time. "Join an existing business" is offered regardless of variant (JoinBusinessSheet
+// itself has its own test file); this file only covers the pro-variant approval queue.
+describe("Profile — pro variant, join requests (Theme C)", () => {
+  const REQUEST = { request_id: "req-1", person_ref: "person-2", full_name: "Otto External", avatar_url: null, message: "I used to work with you.", requested_at: "2026-09-12T10:00:00Z" };
+
+  beforeEach(() => {
+    vi.mocked(fetchJoinRequests).mockReset();
+    vi.mocked(decideJoinRequest).mockReset().mockResolvedValue(undefined);
+  });
+
+  it("shows nothing at all while there are no pending requests -- no empty-state row", async () => {
+    vi.mocked(fetchJoinRequests).mockResolvedValue([]);
+    renderPro(PRO_WORKSPACES);
+
+    await waitFor(() => expect(fetchJoinRequests).toHaveBeenCalledWith("ws-pro"));
+    expect(screen.queryByText("joinRequestsTitle")).toBeNull();
+  });
+
+  it("lists a real pending request with its requester's own name and message", async () => {
+    vi.mocked(fetchJoinRequests).mockResolvedValue([REQUEST]);
+    renderPro(PRO_WORKSPACES);
+
+    await waitFor(() => expect(screen.getByText("joinRequestsTitle")).toBeTruthy());
+    expect(screen.getByText("Otto External")).toBeTruthy();
+    expect(screen.getByText('"I used to work with you."')).toBeTruthy();
+  });
+
+  it("approving calls decideJoinRequest with 'approved' and refreshes the list off the screen", async () => {
+    vi.mocked(fetchJoinRequests).mockImplementation(() =>
+      Promise.resolve(decideJoinRequest.mock.calls.length > 0 ? [] : [REQUEST])
+    );
+    renderPro(PRO_WORKSPACES);
+    await waitFor(() => expect(screen.getByText("joinRequestApproveBtn")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("joinRequestApproveBtn"));
+
+    await waitFor(() => expect(decideJoinRequest).toHaveBeenCalledWith("req-1", "approved", "person-1"));
+    await waitFor(() => expect(screen.queryByText("joinRequestsTitle")).toBeNull());
+  });
+
+  it("declining calls decideJoinRequest with 'declined'", async () => {
+    vi.mocked(fetchJoinRequests).mockResolvedValue([REQUEST]);
+    renderPro(PRO_WORKSPACES);
+    await waitFor(() => expect(screen.getByText("joinRequestDeclineBtn")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("joinRequestDeclineBtn"));
+
+    await waitFor(() => expect(decideJoinRequest).toHaveBeenCalledWith("req-1", "declined", "person-1"));
+  });
+
+  // Found by code audit (the same shape fixed repeatedly elsewhere in this file): a
+  // decision failure must show a real error and leave the request re-actionable, never a
+  // permanently disabled button.
+  it("shows a generic localized error and re-enables both buttons when a decision fails", async () => {
+    vi.mocked(fetchJoinRequests).mockResolvedValue([REQUEST]);
+    vi.mocked(decideJoinRequest).mockReset().mockRejectedValue(new Error("network error"));
+    renderPro(PRO_WORKSPACES);
+    await waitFor(() => expect(screen.getByText("joinRequestApproveBtn")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("joinRequestApproveBtn"));
+
+    await waitFor(() => expect(screen.getByText("joinRequestDecideFailed")).toBeTruthy());
+    expect(screen.getByText("joinRequestApproveBtn").closest("button").disabled).toBe(false);
+  });
+
+  it("a failed fetch (including a real permission refusal) shows nothing, never an error banner", async () => {
+    vi.mocked(fetchJoinRequests).mockRejectedValue(new Error("workspace.list_join_requests_for_caller: caller may not view join requests"));
+    renderPro(PRO_WORKSPACES);
+
+    await waitFor(() => expect(fetchJoinRequests).toHaveBeenCalled());
+    expect(screen.queryByText("joinRequestsTitle")).toBeNull();
+    expect(screen.queryByText(/may not view join requests/)).toBeNull();
+  });
+
+  it("two independently pending requests can be decided independently -- one busy never disables the other", async () => {
+    const requestB = { ...REQUEST, request_id: "req-2", full_name: "Sparse", message: null };
+    vi.mocked(fetchJoinRequests).mockResolvedValue([REQUEST, requestB]);
+    let resolveDecision;
+    vi.mocked(decideJoinRequest).mockReset().mockReturnValue(new Promise((resolve) => { resolveDecision = resolve; }));
+    renderPro(PRO_WORKSPACES);
+    await waitFor(() => expect(screen.getAllByText("joinRequestApproveBtn").length).toBe(2));
+
+    fireEvent.click(screen.getAllByText("joinRequestApproveBtn")[0]);
+
+    await waitFor(() => expect(screen.getAllByText("joinRequestApproveBtn")[0].closest("button").disabled).toBe(true));
+    expect(screen.getAllByText("joinRequestApproveBtn")[1].closest("button").disabled).toBe(false);
+    resolveDecision();
+  });
+});
+
+describe("Profile — join an existing business, both variants (Theme C)", () => {
+  it("offers the entry point for a customer, not only a pro", () => {
+    renderProfile("customer", [], { requests: [] });
+    expect(screen.getByText("joinBusinessBtn")).toBeTruthy();
+  });
+
+  it("opens JoinBusinessSheet on tap", () => {
+    renderProfile("customer", [], { requests: [] });
+    fireEvent.click(screen.getByText("joinBusinessBtn"));
+    expect(screen.getByText("joinBusinessTitle")).toBeTruthy();
+  });
+
+  it("closes without ever touching the network when dismissed unused", () => {
+    renderProfile("customer", [], { requests: [] });
+    fireEvent.click(screen.getByText("joinBusinessBtn"));
+    fireEvent.click(screen.getByLabelText("closeBtn"));
+
+    expect(screen.queryByText("joinBusinessTitle")).toBeNull();
+    expect(requestToJoinWorkspace).not.toHaveBeenCalled();
   });
 });

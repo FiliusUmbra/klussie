@@ -314,6 +314,7 @@ built from.
 | F2 | Editing name and city persists | `EditProfileSheet` |
 | F3 | Avatar upload replaces the image | `EditProfileSheet` |
 | F4 | Contact details stay private until a booking exists | `ProPublicProfileSheet` |
+| F5 | Requesting to join an existing business, and a real owner approving or declining that request (Pro Workspace remarks, 2026-09-12, Theme C; migration 0220) | `JoinBusinessSheet` *(automated)*, `Profile` *(automated)* |
 
 ### 5.8 · Cross-cutting
 
