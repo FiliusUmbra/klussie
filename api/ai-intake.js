@@ -122,13 +122,22 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Same shared-pattern leak as api/source-providers.js's own checkAndLogUsage() call
+  // (fixed there first, migration 0217's own commit): AuthError/RateLimitError carry
+  // deliberately user-safe messages by construction, but checkAndLogUsage() can also
+  // throw a raw Postgres error (e.g. a constraint violation) straight out of its own
+  // INSERT/SELECT -- that must never reach the client verbatim.
   let auth;
   try {
     auth = await verifyAuth(req);
     await checkAndLogUsage(auth.supabase, auth.user.id, ENDPOINT);
   } catch (err) {
-    const status = err instanceof AuthError || err instanceof RateLimitError ? err.status : 500;
-    res.status(status).json({ error: err.message });
+    if (err instanceof AuthError || err instanceof RateLimitError) {
+      res.status(err.status).json({ error: err.message });
+      return;
+    }
+    console.error("ai-intake auth/rate-limit error:", err);
+    res.status(500).json({ error: "Could not verify your session. Please try again." });
     return;
   }
 
