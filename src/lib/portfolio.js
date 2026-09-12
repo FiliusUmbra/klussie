@@ -37,9 +37,24 @@ async function resolveProWorkspace(proId) {
   return data;
 }
 
+// Found live during a UX review, 2026-09-12: this returned row.id -- property.documents'
+// own id, a read-only mirror row's identity (0061's dual-write) -- as the portfolio item's
+// identity. updatePortfolioCaption()/deletePortfolioItem() below both operate on
+// public.portfolio_items by id; called with a mirror's id, both silently matched zero rows
+// (no error, the sheet closed as if it had worked) while the real row sat untouched.
+// row.portfolio_item_id (0218) is that real row's own id, set by the mirror trigger at
+// insert time -- always present for a portfolio_photo document reached this way. Falls
+// back to row.id only for a document this function was never meant to reshape as a
+// portfolio item in the first place, not an expected path here.
 function reshapeDocument(row) {
   const { data } = supabase.storage.from(row.storage_bucket).getPublicUrl(row.storage_path);
-  return { id: row.id, image_url: data.publicUrl, storage_path: row.storage_path, caption: row.caption, created_at: row.created_at };
+  return {
+    id: row.portfolio_item_id || row.id,
+    image_url: data.publicUrl,
+    storage_path: row.storage_path,
+    caption: row.caption,
+    created_at: row.created_at,
+  };
 }
 
 export async function fetchPortfolioItems(proId) {
