@@ -39,11 +39,21 @@ describe("messagesNeedingTranslation", () => {
     expect(messagesNeedingTranslation([other], opts()).map((m) => m.id)).toEqual(["a"]);
   });
 
-  it("skips a message whose translation is already in flight", () => {
+  it("skips a message whose translation is already in flight for this same language", () => {
     // The effect re-runs on every messages change; without this the same message is
     // dispatched again before the first call resolves.
-    const inFlight = new Set(["a"]);
+    const inFlight = new Set(["a:nl"]);
     expect(messagesNeedingTranslation([msg({ id: "a" })], opts({ inFlight }))).toEqual([]);
+  });
+
+  // Found by code audit, 2026-09-13: inFlight used to be keyed by message id alone, so a
+  // still-outstanding request for one language blocked (and, if it later failed, silently
+  // lost) a different language's request for the very same message — the real case a
+  // viewer switching languages mid-conversation hits.
+  it("does not skip a message whose in-flight request is for a different language", () => {
+    const inFlight = new Set(["a:fr"]);
+    const list = messagesNeedingTranslation([msg({ id: "a" })], opts({ langCode: "nl", inFlight }));
+    expect(list.map((m) => m.id)).toEqual(["a"]);
   });
 
   it("handles a conversation whose messages have not loaded yet", () => {
