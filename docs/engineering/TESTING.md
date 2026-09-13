@@ -315,6 +315,7 @@ built from.
 | F3 | Avatar upload replaces the image | `EditProfileSheet` |
 | F4 | Contact details stay private until a booking exists | `ProPublicProfileSheet` |
 | F5 | Requesting to join an existing business, and a real owner approving or declining that request (Pro Workspace remarks, 2026-09-12, Theme C; migration 0220) | `JoinBusinessSheet` *(automated)*, `Profile` *(automated)* |
+| F6 | A pro describes a service that isn't on the list; the AI either matches it (attached to their profile immediately) or proposes a genuinely new one for a real operator to review (Pro Workspace remarks, 2026-09-12, Theme E; migration 0221) | `SuggestServiceSheet` *(automated)*, `Profile` *(automated)* |
 
 ### 5.8 · Cross-cutting
 

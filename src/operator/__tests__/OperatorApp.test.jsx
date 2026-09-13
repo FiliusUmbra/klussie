@@ -45,7 +45,7 @@ beforeEach(() => {
 });
 
 describe("OperatorApp", () => {
-  it("shows five tabs on the same BottomNav Customer/Pro share, Overview selected by default", async () => {
+  it("shows six tabs on the same BottomNav Customer/Pro share, Overview selected by default", async () => {
     render(<OperatorApp />);
 
     await waitFor(() => expect(screen.getByText("Property/asset recorded")).toBeTruthy());
@@ -53,6 +53,7 @@ describe("OperatorApp", () => {
     expect(screen.getByText("Audit").closest("button").className).not.toContain("tab-on");
     expect(screen.getByText("Workspaces").closest("button").className).not.toContain("tab-on");
     expect(screen.getByText("Reports").closest("button").className).not.toContain("tab-on");
+    expect(screen.getByText("Services").closest("button").className).not.toContain("tab-on");
     expect(screen.getByText("Profile").closest("button").className).not.toContain("tab-on");
   });
 
@@ -327,5 +328,101 @@ describe("OperatorApp — Reports tab (Trust & Safety, WP 5.2)", () => {
         expect.objectContaining({ p_action: "suspend", p_capability_key: "marketplace_participation" })
       )
     );
+  });
+});
+
+// Pro Workspace remarks, 2026-09-12 (Theme E) — the Services tab: a pro's AI-proposed
+// new catalog service, waiting on a real operator decision (migration 0221).
+describe("OperatorApp — Services tab (service suggestions, Theme E)", () => {
+  const SUGGESTION_ROW = {
+    suggestion_id: "sugg-1",
+    workspace_id: "pro-ws-1",
+    workspace_name: "Pierre's Painting",
+    raw_description: "I install solar panels on roofs",
+    locale: "nl",
+    category_id: "renovation",
+    proposed_name: "Zonnepanelen plaatsen",
+    proposed_blurb: "Installatie van zonnepanelen op residentiële daken.",
+    proposed_mode: "quote",
+    proposed_base_price: "500.00",
+    ai_confidence: "0.82",
+    translations: {},
+    created_at: "2026-09-12T00:00:00Z",
+  };
+
+  function mockServiceSuggestionsApi({ decisionResult = { data: null, error: null } } = {}) {
+    apiRpc.mockImplementation((_schema, fn) => {
+      if (fn === "list_service_suggestions") return Promise.resolve({ data: [SUGGESTION_ROW], error: null });
+      if (fn === "decide_service_suggestion") return Promise.resolve(decisionResult);
+      return Promise.resolve({ data: [], error: null });
+    });
+  }
+
+  it("renders the real queue under the Services tab", async () => {
+    mockServiceSuggestionsApi();
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Services"));
+
+    await waitFor(() => expect(screen.getByText("Zonnepanelen plaatsen")).toBeTruthy());
+    expect(screen.getByText(/Pierre's Painting/)).toBeTruthy();
+    expect(screen.getByText(/I install solar panels on roofs/)).toBeTruthy();
+  });
+
+  it("shows an empty state when there are no pending suggestions", async () => {
+    apiRpc.mockResolvedValue({ data: [], error: null });
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Services"));
+
+    await waitFor(() => expect(screen.getByText("No pending service suggestions.")).toBeTruthy());
+  });
+
+  it("approving calls api.decide_service_suggestion with the typed note, then refreshes the queue", async () => {
+    mockServiceSuggestionsApi();
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Services"));
+    await waitFor(() => expect(screen.getByText("Zonnepanelen plaatsen")).toBeTruthy());
+
+    fireEvent.change(screen.getByPlaceholderText("Decision note (optional)"), { target: { value: "Looks legitimate." } });
+    fireEvent.click(screen.getByText("Approve"));
+
+    await waitFor(() =>
+      expect(apiRpc).toHaveBeenCalledWith(
+        "api",
+        "decide_service_suggestion",
+        { p_suggestion_id: "sugg-1", p_decision: "approved", p_decision_note: "Looks legitimate." }
+      )
+    );
+  });
+
+  it("rejecting removes it from the queue once the decision is recorded", async () => {
+    mockServiceSuggestionsApi();
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Services"));
+    await waitFor(() => expect(screen.getByText("Zonnepanelen plaatsen")).toBeTruthy());
+
+    apiRpc.mockImplementation((_schema, fn) => {
+      if (fn === "decide_service_suggestion") return Promise.resolve({ data: null, error: null });
+      return Promise.resolve({ data: [], error: null }); // the next list_service_suggestions call, now empty
+    });
+    fireEvent.click(screen.getByText("Reject"));
+
+    await waitFor(() => expect(screen.getByText("No pending service suggestions.")).toBeTruthy());
+  });
+
+  it("shows a real error and stays decidable, not a silent dead end, when the decision call fails", async () => {
+    mockServiceSuggestionsApi({ decisionResult: { data: null, error: { message: "insufficient_privilege" } } });
+    render(<OperatorApp />);
+
+    fireEvent.click(screen.getByText("Services"));
+    await waitFor(() => expect(screen.getByText("Zonnepanelen plaatsen")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("Approve"));
+
+    await waitFor(() => expect(screen.getByText("Could not record this decision. Please try again.")).toBeTruthy());
+    expect(screen.getByText("Approve").closest("button").disabled).toBe(false);
   });
 });

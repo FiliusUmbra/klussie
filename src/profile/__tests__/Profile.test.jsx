@@ -26,6 +26,9 @@ vi.mock("../../lib/workspaceJoin.js", () => ({
   searchProfessionalWorkspaces: vi.fn(() => Promise.resolve([])),
   requestToJoinWorkspace: vi.fn(() => Promise.resolve()),
 }));
+vi.mock("../../lib/serviceSuggestions.js", () => ({
+  suggestService: vi.fn(),
+}));
 
 import { LangContext } from "../../lib/lang";
 import { Profile } from "../Profile.jsx";
@@ -33,6 +36,7 @@ import { updateProProfile, updateProServices, boostProfile } from "../../lib/pro
 import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../../lib/portfolio";
 import { deleteTestimonial, fetchTestimonials } from "../../lib/testimonials";
 import { fetchJoinRequests, decideJoinRequest, requestToJoinWorkspace } from "../../lib/workspaceJoin.js";
+import { suggestService } from "../../lib/serviceSuggestions.js";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = {
@@ -620,5 +624,60 @@ describe("Profile — join an existing business, both variants (Theme C)", () =>
 
     expect(screen.queryByText("joinBusinessTitle")).toBeNull();
     expect(requestToJoinWorkspace).not.toHaveBeenCalled();
+  });
+});
+
+describe("Profile — suggest a missing service (Theme E)", () => {
+  const PRO_WORKSPACE = [{ workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" }];
+
+  beforeEach(() => {
+    suggestService.mockReset();
+  });
+
+  it("offers the entry point for a pro", () => {
+    renderPro(PRO_WORKSPACE);
+    expect(screen.getByText("suggestServiceEntryBtn")).toBeTruthy();
+  });
+
+  it("does not offer it to a customer", () => {
+    renderProfile("customer", [], { requests: [] });
+    expect(screen.queryByText("suggestServiceEntryBtn")).toBeNull();
+  });
+
+  it("opens SuggestServiceSheet on tap", () => {
+    renderPro(PRO_WORKSPACE);
+    fireEvent.click(screen.getByText("suggestServiceEntryBtn"));
+    expect(screen.getByText("suggestServiceTitle")).toBeTruthy();
+  });
+
+  // Real match: attached via the exact same updateProServices() write saveServices()
+  // itself uses, not merely staged into the local selection for the pro to separately
+  // hit Save on.
+  it("attaches a real AI match immediately, through the same updateProServices() write the chip picker uses", async () => {
+    updateProServices.mockReset();
+    updateProServices.mockResolvedValueOnce(undefined);
+    suggestService.mockResolvedValue({ outcome: "match", matchedServiceId: "svc-9" });
+    const onServicesChange = vi.fn();
+    renderPro(PRO_WORKSPACE, { offeredServiceIds: [], onServicesChange });
+
+    fireEvent.click(screen.getByText("suggestServiceEntryBtn"));
+    fireEvent.change(screen.getByLabelText("suggestServiceDescriptionLabel"), { target: { value: "I clean gutters" } });
+    fireEvent.click(screen.getByText("suggestServiceSubmitBtn"));
+
+    await waitFor(() => expect(updateProServices).toHaveBeenCalledWith("person-1", ["svc-9"], "ws-pro"));
+    expect(onServicesChange).toHaveBeenCalledWith(["svc-9"]);
+  });
+
+  it("does not touch updateProServices at all for a new proposal — only a real operator decision does that", async () => {
+    updateProServices.mockReset();
+    suggestService.mockResolvedValue({ outcome: "new", suggestionId: "sugg-1" });
+    renderPro(PRO_WORKSPACE);
+
+    fireEvent.click(screen.getByText("suggestServiceEntryBtn"));
+    fireEvent.change(screen.getByLabelText("suggestServiceDescriptionLabel"), { target: { value: "I install solar panels" } });
+    fireEvent.click(screen.getByText("suggestServiceSubmitBtn"));
+
+    await waitFor(() => expect(screen.getByText("suggestServiceSentMsg")).toBeTruthy());
+    expect(updateProServices).not.toHaveBeenCalled();
   });
 });

@@ -28,6 +28,7 @@ import { EditProfileSheet } from "./EditProfileSheet.jsx";
 import { PortfolioItemSheet } from "./PortfolioItemSheet.jsx";
 import { AddTestimonialSheet } from "./AddTestimonialSheet.jsx";
 import { JoinBusinessSheet } from "./JoinBusinessSheet.jsx";
+import { SuggestServiceSheet } from "./SuggestServiceSheet.jsx";
 import { completedCount, reviewedRequests } from "../lib/requestStatus.js";
 import { updateProServices, updateProProfile, boostProfile, trustScore } from "../lib/pros";
 import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../lib/portfolio";
@@ -52,7 +53,7 @@ export function Profile({
   onProfileSaved,
   onPauseToggled,
 }) {
-  const { t, fmt, catName, serviceInfo, proBadgeLabel, CATS, BASE_SERVICES } = useLang();
+  const { t, fmt, catName, serviceInfo, proBadgeLabel, CATS, BASE_SERVICES, langCode } = useLang();
   const { user, profile, proProfile, activeWorkspace, refreshProfile, signOut } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
 
@@ -85,6 +86,7 @@ export function Profile({
   const [decidingRequestId, setDecidingRequestId] = useState(null);
   const [joinRequestsError, setJoinRequestsError] = useState("");
   const [joinBusinessOpen, setJoinBusinessOpen] = useState(false);
+  const [suggestServiceOpen, setSuggestServiceOpen] = useState(false);
   const portfolioFileRef = useRef(null);
 
   const refreshPortfolio = () => fetchPortfolioItems(user.id).then(setPortfolioItems);
@@ -231,6 +233,17 @@ export function Profile({
     } finally {
       setSaving(false);
     }
+  };
+  // Pro Workspace remarks, 2026-09-12 (Theme E) — a real AI match is attached the moment
+  // it's found, through the exact same updateProServices() write saveServices() itself
+  // uses, rather than only staged into `selected` and left for the pro to separately hit
+  // Save on. SuggestServiceSheet's own submit() awaits this inside its try, so a real
+  // failure here surfaces as suggestServiceFailed there, never a silent no-op.
+  const onServiceMatched = async (matchedServiceId) => {
+    const next = selected.includes(matchedServiceId) ? selected : [...selected, matchedServiceId];
+    setSelected(next);
+    await updateProServices(user.id, next, activeWorkspace?.workspace_id);
+    onServicesChange(next);
   };
   // Found live during a UX review, 2026-09-06: switching to "business" here failed with
   // zero visible feedback whenever business_name/vat_number were still unset — the real,
@@ -447,8 +460,9 @@ export function Profile({
               </div>
             );
           })}
-          <button className="btn-secondary" style={{ marginBottom: saveServicesError ? 6 : 14 }} disabled={saving} onClick={saveServices}>{t.saveServicesBtn}</button>
-          {saveServicesError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 14 }}>{saveServicesError}</div>}
+          <button className="btn-secondary" style={{ marginBottom: saveServicesError ? 6 : 8 }} disabled={saving} onClick={saveServices}>{t.saveServicesBtn}</button>
+          {saveServicesError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 8 }}>{saveServicesError}</div>}
+          <button className="btn-secondary" style={{ marginBottom: 14 }} onClick={() => setSuggestServiceOpen(true)}>{t.suggestServiceEntryBtn}</button>
 
           <div className="section-title">{t.portfolioTitle}</div>
           <div className="portfolio-grid">
@@ -536,6 +550,15 @@ export function Profile({
       )}
       {joinBusinessOpen && (
         <JoinBusinessSheet t={t} actorRef={user.id} onClose={() => setJoinBusinessOpen(false)} />
+      )}
+      {variant === "pro" && suggestServiceOpen && (
+        <SuggestServiceSheet
+          t={t}
+          workspaceId={activeWorkspace?.workspace_id}
+          locale={langCode}
+          onClose={() => setSuggestServiceOpen(false)}
+          onMatched={onServiceMatched}
+        />
       )}
     </div>
   );
