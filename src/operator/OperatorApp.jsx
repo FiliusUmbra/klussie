@@ -39,7 +39,7 @@
 // precise backend terms are a tool for them, not a leak. Revisit only if that audience
 // assumption changes — an operator surface a customer-facing person could ever see.
 import { useState } from "react";
-import { Flag, LayoutDashboard, ScrollText, Search, User } from "lucide-react";
+import { Flag, LayoutDashboard, ScrollText, Search, Sparkles, User } from "lucide-react";
 import { useAuth } from "../lib/auth.jsx";
 import { WorkspaceSwitcher } from "../shell/WorkspaceSwitcher.jsx";
 import { SignOutButton } from "../profile/SignOutButton.jsx";
@@ -49,6 +49,7 @@ import { AuditLog } from "./AuditLog.jsx";
 import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
 import { TrustSafetyQueue } from "./TrustSafetyQueue.jsx";
 import { CaseDetailSheet } from "./CaseDetailSheet.jsx";
+import { ServiceSuggestionsQueue } from "./ServiceSuggestionsQueue.jsx";
 import { fetchCaseDetail } from "../lib/trustSafety.js";
 
 // UNIFIED_PROFILE_DESIGN.md §5 step 4 — the real WorkspaceSwitcher/SignOutButton,
@@ -66,6 +67,10 @@ const TABS = [
   { id: "audit", label: "Audit", icon: ScrollText },
   { id: "lookup", label: "Workspaces", icon: Search },
   { id: "reports", label: "Reports", icon: Flag },
+  // Pro Workspace remarks, 2026-09-12 (Theme E) — its own tab rather than folded into
+  // Reports (Trust & Safety specific, see that section's own header) or Overview
+  // (explicitly scoped to Activation Ratio only).
+  { id: "services", label: "Services", icon: Sparkles },
   { id: "profile", label: "Profile", icon: User },
 ];
 
@@ -92,6 +97,10 @@ export function OperatorApp() {
   // error at least tells the operator an attempt was made.
   const [caseDetailError, setCaseDetailError] = useState(false);
   const [queueRefreshKey, setQueueRefreshKey] = useState(0);
+  // Theme E's own queue — a separate counter from queueRefreshKey above, since a service
+  // suggestion decision and a Trust & Safety case decision are two unrelated queues; each
+  // should only re-fetch its own.
+  const [suggestionsRefreshKey, setSuggestionsRefreshKey] = useState(0);
   const { user, signOut } = useAuth();
 
   const viewAuditFor = (workspaceId) => {
@@ -146,6 +155,12 @@ export function OperatorApp() {
               </p>
             )}
             <TrustSafetyQueue onOpenCase={openCase} refreshKey={queueRefreshKey} />
+          </div>
+        )}
+
+        {tab === "services" && (
+          <div className="pad">
+            <ServiceSuggestionsQueue refreshKey={suggestionsRefreshKey} onRefresh={() => setSuggestionsRefreshKey((k) => k + 1)} />
           </div>
         )}
 
