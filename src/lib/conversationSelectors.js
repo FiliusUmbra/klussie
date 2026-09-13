@@ -19,9 +19,20 @@ export function unreadTotal(conversations) {
  * back), a translation for this locale is already cached, or a request for it is already
  * in flight. `inFlight` is passed in rather than tracked here because it belongs to the
  * component's lifetime, not to this decision.
+ *
+ * Found by code audit, 2026-09-13: `inFlight` used to be keyed by message id alone. A
+ * request in flight for one language blocked a *different* language's request for the
+ * same message -- not merely delayed, but silently dropped if the viewer switched
+ * languages mid-request and the original request then failed (a real, if rare, network/AI
+ * hiccup): its own catch swallows the error without a setMessages() call, so nothing
+ * re-triggers the effect afterward, and this message never gets re-checked for the
+ * language the viewer is actually reading in until unrelated conversation activity
+ * happens to fire the effect again. Keyed by `${id}:${langCode}` instead so switching
+ * languages while an old request for the same message is still outstanding can never
+ * block (or lose) the new one -- the two are now entirely independent requests.
  */
 export function messagesNeedingTranslation(messages, { userId, langCode, inFlight }) {
   return (messages || []).filter(
-    (m) => m.senderId !== userId && !m.translations?.[langCode] && !inFlight.has(m.id)
+    (m) => m.senderId !== userId && !m.translations?.[langCode] && !inFlight.has(`${m.id}:${langCode}`)
   );
 }

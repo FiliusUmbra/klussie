@@ -91,7 +91,11 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
       inFlight: translatingRef.current,
     });
     toTranslate.forEach(async (m) => {
-      translatingRef.current.add(m.id);
+      // Keyed by message id AND language (see conversationSelectors.js's own header for
+      // why): a stale request for a language the viewer has since switched away from must
+      // never block, or silently swallow, this one.
+      const inFlightKey = `${m.id}:${langCode}`;
+      translatingRef.current.add(inFlightKey);
       try {
         const translated = await translateMessage({ text: m.body, targetLocale: langCode });
         await saveMessageTranslation(m.id, langCode, translated, userId, workspaceId);
@@ -101,7 +105,7 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
       } catch {
         // ignore — original text stays displayed
       } finally {
-        translatingRef.current.delete(m.id);
+        translatingRef.current.delete(inFlightKey);
       }
     });
   }, [messages, langCode, userId, workspaceId]);
