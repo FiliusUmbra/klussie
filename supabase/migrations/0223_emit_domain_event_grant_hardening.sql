@@ -1,0 +1,57 @@
+-- Found by code audit, 2026-09-13, continuing the same sweep 0214's own header describes
+-- (every SECURITY DEFINER function in this repository, checked for the exact gap
+-- 0028_identity_read_path.sql found live: "PostgreSQL grants EXECUTE on a new function to
+-- PUBLIC, which on a SECURITY DEFINER function reading every person's row would be the
+-- whole protection inverted."). 0214 closed the one gap that sweep found at the time
+-- (public.pro_matches_request); this closes a second one that sweep's own regex-based
+-- pass missed because it only checked functions never mentioned in ANY revoke statement --
+-- public.emit_domain_event(text, jsonb) (ADR-0004, migration 0010) was never checked
+-- against its own EXACT signature until now.
+--
+-- public.emit_domain_event(p_event_type text, p_payload jsonb) -- ADR-0004's own decision,
+-- "the only way to write a row is emit_domain_event()... security definer... Application
+-- code (api/_lib/events.js) calls this RPC, never the table directly" -- was given
+-- `grant execute ... to authenticated` at the moment it was created (0010, line 106) but
+-- NEVER an accompanying `revoke ... from public`. Unlike pro_matches_request (which
+-- predates 0028 and was simply never retrofitted), this one is arguably a stranger gap:
+-- 0010 got the *authenticated* half of the grant posture exactly right on day one, and
+-- still missed the *public* half -- the intended design was one-sided from the start, not
+-- degraded by a later change.
+--
+-- THE RISK
+--
+-- Ordinary PostgreSQL, with no Supabase-specific mechanism involved at all, grants EXECUTE on every newly created function to PUBLIC by default,
+-- and nothing has ever revoked it here. PUBLIC membership is implicit for every role, anon
+-- included -- the same observation 0214's own header makes, restated here because it is
+-- the actual mechanism at work, not something specific to `emit_domain_event`.
+--
+-- `returns void`, not `returns trigger` -- directly callable via a plain SQL SELECT (or,
+-- since it takes no special session context, via PostgREST's RPC endpoint), unlike the
+-- large family of `handle_*`/`*_mirror_*` trigger functions elsewhere in this repository
+-- that share emit_domain_event's own missing-revoke gap but are structurally immune to
+-- direct invocation (PostgreSQL does not allow a function whose return type is the
+-- `trigger` pseudo-type to be called from a query at all). An anonymous, unauthenticated
+-- caller can run `select public.emit_domain_event('any_event_type', '{"anything":true}')`
+-- today and have it succeed, inserting an attacker-controlled row into
+-- public.domain_events -- bypassing 0192's own later table-grant revoke entirely, because
+-- a SECURITY DEFINER function runs with its owner's privileges regardless of what grants
+-- exist (or don't) on the table it writes to. 0192 closed the direct-table-access route;
+-- this closes the other one, which 0192's own header did not consider because it was
+-- scoped to table grants, not the function's own.
+--
+-- WHY THE FIX IS SAFE FOR EVERY LEGITIMATE CALLER
+--
+-- api/_lib/events.js's emitEvent() is the one real caller (ADR-0004's own text), invoked
+-- through each AI endpoint's own authenticated Supabase client (verifyAuth()) -- never
+-- anonymously, by design. `authenticated` already holds its own EXECUTE grant from 0010
+-- and keeps it here, restated for the same reason 0214 restates pro_matches_request's own
+-- grant: so a reader never has to cross-reference an unrelated migration to see the full,
+-- current grant posture in one place.
+--
+-- SAME SIGNATURE, SAME BODY -- NOT A NEW DECISION
+--
+-- No `create or replace function` here: 0010's own definition is untouched. This is a pure
+-- grant-posture fix, nothing else.
+
+revoke all on function public.emit_domain_event(text, jsonb) from public, anon, service_role;
+grant execute on function public.emit_domain_event(text, jsonb) to authenticated;
