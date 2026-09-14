@@ -112,9 +112,21 @@ export const APP_CSS = `
 .empty{ grid-column:1/-1; color:var(--ink-soft); font-size:13px; padding:20px 0; text-align:center; }
 
 .stat-row{ display:flex; gap:10px; margin:16px 0 18px; }
-.stat{ flex:1; background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:13px; padding:12px; text-align:center; }
+/* Found live, 2026-09-14: a flex item's automatic min-width defaults to its content's
+   own min-content size unless overridden, regardless of flex:1's own flex-basis:0% --
+   the same root cause as .ticket-title's own fix just above in this file's history. A
+   single unbreakable compound word is exactly what has no smaller min-content to fall
+   back to: trustScoreLabel ("Vertrouwensscore"/nl, "Vertrauensscore"/de) is one word,
+   long enough on its own that three equal .stat cards (ProDashboard.jsx's pro stat
+   row, StatRow.jsx's own pro variant) couldn't all fit -- the third card was pushed
+   past the row's own right edge and clipped by an ancestor's overflow:hidden, with no
+   scrollbar and no sign anything was cut off, exactly like the ticket-badge bug. Unlike
+   that fix, a .stat card has real vertical room to grow (it is not a fixed-height row),
+   so the label wraps onto a second line here rather than losing information to an
+   ellipsis. */
+.stat{ flex:1; min-width:0; background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:13px; padding:12px; text-align:center; }
 .stat-num{ font-family:var(--font-mono); font-size:16px; font-weight:500; color:var(--forest); display:flex; align-items:center; justify-content:center; gap:3px; }
-.stat-label{ font-size:10.5px; color:var(--ink-soft); margin-top:3px; }
+.stat-label{ font-size:10.5px; color:var(--ink-soft); margin-top:3px; overflow-wrap:break-word; }
 
 .badge{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; white-space:nowrap; flex-shrink:0; }
 .badge-sage{ background:var(--sage-bg); color:var(--forest-dark); }
