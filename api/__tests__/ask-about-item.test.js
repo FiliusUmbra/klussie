@@ -210,6 +210,88 @@ describe("ask-about-item handler", () => {
     expect(reasonMock.mock.calls[0][0].documents).toEqual([]);
   });
 
+  // Found live, 2026-09-14: used to pick only the single highest-preference document and
+  // stop there — a customer with an older, unsupported-extension "manual" upload and a
+  // real, readable "warranty" PDF got grounded on neither, even though the warranty was
+  // perfectly usable. Both cases below (an unsupported extension, and a real download
+  // failure) must fall through to the next document in preference order.
+  it("falls back to the next document in preference order when the top pick has an unsupported extension", async () => {
+    const download = vi.fn(() => Promise.resolve({
+      data: { size: 10, arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer) },
+      error: null,
+    }));
+    verifyAuthMock.mockResolvedValue({
+      user: { id: "user-1" },
+      supabase: supabaseStub({
+        documentRows: [
+          { id: "doc-manual", type_key: "manual", storage_bucket: "documents", storage_path: "ws/doc-manual/m.docx" },
+          { id: "doc-warranty", type_key: "warranty", storage_bucket: "documents", storage_path: "ws/doc-warranty/w.pdf" },
+        ],
+        download,
+      }),
+    });
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });
+
+    await handler(req, res);
+
+    // The unsupported .docx never reaches storage at all -- fetchDocumentAttachment()
+    // rejects it by extension before ever calling download().
+    expect(download).toHaveBeenCalledTimes(1);
+    const call = reasonMock.mock.calls[0][0];
+    expect(call.documents).toHaveLength(1);
+    expect(call.documents[0].mediaType).toBe("application/pdf");
+    expect(call.systemPrompt).toMatch(/"warranty" document is attached/);
+  });
+
+  it("falls back to the next document in preference order when the top pick genuinely fails to download", async () => {
+    const download = vi.fn((path) => {
+      if (path === "ws/doc-manual/m.pdf") return Promise.resolve({ data: null, error: new Error("object not found") });
+      return Promise.resolve({
+        data: { size: 10, arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer) },
+        error: null,
+      });
+    });
+    verifyAuthMock.mockResolvedValue({
+      user: { id: "user-1" },
+      supabase: supabaseStub({
+        documentRows: [
+          { id: "doc-manual", type_key: "manual", storage_bucket: "documents", storage_path: "ws/doc-manual/m.pdf" },
+          { id: "doc-warranty", type_key: "warranty", storage_bucket: "documents", storage_path: "ws/doc-warranty/w.pdf" },
+        ],
+        download,
+      }),
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });
+
+    await handler(req, res);
+
+    expect(download).toHaveBeenCalledTimes(2);
+    const call = reasonMock.mock.calls[0][0];
+    expect(call.documents).toHaveLength(1);
+    expect(call.systemPrompt).toMatch(/"warranty" document is attached/);
+    warn.mockRestore();
+  });
+
+  it("still grounds on item facts alone when every attached document is unusable", async () => {
+    verifyAuthMock.mockResolvedValue({
+      user: { id: "user-1" },
+      supabase: supabaseStub({
+        documentRows: [
+          { id: "doc-1", type_key: "manual", storage_bucket: "documents", storage_path: "ws/doc-1/manual.docx" },
+          { id: "doc-2", type_key: "warranty", storage_bucket: "documents", storage_path: "ws/doc-2/warranty.xlsx" },
+        ],
+      }),
+    });
+    const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });
+
+    await handler(req, res);
+
+    const call = reasonMock.mock.calls[0][0];
+    expect(call.documents).toEqual([]);
+    expect(call.systemPrompt).toMatch(/No warranty or manual document is attached/);
+  });
+
   it("returns the generic localized-at-the-client failure message, never the raw error, when the AI call itself fails", async () => {
     reasonMock.mockRejectedValue(new Error("upstream 500"));
     const { req, res } = fakeReqRes({ body: { itemId: "asset-1", question: "q" } });

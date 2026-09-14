@@ -163,24 +163,35 @@ export default async function handler(req, res) {
 
   // At most one document, preferring a manual over a warranty over anything else —
   // bounded and simple rather than attaching everything ever uploaded for this item.
+  //
+  // Found live, 2026-09-14: this used to pick only the single highest-preference row and
+  // stop there — if fetchDocumentAttachment() couldn't use it (an unsupported extension,
+  // a download failure, over the size cap), the answer fell back to "no document
+  // attached" even when a perfectly readable lower-priority document existed for the
+  // same item (e.g. a customer's older .txt/.doc upload sorts ahead of a real PDF they
+  // added later, both typed "manual"; the .txt one is silently unusable, and the PDF was
+  // never even tried). Now walks the full preference-ordered list and uses the first
+  // document that's actually usable, never stopping at the first ATTEMPT.
   const { data: documentRows } = await auth.supabase.schema("api").rpc("my_documents", { p_asset_id: itemId });
   const preferenceOrder = ["manual", "warranty", "certificate", "other"];
-  const chosenDoc = (documentRows || [])
+  const orderedDocs = (documentRows || [])
     .slice()
-    .sort((a, b) => preferenceOrder.indexOf(a.type_key) - preferenceOrder.indexOf(b.type_key))[0];
+    .sort((a, b) => preferenceOrder.indexOf(a.type_key) - preferenceOrder.indexOf(b.type_key));
 
   let documentAttachment = null;
   let documentNote = "No warranty or manual document is attached to this item.";
-  if (chosenDoc) {
+  for (const doc of orderedDocs) {
     const { attachment, reason: skipReason } = await fetchDocumentAttachment(auth.supabase, {
-      storageBucket: chosenDoc.storage_bucket,
-      storagePath: chosenDoc.storage_path,
+      storageBucket: doc.storage_bucket,
+      storagePath: doc.storage_path,
     });
     if (attachment) {
       documentAttachment = attachment;
-      documentNote = `The item's own "${chosenDoc.type_key}" document is attached below — use it.`;
-    } else if (skipReason === "download_failed") {
-      console.warn("ask-about-item document download failed, answering from item facts only");
+      documentNote = `The item's own "${doc.type_key}" document is attached below — use it.`;
+      break;
+    }
+    if (skipReason === "download_failed") {
+      console.warn(`ask-about-item document download failed for a "${doc.type_key}" document, trying the next one if any`);
     }
   }
 
