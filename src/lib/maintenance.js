@@ -160,6 +160,56 @@ export async function fetchMaintenanceSchedules(workspaceId) {
 }
 
 /**
+ * Folds active schedules whose next occurrence has not yet become a real obligation into
+ * a maintenance list, so a recurring plan is visible before its first (or next) due date
+ * actually arrives.
+ *
+ * Found live, 2026-09-14: MyItemsPanel.jsx's own workspace-wide "Onderhoud" summary
+ * (fed by usePropertyTwin.js, obligations only) never included this — a customer who
+ * just set up a recurring plan whose first occurrence was still weeks away saw "Niets
+ * gepland of achterstallig" ("Nothing planned or overdue"), even though something
+ * genuinely was planned. createMaintenanceSchedule()'s own header explains why: the
+ * seed obligation is only materialized "when the first occurrence is already due" —
+ * everything before that exists solely as the schedule's own `nextDueOn`, which nothing
+ * upstream of this function was reading.
+ *
+ * ItemDetailSheet.jsx already solved this correctly for its own per-item view (its own
+ * `upcomingSchedules`) — this generalizes that exact rule (a schedule with no open
+ * obligation of its own gets a synthetic entry) so a caller scoped to a whole workspace
+ * gets the identical inclusion, rather than a second, separately-maintained copy of the
+ * same rule.
+ *
+ * A synthetic entry is never overdue by construction — if it were, the nightly
+ * generation job (0205) would already have materialized it into a real obligation.
+ */
+export function mergeMaintenanceWithSchedules(maintenance, schedules) {
+  const upcoming = (schedules || [])
+    .filter((s) => s.active && !(maintenance || []).some((m) => m.status === "open" && m.scheduleId === s.id))
+    .map((s) => ({
+      id: s.id,
+      assetId: s.assetId,
+      locationId: s.locationId,
+      scheduleId: s.id,
+      title: s.title,
+      description: s.description,
+      source: "schedule",
+      dueOn: s.nextDueOn,
+      status: "open",
+      isOverdue: false,
+      completedAt: null,
+      cancelledAt: null,
+      cancellationReason: null,
+    }));
+  if (upcoming.length === 0) return maintenance || [];
+  return [...(maintenance || []), ...upcoming].sort((a, b) => {
+    if (a.status === "open" && b.status !== "open") return -1;
+    if (a.status !== "open" && b.status === "open") return 1;
+    if (a.status === "open") return new Date(a.dueOn) - new Date(b.dueOn);
+    return 0;
+  });
+}
+
+/**
  * Creates a recurring maintenance schedule for an asset (`api.create_maintenance_
  * schedule()`, Recurring Maintenance Activation slice) — the first real client caller.
  * `recurrence` is a plain interval literal Postgres already understands ("1 month",

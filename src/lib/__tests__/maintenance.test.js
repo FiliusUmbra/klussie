@@ -13,7 +13,7 @@ vi.mock("../supabaseClient", () => ({
 
 import {
   fetchMaintenanceObligations, createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation,
-  fetchMaintenanceSchedules, createMaintenanceSchedule, cancelMaintenanceSchedule,
+  fetchMaintenanceSchedules, createMaintenanceSchedule, cancelMaintenanceSchedule, mergeMaintenanceWithSchedules,
 } from "../maintenance.js";
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-000000000020";
@@ -318,5 +318,79 @@ describe("cancelMaintenanceSchedule", () => {
     apiRpc.mockResolvedValue({ error: { message: "schedule does not exist or is already cancelled" } });
 
     await expect(cancelMaintenanceSchedule("sch-1", "owner-1")).rejects.toThrow("schedule does not exist or is already cancelled");
+  });
+});
+
+// Found live, 2026-09-14: MyItemsPanel.jsx's own workspace-wide "Onderhoud" summary
+// (usePropertyTwin.js, obligations only) never included a schedule whose first
+// occurrence hadn't yet become a real obligation -- ItemDetailSheet.jsx already solved
+// this correctly for its own per-item view (its own upcomingSchedules); this generalizes
+// that same rule for a workspace-wide caller.
+describe("mergeMaintenanceWithSchedules", () => {
+  const schedule = (over) => ({
+    id: "sch-1", assetId: "asset-1", locationId: null, title: "Descale the machine",
+    description: null, recurrence: "3 mons", nextDueOn: "2026-12-01", active: true, ...over,
+  });
+
+  it("adds a synthetic entry for an active schedule with no open obligation of its own", () => {
+    const merged = mergeMaintenanceWithSchedules([], [schedule()]);
+
+    expect(merged).toEqual([{
+      id: "sch-1", assetId: "asset-1", locationId: null, scheduleId: "sch-1",
+      title: "Descale the machine", description: null, source: "schedule",
+      dueOn: "2026-12-01", status: "open", isOverdue: false,
+      completedAt: null, cancelledAt: null, cancellationReason: null,
+    }]);
+  });
+
+  it("never duplicates a schedule that already has its own open obligation", () => {
+    const openObligation = { id: "ob-1", status: "open", scheduleId: "sch-1", dueOn: "2026-09-01", title: "Descale the machine" };
+
+    const merged = mergeMaintenanceWithSchedules([openObligation], [schedule()]);
+
+    expect(merged).toEqual([openObligation]);
+  });
+
+  it("skips a cancelled (inactive) schedule entirely", () => {
+    const merged = mergeMaintenanceWithSchedules([], [schedule({ active: false })]);
+
+    expect(merged).toEqual([]);
+  });
+
+  it("does not treat a schedule's own SETTLED obligation as already representing it -- a completed occurrence still needs its next one shown", () => {
+    const settledObligation = { id: "ob-1", status: "completed", scheduleId: "sch-1", dueOn: "2026-06-01", title: "Descale the machine" };
+
+    const merged = mergeMaintenanceWithSchedules([settledObligation], [schedule()]);
+
+    // The synthetic entry is "open," so it sorts ahead of the already-settled row --
+    // matches the existing open-before-settled ordering, not append order.
+    expect(merged.map((m) => m.id)).toEqual(["sch-1", "ob-1"]);
+  });
+
+  it("interleaves the synthetic entry into the existing open-first, soonest-first ordering rather than always appending it", () => {
+    const overdue = { id: "ob-1", status: "open", scheduleId: null, dueOn: "2026-01-01", title: "Smoke detector check" };
+    const settled = { id: "ob-2", status: "completed", scheduleId: null, dueOn: "2026-02-01", title: "Gutter clean" };
+    // Due sooner than the schedule's own nextDueOn (2026-12-01), so it must sort ahead.
+    const soonOpen = { id: "ob-3", status: "open", scheduleId: null, dueOn: "2026-10-01", title: "Filter check" };
+
+    const merged = mergeMaintenanceWithSchedules([overdue, settled, soonOpen], [schedule()]);
+
+    expect(merged.map((m) => m.id)).toEqual(["ob-1", "ob-3", "sch-1", "ob-2"]);
+  });
+
+  it("returns the original list untouched (same reference-safe shape) when there is nothing to add", () => {
+    const obligations = [{ id: "ob-1", status: "open", scheduleId: null, dueOn: "2026-09-01" }];
+
+    expect(mergeMaintenanceWithSchedules(obligations, [])).toEqual(obligations);
+    expect(mergeMaintenanceWithSchedules(obligations, null)).toEqual(obligations);
+  });
+
+  it("treats a null/undefined maintenance list the same as empty, never throwing", () => {
+    expect(mergeMaintenanceWithSchedules(null, [schedule()])).toEqual([{
+      id: "sch-1", assetId: "asset-1", locationId: null, scheduleId: "sch-1",
+      title: "Descale the machine", description: null, source: "schedule",
+      dueOn: "2026-12-01", status: "open", isOverdue: false,
+      completedAt: null, cancelledAt: null, cancellationReason: null,
+    }]);
   });
 });
