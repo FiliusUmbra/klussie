@@ -22,7 +22,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import { fetchHomeProfile } from "../lib/homeInventory.js";
 import { fetchHouseholdItems } from "../lib/householdItems.js";
-import { fetchMaintenanceObligations } from "../lib/maintenance.js";
+import { fetchMaintenanceObligations, fetchMaintenanceSchedules, mergeMaintenanceWithSchedules } from "../lib/maintenance.js";
 
 export function usePropertyTwin() {
   const { profile, activeWorkspace } = useAuth();
@@ -78,12 +78,20 @@ export function usePropertyTwin() {
     // Epic 03 WP11 — both are "add without switching" until the value exists, then switch.
   }, [ownerId, workspaceId, propertyId, reloadToken]);
 
+  // Found live, 2026-09-14: obligations alone left a freshly-created recurring schedule
+  // invisible here until its first occurrence actually came due (or overdue) and the
+  // nightly generation job (0205) materialized it -- see mergeMaintenanceWithSchedules()'s
+  // own header. Fetched alongside obligations, in the same effect, so both land in state
+  // together rather than the summary flickering from "nothing planned" to correct on a
+  // second render.
   useEffect(() => {
     if (!workspaceId) return undefined;
     let cancelled = false;
-    fetchMaintenanceObligations(workspaceId).then((rows) => {
-      if (!cancelled) setMaintenance(rows);
-    });
+    Promise.all([fetchMaintenanceObligations(workspaceId), fetchMaintenanceSchedules(workspaceId)]).then(
+      ([obligations, schedules]) => {
+        if (!cancelled) setMaintenance(mergeMaintenanceWithSchedules(obligations, schedules));
+      }
+    );
     return () => { cancelled = true; };
   }, [workspaceId, reloadToken]);
 
