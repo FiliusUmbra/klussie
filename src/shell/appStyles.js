@@ -116,7 +116,7 @@ export const APP_CSS = `
 .stat-num{ font-family:var(--font-mono); font-size:16px; font-weight:500; color:var(--forest); display:flex; align-items:center; justify-content:center; gap:3px; }
 .stat-label{ font-size:10.5px; color:var(--ink-soft); margin-top:3px; }
 
-.badge{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; white-space:nowrap; }
+.badge{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; white-space:nowrap; flex-shrink:0; }
 .badge-sage{ background:var(--sage-bg); color:var(--forest-dark); }
 .badge-forest{ background:var(--forest); color:#fff; }
 .badge-amber{ background:var(--amber-bg); color:var(--amber-dark); }
@@ -125,7 +125,19 @@ export const APP_CSS = `
 .tear{ height:1px; background:var(--line-soft); }
 .ticket-body{ padding:14px 16px 16px; }
 .ticket-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:5px; }
-.ticket-title{ font-family:var(--font-display); font-size:15.5px; font-weight:600; color:var(--ink); }
+/* Found live, 2026-09-14: JobCard's title+badge row (customer RequestsList/MessagesList,
+   pro ProDashboard/ProJobs -- every real caller shares this one markup, domain.jsx's own
+   JobCard) had no protection against a long, unbreakable title -- a single compound Dutch
+   service name like "Loodgieterswerken" has no space to wrap on, so its intrinsic min-width
+   equals its full text width. .ticket-row is a plain flex row with no wrap, so a title that
+   long left no room for the status badge (.badge, white-space:nowrap for its own reasons
+   above), which is effectively flex-shrink:0 by that same unbreakable-content logic -- the
+   row didn't grow to fit, and .ticket's own overflow:hidden (needed for the paper-ticket
+   corner notch) silently clipped the badge instead. The badge is the one thing RequestsList.jsx's
+   own header comment calls out as worth seeing without opening anything, so the title gives
+   way here, not the badge: truncated with an ellipsis rather than the badge losing pixels off
+   its own edge with no indication anything was cut off at all. */
+.ticket-title{ font-family:var(--font-display); font-size:15.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .ticket-sub{ font-size:11.5px; color:var(--ink-soft); }
 .ticket-divider{ border-top:1.5px dashed var(--line-strong); margin:11px 0; }
 .ticket-foot{ display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft); }
