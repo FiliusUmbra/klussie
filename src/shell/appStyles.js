@@ -167,6 +167,19 @@ export const APP_CSS = `
    inheritance), so this changes nothing for the other 40-odd call sites. */
 .btn-secondary{ width:100%; display:flex; align-items:center; justify-content:center; gap:7px; background:var(--sage-bg); color:var(--forest-dark); border:none; padding:10px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:transform var(--motion-fast), opacity var(--motion-base); }
 .btn-primary:active, .btn-secondary:active{ transform:scale(0.98); opacity:0.92; }
+/* Found by code audit, 2026-09-14, live on staging: every OTHER disabled-button class in
+   this codebase (.conv-textrow-send, .photo-capture-confirm, .conv-action,
+   .home-ask-link, .conv-textrow-tool, .maintenance-row-action,
+   .item-detail-document-open — see this file's and homeStyles.js's own rules) gets a real
+   :disabled treatment. .btn-primary/.btn-secondary never did, despite being the two most
+   common button classes in the app (21 call sites disable one or the other) and backing
+   the shared Button component (design-system/primitives.jsx) besides. A disabled
+   AiIntakeSheet.jsx "Verstuur aanvraag" button, live-tested, was indistinguishable from
+   an enabled one -- full opacity, pointer cursor -- so tapping it while a required field
+   (ServiceLocationField's own location, in that case) was still unset produced no visible
+   feedback at all: no error, no cursor change, nothing. Same opacity range this
+   codebase's own other :disabled rules already use.  */
+.btn-primary:disabled, .btn-secondary:disabled{ opacity:0.5; cursor:default; }
 
 .fineprint{ display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--ink-soft); margin-top:12px; justify-content:center; text-align:center; }
 
