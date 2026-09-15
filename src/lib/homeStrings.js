@@ -35,7 +35,7 @@ export const HOME_STRINGS = {
     safetyBody: "Ruik je gas, zie je vuur, staat er water of is er gevaar door elektriciteit? Bel dan eerst de hulpdiensten of je netbeheerder. Klussie stelt geen diagnose.",
     safetyContinue: "Toch verder met mijn aanvraag", safetyBack: "Terug",
 
-    todayHeading: "Vandaag voor jouw woning",
+    homeForYouTitle: "Voor jou",
     todayQuotesTitle: "Offertes wachten op je keuze",
     todayQuotesBody: "Bekijk de offertes voor {service} en kies wie de klus doet.",
     todayBookedTitle: "Je klus staat gepland",
@@ -52,7 +52,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "Maak je woning slimmer met Klussie",
     todayEmptyBody: "Voeg je eerste ruimte, installatie of huishoudelijk item toe.",
     todayEmptyCta: "Stel mijn woning in",
-    homeActiveTitle: "Loopt op dit moment",
 
     myHomeQuestion: "Wat wil je over je woning bekijken of bijhouden?",
     homeReportProblem: "Probleem melden",
@@ -225,7 +224,7 @@ export const HOME_STRINGS = {
     safetyBody: "Tu sens le gaz, tu vois du feu, il y a de l'eau ou un danger électrique ? Appelle d'abord les secours ou ton gestionnaire de réseau. Klussie ne pose aucun diagnostic.",
     safetyContinue: "Continuer quand même ma demande", safetyBack: "Retour",
 
-    todayHeading: "Aujourd'hui pour ton logement",
+    homeForYouTitle: "Pour toi",
     todayQuotesTitle: "Des devis attendent ton choix",
     todayQuotesBody: "Consulte les devis pour {service} et choisis qui fera le travail.",
     todayBookedTitle: "Ta tâche est planifiée",
@@ -242,7 +241,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "Rends ton logement plus intelligent avec Klussie",
     todayEmptyBody: "Ajoute ta première pièce, installation ou objet du foyer.",
     todayEmptyCta: "Configurer mon logement",
-    homeActiveTitle: "En cours actuellement",
 
     myHomeQuestion: "Que veux-tu consulter ou suivre pour ton logement ?",
     homeReportProblem: "Signaler un problème",
@@ -415,7 +413,7 @@ export const HOME_STRINGS = {
     safetyBody: "Riechst du Gas, siehst du Feuer, steht Wasser oder besteht Gefahr durch Strom? Rufe zuerst den Notruf oder deinen Netzbetreiber an. Klussie stellt keine Diagnose.",
     safetyContinue: "Trotzdem mit meiner Anfrage weitermachen", safetyBack: "Zurück",
 
-    todayHeading: "Heute für dein Zuhause",
+    homeForYouTitle: "Für dich",
     todayQuotesTitle: "Angebote warten auf deine Wahl",
     todayQuotesBody: "Sieh dir die Angebote für {service} an und wähle, wer die Arbeit macht.",
     todayBookedTitle: "Dein Auftrag ist geplant",
@@ -432,7 +430,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "Mach dein Zuhause schlauer mit Klussie",
     todayEmptyBody: "Füge deinen ersten Raum, deine erste Anlage oder dein erstes Haushaltsgerät hinzu.",
     todayEmptyCta: "Mein Zuhause einrichten",
-    homeActiveTitle: "Läuft gerade",
 
     myHomeQuestion: "Was möchtest du zu deinem Zuhause ansehen oder festhalten?",
     homeReportProblem: "Problem melden",
@@ -605,7 +602,7 @@ export const HOME_STRINGS = {
     safetyBody: "Do you smell gas, see fire, is there standing water, or a danger from electricity? Call emergency services or your grid operator first. Klussie does not make a diagnosis.",
     safetyContinue: "Continue with my request anyway", safetyBack: "Back",
 
-    todayHeading: "Today for your home",
+    homeForYouTitle: "For you",
     todayQuotesTitle: "Quotes are waiting for your choice",
     todayQuotesBody: "Review the quotes for {service} and choose who does the job.",
     todayBookedTitle: "Your job is scheduled",
@@ -622,7 +619,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "Make your home smarter with Klussie",
     todayEmptyBody: "Add your first room, installation, or household item.",
     todayEmptyCta: "Set up my home",
-    homeActiveTitle: "In progress right now",
 
     myHomeQuestion: "What would you like to see or keep track of about your home?",
     homeReportProblem: "Report a problem",
@@ -795,7 +791,7 @@ export const HOME_STRINGS = {
     safetyBody: "¿Hueles a gas, ves fuego, hay agua acumulada o riesgo eléctrico? Llama primero a los servicios de emergencia o a tu distribuidora. Klussie no hace diagnósticos.",
     safetyContinue: "Continuar igualmente con mi solicitud", safetyBack: "Volver",
 
-    todayHeading: "Hoy para tu vivienda",
+    homeForYouTitle: "Para ti",
     todayQuotesTitle: "Hay presupuestos esperando tu decisión",
     todayQuotesBody: "Revisa los presupuestos de {service} y elige quién hace el trabajo.",
     todayBookedTitle: "Tu trabajo está programado",
@@ -812,7 +808,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "Haz tu vivienda más inteligente con Klussie",
     todayEmptyBody: "Añade tu primera habitación, instalación u objeto del hogar.",
     todayEmptyCta: "Configurar mi vivienda",
-    homeActiveTitle: "En curso ahora mismo",
 
     myHomeQuestion: "¿Qué quieres consultar o registrar sobre tu vivienda?",
     homeReportProblem: "Informar de un problema",
@@ -987,7 +982,7 @@ export const HOME_STRINGS = {
     safetyBody: "هل تشمّ غازًا، أو ترى نارًا، أو هناك مياه راكدة أو خطر كهربائي؟ اتصل أولًا بخدمات الطوارئ أو بمشغّل الشبكة. Klussie لا يقدّم تشخيصًا.",
     safetyContinue: "المتابعة بطلبي على أي حال", safetyBack: "رجوع",
 
-    todayHeading: "اليوم من أجل منزلك",
+    homeForYouTitle: "من أجلك",
     todayQuotesTitle: "عروض أسعار بانتظار اختيارك",
     todayQuotesBody: "راجع عروض {service} واختر من سينفّذ العمل.",
     todayBookedTitle: "تم جدولة مهمتك",
@@ -1004,7 +999,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "اجعل منزلك أذكى مع Klussie",
     todayEmptyBody: "أضف أول غرفة أو تركيبة أو غرض منزلي.",
     todayEmptyCta: "إعداد منزلي",
-    homeActiveTitle: "قيد التنفيذ الآن",
 
     myHomeQuestion: "ما الذي تريد الاطلاع عليه أو تتبعه بشأن منزلك؟",
     homeReportProblem: "الإبلاغ عن مشكلة",
@@ -1177,7 +1171,7 @@ export const HOME_STRINGS = {
     safetyBody: "بوی گاز می‌آید، آتش می‌بینید، آب جمع شده یا خطر برق‌گرفتگی هست؟ ابتدا با اورژانس یا شرکت خدمات تماس بگیرید. Klussie تشخیص پزشکی یا فنی نمی‌دهد.",
     safetyContinue: "با این حال درخواستم را ادامه بده", safetyBack: "بازگشت",
 
-    todayHeading: "امروز برای خانه شما",
+    homeForYouTitle: "برای شما",
     todayQuotesTitle: "پیشنهادهای قیمت منتظر انتخاب شماست",
     todayQuotesBody: "پیشنهادهای {service} را ببینید و انتخاب کنید چه کسی کار را انجام دهد.",
     todayBookedTitle: "کار شما زمان‌بندی شد",
@@ -1194,7 +1188,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "خانه‌تان را با Klussie هوشمندتر کنید",
     todayEmptyBody: "اولین اتاق، تجهیزات یا وسیله خانه‌تان را اضافه کنید.",
     todayEmptyCta: "تنظیم خانه من",
-    homeActiveTitle: "همین حالا در جریان",
 
     myHomeQuestion: "می‌خواهید چه چیزی از خانه‌تان را ببینید یا ثبت کنید؟",
     homeReportProblem: "گزارش مشکل",
@@ -1369,7 +1362,7 @@ export const HOME_STRINGS = {
     safetyBody: "Gaz kokusu alıyor, ateş görüyor, su birikmesi ya da elektrik tehlikesi mi var? Önce acil servisi veya şebeke operatörünü ara. Klussie teşhis koymaz.",
     safetyContinue: "Yine de talebimle devam et", safetyBack: "Geri",
 
-    todayHeading: "Bugün evin için",
+    homeForYouTitle: "Senin için",
     todayQuotesTitle: "Teklifler seçimini bekliyor",
     todayQuotesBody: "{service} için teklifleri incele ve işi kimin yapacağını seç.",
     todayBookedTitle: "İşin planlandı",
@@ -1386,7 +1379,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "Klussie ile evini daha akıllı yap",
     todayEmptyBody: "İlk odanı, tesisatını veya ev eşyanı ekle.",
     todayEmptyCta: "Evimi ayarla",
-    homeActiveTitle: "Şu anda devam ediyor",
 
     myHomeQuestion: "Evinle ilgili neyi görmek veya takip etmek istersin?",
     homeReportProblem: "Sorun bildir",
@@ -1559,7 +1551,7 @@ export const HOME_STRINGS = {
     safetyBody: "Чувствуете запах газа, видите огонь, стоит вода или есть опасность от электричества? Сначала позвоните в экстренные службы или своему сетевому оператору. Klussie не ставит диагноз.",
     safetyContinue: "Всё равно продолжить заявку", safetyBack: "Назад",
 
-    todayHeading: "Сегодня для вашего дома",
+    homeForYouTitle: "Для тебя",
     todayQuotesTitle: "Предложения ждут вашего выбора",
     todayQuotesBody: "Посмотрите предложения по услуге «{service}» и выберите исполнителя.",
     todayBookedTitle: "Работа запланирована",
@@ -1576,7 +1568,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "Сделайте свой дом умнее с Klussie",
     todayEmptyBody: "Добавьте первую комнату, установку или бытовую вещь.",
     todayEmptyCta: "Настроить мой дом",
-    homeActiveTitle: "Сейчас в работе",
 
     myHomeQuestion: "Что вы хотите посмотреть или отслеживать по своему дому?",
     homeReportProblem: "Сообщить о проблеме",
@@ -1749,7 +1740,7 @@ export const HOME_STRINGS = {
     safetyBody: "闻到煤气、看到明火、有积水或存在触电危险吗？请先联系急救部门或供电供气单位。Klussie 不做诊断。",
     safetyContinue: "仍然继续我的申请", safetyBack: "返回",
 
-    todayHeading: "今天为你的家",
+    homeForYouTitle: "为你",
     todayQuotesTitle: "报价正在等你选择",
     todayQuotesBody: "查看「{service}」的报价，选择由谁来做。",
     todayBookedTitle: "你的工作已排期",
@@ -1766,7 +1757,6 @@ export const HOME_STRINGS = {
     todayEmptyTitle: "用 Klussie 让你的家更聪明",
     todayEmptyBody: "添加第一个房间、设备或家居物品。",
     todayEmptyCta: "设置我的住宅",
-    homeActiveTitle: "正在进行中",
 
     myHomeQuestion: "关于你的住宅，你想查看或记录什么？",
     homeReportProblem: "报告问题",

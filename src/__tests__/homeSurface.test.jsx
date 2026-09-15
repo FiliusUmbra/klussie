@@ -593,7 +593,7 @@ describe("motion", () => {
   it("gives every animated homepage element a reduced-motion path", () => {
     const blocks = HOME_CSS.match(/@media \(prefers-reduced-motion: reduce\)\{[^}]*\{[^}]*\}[^}]*\}/g) || [];
     const reduced = blocks.join(" ");
-    for (const selector of [".seg-tab", ".intent-chip", ".today-card", ".conv-textrow-tool"]) {
+    for (const selector of [".seg-tab", ".intent-tile", ".today-card", ".conv-textrow-tool"]) {
       expect(reduced, selector).toContain(selector);
     }
   });

@@ -93,23 +93,31 @@ export const HOME_CSS = `
    showed a focus indicator to anyone. Removed rather than re-scoped to :focus-visible:
    deleting the local override is what lets the app's one global rule actually govern it. */
 
-/* ---- intent suggestions ---- */
-.intent-row{ display:flex; flex-wrap:wrap; gap:var(--space-2); }
-/* Tightened after measuring: at the original padding the five Dutch labels wrapped
-   onto four rows and cost 200px, pushing the composer most of the way down the
-   viewport. The chips still hold their 44px touch target — only the horizontal
-   padding gave way, which is what lets two of them share a row at 375px. */
-.intent-chip{
-  display:inline-flex; align-items:center; gap:var(--space-1); min-height:44px;
-  padding:var(--space-2) var(--space-3); border-radius:999px;
-  border:1px solid var(--line); background:var(--surface); color:var(--ink);
-  font-family:var(--font-body); font-size:12px; font-weight:600; cursor:pointer;
+/* ---- intent suggestions ----
+   Homepage redesign, 2026-09-15 — a 3-column grid of icon tiles replaces the old
+   wrapping row of text-only chips ("visual buttons," not a line of labels to read).
+   Five real intents fill two rows (3 + 2) at any locale's label length, so this no
+   longer needs the old chip row's own "tightened after measuring" padding hack --
+   a tile's width comes from the grid column, never from how long its own label runs. */
+.intent-grid{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--space-2); }
+.intent-tile{
+  display:flex; flex-direction:column; align-items:center; gap:6px; min-height:44px;
+  padding:var(--space-3) var(--space-1); border-radius:16px;
+  border:1px solid var(--line-soft); background:var(--surface); box-shadow:var(--shadow-card);
+  font-family:var(--font-body); cursor:pointer;
   transition:background var(--motion-base), border-color var(--motion-base), transform var(--motion-fast);
 }
-.intent-chip:active{ transform:scale(0.98); }
-.intent-chip-on{ background:var(--forest); border-color:var(--forest); color:#fff; }
-.intent-chip-mark{ font-size:12px; opacity:0.7; }
-.intent-chip-on .intent-chip-mark{ opacity:1; }
+.intent-tile:active{ transform:scale(0.98); }
+.intent-tile-icon{
+  width:38px; height:38px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--sage-bg); color:var(--forest-dark);
+  transition:background var(--motion-base), color var(--motion-base);
+}
+.intent-tile-label{ font-size:11px; font-weight:600; color:var(--ink); text-align:center; line-height:1.25; }
+.intent-tile-on{ background:var(--forest); border-color:var(--forest); }
+.intent-tile-on .intent-tile-icon{ background:rgba(255,255,255,0.18); color:#fff; }
+.intent-tile-on .intent-tile-label{ color:#fff; }
 
 /* ---- the ask (composer + one follow-up question at a time) ---- */
 .home-ask{ display:flex; flex-direction:column; gap:var(--space-2); }
@@ -179,7 +187,12 @@ export const HOME_CSS = `
 [dir="rtl"] .today-card-chev{ transform:scaleX(-1); }
 .today-empty-cta{ margin-top:var(--space-2); min-height:44px; }
 
-/* ---- what is already running ---- */
+/* ---- "for you": the highlighted today-card, then what else is already running ----
+   Homepage redesign, 2026-09-15 -- one shared section (KlussiePanel.jsx's own
+   .home-foryou) replaces the old separately-headed "today"/"what is already running"
+   pair; this gap is what used to come from .home-body's own flex gap separating two
+   independent <section> elements. */
+.home-foryou{ display:flex; flex-direction:column; gap:var(--space-2); }
 .home-active-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
 .home-active-row{
   display:flex; align-items:center; gap:var(--space-3); width:100%; text-align:start;
@@ -187,6 +200,15 @@ export const HOME_CSS = `
   padding:var(--space-3) var(--space-4); min-height:44px; cursor:pointer;
   font-family:var(--font-body); color:var(--ink-soft);
 }
+/* Same icon-badge language .today-card-glyph already uses just above, at a slightly
+   smaller size -- a running request is real content, not a plainer row that merely
+   happens to share this section with the highlighted card above it. */
+.home-active-glyph{
+  width:28px; height:28px; border-radius:9px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--sage-bg); color:var(--forest-dark);
+}
+.home-active-glyph-amber{ background:var(--amber-bg); color:var(--amber-dark); }
 .home-active-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
 .home-active-name{ font-size:13px; font-weight:600; color:var(--ink); }
 .home-active-state{ font-size:11.5px; color:var(--ink-soft); }
@@ -545,7 +567,7 @@ export const HOME_CSS = `
 }
 
 @media (prefers-reduced-motion: reduce){
-  .seg-tab, .intent-chip, .today-card, .conv-textrow-tool{ transition:none; }
-  .intent-chip:active, .today-card:active{ transform:none; }
+  .seg-tab, .intent-tile, .today-card, .conv-textrow-tool{ transition:none; }
+  .intent-tile:active, .today-card:active{ transform:none; }
 }
 `;

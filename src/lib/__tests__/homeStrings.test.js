@@ -81,7 +81,10 @@ describe("the homepage strings that must not be Dutch-only", () => {
 
   it("keeps the Dutch reference copy the brief specified verbatim", () => {
     expect(HOME_STRINGS.nl.homeQuestion).toBe("Waarmee kan Klussie je vandaag helpen?");
-    expect(HOME_STRINGS.nl.todayHeading).toBe("Vandaag voor jouw woning");
+    // Homepage redesign, 2026-09-15: todayHeading ("Vandaag voor jouw woning") and
+    // homeActiveTitle ("Loopt op dit moment") merged into one shared heading once
+    // their two sections merged into one -- see KlussiePanel.jsx's own header.
+    expect(HOME_STRINGS.nl.homeForYouTitle).toBe("Voor jou");
     expect(HOME_STRINGS.nl.myHomeQuestion).toBe("Wat wil je over je woning bekijken of bijhouden?");
     expect(HOME_STRINGS.nl.myItemsQuestion).toBe("Wat wil je toevoegen of terugvinden?");
     expect(HOME_STRINGS.nl.homeComposerPlaceholder).toBe("Beschrijf kort wat er aan de hand is…");

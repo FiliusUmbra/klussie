@@ -221,7 +221,17 @@ export const APP_CSS = `
    every screen depends on to get anywhere (Epic 03 WP10). */
 .tab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:44px; gap:3px; background:none; border:none; font-size:10px; color:var(--ink-soft); font-family:var(--font-body); font-weight:600; cursor:pointer; }
 .tab-on{ color:var(--forest); }
-.tab-icon-wrap{ position:relative; }
+/* Homepage redesign, 2026-09-15 -- the active tab's icon now sits in the same rounded
+   colored badge every other icon on the redesigned homepage uses (intent tiles,
+   today-card glyph), rather than relying on a color change alone to show which tab is
+   selected. width/height/border-radius are new; position:relative is unchanged, so
+   .tab-badge's own corner offset below still anchors correctly. */
+.tab-icon-wrap{
+  position:relative; width:34px; height:34px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  transition:background var(--motion-base);
+}
+.tab-on .tab-icon-wrap{ background:var(--sage-bg); }
 /* --amber-dark, not --amber: white text on #E8A33D is ~2.16:1, failing even at this
    badge's own bold weight -- the unread count itself is real text (a number), not
    decoration, so the 4.5:1 floor applies. #8a5c14 gets white text to ~5.8:1. */
