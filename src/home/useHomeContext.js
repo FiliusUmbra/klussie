@@ -60,8 +60,10 @@ export function useHomeContext({ t, profile, requests }) {
   // items/maintenance) is now usePropertyTwin.js's own concern, shared with ProApp.jsx's
   // "My Business" tab. See that hook's own header for why trust stayed behind here
   // instead of moving with it.
-  const { workspaceId, homeProfile, homeProfileError, propertyId, items, itemsError, maintenance, refreshItems } =
-    usePropertyTwin();
+  const {
+    workspaceId, homeProfile, homeProfileError, propertyId, items, itemsError, maintenance, refreshItems,
+    properties, activePropertyId, selectProperty,
+  } = usePropertyTwin();
 
   useEffect(() => {
     let cancelled = false;
@@ -116,5 +118,9 @@ export function useHomeContext({ t, profile, requests }) {
     // useAuth() a second time or reaching into homeProfile.property.id themselves.
     workspaceId,
     propertyId,
+    // Home foundation slice — PropertySwitcher.jsx's own read/write surface.
+    properties,
+    activePropertyId,
+    selectProperty,
   };
 }

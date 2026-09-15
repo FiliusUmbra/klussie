@@ -39,18 +39,19 @@ const EMPTY_HOME = Object.freeze({
 // Epic 05 WP06. `null` on any failure — no migrations in this database, `api` not yet
 // exposed to PostgREST (ADR-0026), or genuinely no property backfilled yet — logged, never
 // thrown, the same idiom workspaceContext.js's loadWorkspaceMemberships() established.
-// Takes the first row: a workspace currently stewards at most one backfilled property
-// (WP 05.02), and picking among several — if that ever changes — is not this function's
-// job any more than resolveActiveWorkspace's was for workspaces.
-async function loadProperty() {
+//
+// Home foundation slice — reopens WP 05.02's own "takes the first row" restraint, now that
+// a workspace can genuinely steward more than one home-kind property (Profile's own "Add
+// property"). `propertyId`, when given, picks that property from the full list; omitted or
+// not found (stale/removed), this falls back to the first one, the exact behavior every
+// existing caller already had. Reuses fetchMyProperties() rather than issuing its own
+// my_properties() RPC call — one fewer duplicated round-trip definition, same underlying
+// request ServiceLocationField.jsx already makes independently.
+async function loadProperty(propertyId) {
   try {
-    const { data, error } = await supabase.schema("api").rpc("my_properties");
-    if (error) {
-      console.warn("property context unavailable, continuing without it:", error.message);
-      return null;
-    }
-    const property = Array.isArray(data) ? data[0] : null;
-    return property ? shapeProperty(property) : null;
+    const properties = await fetchMyProperties();
+    if (!propertyId) return properties[0] ?? null;
+    return properties.find((p) => p.id === propertyId) ?? properties[0] ?? null;
   } catch (err) {
     console.warn("property context unavailable, continuing without it:", err.message);
     return null;
@@ -80,11 +81,12 @@ export function hasConfirmedAddress(property) {
 }
 
 /**
- * Every property the caller currently stewards (`api.my_properties()`, migration 0185).
- * Unlike `loadProperty()`/`fetchHomeProfile()`, which pick the first row for the My Home
- * surface, this returns the full list — the input to the service-location picker's
- * "My Home / another saved property" choice (`ServiceLocationField.jsx`). A workspace with
- * exactly one property (today's common case) simply renders that one choice.
+ * Every genuine, reusable property the caller currently stewards (`api.my_properties()`,
+ * migration 0225 — a one-time service address is `kind = 'one_time'` and never returned
+ * here). The full list: the input to the service-location picker's "My Home / another
+ * saved property" choice (`ServiceLocationField.jsx`), `PropertySwitcher.jsx`'s own choices,
+ * and Profile's "My properties" section. `loadProperty()`/`fetchHomeProfile()` pick one row
+ * out of this same list for the My Home surface rather than issuing a separate query.
  */
 export async function fetchMyProperties() {
   const { data, error } = await supabase.schema("api").rpc("my_properties");
@@ -264,8 +266,12 @@ async function loadDocuments(propertyId) {
 // identical in shape to "a property with nothing recorded in it" from every caller's own
 // point of view (homeInventory.test.js's own "still returns every field... all empty"
 // case pins exactly this).
-export async function fetchHomeProfile() {
-  const property = await loadProperty();
+//
+// `propertyId` (Home foundation slice) selects which of the caller's own properties this
+// resolves — usePropertyTwin.js's own activePropertyId, once PropertySwitcher.jsx makes
+// more than one selectable. Omitted, this keeps the original single-property behavior.
+export async function fetchHomeProfile(propertyId) {
+  const property = await loadProperty(propertyId);
   if (!property) return EMPTY_HOME;
 
   const [flatLocations, documents] = await Promise.all([
@@ -280,7 +286,13 @@ export async function fetchHomeProfile() {
  * Creates a property for a workspace the caller has a live membership in
  * (`api.create_property()`, WP 1.10) — Option B's own lazy-creation trigger: a
  * Professional workspace's "My Business" tab, opened for the first time with no
- * property yet. `actorRef` is the caller's own auth id (ADR-0019).
+ * property yet, and (Home foundation slice) Profile's own "Add property" for a customer
+ * who genuinely has a second home. `actorRef` is the caller's own auth id (ADR-0019).
+ *
+ * `kind` (migration 0225) defaults to `"home"` — a real, reusable saved property. The one
+ * caller that ever passes `"one_time"` is requests.js's own resolveRequestLocation(), for
+ * a single request's own service address; that row deliberately never appears in
+ * fetchMyProperties() again.
  *
  * No "already has one" guard exists at the contract level (§9.1 permits many
  * properties) — callers are expected to check fetchHomeProfile()'s own `property` field
@@ -288,7 +300,7 @@ export async function fetchHomeProfile() {
  * Business" tab does. Calling this when a property already exists creates a genuine
  * second one, not an error.
  */
-export async function createPropertyForCaller({ workspaceId, actorRef, name }) {
+export async function createPropertyForCaller({ workspaceId, actorRef, name, kind = "home" }) {
   const propertyId = uuidv7();
 
   const { error } = await supabase.schema("api").rpc("create_property", {
@@ -299,6 +311,7 @@ export async function createPropertyForCaller({ workspaceId, actorRef, name }) {
     p_correlation_id: uuidv7(),
     p_actor_type: "person",
     p_actor_ref: actorRef,
+    p_kind: kind,
   });
   if (error) throw error;
 

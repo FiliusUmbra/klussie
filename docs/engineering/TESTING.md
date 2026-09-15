@@ -248,6 +248,7 @@ something it depends on.
 | C37 | Marking a task done, or cancelling one with a required reason, calls the real contract, reflects the change immediately without closing the sheet, and shows the generic localized error, never a raw one, on failure | `ItemDetailSheet` *(automated)* |
 | C38 | Setting a recurring cadence (a plain-language picker, never free-form interval entry) creates a real schedule; a schedule with no open task yet shows its own "Stop future reminders" row, while one that already has an open task shows the action from that task's own row instead — never both, and never inferred from Mark done/Cancel task | `ItemDetailSheet` *(automated)* |
 | C39 | The nightly server-owned generation job (pg_cron, `work.run_maintenance_schedule_generation()`) creates exactly one obligation per due schedule per day, is idempotent across repeated real invocations (no duplicate due dates), and a schedule creation seeds its first occurrence immediately only when already due | `work.maintenance_schedules`/`work.maintenance_obligations` (migration 0205, live-verified on staging) |
+| C40 | Home foundation slice (2026-09-15, migration 0225, reopens WP 05.02) — a customer stewarding more than one home-kind property (via Profile's own "Add property", F7) sees a switcher in My Home; picking one reloads the property twin (rooms/documents/items) for that property. Renders nothing below two properties, the same "invisible for the single case" rule `WorkspaceSwitcher` already holds itself to | `PropertySwitcher` *(automated)* |
 
 ### 5.5 · Professional
 
@@ -316,6 +317,7 @@ built from.
 | F4 | Contact details stay private until a booking exists | `ProPublicProfileSheet` |
 | F5 | Requesting to join an existing business, and a real owner approving or declining that request (Pro Workspace remarks, 2026-09-12, Theme C; migration 0220) | `JoinBusinessSheet` *(automated)*, `Profile` *(automated)* |
 | F6 | A pro describes a service that isn't on the list; the AI either matches it (attached to their profile immediately) or proposes a genuinely new one for a real operator to review (Pro Workspace remarks, 2026-09-12, Theme E; migration 0221) | `SuggestServiceSheet` *(automated)*, `Profile` *(automated)* |
+| F7 | Home foundation slice (2026-09-15, migration 0225, reopens WP 05.02) — "Add property" creates a genuine second home-kind property (name + address), stewarded by the same workspace, reachable from Profile rather than My Home (Profile is already where every other "add a thing to my account" action lives). A one-time service address (`resolveRequestLocation()`, requests.js) is a different `kind` and never appears here or in My Home's own switcher | `AddPropertySheet` *(automated)*, `Profile` *(automated)* |
 
 ### 5.8 · Cross-cutting
 
@@ -419,7 +421,11 @@ alike — UNIFIED_PROFILE_DESIGN.md §5 step 4), `ProviderIcons.jsx`
 (added 2026-09-07 — four real OAuth-provider marks `WelcomeScreen.jsx`
 renders inline on its own buttons, the same role `Mail` from
 lucide-react already plays there; see that file's own header for
-where each mark came from).
+where each mark came from), `AddressSubForm.jsx` (added 2026-09-15,
+Home foundation slice — the street/house number/postcode/municipality/
+property-type/quote-prep-notes fields, extracted out of
+`ServiceLocationField.jsx` so `AddPropertySheet.jsx` reuses the same
+markup rather than a second copy of it).
 
 ## 8 · Updating this baseline
 

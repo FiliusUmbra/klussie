@@ -29,6 +29,11 @@ vi.mock("../../lib/workspaceJoin.js", () => ({
 vi.mock("../../lib/serviceSuggestions.js", () => ({
   suggestService: vi.fn(),
 }));
+vi.mock("../../lib/homeInventory.js", () => ({
+  fetchMyProperties: vi.fn(() => Promise.resolve([])),
+  createPropertyForCaller: vi.fn(() => Promise.resolve({ id: "prop-new" })),
+  setPropertyAddress: vi.fn(() => Promise.resolve()),
+}));
 
 import { LangContext } from "../../lib/lang";
 import { Profile } from "../Profile.jsx";
@@ -37,6 +42,7 @@ import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../
 import { deleteTestimonial, fetchTestimonials } from "../../lib/testimonials";
 import { fetchJoinRequests, decideJoinRequest, requestToJoinWorkspace } from "../../lib/workspaceJoin.js";
 import { suggestService } from "../../lib/serviceSuggestions.js";
+import { fetchMyProperties, createPropertyForCaller } from "../../lib/homeInventory.js";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = {
@@ -110,6 +116,64 @@ describe("Profile — customer variant, become a pro", () => {
   it("hides the invitation when no handler is provided at all", () => {
     renderProfile("customer", ONE_WORKSPACE, { requests: [] });
     expect(screen.queryByText("becomeProPrompt")).toBeNull();
+  });
+});
+
+// Home foundation slice (2026-09-15, migration 0225) — "Add property" is the real entry
+// point that makes multi-property support reachable by a customer; it lives here, not in
+// My Home, alongside every other "add a thing to my account" action (become a pro, join a
+// business).
+describe("Profile — customer variant, My properties (Home foundation slice)", () => {
+  const ONE_WORKSPACE = [{ workspace_id: "ws-1", workspace_name: "My Home", workspace_type: "personal" }];
+  const HOME = { id: "p1", name: "My Home", municipality: "Antwerpen" };
+  const HOLIDAY = { id: "p2", name: "Vakantiehuis", municipality: "Oostende" };
+
+  beforeEach(() => {
+    vi.mocked(fetchMyProperties).mockReset().mockResolvedValue([HOME]);
+    vi.mocked(createPropertyForCaller).mockReset().mockResolvedValue({ id: "prop-new" });
+  });
+
+  it("fetches and lists the caller's own real properties, not a fabricated count", async () => {
+    vi.mocked(fetchMyProperties).mockResolvedValue([HOME, HOLIDAY]);
+    renderProfile("customer", ONE_WORKSPACE, { requests: [] });
+
+    await waitFor(() => expect(fetchMyProperties).toHaveBeenCalled());
+    expect(await screen.findByText("My Home")).toBeTruthy();
+    expect(screen.getByText("Vakantiehuis")).toBeTruthy();
+    expect(screen.getByText("Oostende")).toBeTruthy();
+  });
+
+  it("shows the Add property action, and opens AddPropertySheet when tapped", async () => {
+    renderProfile("customer", ONE_WORKSPACE, { requests: [] });
+    await waitFor(() => expect(fetchMyProperties).toHaveBeenCalled());
+
+    expect(screen.queryByText("addPropertyTitle")).toBeNull();
+    fireEvent.click(screen.getByText("addPropertyBtn"));
+
+    expect(screen.getByText("addPropertyTitle")).toBeTruthy();
+  });
+
+  it("re-fetches the property list after a real save, so the new property shows without a reload", async () => {
+    renderProfile("customer", ONE_WORKSPACE, { requests: [] });
+    await waitFor(() => expect(fetchMyProperties).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByText("addPropertyBtn"));
+    fireEvent.change(screen.getByLabelText("addPropertyNameLabel"), { target: { value: "Vakantiehuis" } });
+    fireEvent.change(screen.getByLabelText("addressStreetLabel"), { target: { value: "Zeedijk" } });
+    fireEvent.change(screen.getByLabelText("addressPostcodeLabel"), { target: { value: "8400" } });
+    fireEvent.change(screen.getByLabelText("addressMunicipalityLabel"), { target: { value: "Oostende" } });
+
+    vi.mocked(fetchMyProperties).mockResolvedValue([HOME, HOLIDAY]);
+    fireEvent.click(screen.getByText("addPropertySubmitBtn"));
+
+    await waitFor(() => expect(fetchMyProperties).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Vakantiehuis")).toBeTruthy();
+  });
+
+  it("shows nothing extra while the list is still resolving — no zero-count flash", () => {
+    vi.mocked(fetchMyProperties).mockReturnValue(new Promise(() => {})); // never resolves
+    renderProfile("customer", ONE_WORKSPACE, { requests: [] });
+    expect(screen.queryByText("My Home")).toBeNull();
   });
 });
 
