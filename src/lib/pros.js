@@ -189,13 +189,28 @@ export async function fetchPublicProInfo(proIds) {
 
 // Returns display info keyed by the person's auth user id, or null if the resolver is
 // unavailable — which is the signal to keep using the embedded profile above.
+//
+// Found by code audit, 2026-09-15: only the RPC's own resolved `{error}` field was ever
+// guarded — no try/catch around the `await` itself, so a genuine thrown/rejected failure
+// (a network drop mid-request) skipped the "fall back to profiles" path entirely and
+// propagated straight out of fetchPublicProInfo() (which does not wrap this call either),
+// taking down its own already-successful pro_profiles query along with it. The one thing
+// this fallback exists for — a database without Epic 02's migrations, or any other real
+// reason the resolver call can't complete — must degrade the same way regardless of
+// whether the RPC resolves with an error or rejects outright. Matches documents.js's/
+// serviceRecords.js's own fix for the identical gap (PR #192).
 async function resolveDisplay(ids) {
-  const { data, error } = await supabase.rpc("resolve_identity_display", { p_auth_user_ids: ids });
-  if (error) {
-    console.warn("identity display resolution unavailable, falling back to profiles:", error.message);
+  try {
+    const { data, error } = await supabase.rpc("resolve_identity_display", { p_auth_user_ids: ids });
+    if (error) {
+      console.warn("identity display resolution unavailable, falling back to profiles:", error.message);
+      return null;
+    }
+    return Object.fromEntries((data ?? []).map((row) => [row.auth_user_id, row]));
+  } catch (err) {
+    console.warn("identity display resolution unavailable, falling back to profiles:", err.message);
     return null;
   }
-  return Object.fromEntries((data ?? []).map((row) => [row.auth_user_id, row]));
 }
 
 // Minimum platform-wide review count before an average rating may be shown at all.

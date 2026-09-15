@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../supabaseClient", () => ({
-  supabase: { from: vi.fn() },
+  supabase: { from: vi.fn(), rpc: vi.fn() },
 }));
 
 import { supabase } from "../supabaseClient";
@@ -19,16 +19,19 @@ import {
   fetchPlatformTrustStats,
   fetchProServices,
   updateProServices,
+  fetchPublicProInfo,
   initialsFrom,
   MIN_REVIEWS_FOR_PLATFORM_RATING,
 } from "../pros";
 
-// Stands in for supabase-js's chainable, thenable builder, supporting the two chains
-// pros.js actually uses: .select().eq() awaited, and .select() awaited directly.
+// Stands in for supabase-js's chainable, thenable builder, supporting the three chains
+// pros.js actually uses: .select().eq() awaited, .select() awaited directly, and
+// .select().in() awaited (fetchPublicProInfo's own pro_profiles query).
 function createQueryBuilder(result) {
   const builder = {
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    in: vi.fn(() => builder),
     then: (onFulfilled, onRejected) => Promise.resolve(result).then(onFulfilled, onRejected),
   };
   return builder;
@@ -61,6 +64,7 @@ function proServiceRow({
 
 beforeEach(() => {
   vi.mocked(supabase.from).mockReset();
+  vi.mocked(supabase.rpc).mockReset();
 });
 
 describe("trustScore", () => {
@@ -506,5 +510,89 @@ describe("fetchPlatformTrustStats", () => {
   it("throws on a query error rather than reporting an empty platform", async () => {
     supabase.from.mockReturnValue(createQueryBuilder({ data: null, error: { message: "denied" } }));
     await expect(fetchPlatformTrustStats()).rejects.toMatchObject({ message: "denied" });
+  });
+});
+
+// One row in the shape fetchPublicProInfo's own nested select returns.
+function proProfileRow({
+  id = "pro-1",
+  proType = "solo",
+  bio = null,
+  fullName = "Peter Painter",
+  avatarUrl = null,
+  rating = 4,
+  ratingCount = 10,
+  badgeTier = null,
+  isCertified = false,
+} = {}) {
+  return {
+    profile_id: id,
+    pro_type: proType,
+    bio,
+    profiles: { full_name: fullName, avatar_url: avatarUrl },
+    pro_stats: { rating_avg: rating, rating_count: ratingCount, badge_tier: badgeTier, is_certified: isCertified },
+  };
+}
+
+// No test coverage existed for fetchPublicProInfo()/resolveDisplay() before this —
+// the exact gap that let resolveDisplay()'s own missing try/catch (fixed alongside
+// these tests, matching documents.js's/serviceRecords.js's PR #192) go unnoticed.
+describe("fetchPublicProInfo", () => {
+  it("returns an empty object without querying when proIds is empty", async () => {
+    const result = await fetchPublicProInfo([]);
+    expect(result).toEqual({});
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("uses the resolver's own name when it answers, not the embedded profile", async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ data: [proProfileRow({ id: "pro-1", fullName: "Embedded Name" })], error: null }));
+    supabase.rpc.mockResolvedValue({ data: [{ auth_user_id: "pro-1", full_name: "Resolved Name", avatar_url: null }], error: null });
+
+    const result = await fetchPublicProInfo(["pro-1"]);
+
+    expect(result["pro-1"].name).toBe("Resolved Name");
+  });
+
+  // The exact distinction resolveDisplay()'s own header names: the resolver ANSWERING
+  // with no row for someone means they resolve to nothing (erasure), never a reason to
+  // fall back to the embedded `profiles` name.
+  it("does not fall back to the embedded profile when the resolver answered but has no row for this person", async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ data: [proProfileRow({ id: "pro-1", fullName: "Embedded Name" })], error: null }));
+    supabase.rpc.mockResolvedValue({ data: [], error: null });
+
+    const result = await fetchPublicProInfo(["pro-1"]);
+
+    expect(result["pro-1"].name).toBeNull();
+  });
+
+  it("falls back to the embedded profile when the resolver reports itself unavailable", async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ data: [proProfileRow({ id: "pro-1", fullName: "Embedded Name" })], error: null }));
+    supabase.rpc.mockResolvedValue({ data: null, error: { message: "function does not exist" } });
+
+    const result = await fetchPublicProInfo(["pro-1"]);
+
+    expect(result["pro-1"].name).toBe("Embedded Name");
+  });
+
+  // Found by code audit, 2026-09-15: resolveDisplay() only ever guarded the RPC's own
+  // resolved {error} field, not a genuine reject — a network drop mid-request escaped
+  // as an unhandled rejection that took the whole fetchPublicProInfo() call down with
+  // it, discarding the pro_profiles query's own already-successful result. Fixed to
+  // fall back exactly like the "resolver reports itself unavailable" case above.
+  it("falls back to the embedded profile rather than throwing when the resolver's own call throws", async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ data: [proProfileRow({ id: "pro-1", fullName: "Embedded Name" })], error: null }));
+    supabase.rpc.mockRejectedValue(new Error("network unavailable"));
+
+    const result = await fetchPublicProInfo(["pro-1"]);
+
+    expect(result["pro-1"].name).toBe("Embedded Name");
+  });
+
+  it("throws the real error when the pro_profiles query itself fails, before ever calling the resolver", async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ data: null, error: { message: "denied" } }));
+
+    await expect(fetchPublicProInfo(["pro-1"])).rejects.toMatchObject({ message: "denied" });
+
+    expect(supabase.rpc).not.toHaveBeenCalled();
   });
 });
