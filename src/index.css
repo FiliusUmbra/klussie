@@ -17,7 +17,29 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  /* Found live, 2026-09-15: this file is a leftover Vite/Astro starter stylesheet --
+     the app's own real UI is entirely appStyles.js/homeStyles.js (the "phone" frame,
+     ticket cards, .stat rows, etc.), which have zero dark-mode CSS of their own (grep-
+     confirmed: no @media (prefers-color-scheme) anywhere in either file, before this
+     comment was written). `color-scheme: light dark` tells the browser this page
+     supports BOTH and invites it to render native form-control chrome (every bare
+     <textarea class="textarea"> -- 17 files, ReportSheet/ReviewSheet/
+     ServiceRecordEditorSheet/JoinBusinessSheet and more -- plus any other unwrapped
+     native input) with dark OS/browser styling on a dark-mode device. appStyles.js's own
+     `.textarea` rule never sets its own background (matching every native <input> this
+     app wraps in a light-background `.search` div instead, which is what protects those
+     from the same fate) -- so a dark-mode user got a near-black background with the
+     app's own fixed, light-theme `--ink` text color still applied on top: unreadable,
+     dark-on-dark text in every message/bio/notes field in the app. This file's own
+     `@media (prefers-color-scheme: dark)` block below (real, and correctly written) only
+     ever targeted `--text`/`--bg`/etc., none of which this app's actual UI reads --
+     confirming this file was authored for a different, no-longer-present light+dark page
+     (the classic Vite counter starter), not for klussie's own deliberately light-only
+     design (its own dark backdrop, `.stage` in appStyles.js, is a fixed, non-
+     media-query-dependent gradient, unaffected by this change either way). `light`
+     alone tells the browser to stop offering a dark native rendering it has no matching
+     dark app theme to go with. */
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
