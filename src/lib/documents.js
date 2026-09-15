@@ -73,23 +73,38 @@ export async function createDocument({ propertyId, assetId, workspaceId, actorRe
  * asset-aware since migration 0059 — only the write side, closed above, was ever
  * property-only). Same reshape as homeInventory.js's own property-level loadDocuments(),
  * so DocumentList renders either list identically.
+ *
+ * Found by code audit, 2026-09-15: unlike loadDocuments() (the sibling this function's
+ * own header says it matches), this only ever guarded the RPC's own `{error}` field --
+ * there was no try/catch around the `await` itself, so a genuine thrown/rejected failure
+ * (a network drop mid-request, not a normal Postgres error) became an unhandled promise
+ * rejection ItemDetailSheet.jsx's own effect (no .catch of its own) never saw. The
+ * existing test for this ("returns an empty list, not a throw, when the read fails")
+ * only ever mocked the resolved-with-error shape, never a real reject, so it never
+ * actually exercised this gap. loadDocuments()'s own try/catch is the correct, already-
+ * established idiom; matched here.
  */
 export async function fetchDocumentsForAsset(assetId) {
-  const { data, error } = await supabase.schema("api").rpc("my_documents", { p_asset_id: assetId });
-  if (error) {
-    console.warn("asset documents unavailable, continuing without them:", error.message);
+  try {
+    const { data, error } = await supabase.schema("api").rpc("my_documents", { p_asset_id: assetId });
+    if (error) {
+      console.warn("asset documents unavailable, continuing without them:", error.message);
+      return [];
+    }
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      typeKey: row.type_key,
+      issuer: row.issuer,
+      validFrom: row.valid_from,
+      validUntil: row.valid_until,
+      caption: row.caption,
+      storageBucket: row.storage_bucket,
+      storagePath: row.storage_path,
+    }));
+  } catch (err) {
+    console.warn("asset documents unavailable, continuing without them:", err.message);
     return [];
   }
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    typeKey: row.type_key,
-    issuer: row.issuer,
-    validFrom: row.valid_from,
-    validUntil: row.valid_until,
-    caption: row.caption,
-    storageBucket: row.storage_bucket,
-    storagePath: row.storage_path,
-  }));
 }
 
 /**
@@ -99,14 +114,23 @@ export async function fetchDocumentsForAsset(assetId) {
  * no opening path at all until now. Returns null (never throws) on failure — matching
  * every other signed-URL caller's own "a missing photo/document is a gap in the list,
  * not a crash" convention — so the caller can show a disabled/failed state instead.
+ *
+ * Found by code audit, 2026-09-15: this claimed "never throws" but, like
+ * fetchDocumentsForAsset() above, had no try/catch of its own around the `await` --
+ * only the resolved `{error}` shape was actually handled. Closed the same way.
  */
 export async function getDocumentUrl(storageBucket, storagePath) {
-  const { data, error } = await supabase.storage.from(storageBucket).createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
-  if (error) {
-    console.warn("document signed URL unavailable:", error.message);
+  try {
+    const { data, error } = await supabase.storage.from(storageBucket).createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
+    if (error) {
+      console.warn("document signed URL unavailable:", error.message);
+      return null;
+    }
+    return data?.signedUrl || null;
+  } catch (err) {
+    console.warn("document signed URL unavailable:", err.message);
     return null;
   }
-  return data?.signedUrl || null;
 }
 
 // The label key for a document's type_key — one source of truth (PRODUCT_CONSTITUTION.md

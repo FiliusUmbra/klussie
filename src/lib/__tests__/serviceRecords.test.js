@@ -257,4 +257,13 @@ describe("fetchServiceRecordsForAsset", () => {
     rpcMock.mockResolvedValue({ data: null, error: new Error("network error") });
     expect(await fetchServiceRecordsForAsset("ws-1", "asset-1")).toEqual([]);
   });
+
+  // Found by code audit, 2026-09-15: the test above only ever mocked the *resolved*
+  // {data:null, error} shape, never a genuine reject -- it never actually proved this
+  // describe block's own "Never throws" header claim. Matches auditRecords.test.js's own
+  // "returns an empty page rather than throwing when the client itself throws" idiom.
+  it("returns an empty list rather than throwing when the client itself throws", async () => {
+    rpcMock.mockRejectedValue(new Error("network unavailable"));
+    expect(await fetchServiceRecordsForAsset("ws-1", "asset-1")).toEqual([]);
+  });
 });

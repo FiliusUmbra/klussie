@@ -150,6 +150,19 @@ describe("fetchDocumentsForAsset", () => {
 
     expect(docs).toEqual([]);
   });
+
+  // Found by code audit, 2026-09-15: the test above only ever mocked the *resolved*
+  // {data:null, error} shape, never a genuine reject -- it never actually proved the
+  // "never throws" claim in fetchDocumentsForAsset()'s own header. Matches
+  // auditRecords.test.js's own "returns an empty page rather than throwing when the
+  // client itself throws" idiom.
+  it("returns an empty list rather than throwing when the client itself throws", async () => {
+    rpcMock.mockRejectedValue(new Error("network unavailable"));
+
+    const docs = await fetchDocumentsForAsset("asset-1");
+
+    expect(docs).toEqual([]);
+  });
 });
 
 // Item Detail slice — the first real "open/download" path for an already-attached
@@ -169,6 +182,18 @@ describe("getDocumentUrl", () => {
 
   it("returns null, not a throw, when signing fails", async () => {
     const createSignedUrl = vi.fn(() => Promise.resolve({ data: null, error: new Error("not found") }));
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrl });
+
+    const url = await getDocumentUrl("documents", "ws-1/doc-1/missing.pdf");
+
+    expect(url).toBeNull();
+  });
+
+  // Found by code audit, 2026-09-15: the test above only ever mocked the *resolved*
+  // {data:null, error} shape, never a genuine reject -- it never actually proved the
+  // "never throws" claim in this function's own header.
+  it("returns null rather than throwing when the client itself throws", async () => {
+    const createSignedUrl = vi.fn(() => Promise.reject(new Error("network unavailable")));
     vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrl });
 
     const url = await getDocumentUrl("documents", "ws-1/doc-1/missing.pdf");
