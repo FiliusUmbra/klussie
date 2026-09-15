@@ -6,6 +6,7 @@
 //
 // `labelKey` values are keys into `t` (src/lib/homeStrings.js) — never literal copy, so
 // all 10 locales stay real.
+import { Refrigerator, Tv, Sofa, Trees, Wrench, Package } from "lucide-react";
 
 /**
  * Item categories, in the order they are offered and grouped on the list.
@@ -14,14 +15,20 @@
  * 0016 — changing one is a migration, not a rename. 'other' is last and is the default
  * because a person who does not know how to classify their thing must still be able to
  * save it.
+ *
+ * `icon` — Item Detail redesign, 2026-09-15 — one representative glyph per broad
+ * category (never per specific device: this codebase has no "washing machine vs.
+ * dishwasher" taxonomy, only these six broad groups, so the icon reads as "this is an
+ * appliance," not a claim about which one). Same `{id, icon}` shape and lookup idiom
+ * catalog.js's own CATS already established, matched here rather than invented fresh.
  */
 export const ITEM_CATEGORIES = [
-  { id: "appliance", labelKey: "itemCatAppliance" },
-  { id: "electronics", labelKey: "itemCatElectronics" },
-  { id: "furniture", labelKey: "itemCatFurniture" },
-  { id: "garden", labelKey: "itemCatGarden" },
-  { id: "tool", labelKey: "itemCatTool" },
-  { id: "other", labelKey: "itemCatOther" },
+  { id: "appliance", labelKey: "itemCatAppliance", icon: Refrigerator },
+  { id: "electronics", labelKey: "itemCatElectronics", icon: Tv },
+  { id: "furniture", labelKey: "itemCatFurniture", icon: Sofa },
+  { id: "garden", labelKey: "itemCatGarden", icon: Trees },
+  { id: "tool", labelKey: "itemCatTool", icon: Wrench },
+  { id: "other", labelKey: "itemCatOther", icon: Package },
 ];
 
 export const DEFAULT_ITEM_CATEGORY = "other";
@@ -47,6 +54,14 @@ export const SUGGESTED_ROOMS = [
 export function categoryLabelKey(categoryId) {
   const hit = ITEM_CATEGORIES.find((c) => c.id === categoryId);
   return (hit ?? ITEM_CATEGORIES.find((c) => c.id === DEFAULT_ITEM_CATEGORY)).labelKey;
+}
+
+/** The icon component representing a category, or 'other's for one this client doesn't
+ * know (an item with no category at all included — same fallback shape as
+ * categoryLabelKey() above). */
+export function categoryIcon(categoryId) {
+  const hit = ITEM_CATEGORIES.find((c) => c.id === categoryId);
+  return (hit ?? ITEM_CATEGORIES.find((c) => c.id === DEFAULT_ITEM_CATEGORY)).icon;
 }
 
 /**

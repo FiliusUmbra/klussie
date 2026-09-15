@@ -278,7 +278,9 @@ describe("MyItemsPanel — Item Detail (real items only)", () => {
     fireEvent.click(screen.getByText("Washing machine").closest("button"));
 
     // Item Detail's own read-first identity view, not the edit form's "Name" field.
-    expect(screen.getByText("Edit details")).toBeTruthy();
+    // Edit is an icon-only action (Item Detail redesign, 2026-09-15) — queried by its
+    // accessible name (aria-label), not visible text.
+    expect(screen.getByRole("button", { name: "Edit details" })).toBeTruthy();
     expect(screen.queryByLabelText("Name")).toBeNull();
   });
 
@@ -288,14 +290,14 @@ describe("MyItemsPanel — Item Detail (real items only)", () => {
     fireEvent.click(screen.getByText("Washing machine").closest("button"));
 
     expect(screen.getByLabelText("Name")).toBeTruthy();
-    expect(screen.queryByText("Edit details")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit details" })).toBeNull();
   });
 
   it("opens the edit form from Item Detail's own 'Edit details' action", () => {
     render(<MyItemsPanel {...BASE_PROPS} items={[ITEM]} rooms={[]} documents={[]} maintenance={[]} propertyId="prop-1" workspaceId="ws-1" />);
 
     fireEvent.click(screen.getByText("Washing machine").closest("button"));
-    fireEvent.click(screen.getByText("Edit details"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
 
     expect(screen.getByLabelText("Name")).toBeTruthy();
   });

@@ -34,7 +34,7 @@
 // until a later slice teaches intake to ask "which item is this about" — that is correct
 // behaviour for what has actually happened, not a bug to hide.
 import { useEffect, useState } from "react";
-import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight, Sparkles, Check, X, BellOff, Repeat } from "lucide-react";
+import { Tag, MapPin, Calendar, ShieldCheck, ShieldAlert, ShieldQuestion, Pencil, ArrowLeftRight, Trash2, AlertTriangle, Plus, FileText, ChevronRight, Sparkles, Check, X, BellOff, Repeat, Send, Loader2 } from "lucide-react";
 import { Drawer, Modal, Button, Badge } from "../design-system";
 import { DocumentRowContent } from "./panelParts.jsx";
 import { DocumentUploadSheet } from "./DocumentUploadSheet.jsx";
@@ -48,6 +48,7 @@ import {
 } from "../lib/maintenance.js";
 import { suggestItemDetailsFromDocument, DOCUMENT_UNREADABLE } from "../lib/documentUnderstanding.js";
 import { flattenLocationsForPicker, resolveItemRoomName } from "../lib/homeInventory.js";
+import { ITEM_CATEGORIES, DEFAULT_ITEM_CATEGORY } from "../lib/itemCategories.js";
 import { interpolate } from "../lib/homeStrings.js";
 import { isPastLocalDate } from "../lib/dates.js";
 
@@ -352,10 +353,32 @@ export function ItemDetailSheet({
   // room_label — resolving against the real room tree is what makes a moved item show
   // its real new room here, rather than a stale label or "no room selected."
   const roomName = resolveItemRoomName(rooms, item.locationId, item.room);
+  // Item Detail redesign — a category glyph fills the identity avatar whenever there is
+  // no real photo, replacing the bare "first letter of the name" fallback. Never shown
+  // over a real photo, which always wins (a homeowner's own picture of their actual
+  // washing machine is real information; a generic category icon is not). A member
+  // expression, not a bare categoryIcon(...) call, on purpose — matches ServiceSheet.jsx's
+  // own `CATS.find((c) => c.id === service.cat).icon` shape exactly (react-hooks/
+  // static-components flags a capitalized variable assigned straight from a function
+  // call as "a component created during render," even though this one only ever looks
+  // up an existing icon from the same static ITEM_CATEGORIES table categoryIcon() itself
+  // reads — see that function's own tests for the equivalent, lint-safe-elsewhere logic).
+  const CategoryIcon = (ITEM_CATEGORIES.find((c) => c.id === item.category)
+    ?? ITEM_CATEGORIES.find((c) => c.id === DEFAULT_ITEM_CATEGORY)).icon;
 
   // Documents: null while resolving, matching every other lazily-loaded section's own
   // "never show empty prematurely" convention (useHomeContext.js's rooms/documents).
   const [documents, setDocuments] = useState(null);
+  // Item Detail redesign — whether a warranty PROOF document exists, distinct from
+  // item.warrantyExpiresOn (a plain date field, shown by WarrantyLine above; having a
+  // date does not mean a document backs it up, and vice versa). Only meaningful once
+  // documents have actually loaded, matching the null-while-loading convention above.
+  const hasWarrantyDocument = (documents || []).some((doc) => doc.typeKey === "warranty");
+  // Item Detail redesign — holds the type to pre-select, not just whether the sheet is
+  // open: the missing-warranty-document nudge opens straight into "warranty" rather
+  // than the generic default, since the customer already said which document this is
+  // by tapping that specific card. `false` closed, `true` open with no pre-selection
+  // (the existing plain "Add a document" action), a type key string pre-selects it.
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [openingDocId, setOpeningDocId] = useState(null);
   const [documentError, setDocumentError] = useState("");
@@ -678,44 +701,67 @@ export function ItemDetailSheet({
 
   return (
     <Drawer onClose={onClose} closeLabel={t.closeBtn}>
-      <div className="sheet-title">{item.name}</div>
-
-      <div className="item-detail-photo">
-        {item.photoUrl ? (
-          <img src={item.photoUrl} alt="" />
-        ) : (
-          <span className="item-card-initial" aria-hidden="true">{item.name[0]}</span>
-        )}
+      {/* Identity hero — Item Detail redesign, 2026-09-15. Replaces the old stacked
+          "sheet-title, then a photo square, then a facts list, then a full-width Edit
+          button" (four separate blocks reading as a form) with one grouped moment: the
+          category glyph (or a real photo, which always wins) sits beside the name so
+          "what is this" reads before any fact does, the same four real facts still
+          render exactly as before via WarrantyLine/property-fact (nothing about what
+          data shows changed, only where and how), and Edit collapses to the one icon
+          action in the corner every other screen in this drawer already treats as
+          secondary to the content itself. */}
+      <div className="item-detail-hero">
+        <button type="button" className="item-detail-hero-edit" onClick={onEdit} aria-label={t.itemDetailEditAction}>
+          <Pencil size={14} aria-hidden="true" />
+        </button>
+        <div className="item-detail-hero-row">
+          <div className="item-detail-hero-icon">
+            {item.photoUrl ? (
+              <img src={item.photoUrl} alt="" />
+            ) : (
+              <CategoryIcon size={26} aria-hidden="true" />
+            )}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="item-detail-hero-title">{item.name}</div>
+            <div className="property-facts" style={{ marginTop: 5 }}>
+              {(item.brand || item.model) && (
+                <span className="property-fact"><Tag size={13} aria-hidden="true" /> {[item.brand, item.model].filter(Boolean).join(" ")}</span>
+              )}
+              <span className="property-fact"><MapPin size={13} aria-hidden="true" /> {roomName || t.itemRoomNone}</span>
+              {item.purchasedOn && (
+                <span className="property-fact"><Calendar size={13} aria-hidden="true" /> {fmtDate(item.purchasedOn)}</span>
+              )}
+              <WarrantyLine t={t} fmtDate={fmtDate} warrantyExpiresOn={item.warrantyExpiresOn} />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="property-facts" style={{ marginBottom: 14 }}>
-        {(item.brand || item.model) && (
-          <span className="property-fact"><Tag size={13} aria-hidden="true" /> {[item.brand, item.model].filter(Boolean).join(" ")}</span>
-        )}
-        <span className="property-fact"><MapPin size={13} aria-hidden="true" /> {roomName || t.itemRoomNone}</span>
-        {item.purchasedOn && (
-          <span className="property-fact"><Calendar size={13} aria-hidden="true" /> {fmtDate(item.purchasedOn)}</span>
-        )}
-        <WarrantyLine t={t} fmtDate={fmtDate} warrantyExpiresOn={item.warrantyExpiresOn} />
-      </div>
-
-      <button type="button" className="home-panel-action" style={{ marginBottom: 18 }} onClick={onEdit}>
-        <Pencil size={15} aria-hidden="true" /> {t.itemDetailEditAction}
-      </button>
-
-      <label className="field-label">{t.itemAskTitle}</label>
-      <p className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 8 }}>{t.itemAskHint}</p>
-      <div className="search" style={{ marginBottom: 8 }}>
+      {/* Ask Klussie, collapsed to one pill — used to be a field-label + a fineprint
+          hint sentence + a separate full-width button (three lines of text before
+          typing anything). The sparkle signals "ask the AI," the placeholder itself
+          carries the hint (itemAskTitle/itemAskHint retired, nothing else read them —
+          grep-confirmed before removing), and send lives inside the field. */}
+      <div className="item-ask-pill">
+        <Sparkles size={15} aria-hidden="true" className="item-ask-pill-icon" />
         <input
+          className="item-ask-pill-input"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder={t.itemAskPlaceholder}
           onKeyDown={(e) => { if (e.key === "Enter") submitQuestion(); }}
         />
+        <button
+          type="button"
+          className="item-ask-pill-send"
+          disabled={askBusy || !question.trim()}
+          onClick={submitQuestion}
+          aria-label={askBusy ? t.itemAskThinking : t.itemAskButton}
+        >
+          {askBusy ? <Loader2 size={14} className="spin" aria-hidden="true" /> : <Send size={14} aria-hidden="true" />}
+        </button>
       </div>
-      <button type="button" className="btn-primary" disabled={askBusy || !question.trim()} onClick={submitQuestion}>
-        {askBusy ? t.itemAskThinking : t.itemAskButton}
-      </button>
       {answer && (
         <div role="status" style={{ marginTop: 8 }}>
           <p className="home-group-empty" style={{ color: "var(--ink)" }}>{answer}</p>
@@ -729,6 +775,35 @@ export function ItemDetailSheet({
       {askError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{askError}</div>}
 
       <label className="field-label" style={{ marginTop: 22 }}>{t.itemDocumentsTitle}</label>
+      {/* Item Detail redesign — named nudges for a specific missing thing, not just a
+          generic "+ Add a document" button. The real app already knows both facts
+          (no model number saved; no warranty-typed document among this item's real
+          documents) — these turn each passive fact into a concrete, one-tap action
+          sitting where the thing itself would otherwise go. Only shown once documents
+          have actually loaded, so neither ever flashes true during the initial fetch. */}
+      {documents !== null && (!item.model || !hasWarrantyDocument) && (
+        <div className="item-detail-doc-nudges">
+          {!item.model && (
+            <button type="button" className="item-detail-doc-nudge" onClick={onEdit} aria-label={t.itemDetailDocNudgeModelHint}>
+              <FileText size={20} aria-hidden="true" />
+              <span className="item-detail-doc-nudge-label">{t.documentTypeManual}</span>
+              <span className="item-detail-doc-nudge-hint">{t.itemDetailDocNudgeModelHint}</span>
+            </button>
+          )}
+          {!hasWarrantyDocument && (
+            <button
+              type="button"
+              className="item-detail-doc-nudge"
+              onClick={() => setShowDocumentUpload("warranty")}
+              aria-label={t.itemDetailDocNudgeWarrantyHint}
+            >
+              <ShieldQuestion size={20} aria-hidden="true" />
+              <span className="item-detail-doc-nudge-label">{t.documentTypeWarranty}</span>
+              <span className="item-detail-doc-nudge-hint">{t.itemDetailDocNudgeWarrantyHint}</span>
+            </button>
+          )}
+        </div>
+      )}
       {documents === null ? (
         <p className="home-group-empty">{t.myItemsLoading}</p>
       ) : documents.length === 0 ? (
@@ -978,6 +1053,7 @@ export function ItemDetailSheet({
           assetId={item.id}
           workspaceId={workspaceId}
           actorRef={actorRef}
+          initialTypeKey={typeof showDocumentUpload === "string" ? showDocumentUpload : undefined}
           onClose={() => setShowDocumentUpload(false)}
           onSaved={refreshDocuments}
         />

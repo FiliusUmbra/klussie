@@ -45,6 +45,21 @@ describe("DocumentUploadSheet", () => {
     expect(Array.from(options).map((o) => o.textContent)).toEqual(["Warranty", "Certificate", "Manual", "Other"]);
   });
 
+  // Item Detail redesign, 2026-09-15 — the missing-warranty-document nudge opens
+  // straight into "warranty" rather than making the customer pick a type they already
+  // named by tapping that specific card.
+  it("pre-selects initialTypeKey when given", () => {
+    render(<DocumentUploadSheet t={t} propertyId="prop-1" workspaceId="ws-1" actorRef="owner-1" initialTypeKey="warranty" onClose={() => {}} onSaved={() => {}} />);
+    expect(screen.getByLabelText("Type").value).toBe("warranty");
+  });
+
+  it("never uses a value outside the real closed set, even if a caller passes one", () => {
+    render(<DocumentUploadSheet t={t} propertyId="prop-1" workspaceId="ws-1" actorRef="owner-1" initialTypeKey="not-a-real-type" onClose={() => {}} onSaved={() => {}} />);
+    const value = screen.getByLabelText("Type").value;
+    expect(value).not.toBe("not-a-real-type");
+    expect(["warranty", "certificate", "manual", "other"]).toContain(value);
+  });
+
   it("calls createDocument with everything collected once a file is picked and saved", async () => {
     const onClose = vi.fn();
     const onSaved = vi.fn(() => Promise.resolve());
