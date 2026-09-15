@@ -15,7 +15,7 @@
 // for why forcing it through here would change Operator's actual visual output. Operator
 // reuses WorkspaceSwitcher and SignOutButton directly instead (OperatorApp.jsx).
 import { useState, useEffect, useRef } from "react";
-import { Camera, HelpCircle, Briefcase, ThumbsUp, Users } from "lucide-react";
+import { Camera, HelpCircle, Briefcase, ThumbsUp, Users, MapPin, Plus } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Badge, Button, QuoteCard, Rating, TrustBadge, Modal } from "../design-system";
@@ -29,11 +29,13 @@ import { PortfolioItemSheet } from "./PortfolioItemSheet.jsx";
 import { AddTestimonialSheet } from "./AddTestimonialSheet.jsx";
 import { JoinBusinessSheet } from "./JoinBusinessSheet.jsx";
 import { SuggestServiceSheet } from "./SuggestServiceSheet.jsx";
+import { AddPropertySheet } from "./AddPropertySheet.jsx";
 import { completedCount, reviewedRequests } from "../lib/requestStatus.js";
 import { updateProServices, updateProProfile, boostProfile, trustScore } from "../lib/pros";
 import { uploadPortfolioImage, addPortfolioItem, fetchPortfolioItems } from "../lib/portfolio";
 import { fetchTestimonials, deleteTestimonial } from "../lib/testimonials";
 import { fetchJoinRequests, decideJoinRequest } from "../lib/workspaceJoin.js";
+import { fetchMyProperties } from "../lib/homeInventory.js";
 import { FLEXI_TAX_FREE_THRESHOLD, BOOST_WEEKLY_PRICE, flexiProgressPct } from "../lib/billing.js";
 import { isBoosted, isCategoryLocked, PRO_TYPE_FLEXI } from "../lib/proStatus.js";
 import { interpolate } from "../lib/homeStrings.js";
@@ -87,10 +89,23 @@ export function Profile({
   const [joinRequestsError, setJoinRequestsError] = useState("");
   const [joinBusinessOpen, setJoinBusinessOpen] = useState(false);
   const [suggestServiceOpen, setSuggestServiceOpen] = useState(false);
+  // Home foundation slice — null while unresolved, [] once resolved with genuinely
+  // nothing (a workspace whose backfilled property is still mid-provisioning, per
+  // homeInventory.js's own handle_new_user() race window). Self-fetching, like
+  // ServiceLocationField.jsx's own identical fetchMyProperties() call — Profile has no
+  // reason to thread usePropertyTwin.js's state in just for this one section.
+  const [properties, setProperties] = useState(null);
+  const [addPropertyOpen, setAddPropertyOpen] = useState(false);
   const portfolioFileRef = useRef(null);
 
   const refreshPortfolio = () => fetchPortfolioItems(user.id).then(setPortfolioItems);
   const refreshTestimonials = () => fetchTestimonials(user.id).then(setTestimonials);
+  const refreshProperties = () => fetchMyProperties().then(setProperties);
+
+  useEffect(() => {
+    if (variant !== "customer") return;
+    refreshProperties().catch(() => setProperties([]));
+  }, [variant, activeWorkspace?.workspace_id]);
 
   useEffect(() => {
     if (variant !== "pro") return;
@@ -375,6 +390,24 @@ export function Profile({
 
       {variant === "customer" && (
         <>
+          {/* Home foundation slice — the entry point that makes multi-property support
+              (migration 0225, PropertySwitcher.jsx) reachable by a real customer, not just
+              data an operator might insert directly. Property management lives here, next
+              to become-a-pro/join-business, rather than in My Home — Profile is already
+              where every other "add a thing to my account" action lives. */}
+          <div className="section-title">{t.myPropertiesTitle}</div>
+          {(properties || []).map((p) => (
+            <div key={p.id} className="ticket" style={{ padding: 12, marginBottom: 8, cursor: "default" }}>
+              <div className="ticket-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <MapPin size={13} aria-hidden="true" /> {p.name}
+              </div>
+              {p.municipality && <div className="ticket-sub">{p.municipality}</div>}
+            </div>
+          ))}
+          <button className="btn-secondary" style={{ marginBottom: 14 }} onClick={() => setAddPropertyOpen(true)}>
+            <Plus size={13} aria-hidden="true" /> {t.addPropertyBtn}
+          </button>
+
           <div className="section-title">{t.yourReviews}</div>
           {reviewedRequests(requests).length === 0 && <div className="empty-block"><p>{t.noReviewsYet}</p></div>}
           {reviewedRequests(requests).map((r) => (
@@ -550,6 +583,15 @@ export function Profile({
       )}
       {joinBusinessOpen && (
         <JoinBusinessSheet t={t} actorRef={user.id} onClose={() => setJoinBusinessOpen(false)} />
+      )}
+      {addPropertyOpen && (
+        <AddPropertySheet
+          t={t}
+          workspaceId={activeWorkspace?.workspace_id}
+          actorRef={user.id}
+          onClose={() => setAddPropertyOpen(false)}
+          onSaved={refreshProperties}
+        />
       )}
       {variant === "pro" && suggestServiceOpen && (
         <SuggestServiceSheet

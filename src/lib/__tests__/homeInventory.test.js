@@ -129,6 +129,38 @@ describe("fetchHomeProfile", () => {
   });
 });
 
+// Home foundation slice — reopens WP 05.02's "takes the first row" restraint. A workspace
+// can now genuinely steward more than one home-kind property (Profile's own "Add
+// property"), and PropertySwitcher.jsx needs fetchHomeProfile() to resolve whichever one
+// the customer actually selected, not always the first.
+describe("fetchHomeProfile(propertyId) — selecting among multiple properties", () => {
+  const SECOND_PROPERTY = { ...PROPERTY_ROW, id: "22222222-2222-4222-8222-000000000031", name: "Vakantiehuis" };
+
+  it("resolves the requested property, not just the first row", async () => {
+    apiRpc.mockResolvedValue({ data: [PROPERTY_ROW, SECOND_PROPERTY], error: null });
+
+    const profile = await fetchHomeProfile(SECOND_PROPERTY.id);
+
+    expect(profile.property).toMatchObject({ id: SECOND_PROPERTY.id, name: "Vakantiehuis" });
+  });
+
+  it("falls back to the first property when the requested id is no longer among them", async () => {
+    apiRpc.mockResolvedValue({ data: [PROPERTY_ROW, SECOND_PROPERTY], error: null });
+
+    const profile = await fetchHomeProfile("some-stale-id-no-longer-real");
+
+    expect(profile.property).toMatchObject({ id: PROPERTY_ROW.id });
+  });
+
+  it("still picks the first property when no propertyId is given, matching the original behavior", async () => {
+    apiRpc.mockResolvedValue({ data: [PROPERTY_ROW, SECOND_PROPERTY], error: null });
+
+    const profile = await fetchHomeProfile();
+
+    expect(profile.property).toMatchObject({ id: PROPERTY_ROW.id });
+  });
+});
+
 // Platform Activation Slice 1, WP 1.3 — locations_for_property (migration 0136) and
 // my_documents (Epic 08) both only get called once a property has resolved (this file's
 // own header, and fetchHomeProfile's own short-circuit above already pin that for the
@@ -422,6 +454,25 @@ describe("createPropertyForCaller", () => {
 
     await expect(createPropertyForCaller({ workspaceId: "ws-1", actorRef: "owner-1", name: "My Business" }))
       .rejects.toThrow("insufficient_privilege");
+  });
+
+  // Home foundation slice, migration 0225 — kind defaults to "home" so every existing
+  // caller (My Business, above) keeps creating genuine saved properties without change;
+  // requests.js's own one-time-address path is the one caller that passes "one_time".
+  it("defaults kind to \"home\" when the caller doesn't say", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await createPropertyForCaller({ workspaceId: "ws-1", actorRef: "owner-1", name: "My Business" });
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "create_property", expect.objectContaining({ p_kind: "home" }));
+  });
+
+  it("passes an explicit kind through, e.g. a one-time service address", async () => {
+    apiRpc.mockResolvedValue({ error: null });
+
+    await createPropertyForCaller({ workspaceId: "ws-1", actorRef: "owner-1", name: "Eenmalig serviceadres", kind: "one_time" });
+
+    expect(apiRpc).toHaveBeenCalledWith("api", "create_property", expect.objectContaining({ p_kind: "one_time" }));
   });
 });
 

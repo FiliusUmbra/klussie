@@ -42,6 +42,7 @@ import { ProPublicProfileSheet } from "../profile/ProPublicProfileSheet.jsx";
 import { LocationTree } from "./MyItemsPanel.jsx";
 import { LocationFormSheet } from "./LocationFormSheet.jsx";
 import { ItemAddWizard } from "./ItemAddWizard.jsx";
+import { PropertySwitcher } from "./PropertySwitcher.jsx";
 import { reviewsGiven, aiSummaries } from "../lib/homeTimeline.js";
 
 // Home Builder vertical slice — "building your home" belongs here, in My Home, not
@@ -139,7 +140,10 @@ export function MyHomePanel({
   // null | existingRoom — opens ItemAddWizard pre-filled with that room, the direct
   // "add something to this room" next action a freshly-built room needs.
   const [addItemToRoom, setAddItemToRoom] = useState(undefined);
-  const { property, openWork, trustedPros, history, photoSources, propertyId, refreshItems } = homeCtx;
+  const {
+    property, openWork, trustedPros, history, photoSources, propertyId, refreshItems,
+    properties, activePropertyId, selectProperty,
+  } = homeCtx;
 
   const reviews = reviewsGiven(requests);
   const analyses = aiSummaries(requests);
@@ -147,6 +151,8 @@ export function MyHomePanel({
   return (
     <div className="home-panel">
       <h2 className="home-panel-question">{t.myHomeQuestion}</h2>
+
+      <PropertySwitcher properties={properties} activePropertyId={activePropertyId} onSelect={selectProperty} />
 
       <PropertyHeader t={t} property={property} fmtDate={fmtDate} />
 

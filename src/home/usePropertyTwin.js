@@ -20,7 +20,7 @@
 // now fetches trust in its own effect, mount-only again, as it was before that coupling.
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
-import { fetchHomeProfile } from "../lib/homeInventory.js";
+import { fetchHomeProfile, fetchMyProperties } from "../lib/homeInventory.js";
 import { fetchHouseholdItems } from "../lib/householdItems.js";
 import { fetchMaintenanceObligations, fetchMaintenanceSchedules, mergeMaintenanceWithSchedules } from "../lib/maintenance.js";
 
@@ -45,6 +45,15 @@ export function usePropertyTwin() {
   const [itemsError, setItemsError] = useState(null);
   const [maintenance, setMaintenance] = useState(null);
 
+  // Home foundation slice — the full list of the caller's own home-kind properties
+  // (migration 0225 filters out one-time addresses), and which one is active. null means
+  // "not loaded yet," matching `items`'s own null/[] distinction above. PropertySwitcher.jsx
+  // renders nothing below 2 entries (WorkspaceSwitcher.jsx's own precedent); Profile's "My
+  // properties" section reads the same list to offer "Add property."
+  const [properties, setProperties] = useState(null);
+  const [activePropertyId, setActivePropertyId] = useState(null);
+  const selectProperty = useCallback((id) => setActivePropertyId(id), []);
+
   // Items/homeProfile/maintenance all reload on the same token rather than by calling a
   // fetch function directly, so each read lives in one effect with one cancellation
   // path. `refreshItems` only asks for another pass; it never sets state itself.
@@ -53,13 +62,35 @@ export function usePropertyTwin() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchHomeProfile()
+    fetchMyProperties()
+      .then((rows) => {
+        if (cancelled) return;
+        setProperties(rows);
+        // Keeps a real selection (PropertySwitcher.jsx's own onSelect) across a refresh;
+        // defaults to the first property otherwise, or null when the list is genuinely
+        // empty — the same "no property yet" case fetchHomeProfile(null) already handles.
+        setActivePropertyId((current) => (current && rows.some((p) => p.id === current) ? current : (rows[0]?.id ?? null)));
+      })
+      // Best-effort: a failed list fetch only hides PropertySwitcher.jsx and Profile's "My
+      // properties" section. fetchHomeProfile(null) below still resolves the My Home
+      // surface itself (loadProperty()'s own try/catch), with its own homeProfileError.
+      .catch(() => { if (!cancelled) { setProperties([]); setActivePropertyId(null); } });
+    return () => { cancelled = true; };
+  }, [reloadToken]);
+
+  useEffect(() => {
+    // Waits for the properties list above to resolve first, so this fires once with the
+    // real activePropertyId rather than once for the initial null and again the moment
+    // the list arrives.
+    if (properties === null) return undefined;
+    let cancelled = false;
+    fetchHomeProfile(activePropertyId)
       // Clears any stale error from a previous failed pass -- a successful retry must
       // not keep shadowing itself behind the failure it just recovered from.
       .then((p) => { if (!cancelled) { setHomeProfile(p); setHomeProfileError(null); } })
       .catch((err) => { if (!cancelled) setHomeProfileError(err.message || String(err)); });
     return () => { cancelled = true; };
-  }, [reloadToken]);
+  }, [properties, activePropertyId, reloadToken]);
 
   const propertyId = homeProfile?.property?.id;
 
@@ -105,5 +136,11 @@ export function usePropertyTwin() {
     itemsError,
     maintenance,
     refreshItems,
+    // Home foundation slice — properties/activePropertyId/selectProperty are
+    // PropertySwitcher.jsx's and Profile's own read/write surface onto the same list
+    // fetchHomeProfile() already resolves one row from above.
+    properties,
+    activePropertyId,
+    selectProperty,
   };
 }

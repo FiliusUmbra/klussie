@@ -19,57 +19,8 @@ import { useState, useEffect } from "react";
 import { MapPin, Plus, Loader2 } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { fetchMyProperties, hasConfirmedAddress } from "../lib/homeInventory.js";
-
-const PROPERTY_TYPES = ["apartment", "house", "commercial", "other"];
-
-function AddressSubForm({ t, address, onChange }) {
-  const set = (key) => (e) => onChange({ ...address, [key]: e.target.value });
-  return (
-    <div className="job-field" style={{ marginTop: 8 }}>
-      <div className="search" style={{ marginBottom: 8 }}>
-        <input aria-label={t.addressStreetLabel} placeholder={t.addressStreetLabel} value={address.street} onChange={set("street")} />
-      </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <div className="search" style={{ flex: 2 }}>
-          <input aria-label={t.addressHouseNumberLabel} placeholder={t.addressHouseNumberLabel} value={address.houseNumber} onChange={set("houseNumber")} />
-        </div>
-        <div className="search" style={{ flex: 3 }}>
-          <input aria-label={t.addressPostcodeLabel} placeholder={t.addressPostcodeLabel} value={address.postcode} onChange={set("postcode")} />
-        </div>
-      </div>
-      <div className="search" style={{ marginBottom: 10 }}>
-        <input aria-label={t.addressMunicipalityLabel} placeholder={t.addressMunicipalityLabel} value={address.municipality} onChange={set("municipality")} />
-      </div>
-      <div className="job-field-label" style={{ marginBottom: 4 }}>{t.addressPropertyTypeLabel}</div>
-      <div className="chiprow" style={{ marginBottom: 10 }}>
-        {PROPERTY_TYPES.map((pt) => (
-          <button
-            key={pt}
-            type="button"
-            className={"chip" + (address.propertyType === pt ? " chip-on" : "")}
-            onClick={() => onChange({ ...address, propertyType: pt })}
-          >
-            {t[`propertyType_${pt}`]}
-          </button>
-        ))}
-      </div>
-      <textarea
-        className="textarea"
-        rows={2}
-        aria-label={t.addressQuotePrepNotesPlaceholder}
-        placeholder={t.addressQuotePrepNotesPlaceholder}
-        value={address.quotePrepNotes}
-        onChange={set("quotePrepNotes")}
-      />
-    </div>
-  );
-}
-
-const EMPTY_ADDRESS = { street: "", houseNumber: "", postcode: "", municipality: "", propertyType: null, quotePrepNotes: "" };
-
-function isAddressComplete(address) {
-  return Boolean(address.street.trim() && address.postcode.trim() && address.municipality.trim());
-}
+import { AddressSubForm } from "./AddressSubForm.jsx";
+import { EMPTY_ADDRESS, isAddressComplete } from "./addressFields.js";
 
 /**
  * `onChange(locationPayload | null)` fires whenever the selection changes — null while

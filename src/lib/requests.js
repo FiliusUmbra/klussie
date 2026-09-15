@@ -53,8 +53,12 @@ async function resolveRequestLocation(location, { workspaceId, actorRef }) {
   if (!location) return { propertyId: null };
 
   if (location.type === "one_time_address") {
+    // kind: "one_time" (migration 0225) — a real property row for matching/disclosure
+    // purposes, but never offered again as a saved-property choice; see that migration's
+    // own header for the bug this closes (these rows used to resurface, unfiltered, as
+    // "another saved property" in every later request's own ServiceLocationField).
     const { id: propertyId } = await createPropertyForCaller({
-      workspaceId, actorRef, name: "Eenmalig serviceadres",
+      workspaceId, actorRef, name: "Eenmalig serviceadres", kind: "one_time",
     });
     await setPropertyAddress({ propertyId, ...location.address });
     return { propertyId };
