@@ -25,6 +25,17 @@ describe("intent catalogue", () => {
     }
   });
 
+  // Homepage redesign, 2026-09-15 — every intent tile needs a real glyph, and no two
+  // should share one (a repeated icon would make two different intents look like the
+  // same choice at a glance).
+  it("gives every intent a distinct icon, so none renders blank or duplicated", () => {
+    const icons = HOME_INTENTS.map((i) => i.icon);
+    for (const icon of icons) {
+      expect(icon, "intent has no icon").toBeTruthy();
+    }
+    expect(new Set(icons).size).toBe(icons.length);
+  });
+
   it("gives 'something else' no script, since that is the intent that did not fit one", () => {
     expect(findIntent("other").questions).toEqual([]);
     expect(findIntent("nope")).toBeNull();

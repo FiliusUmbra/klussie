@@ -10,6 +10,7 @@ import { TextComposer } from "../design-system";
 import { isSpeechRecognitionSupported } from "../lib/aiIntake";
 import { interpolate } from "../lib/homeStrings.js";
 import { kindOf } from "../lib/homeToday.js";
+import { KIND_COPY } from "../lib/homeTodayCopy.js";
 import { IntentSuggestions } from "./IntentSuggestions.jsx";
 import { SafetyNotice } from "./SafetyNotice.jsx";
 import { HomeTodayCard } from "./HomeTodayCard.jsx";
@@ -18,34 +19,35 @@ import { VoiceCapturePanel } from "./VoiceCapturePanel.jsx";
 import { PhotoCapturePanel } from "./PhotoCapturePanel.jsx";
 import { useIntentFlow } from "./useIntentFlow.js";
 
-const ACTIVE_KIND_TITLE = {
-  quotes_ready: "todayQuotesTitle",
-  accepted_pending_location_approval: "todayLocationApprovalTitle",
-  booked: "todayBookedTitle",
-  awaiting_pro: "todayAwaitingTitle",
-  collecting: "todayCollectingTitle",
-  needs_review: "todayReviewTitle",
-};
-
+// Homepage redesign, 2026-09-15 — rows now carry the same icon+tone badge
+// HomeTodayCard's own card already uses (reusing its exported KIND_COPY rather than
+// keeping this file's own separate title-only copy of the same kind->titleKey
+// mapping), so a running request reads the same visual language as the highlighted
+// one above it, not a plainer, icon-less row that happens to sit in the same section.
 function ActiveRequests({ t, requests, serviceInfo, onOpenRequest }) {
   if (!requests.length) return null;
   return (
-    <section className="home-active" aria-labelledby="home-active-heading">
-      <h2 className="home-section-title" id="home-active-heading">{t.homeActiveTitle}</h2>
-      <ul className="home-active-list">
-        {requests.map((r) => (
+    <ul className="home-active-list">
+      {requests.map((r) => {
+        const copy = KIND_COPY[kindOf(r)];
+        return (
           <li key={r.id}>
             <button type="button" className="home-active-row" onClick={() => onOpenRequest(r.id)}>
+              {copy && (
+                <span className={`home-active-glyph home-active-glyph-${copy.tone}`} aria-hidden="true">
+                  <copy.icon size={15} />
+                </span>
+              )}
               <span className="home-active-text">
                 <span className="home-active-name">{serviceInfo(r.serviceId).name}</span>
-                <span className="home-active-state">{t[ACTIVE_KIND_TITLE[kindOf(r)]] || ""}</span>
+                <span className="home-active-state">{copy ? t[copy.titleKey] : ""}</span>
               </span>
               <ChevronRight className="home-active-chevron" size={15} aria-hidden="true" />
             </button>
           </li>
-        ))}
-      </ul>
-    </section>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -121,15 +123,24 @@ export function KlussiePanel({
         <AskArea t={t} flow={flow} conv={conv} photoInputRef={photoInputRef} />
       )}
 
-      <HomeTodayCard
-        t={t}
-        item={homeCtx.today}
-        serviceName={todayServiceName}
-        onOpenRequest={onOpenRequest}
-        onSetUpHome={onSetUpHome}
-      />
-
-      <ActiveRequests t={t} requests={homeCtx.activeRequests} serviceInfo={serviceInfo} onOpenRequest={onOpenRequest} />
+      {/* "Vandaag voor jouw woning" and "Loopt op dit moment" merge under one heading
+          (Homepage redesign, 2026-09-15) -- two sections that happened to look almost
+          identical now read as one list of things worth knowing, not two headed
+          blocks in a row. HomeTodayCard's own highlighted item (if any) leads; other
+          running requests, if any, follow directly under it -- both card types now
+          share the same icon-badge visual language (see ActiveRequests's own header
+          above for why). */}
+      <section className="home-foryou" aria-labelledby="home-foryou-heading">
+        <h2 className="home-section-title" id="home-foryou-heading">{t.homeForYouTitle}</h2>
+        <HomeTodayCard
+          t={t}
+          item={homeCtx.today}
+          serviceName={todayServiceName}
+          onOpenRequest={onOpenRequest}
+          onSetUpHome={onSetUpHome}
+        />
+        <ActiveRequests t={t} requests={homeCtx.activeRequests} serviceInfo={serviceInfo} onOpenRequest={onOpenRequest} />
+      </section>
     </>
   );
 }

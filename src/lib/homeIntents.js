@@ -8,9 +8,15 @@
 //
 // Intent comes before input method deliberately: "Er is iets kapot" is what the
 // customer is thinking, "Vertel het me gewoon" is only how they'd say it.
+import { AlertTriangle, Hammer, Repeat, MessageCircleQuestion, MoreHorizontal } from "lucide-react";
 
 // `labelKey` / `questionKey` are keys into `t` (src/lib/homeStrings.js and
 // src/lib/homeFollowUpStrings.js) — never literal copy, so all 10 locales stay real.
+//
+// `icon` — Homepage redesign, 2026-09-15: one glyph per intent, replacing the old
+// text-only chip row's generic "+"/checkmark mark. Same {id, icon} shape and lookup
+// idiom catalog.js's own CATS and itemCategories.js's own ITEM_CATEGORIES already
+// establish, matched here rather than invented fresh.
 //
 // answerMode:
 //   "text"  — typed, spoken, or photographed; the composer stays fully available.
@@ -26,6 +32,7 @@ export const HOME_INTENTS = [
   {
     id: "broken",
     labelKey: "intentBroken",
+    icon: AlertTriangle,
     hazardCheck: true,
     questions: [
       { id: "what", questionKey: "fuBrokenWhat", answerMode: "text" },
@@ -39,6 +46,7 @@ export const HOME_INTENTS = [
   {
     id: "improve",
     labelKey: "intentImprove",
+    icon: Hammer,
     questions: [
       { id: "what", questionKey: "fuImproveWhat", answerMode: "text" },
       { id: "where", questionKey: "fuImproveWhere", answerMode: "text", knownFact: "rooms" },
@@ -51,6 +59,7 @@ export const HOME_INTENTS = [
   {
     id: "maintain",
     labelKey: "intentMaintain",
+    icon: Repeat,
     questions: [
       { id: "what", questionKey: "fuMaintainWhat", answerMode: "text" },
       { id: "last", questionKey: "fuMaintainLast", answerMode: "text", knownFact: "maintenanceHistory" },
@@ -62,6 +71,7 @@ export const HOME_INTENTS = [
   {
     id: "advice",
     labelKey: "intentAdvice",
+    icon: MessageCircleQuestion,
     questions: [
       { id: "about", questionKey: "fuAdviceAbout", answerMode: "text" },
       { id: "topic", questionKey: "fuAdviceTopic", answerMode: "text" },
@@ -72,7 +82,7 @@ export const HOME_INTENTS = [
   // No sequence: "something else" exists precisely because the four above didn't fit,
   // so scripting it would be guessing. The composer opens on the generic prompt and
   // the AI intake asks whatever it actually needs.
-  { id: "other", labelKey: "intentOther", questions: [] },
+  { id: "other", labelKey: "intentOther", icon: MoreHorizontal, questions: [] },
 ];
 
 export function findIntent(intentId) {
