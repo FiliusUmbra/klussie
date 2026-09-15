@@ -39,24 +39,39 @@ function reshapeServiceRecord(row) {
 // writing this); its own p_asset_id filter is this same migration's addition. Never
 // throws — a workspace with no real membership, or an asset with no history yet, both
 // read as an empty list, matching every other read-switch's own established restraint.
+//
+// Found by code audit, 2026-09-15: the "never throws" claim above was only half true --
+// there was no try/catch around the `await` itself, only a check of the RPC's own
+// resolved `{error}` field, so a genuine thrown/rejected failure (a network drop
+// mid-request) still escaped as an unhandled promise rejection ItemDetailSheet.jsx's own
+// effect (no .catch of its own) never saw. The existing "returns an empty list, not a
+// throw, when the read fails" test only ever mocked the resolved-with-error shape, never
+// a real reject, so it never actually exercised this gap. maintenance.js's own
+// fetchMaintenanceObligations()/fetchMaintenanceSchedules() already hold the complete,
+// correct version of this exact idiom; matched here.
 export async function fetchServiceRecordsForAsset(workspaceId, assetId) {
   if (!workspaceId || !assetId) return [];
-  const { data, error } = await supabase.schema("api").rpc("my_service_records", {
-    p_workspace_id: workspaceId,
-    p_asset_id: assetId,
-  });
-  if (error) {
-    console.warn("service records unavailable, continuing without them:", error.message);
+  try {
+    const { data, error } = await supabase.schema("api").rpc("my_service_records", {
+      p_workspace_id: workspaceId,
+      p_asset_id: assetId,
+    });
+    if (error) {
+      console.warn("service records unavailable, continuing without them:", error.message);
+      return [];
+    }
+    return (data ?? [])
+      .map((row) => ({
+        id: row.id,
+        performedAt: row.performed_at,
+        workPerformed: row.work_performed,
+        warrantyUntil: row.warranty_until,
+      }))
+      .sort((a, b) => new Date(b.performedAt) - new Date(a.performedAt));
+  } catch (err) {
+    console.warn("service records unavailable, continuing without them:", err.message);
     return [];
   }
-  return (data ?? [])
-    .map((row) => ({
-      id: row.id,
-      performedAt: row.performed_at,
-      workPerformed: row.work_performed,
-      warrantyUntil: row.warranty_until,
-    }))
-    .sort((a, b) => new Date(b.performedAt) - new Date(a.performedAt));
 }
 
 export async function fetchServiceRecordForRequest(requestId) {
