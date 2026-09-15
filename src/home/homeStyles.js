@@ -406,13 +406,58 @@ export const HOME_CSS = `
 .item-card-room{ font-size:10.5px; color:var(--ink-soft); }
 .item-card-edit{ flex:none; color:var(--ink-soft); }
 
-/* ---- Item Detail (the icon+fact identity block, and the tappable document rows) ---- */
-.item-detail-photo{
-  width:88px; height:88px; border-radius:16px; overflow:hidden; background:var(--sage-bg);
-  display:flex; align-items:center; justify-content:center; margin-bottom:var(--space-3);
+/* ---- Item Detail (the icon+fact identity block, and the tappable document rows) ----
+   Redesigned 2026-09-15 — the old "photo/initial square, then a facts list, then a
+   full-width Edit button" (three stacked blocks reading as a form) becomes one grouped
+   hero: a category glyph (or a real photo, which always wins) sits beside the item's
+   own name, the same real facts render inside it via the existing .property-facts/
+   .property-fact convention (just recolored for the dark background below), and Edit
+   collapses to one corner icon action. See ItemDetailSheet.jsx's own header comment for
+   the full rationale. .item-detail-photo (the old square) had no other caller left once
+   this landed — grep-confirmed before removing it rather than leaving dead CSS. */
+.item-detail-hero{
+  background:linear-gradient(160deg, var(--forest) 0%, var(--forest-dark) 100%);
+  border-radius:18px; padding:var(--space-4); position:relative; margin-bottom:var(--space-4);
 }
-.item-detail-photo img{ width:100%; height:100%; object-fit:cover; }
-.item-detail-photo .item-card-initial{ font-size:28px; }
+.item-detail-hero-row{ display:flex; align-items:center; gap:var(--space-3); }
+.item-detail-hero-icon{
+  width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,0.14);
+  display:flex; align-items:center; justify-content:center; flex:none; overflow:hidden; color:#fff;
+}
+.item-detail-hero-icon img{ width:100%; height:100%; object-fit:cover; }
+.item-detail-hero-title{ font-family:var(--font-display); font-size:19px; font-weight:600; color:#fff; }
+/* Higher specificity than the base .property-fact rule (appStyles.js) on purpose — the
+   same four real facts, just recolored to stay readable on this dark gradient rather
+   than their usual --forest-dark, which would be nearly invisible here. */
+.item-detail-hero .property-facts{ margin-top:var(--space-1); row-gap:var(--space-1); }
+.item-detail-hero .property-fact{ color:rgba(255,255,255,0.85); }
+.item-detail-hero-edit{
+  position:absolute; top:var(--space-4); right:var(--space-4); width:30px; height:30px;
+  border-radius:9px; background:rgba(255,255,255,0.14); border:none; color:#fff;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+[dir="rtl"] .item-detail-hero-edit{ right:auto; left:var(--space-4); }
+
+/* Ask Klussie — collapsed from a field-label + a fineprint hint sentence + a separate
+   full-width button into one pill: the sparkle marks it as "ask the AI," the
+   placeholder itself carries the hint, and send lives inside the field. */
+.item-ask-pill{
+  display:flex; align-items:center; gap:var(--space-2); background:var(--surface);
+  border:1px solid var(--line); border-radius:999px; box-shadow:var(--shadow-card);
+  padding:5px 5px 5px var(--space-3); margin-bottom:var(--space-4);
+}
+.item-ask-pill-icon{ flex:none; color:var(--forest-dark); }
+.item-ask-pill-input{
+  flex:1; min-width:0; border:none; background:none; font-family:var(--font-body);
+  font-size:12.5px; color:var(--ink);
+}
+.item-ask-pill-send{
+  flex:none; width:32px; height:32px; border-radius:999px; border:none; cursor:pointer;
+  background:var(--forest); color:#fff; display:flex; align-items:center; justify-content:center;
+  transition:opacity var(--motion-base);
+}
+.item-ask-pill-send:disabled{ opacity:0.45; cursor:default; }
+
 .item-detail-document-open{
   display:flex; align-items:center; gap:var(--space-2); width:100%; min-height:44px;
   padding:var(--space-2) var(--space-1); text-align:start; cursor:pointer;
@@ -431,6 +476,20 @@ export const HOME_CSS = `
   background:none; border:none; font-family:var(--font-body); font-size:13px;
   color:var(--forest-dark);
 }
+
+/* Named nudges for a specific missing document (a model number to fill in, a warranty
+   document to attach), not a bare "+ Add a document" -- same dashed-border language
+   .item-photo-add already uses for "here's a real slot for a specific thing," just
+   sized for two side-by-side tiles instead of one square. */
+.item-detail-doc-nudges{ display:flex; gap:var(--space-2); margin-bottom:var(--space-2); }
+.item-detail-doc-nudge{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  background:var(--surface); border:1.5px dashed var(--line-strong); border-radius:14px;
+  padding:var(--space-3); cursor:pointer; font-family:var(--font-body); color:var(--ink-soft);
+  min-height:44px;
+}
+.item-detail-doc-nudge-label{ font-size:11.5px; font-weight:600; color:var(--ink-soft); }
+.item-detail-doc-nudge-hint{ font-size:10.5px; font-weight:700; color:var(--forest-dark); }
 
 .item-photo-picker{ display:flex; }
 .item-photo-add{

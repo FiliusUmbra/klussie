@@ -6,6 +6,7 @@ import {
   DEFAULT_ITEM_CATEGORY,
   SUGGESTED_ROOMS,
   categoryLabelKey,
+  categoryIcon,
   groupByCategory,
   canSaveItem,
 } from "../itemCategories.js";
@@ -24,6 +25,14 @@ describe("ITEM_CATEGORIES", () => {
     for (const category of ITEM_CATEGORIES) {
       expect(category.labelKey, `${category.id} has no labelKey`).toBeTruthy();
     }
+  });
+
+  it("gives every category a distinct icon, so none renders blank or duplicated", () => {
+    const icons = ITEM_CATEGORIES.map((c) => c.icon);
+    for (const icon of icons) {
+      expect(icon, "category has no icon").toBeTruthy();
+    }
+    expect(new Set(icons).size).toBe(icons.length);
   });
 
   it("defaults to a category that exists", () => {
@@ -47,6 +56,18 @@ describe("categoryLabelKey", () => {
     // A category added by a later migration must not render a blank heading.
     expect(categoryLabelKey("spaceship")).toBe("itemCatOther");
     expect(categoryLabelKey(undefined)).toBe("itemCatOther");
+  });
+});
+
+describe("categoryIcon", () => {
+  it("names a known category's own icon", () => {
+    expect(categoryIcon("appliance")).toBe(ITEM_CATEGORIES.find((c) => c.id === "appliance").icon);
+  });
+
+  it("falls back to 'other's icon for a value this client doesn't know", () => {
+    const otherIcon = ITEM_CATEGORIES.find((c) => c.id === "other").icon;
+    expect(categoryIcon("spaceship")).toBe(otherIcon);
+    expect(categoryIcon(undefined)).toBe(otherIcon);
   });
 });
 

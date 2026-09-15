@@ -21,9 +21,15 @@ import { createDocument, documentTypeLabelKey } from "../lib/documents.js";
 // system-attached, never picked from this dropdown).
 const DOCUMENT_TYPES = ["warranty", "certificate", "manual", "other"];
 
-export function DocumentUploadSheet({ t, propertyId, assetId, workspaceId, actorRef, onClose, onSaved }) {
+export function DocumentUploadSheet({ t, propertyId, assetId, workspaceId, actorRef, onClose, onSaved, initialTypeKey }) {
   const [file, setFile] = useState(null);
-  const [typeKey, setTypeKey] = useState(DOCUMENT_TYPES[0]);
+  // Item Detail redesign — a caller can now pre-select the type (the missing-warranty-
+  // document nudge opens straight into "warranty" rather than making the customer pick
+  // it again after they already tapped a card that said exactly that). Falls back to
+  // the same DOCUMENT_TYPES[0] default every existing caller already gets, and never
+  // trusts a value outside the real closed set — same defensiveness DOCUMENT_TYPES.map()
+  // below already applies to the dropdown itself.
+  const [typeKey, setTypeKey] = useState(DOCUMENT_TYPES.includes(initialTypeKey) ? initialTypeKey : DOCUMENT_TYPES[0]);
   const [issuer, setIssuer] = useState("");
   const [validUntil, setValidUntil] = useState("");
   const [busy, setBusy] = useState(false);

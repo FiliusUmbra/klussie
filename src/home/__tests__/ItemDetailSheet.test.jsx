@@ -71,6 +71,7 @@ const t = {
   itemAskSourceHistory: "its service history",
   itemDocumentsTitle: "Documents", itemDocumentsEmpty: "No documents added for this item yet.",
   itemDetailDocumentOpenFailed: "Couldn't open this document. Please try again.",
+  itemDetailDocNudgeModelHint: "Add a model number", itemDetailDocNudgeWarrantyHint: "Add warranty proof",
   documentFormAddTitle: "Add a document", documentFormFileLabel: "File", documentFormFileAdd: "Choose file",
   documentFormTypeLabel: "Type", documentTypeWarranty: "Warranty", documentTypeCertificate: "Certificate",
   documentTypeManual: "Manual", documentTypeOther: "Other",
@@ -229,11 +230,31 @@ describe("ItemDetailSheet — Identity", () => {
     });
   });
 
-  it("calls onEdit when 'Edit details' is tapped", async () => {
+  // Item Detail redesign, 2026-09-15: Edit collapsed from a full-width labeled button
+  // to one icon action in the hero's own corner — queried by its accessible name
+  // (aria-label), not visible text, matching every other icon-only action this same
+  // redesign introduced (the Ask send button below).
+  it("calls onEdit when the edit action is tapped", async () => {
     const onEdit = vi.fn();
     await renderDetail({ onEdit });
-    fireEvent.click(screen.getByText("Edit details"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
     expect(onEdit).toHaveBeenCalled();
+  });
+
+  // Item Detail redesign, 2026-09-15 — a category glyph fills the identity avatar when
+  // there is no real photo (replacing the old bare first-letter fallback); a real photo
+  // always wins over it.
+  it("shows a category icon, not a photo, when the item has no real photo", async () => {
+    await renderDetail({ item: { ...ITEM, photoUrl: null } });
+    expect(document.querySelector(".item-detail-hero-icon img")).toBeNull();
+    expect(document.querySelector(".item-detail-hero-icon svg")).toBeTruthy();
+  });
+
+  it("shows the item's own real photo over the category icon when one exists", async () => {
+    await renderDetail({ item: { ...ITEM, photoUrl: "https://staging.example/washer.jpg" } });
+    const img = document.querySelector(".item-detail-hero-icon img");
+    expect(img?.getAttribute("src")).toBe("https://staging.example/washer.jpg");
+    expect(document.querySelector(".item-detail-hero-icon svg")).toBeNull();
   });
 });
 
@@ -282,6 +303,54 @@ describe("ItemDetailSheet — Documents", () => {
     await renderDetail();
     fireEvent.click(screen.getByText("Add a document"));
     expect(screen.getByText("Choose file")).toBeTruthy();
+  });
+});
+
+// Item Detail redesign, 2026-09-15 — named nudges for a specific missing thing, not
+// just a generic "+ Add a document": a model number to fill in, a warranty proof
+// document to attach. Queried by accessible name (aria-label), matching this same
+// redesign's other icon/short-label actions.
+describe("ItemDetailSheet — Documents, missing-thing nudges", () => {
+  it("nudges to add a model number when none is saved, opening onEdit when tapped", async () => {
+    const onEdit = vi.fn();
+    await renderDetail({ item: { ...ITEM, model: null }, onEdit });
+    fireEvent.click(screen.getByRole("button", { name: "Add a model number" }));
+    expect(onEdit).toHaveBeenCalled();
+  });
+
+  it("does not show the model nudge once a model number is saved", async () => {
+    await renderDetail(); // ITEM.model is "ecoTEC"
+    expect(screen.queryByRole("button", { name: "Add a model number" })).toBeNull();
+  });
+
+  // ITEM.warrantyExpiresOn is set, but fetchDocumentsForAsset defaults to [] in every
+  // test that doesn't override it -- no warranty-typed *document* exists yet, a
+  // genuinely different fact from the expiry date WarrantyLine already shows.
+  it("nudges to add a warranty document when none exists, even though a warranty date is saved", async () => {
+    await renderDetail();
+    expect(screen.getByRole("button", { name: "Add warranty proof" })).toBeTruthy();
+  });
+
+  it("does not show the warranty nudge once a warranty-typed document exists", async () => {
+    fetchDocumentsForAsset.mockResolvedValueOnce([
+      { id: "doc-1", typeKey: "warranty", caption: null, validUntil: null, storageBucket: "documents", storagePath: "ws-1/doc-1/warranty.pdf" },
+    ]);
+    await renderDetail();
+    expect(screen.queryByRole("button", { name: "Add warranty proof" })).toBeNull();
+  });
+
+  it("still shows the warranty nudge alongside an unrelated real document (a manual doesn't satisfy it)", async () => {
+    fetchDocumentsForAsset.mockResolvedValueOnce([
+      { id: "doc-1", typeKey: "manual", caption: null, validUntil: null, storageBucket: "documents", storagePath: "ws-1/doc-1/manual.pdf" },
+    ]);
+    await renderDetail();
+    expect(screen.getByRole("button", { name: "Add warranty proof" })).toBeTruthy();
+  });
+
+  it("opens DocumentUploadSheet pre-set to 'warranty' when the missing-warranty nudge is tapped", async () => {
+    await renderDetail();
+    fireEvent.click(screen.getByRole("button", { name: "Add warranty proof" }));
+    expect(screen.getByLabelText("Type").value).toBe("warranty");
   });
 });
 
@@ -759,13 +828,18 @@ describe("ItemDetailSheet — Report a problem", () => {
 });
 
 describe("ItemDetailSheet — Ask Klussie (grounded, now including maintenance and service history)", () => {
+  // Item Detail redesign, 2026-09-15: the label+hint+full-width-button stack became one
+  // pill with an icon-only send button (a Loader2 spinner in place of "Klussie is
+  // thinking…" while busy) — queried by its accessible name (aria-label), which still
+  // reads "Ask" while idle, matching every other icon-only action this redesign
+  // introduced.
   it("disables Ask until a question is typed, then answers with a real citation", async () => {
     await renderDetail();
 
-    expect(screen.getByText("Ask").closest("button").disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Ask" }).disabled).toBe(true);
     fireEvent.change(screen.getByPlaceholderText("e.g. When does the warranty expire?"), { target: { value: "When does the warranty expire?" } });
-    expect(screen.getByText("Ask").closest("button").disabled).toBe(false);
-    fireEvent.click(screen.getByText("Ask"));
+    expect(screen.getByRole("button", { name: "Ask" }).disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     await waitFor(() => expect(askAboutItem).toHaveBeenCalledWith({
       itemId: "asset-1", question: "When does the warranty expire?", workspaceId: "ws-1",
@@ -779,7 +853,7 @@ describe("ItemDetailSheet — Ask Klussie (grounded, now including maintenance a
     await renderDetail();
 
     fireEvent.change(screen.getByPlaceholderText("e.g. When does the warranty expire?"), { target: { value: "q" } });
-    fireEvent.click(screen.getByText("Ask"));
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     await waitFor(() => expect(screen.getByText("I don't have that information.")).toBeTruthy());
     expect(screen.queryByText(/^Source:/)).toBeNull();
@@ -790,7 +864,7 @@ describe("ItemDetailSheet — Ask Klussie (grounded, now including maintenance a
     await renderDetail();
 
     fireEvent.change(screen.getByPlaceholderText("e.g. When does the warranty expire?"), { target: { value: "Is it still under warranty?" } });
-    fireEvent.click(screen.getByText("Ask"));
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     await waitFor(() => expect(screen.getByText("Klussie couldn't answer right now. Please try again.")).toBeTruthy());
     expect(screen.queryByText("500 Internal Server Error")).toBeNull();
