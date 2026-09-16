@@ -51,6 +51,7 @@ import { LangContext } from "../lib/lang";
 import { fetchPlatformTrustStats, findBestProForService } from "../lib/pros";
 import { analyzeJobRequest } from "../lib/aiIntake";
 import { HOME_CSS } from "../home/homeStyles.js";
+import { Wrench, Zap, Hammer, Sparkles, Truck, BookOpen } from "lucide-react";
 
 const TEMPLATES = {
   homeGreetName: "{greeting}, {name}",
@@ -67,16 +68,31 @@ const TEMPLATES = {
 };
 const t = new Proxy({}, { get: (_, key) => TEMPLATES[key] ?? String(key) });
 
+// Six categories, one more than HomeCategoryRow's own five-tile limit — real fixtures
+// so the "More" overflow tile (ADR-0033) is exercised the same way a real CATS list
+// with more than five entries already does live.
+const CAT_NAMES = {
+  repairs: "Herstelling", electrical: "Elektriciteit", renovation: "Renovatie",
+  cleaning: "Schoonmaak", moving: "Verhuizing", tutoring: "Bijles",
+};
+const CATS = [
+  { id: "repairs", icon: Wrench },
+  { id: "electrical", icon: Zap },
+  { id: "renovation", icon: Hammer },
+  { id: "cleaning", icon: Sparkles },
+  { id: "moving", icon: Truck },
+  { id: "tutoring", icon: BookOpen },
+];
 const ctx = {
   t,
   dir: "ltr",
   fmt: (n) => String(n),
   fmtDate: (d) => `date:${d}`,
-  catName: (c) => c,
+  catName: (id) => CAT_NAMES[id] ?? id,
   serviceInfo: (id) => ({ name: `name:${id}`, blurb: `blurb:${id}` }),
   proBadgeLabel: () => null,
   langCode: "nl",
-  CATS: [],
+  CATS,
   BASE_SERVICES: [{ id: "svc-plumbing", cat: "repairs" }],
   whenLabel: (w) => w,
 };
@@ -339,28 +355,45 @@ describe("today for your home", () => {
   });
 });
 
-// ADR-0033 (2026-09-15) — before this entry point existed, AiIntakeSheet's own compose
-// stage (the category grid) was only ever reachable pre-seeded with a result
-// useConversation.js's own onStart call already ran an analysis for — never fresh. This
-// is the real, live path onto it.
-describe("browse categories entry point (ADR-0033)", () => {
-  it("calls onStart with no seed, so AiIntakeSheet opens fresh at its own compose stage", () => {
+// ADR-0033 (2026-09-15) — before a live entry point existed, AiIntakeSheet's own
+// compose stage (the category grid) was only ever reachable pre-seeded with a result
+// useConversation.js's own onStart call already ran an analysis for — never fresh. The
+// compact category row (the mockup's own Home screen) is the real, live path onto it —
+// this replaced an earlier plain-text-link version of the same entry point.
+describe("Home category row (ADR-0033)", () => {
+  it("shows five real categories plus a More tile, since CATS holds one more than the row's own limit", () => {
+    renderHome();
+    for (const name of Object.values(CAT_NAMES).slice(0, 5)) {
+      expect(screen.getByText(name)).toBeTruthy();
+    }
+    // The sixth fixture category is deliberately not one of the five shown directly.
+    expect(screen.queryByText(CAT_NAMES.tutoring)).toBeNull();
+    expect(screen.getByText("homeCategoryMoreBtn")).toBeTruthy();
+  });
+
+  it("opens AiIntakeSheet with that category already selected", () => {
     const { onStart } = renderHome();
-    fireEvent.click(screen.getByText("homeBrowseCategoriesBtn"));
-    expect(onStart).toHaveBeenCalledWith();
+    fireEvent.click(screen.getByText(CAT_NAMES.repairs));
+    expect(onStart).toHaveBeenCalledWith({ initialCategoryId: "repairs" });
+  });
+
+  it("opens AiIntakeSheet with nothing preselected from the More tile, landing on the full grid", () => {
+    const { onStart } = renderHome();
+    fireEvent.click(screen.getByText("homeCategoryMoreBtn"));
+    expect(onStart).toHaveBeenCalledWith({ initialCategoryId: null });
   });
 
   it("hides while a follow-up question is already running, the same way the intent tiles do", () => {
     renderHome();
     fireEvent.click(screen.getByText("intentBroken"));
-    expect(screen.queryByText("homeBrowseCategoriesBtn")).toBeNull();
+    expect(screen.queryByText(CAT_NAMES.repairs)).toBeNull();
   });
 
   it("is hidden during the safety interruption too", async () => {
     renderHome();
     fireEvent.click(screen.getByText("intentBroken"));
     await type(answerBox(), "ik ruik gas in de keuken");
-    expect(screen.queryByText("homeBrowseCategoriesBtn")).toBeNull();
+    expect(screen.queryByText(CAT_NAMES.repairs)).toBeNull();
   });
 });
 

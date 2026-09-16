@@ -116,10 +116,10 @@ describe("AiIntakeSheet — final submit", () => {
 
 // ADR-0033 (2026-09-15) — the category grid on the compose stage: a real, additional way
 // to start a request, alongside the free-text/voice/photo composer, never instead of it.
-function renderComposeSheet({ onSubmitted = vi.fn(), onClose = vi.fn() } = {}) {
+function renderComposeSheet({ onSubmitted = vi.fn(), onClose = vi.fn(), initialCategoryId = null } = {}) {
   render(
     <LangContext.Provider value={ctx}>
-      <AiIntakeSheet onClose={onClose} onSubmitted={onSubmitted} />
+      <AiIntakeSheet onClose={onClose} onSubmitted={onSubmitted} initialCategoryId={initialCategoryId} />
     </LangContext.Provider>
   );
   return { onSubmitted, onClose };
@@ -151,6 +151,23 @@ describe("AiIntakeSheet — category grid (ADR-0033)", () => {
 
     fireEvent.click(screen.getByText("Loodgieterswerk"));
     expect(button.disabled).toBe(false);
+  });
+
+  // Home category row (ADR-0033) — a tile tapped on the Home screen arrives here
+  // already selected, so the customer doesn't have to tap it twice.
+  it("opens with the given initialCategoryId already selected", () => {
+    renderComposeSheet({ initialCategoryId: "electrical" });
+    expect(screen.getByText("Elektriciteit").closest("button").getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Loodgieterswerk").closest("button").getAttribute("aria-pressed")).toBe("false");
+    // Already usable without a second tap.
+    expect(screen.getByText("aiAnalyzeBtn").closest("button").disabled).toBe(false);
+  });
+
+  it("opens with nothing selected when no initialCategoryId is given, matching the plain compose stage", () => {
+    renderComposeSheet();
+    for (const name of Object.values(CAT_NAMES)) {
+      expect(screen.getByText(name).closest("button").getAttribute("aria-pressed")).toBe("false");
+    }
   });
 
   it("narrows the services the model sees to the selected category, and seeds its own translated name as the text", async () => {

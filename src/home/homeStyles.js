@@ -119,6 +119,29 @@ export const HOME_CSS = `
 .intent-tile-on .intent-tile-icon{ background:rgba(255,255,255,0.18); color:#fff; }
 .intent-tile-on .intent-tile-label{ color:#fff; }
 
+/* ---- home category row (ADR-0033 mockup, 2026-09-15) ----
+   A single compact horizontal strip, deliberately not a wrapping grid like
+   .intent-grid above it — the mockup's own Home screen shows one glanceable row, not a
+   second 3x2 block competing with the intent tiles for the same "what do you need"
+   role. Scrolls horizontally rather than wrapping when a locale's labels or CATS'
+   own length don't fit six tiles at once. */
+.home-category-row{ display:flex; gap:var(--space-2); overflow-x:auto; padding-bottom:2px; }
+.home-category-tile{
+  display:flex; flex-direction:column; align-items:center; gap:5px; flex:0 0 auto; width:64px;
+  min-height:44px; padding:var(--space-2) 2px; border:none; background:none; cursor:pointer;
+  font-family:var(--font-body);
+}
+.home-category-tile:active{ transform:scale(0.96); }
+.home-category-tile-icon{
+  width:38px; height:38px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--sage-bg); color:var(--forest-dark);
+}
+.home-category-tile-label{
+  font-size:10.5px; font-weight:600; color:var(--ink); text-align:center; line-height:1.2;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;
+}
+
 /* ---- the ask (composer + one follow-up question at a time) ---- */
 .home-ask{ display:flex; flex-direction:column; gap:var(--space-2); }
 .home-ask-head{ display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-3); }
