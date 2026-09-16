@@ -1,7 +1,11 @@
 # ADR-0008: "My Home" Replaces the Discover Tab, Not a New Tab
 
-**Status:** Implemented (design direction — not yet built; see
-[ADR-0007](0007-conversational-homepage-ia.md), which this depends on)
+**Status:** Superseded by [ADR-0033](0033-property-first-home-and-category-request-ia.md)
+(2026-09-15) — My Home becomes a real bottom-nav destination, not a
+segmented section; this ADR's "not a new tab" reasoning no longer
+governs. Kept on record for the reasoning that applied until then, and
+for the real V1 data work it predicted (still accurate — see the
+2026-08-11 status update below).
 **Date:** 2026-08-06
 **Related:** `../product/HOME_OPERATING_SYSTEM.md`,
 `../product/PROPERTY_MEMORY.md`

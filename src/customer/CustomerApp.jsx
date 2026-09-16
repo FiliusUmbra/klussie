@@ -7,7 +7,7 @@
 // then upload photos, then refresh), not rules; src/lib/requests.js owns the actual
 // writes.
 import { useState, useEffect } from "react";
-import { User, Home, ClipboardList, MessageCircle } from "lucide-react";
+import { User, Home, House, ClipboardList, MessageCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import {
@@ -23,6 +23,7 @@ import {
 import { fetchConversations, subscribeToConversationsForUser } from "../lib/messages";
 import { uploadRequestPhoto } from "../lib/requestPhotos";
 import { ConversationHome } from "../home/ConversationHome.jsx";
+import { MyHomeScreen } from "../home/MyHomeScreen.jsx";
 import { CustomerOnboarding } from "../home/CustomerOnboarding.jsx";
 import { useHomeTour } from "../home/useHomeTour.js";
 import { MessagesList } from "../messaging/MessagesList.jsx";
@@ -81,10 +82,6 @@ export function CustomerApp({ showToast, onBecomePro }) {
   const [requestsLoadError, setRequestsLoadError] = useState(false);
   const [conversationsLoadError, setConversationsLoadError] = useState(false);
   const [openConversation, setOpenConversation] = useState(null);
-  // Which section of the homepage is showing. Lifted out of ConversationHome only
-  // because the tour can end on "Stel eerst mijn woning in" and has to land the
-  // customer there — nothing else reaches in.
-  const [homeSection, setHomeSection] = useState("klussie");
   const tour = useHomeTour();
 
   // Epic 03 WP11 — workspaceId is undefined until WP 03.09's resolver places this person in
@@ -336,9 +333,15 @@ export function CustomerApp({ showToast, onBecomePro }) {
           <ConversationHome
             onStart={(seed) => setAiIntakeOpen(seed || {})}
             requests={requests}
-            section={homeSection}
-            onSectionChange={setHomeSection}
             onOpenRequest={(id) => setOpenRequest(id)}
+            onOpenMyHome={() => setTab("myHome")}
+          />
+        )}
+        {tab === "myHome" && (
+          <MyHomeScreen
+            requests={requests}
+            onOpenRequest={(id) => setOpenRequest(id)}
+            onReportProblem={() => setTab("discover")}
           />
         )}
         {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
@@ -350,19 +353,19 @@ export function CustomerApp({ showToast, onBecomePro }) {
         { id: "discover", label: t.navDiscover, icon: Home },
         { id: "requests", label: t.navRequests, icon: ClipboardList, badge: awaitingDecisionCount(requests) },
         { id: "messages", label: t.navMessages, icon: MessageCircle, badge: unreadTotal(conversations) },
+        { id: "myHome", label: t.navMyHome, icon: House },
         { id: "profile", label: t.navProfile, icon: User },
       ]} />
 
-      {/* Ending the tour on "set up my home first" is the only thing that moves the
-          homepage's section from outside it — hence the tab switch alongside it, so the
-          customer is looking at what they just chose rather than at the Klussie tab. */}
+      {/* Ending the tour on "set up my home first" lands the customer on the real My
+          Home tab (ADR-0033 — its own bottom-nav destination now, not an internal
+          section of Home) rather than always returning to the Klussie tab. */}
       {tour.open && (
         <CustomerOnboarding
           t={t}
           onFinish={async (result) => {
             const destination = await tour.finish(result);
-            setTab("discover");
-            setHomeSection(destination === "myHome" ? "myHome" : "klussie");
+            setTab(destination === "myHome" ? "myHome" : "discover");
           }}
         />
       )}

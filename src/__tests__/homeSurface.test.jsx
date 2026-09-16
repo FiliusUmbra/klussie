@@ -1,6 +1,7 @@
-// The homepage as a whole: hero, section tabs, intent-first asking, the "today" card,
-// and the two Property Memory panels.
+// The conversational homepage: hero, intent-first asking, and the "today" card.
 //
+// My Home and My Items moved to their own bottom-nav destination (MyHomeScreen.jsx,
+// ADR-0033) — their own tests live in src/home/__tests__/MyHomeScreen.test.jsx now.
 // Same mocking boundary as conversationHome.test.jsx — the AI call, pro lookup and trust
 // stats are exactly the edges a test should control rather than reach across.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -46,7 +47,6 @@ vi.mock("../lib/householdItems", () => ({
 }));
 
 import { ConversationHome } from "../home/ConversationHome.jsx";
-import { fetchHouseholdItems } from "../lib/householdItems";
 import { LangContext } from "../lib/lang";
 import { fetchPlatformTrustStats, findBestProForService } from "../lib/pros";
 import { analyzeJobRequest } from "../lib/aiIntake";
@@ -85,13 +85,13 @@ const request = (over) => ({
   id: "r1", serviceId: "svc-plumbing", status: "collecting", quotes: [], review: null, createdAt: 1000, ...over,
 });
 
-function renderHome({ requests = [], onStart = vi.fn(), onOpenRequest = vi.fn() } = {}) {
+function renderHome({ requests = [], onStart = vi.fn(), onOpenRequest = vi.fn(), onOpenMyHome = vi.fn() } = {}) {
   const utils = render(
     <LangContext.Provider value={ctx}>
-      <ConversationHome onStart={onStart} requests={requests} onOpenRequest={onOpenRequest} />
+      <ConversationHome onStart={onStart} requests={requests} onOpenRequest={onOpenRequest} onOpenMyHome={onOpenMyHome} />
     </LangContext.Provider>
   );
-  return { onStart, onOpenRequest, ...utils };
+  return { onStart, onOpenRequest, onOpenMyHome, ...utils };
 }
 
 const composer = () => screen.getByLabelText("convComposerLabel");
@@ -106,74 +106,20 @@ beforeEach(() => {
   vi.mocked(fetchPlatformTrustStats).mockResolvedValue({ verifiedProCount: 0, reviewCount: 0, ratingAvg: null });
   vi.mocked(findBestProForService).mockResolvedValue(null);
   vi.mocked(analyzeJobRequest).mockResolvedValue({ problem: "leak", confidence: 80 });
-  // Reset explicitly: afterEach's clearAllMocks clears recorded calls but keeps any
-  // implementation a test installed, which would leak one test's inventory into the next.
-  vi.mocked(fetchHouseholdItems).mockResolvedValue([]);
 });
 
 afterEach(() => { vi.clearAllMocks(); });
 
-describe("homepage sections", () => {
-  it("opens on Klussie, with the other two sections not rendered at all", async () => {
+describe("ConversationHome — a single conversational canvas, no section tabs", () => {
+  // ADR-0033 (2026-09-15) moved My Home/My Items to their own bottom-nav destination —
+  // this surface is the conversational canvas alone now, so there is no tablist here at
+  // all any more.
+  it("renders no tablist — the section tabs moved to MyHomeScreen", async () => {
     renderHome();
-    const tablist = screen.getByRole("tablist");
-    const [klussie, myHome, myItems] = within(tablist).getAllByRole("tab");
-
-    expect(klussie.getAttribute("aria-selected")).toBe("true");
-    expect(myHome.getAttribute("aria-selected")).toBe("false");
-    expect(myItems.getAttribute("aria-selected")).toBe("false");
-    expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
-    expect(screen.queryByText("myHomeQuestion")).toBeNull();
-    await waitFor(() => expect(fetchPlatformTrustStats).toHaveBeenCalled());
-  });
-
-  it("switches to each section in place, without losing the page around it", () => {
-    renderHome();
-    const tabs = within(screen.getByRole("tablist")).getAllByRole("tab");
-
-    fireEvent.click(tabs[1]);
-    expect(screen.getByText("myHomeQuestion")).toBeTruthy();
-    // The hero is the surface, not the section — it stays put.
-    expect(document.querySelector(".home-hero-question")).not.toBeNull();
-
-    fireEvent.click(tabs[2]);
-    expect(screen.getByText("myItemsQuestion")).toBeTruthy();
-    expect(screen.queryByText("myHomeQuestion")).toBeNull();
-
-    fireEvent.click(tabs[0]);
+    expect(screen.queryByRole("tablist")).toBeNull();
     expect(screen.getByText("intentBroken")).toBeTruthy();
-  });
-
-  it("wires each tab to the panel it actually controls", () => {
-    renderHome();
-    const tab = within(screen.getByRole("tablist")).getAllByRole("tab")[0];
-    const panel = screen.getByRole("tabpanel");
-    expect(tab.getAttribute("aria-controls")).toBe(panel.id);
-    expect(panel.getAttribute("aria-labelledby")).toBe(tab.id);
-  });
-
-  it("moves between sections with the arrow keys and Home/End", () => {
-    renderHome();
-    const tablist = screen.getByRole("tablist");
-    const tabs = within(tablist).getAllByRole("tab");
-
-    fireEvent.keyDown(tablist, { key: "ArrowRight" });
-    expect(tabs[1].getAttribute("aria-selected")).toBe("true");
-    fireEvent.keyDown(tablist, { key: "End" });
-    expect(tabs[2].getAttribute("aria-selected")).toBe("true");
-    // Wraps rather than dead-ending on the last tab.
-    fireEvent.keyDown(tablist, { key: "ArrowRight" });
-    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
-    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
-    expect(tabs[2].getAttribute("aria-selected")).toBe("true");
-    fireEvent.keyDown(tablist, { key: "Home" });
-    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
-  });
-
-  it("keeps exactly one tab in the page's tab order (roving tabindex)", () => {
-    renderHome();
-    const tabs = within(screen.getByRole("tablist")).getAllByRole("tab");
-    expect(tabs.map((tb) => tb.tabIndex)).toEqual([0, -1, -1]);
+    expect(screen.getByLabelText("convComposerLabel")).toBeTruthy();
+    await waitFor(() => expect(fetchPlatformTrustStats).toHaveBeenCalled());
   });
 });
 
@@ -366,10 +312,12 @@ describe("today for your home", () => {
     expect(screen.queryByText("todayQuotesTitle")).toBeNull();
   });
 
-  it("sends the onboarding CTA to My Home, where the first step actually is", () => {
-    renderHome({ requests: [] });
+  // ADR-0033 — My Home is a real bottom-nav destination now, so "set up my home first"
+  // asks the parent (CustomerApp.jsx) to switch tabs, rather than an internal section.
+  it("sends the onboarding CTA to My Home via onOpenMyHome, where the first step actually is", () => {
+    const { onOpenMyHome } = renderHome({ requests: [] });
     fireEvent.click(screen.getByText("todayEmptyCta"));
-    expect(screen.getByText("myHomeQuestion")).toBeTruthy();
+    expect(onOpenMyHome).toHaveBeenCalled();
   });
 
   it("lists what else is running without repeating today's priority", () => {
@@ -388,184 +336,6 @@ describe("today for your home", () => {
     // Realtime can deliver a row mid-transition; the homepage must not blank out.
     renderHome({ requests: [{ id: "x", serviceId: "svc-plumbing", status: "weird", quotes: [], createdAt: 1 }] });
     expect(screen.getByText("todayEmptyTitle")).toBeTruthy();
-  });
-});
-
-describe("My Home", () => {
-  const openMyHome = () => fireEvent.click(within(screen.getByRole("tablist")).getAllByRole("tab")[1]);
-
-  it("leads with its question and a way back into the conversation", () => {
-    renderHome();
-    openMyHome();
-    expect(screen.getByText("myHomeQuestion")).toBeTruthy();
-    expect(screen.getByText("homeReportProblem")).toBeTruthy();
-  });
-
-  it("sends 'report a problem' back to the conversation, which is where things start", () => {
-    renderHome();
-    openMyHome();
-    fireEvent.click(screen.getByText("homeReportProblem").closest("button"));
-    expect(screen.getByText("intentBroken")).toBeTruthy();
-  });
-
-  it("shows an invitation rather than a blank page for a home with no history", () => {
-    // "Never show a blank page" — a brand-new account still gets something to read.
-    renderHome({ requests: [] });
-    openMyHome();
-    expect(screen.getByText("myHomeActiveEmpty")).toBeTruthy();
-    expect(screen.getByText("myHomeHistoryEmpty")).toBeTruthy();
-    expect(screen.getByText("myHomeProsEmpty")).toBeTruthy();
-    expect(screen.getByText("myHomeReviewsEmpty")).toBeTruthy();
-    expect(screen.getByText("myHomeAiEmpty")).toBeTruthy();
-  });
-
-  it("states each section's emptiness in its own words, not one repeated line", () => {
-    // Five identical "nothing saved" lines tell a customer nothing about what would
-    // fill them; that was the old placeholder's failure and is worth keeping fixed.
-    renderHome({ requests: [] });
-    openMyHome();
-    const empties = [...document.querySelectorAll(".home-group-empty")].map((n) => n.textContent);
-    expect(new Set(empties).size).toBe(empties.length);
-  });
-
-  it("shows the property header from the customer's own profile", () => {
-    renderHome({ requests: [request({ status: "completed" })] });
-    openMyHome();
-    expect(screen.getByText("Brussels")).toBeTruthy();
-  });
-
-  it("builds the history from real completed requests", () => {
-    const { onOpenRequest } = renderHome({
-      requests: [request({ id: "done", status: "completed" })],
-    });
-    openMyHome();
-    expect(screen.queryByText("myHomeHistoryEmpty")).toBeNull();
-    fireEvent.click(screen.getAllByText("name:svc-plumbing")[0].closest("button"));
-    expect(onOpenRequest).toHaveBeenCalledWith("done");
-  });
-
-  it("separates work in progress from work that is finished", () => {
-    renderHome({
-      requests: [
-        request({ id: "running", status: "booked" }),
-        request({ id: "done", status: "completed" }),
-      ],
-    });
-    openMyHome();
-    expect(screen.queryByText("myHomeActiveEmpty")).toBeNull();
-    expect(screen.queryByText("myHomeHistoryEmpty")).toBeNull();
-  });
-
-  it("lists a professional only once the job they were booked for finished", () => {
-    const withPro = (status) => request({
-      id: "j", status, bookedProId: "peter",
-      quotes: [{ id: "q", proId: "peter", price: 100, pro: { id: "peter", name: "Peter", initials: "P", avatarUrl: null } }],
-    });
-
-    const booked = renderHome({ requests: [withPro("booked")] });
-    openMyHome();
-    expect(screen.getByText("myHomeProsEmpty")).toBeTruthy();
-    booked.unmount();
-
-    renderHome({ requests: [withPro("completed")] });
-    openMyHome();
-    expect(screen.getByText("Peter")).toBeTruthy();
-    expect(screen.getByText("myHomeOneJobTogether")).toBeTruthy();
-  });
-
-  it("shows a review the customer wrote, on the job it belongs to", () => {
-    renderHome({
-      requests: [request({ id: "done", status: "reviewed", review: { stars: 5, text: "Excellent work" } })],
-    });
-    openMyHome();
-    expect(screen.getAllByText('"Excellent work"').length).toBeGreaterThan(0);
-    expect(screen.queryByText("myHomeReviewsEmpty")).toBeNull();
-  });
-
-  it("does not render an AI section for an analysis that says nothing", () => {
-    // A confidence score with no causes and no materials is a row that exists and tells
-    // the customer nothing.
-    renderHome({
-      requests: [request({ status: "completed", answers: { aiAnalysis: { confidence: 90 } } })],
-    });
-    openMyHome();
-    expect(screen.getByText("myHomeAiEmpty")).toBeTruthy();
-  });
-});
-
-describe("My Items", () => {
-  const openMyItems = () => fireEvent.click(within(screen.getByRole("tablist")).getAllByRole("tab")[2]);
-
-  const item = (over) => ({
-    id: "i1", name: "Washing machine", category: "appliance", room: null,
-    brand: null, model: null, photoPath: null, photoUrl: null,
-    purchasedOn: null, notes: null, source: "manual", aiSuggestion: null,
-    createdAt: 1000, updatedAt: 1000, ...over,
-  });
-
-  it("leads with its question and a way to add something", () => {
-    renderHome();
-    openMyItems();
-    expect(screen.getByText("myItemsQuestion")).toBeTruthy();
-    expect(screen.getByText("itemAddTitle")).toBeTruthy();
-  });
-
-  it("invites a first item rather than showing empty category headings", async () => {
-    renderHome();
-    openMyItems();
-    await waitFor(() => expect(screen.getByText("myItemsEmptyTitle")).toBeTruthy());
-    expect(screen.getByText("myItemsEmptyHint")).toBeTruthy();
-    // The old placeholder printed five headings with nothing under them.
-    expect(screen.queryByText("itemCatAppliance")).toBeNull();
-  });
-
-  it("groups real items by category and counts them", async () => {
-    vi.mocked(fetchHouseholdItems).mockResolvedValue([
-      item({ id: "a", name: "Boiler", category: "appliance" }),
-      item({ id: "b", name: "Drill", category: "tool" }),
-    ]);
-    renderHome();
-    openMyItems();
-    await waitFor(() => expect(screen.getByText("Boiler")).toBeTruthy());
-    expect(screen.getByText("Drill")).toBeTruthy();
-    expect(screen.getByText("itemCatAppliance")).toBeTruthy();
-    expect(screen.getByText("itemCatTool")).toBeTruthy();
-    // Categories the household owns nothing in stay off the page.
-    expect(screen.queryByText("itemCatGarden")).toBeNull();
-  });
-
-  it("shows brand and model when known, and nothing in their place when not", async () => {
-    vi.mocked(fetchHouseholdItems).mockResolvedValue([
-      item({ id: "a", name: "Boiler", brand: "Vaillant", model: "ecoTEC" }),
-      item({ id: "b", name: "Sofa", category: "furniture" }),
-    ]);
-    renderHome();
-    openMyItems();
-    await waitFor(() => expect(screen.getByText("Vaillant ecoTEC")).toBeTruthy());
-    // No "Unknown brand" filler under the item that has none.
-    expect(screen.getByText("Sofa").closest(".item-card").querySelector(".item-card-sub")).toBeNull();
-  });
-
-  it("opens the add wizard on its first, name-only-required step", async () => {
-    renderHome();
-    openMyItems();
-    await waitFor(() => expect(screen.getByText("myItemsEmptyTitle")).toBeTruthy());
-    fireEvent.click(screen.getByText("itemAddTitle").closest("button"));
-
-    expect(screen.getByText("itemNameLabel")).toBeTruthy();
-    const next = screen.getByText("tourNext").closest("button");
-    expect(next.disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText("itemNameLabel"), { target: { value: "Dishwasher" } });
-    expect(next.disabled).toBe(false);
-  });
-
-  it("says so when the inventory could not be read, instead of looking empty", async () => {
-    // An empty-looking list after a failed read would invite entering everything twice.
-    vi.mocked(fetchHouseholdItems).mockRejectedValue(new Error("network down"));
-    renderHome();
-    openMyItems();
-    await waitFor(() => expect(screen.getByText("myItemsLoadFailed")).toBeTruthy());
-    expect(screen.queryByText("myItemsEmptyTitle")).toBeNull();
   });
 });
 

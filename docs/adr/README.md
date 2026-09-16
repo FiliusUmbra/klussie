@@ -67,8 +67,8 @@ pointing at whatever replaced it.
 | [0004](0004-domain-events-via-security-definer-rpc.md) | Route domain events through `emit_domain_event()` RPC | Implemented |
 | [0005](0005-testing-ci-disaster-recovery-before-payments.md) | Move Testing/CI/Disaster Recovery ahead of Payments in the roadmap | Implemented |
 | [0006](0006-design-direction-lock.md) | Design Direction Lock: evolve the warm identity, reject the cooler SaaS-dashboard register | Implemented |
-| [0007](0007-conversational-homepage-ia.md) | Conversational-first homepage over marketplace/category-grid IA | Implemented (design direction) |
-| [0008](0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Implemented (design direction) |
+| [0007](0007-conversational-homepage-ia.md) | Conversational-first homepage over marketplace/category-grid IA | Superseded by [0033](0033-property-first-home-and-category-request-ia.md) |
+| [0008](0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Superseded by [0033](0033-property-first-home-and-category-request-ia.md) |
 | [0009](0009-docs-folder-reorganization.md) | Reorganize `docs/` into category subfolders | Implemented |
 | [0010](0010-defer-permissions-layer-formalization.md) | Defer Permissions layer formalization until Trust & Safety needs it | Implemented (deferral) |
 | [0011](0011-trust-strip-shows-only-verified-signals.md) | The trust strip shows only signals backed by real data | Implemented |
@@ -92,7 +92,8 @@ pointing at whatever replaced it.
 | [0029](0029-client-access-pattern-for-new-engines.md) | RPC/API routes are the default client-access pattern for the new engines; direct PostgREST reads are the named exception | **Accepted** — governs Platform Activation Slice 1 onward |
 | [0030](0030-operator-identity-via-operations-workspace.md) | Operator identity is a membership in a real, internal Operations Workspace — not a new access mechanism | **Accepted** — governs Platform Activation Slice 0 WP 0.3 onward |
 | [0031](0031-background-consumer-pattern-cursor-quarantine-pg-cron.md) | The background-consumer pattern: a per-hash-partition `pg_cron` cursor loop over the parent event table, quarantining per-event, never blocking a partition | **Accepted** — governs every future background event consumer (Timeline, Notifications, Search, Analytics); first built for WP 2.4's engagement access grant consumer |
-| [0032](0032-multi-property-support-is-a-real-read-path.md) | Multi-property support is a real read path, not deferred contract-level permission — `api.my_properties()` filters by a new `kind` column, and `PropertySwitcher`/`AddPropertySheet` make it reachable | **Accepted** — reopens WP 05.02's single-property restraint; ADR-0007/0008 (no new nav destination) are unaffected |
+| [0032](0032-multi-property-support-is-a-real-read-path.md) | Multi-property support is a real read path, not deferred contract-level permission — `api.my_properties()` filters by a new `kind` column, and `PropertySwitcher`/`AddPropertySheet` make it reachable | **Accepted** — reopens WP 05.02's single-property restraint; written when ADR-0007/0008 (no new nav destination) still governed — see 0033, which supersedes both shortly after |
+| [0033](0033-property-first-home-and-category-request-ia.md) | Property-first Home, a real My Home nav destination, and category-assisted requests — a concrete mobile mockup, approved by the founder, becomes the target | **Accepted** — supersedes [0007](0007-conversational-homepage-ia.md) and [0008](0008-my-home-replaces-discover-tab.md) |
 
 "Implemented (design direction)" means the decision governs approved
 design documents but hasn't been built in application code yet — see

@@ -1,139 +1,54 @@
-// The authenticated customer's homepage.
+// The authenticated customer's homepage — the conversational front door.
 //
-// One surface, three sections, no new navigation. ADR-0007 made the conversational
-// canvas the front door and ADR-0008 refused a new bottom-nav tab for the home
-// operating surface — the segmented control below is how both hold at once: My Home
-// and My Items are sections *of* the front door, not destinations beside it. The
-// bottom nav's four items are untouched.
+// ADR-0033 (2026-09-15, supersedes ADR-0007/0008) gave My Home and My Items their own
+// bottom-nav destination (MyHomeScreen.jsx) — this file went from three segmented
+// sections down to one, the conversational canvas alone. `onOpenMyHome` is how the
+// empty-state "set up my home first" CTA (HomeTodayCard.jsx, via KlussiePanel.jsx) still
+// reaches it: CustomerApp.jsx passes a real bottom-nav tab switch now, not an internal
+// section change.
 //
 // Composition only. The greeting band, the trust-signal rules, today's priority, the
 // intent sequence and the conversation state machine all live in hooks and lib
 // modules; this file decides what sits where.
-import { useEffect, useRef, useState } from "react";
-import { SegmentedTabs, TabPanel, TrustStrip } from "../design-system";
+import { useRef } from "react";
+import { TrustStrip } from "../design-system";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { HomeHero } from "./HomeHero.jsx";
 import { KlussiePanel } from "./KlussiePanel.jsx";
-import { MyHomePanel } from "./MyHomePanel.jsx";
-import { MyItemsPanel } from "./MyItemsPanel.jsx";
 import { useHomeContext } from "./useHomeContext.js";
 import { useConversation } from "./useConversation.js";
 
-const SECTIONS = [
-  { id: "klussie", labelKey: "homeTabKlussie" },
-  { id: "myHome", labelKey: "homeTabMyHome" },
-  { id: "myItems", labelKey: "homeTabMyItems" },
-];
-
-const ID_PREFIX = "home";
-
-// Each section keeps its own scroll position, so switching to My Home and back doesn't
-// dump the customer at the top of a conversation they were reading. The scroll owner is
-// CustomerApp's `.content` region, above this component — hence the lookup rather than a
-// ref we own. A missing container simply means no restoration, never a crash.
-function useSectionScroll(rootRef, section) {
-  const positions = useRef({});
-  const previous = useRef(section);
-
-  useEffect(() => {
-    const container = rootRef.current?.closest(".content");
-    if (!container) return;
-    positions.current[previous.current] = container.scrollTop;
-    container.scrollTop = positions.current[section] ?? 0;
-    previous.current = section;
-  }, [section, rootRef]);
-}
-
-export function ConversationHome({ onStart, requests = [], section = "klussie", onSectionChange, onOpenRequest }) {
-  const { t, dir, fmt, fmtDate, serviceInfo, proBadgeLabel } = useLang();
+export function ConversationHome({ onStart, requests = [], onOpenRequest, onOpenMyHome }) {
+  const { t, fmt, serviceInfo, proBadgeLabel } = useLang();
   const { profile } = useAuth();
-  const rootRef = useRef(null);
   const photoInputRef = useRef(null);
-  const [uncontrolledSection, setUncontrolledSection] = useState("klussie");
-
-  // Controlled when CustomerApp passes a handler (the tour needs to land somebody on
-  // My Home), self-managed otherwise — which is what keeps this component renderable
-  // on its own in tests.
-  const activeSection = onSectionChange ? section : uncontrolledSection;
-  const setSection = onSectionChange || setUncontrolledSection;
-
-  useSectionScroll(rootRef, activeSection);
 
   const homeCtx = useHomeContext({ t, profile, requests });
   const conv = useConversation({ onStart });
 
-  const tabs = SECTIONS.map((s) => ({ id: s.id, label: t[s.labelKey] }));
   const openRequest = onOpenRequest || (() => {});
+  const openMyHome = onOpenMyHome || (() => {});
 
   return (
-    <div className="home" ref={rootRef}>
+    <div className="home">
       <HomeHero greeting={homeCtx.greeting} question={t.homeQuestion} />
 
       <div className="home-body">
-        <SegmentedTabs
-          tabs={tabs}
-          activeId={activeSection}
-          onChange={setSection}
-          label={t.homeTabsLabel}
-          idPrefix={ID_PREFIX}
-          dir={dir}
+        <KlussiePanel
+          t={t}
+          fmt={fmt}
+          serviceInfo={serviceInfo}
+          proBadgeLabel={proBadgeLabel}
+          homeCtx={homeCtx}
+          conv={conv}
+          photoInputRef={photoInputRef}
+          onOpenRequest={openRequest}
+          onSetUpHome={openMyHome}
         />
 
-        <TabPanel id={`${ID_PREFIX}-panel-klussie`} tabId={`${ID_PREFIX}-tab-klussie`} active={activeSection === "klussie"}>
-          <KlussiePanel
-            t={t}
-            fmt={fmt}
-            serviceInfo={serviceInfo}
-            proBadgeLabel={proBadgeLabel}
-            homeCtx={homeCtx}
-            conv={conv}
-            photoInputRef={photoInputRef}
-            onOpenRequest={openRequest}
-            onSetUpHome={() => setSection("myHome")}
-          />
-        </TabPanel>
-
-        <TabPanel id={`${ID_PREFIX}-panel-myHome`} tabId={`${ID_PREFIX}-tab-myHome`} active={activeSection === "myHome"}>
-          <MyHomePanel
-            t={t}
-            homeCtx={homeCtx}
-            ownerId={profile?.id}
-            requests={requests}
-            serviceInfo={serviceInfo}
-            fmtDate={fmtDate}
-            onReportProblem={() => setSection("klussie")}
-            onOpenRequest={openRequest}
-          />
-        </TabPanel>
-
-        <TabPanel id={`${ID_PREFIX}-panel-myItems`} tabId={`${ID_PREFIX}-tab-myItems`} active={activeSection === "myItems"}>
-          <MyItemsPanel
-            t={t}
-            ownerId={profile?.id}
-            items={homeCtx.items}
-            itemsError={homeCtx.itemsError}
-            onRefresh={homeCtx.refreshItems}
-            fmtDate={fmtDate}
-            rooms={homeCtx.homeProfile?.rooms}
-            documents={homeCtx.homeProfile?.documents}
-            maintenance={homeCtx.maintenance}
-            propertyId={homeCtx.propertyId}
-            workspaceId={homeCtx.workspaceId}
-            // Home Builder slice: rooms now live prominently in My Home instead (see
-            // MyHomePanel.jsx's own HomeBuilderSection) — kept here, defaulted on, for
-            // ProApp.jsx's own "My Business" reuse (MyBusinessPanel.jsx), which has no
-            // My Home equivalent.
-            showRoomsSection={false}
-            // Item Detail slice — "Report a problem" on an item hands back to the
-            // conversation, the same way MyHomePanel.jsx's own top-level action already
-            // does (ADR-0007).
-            onReportProblem={() => setSection("klussie")}
-          />
-        </TabPanel>
-
         {/* capture="environment" opens the rear camera directly on mobile rather than a
-            file browser. Kept mounted across sections so the ref is always live. */}
+            file browser. */}
         <input ref={photoInputRef} type="file" accept="image/*" capture="environment" hidden onChange={conv.pickPhoto} />
 
         <TrustStrip items={homeCtx.trustItems} label={t.trustStripLabel} />
