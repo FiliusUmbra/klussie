@@ -45,6 +45,10 @@ export function ConversationHome({ onStart, requests = [], onOpenRequest, onOpen
           photoInputRef={photoInputRef}
           onOpenRequest={openRequest}
           onSetUpHome={openMyHome}
+          // ADR-0033 — opens AiIntakeSheet fresh, at its own compose stage (the category
+          // grid), rather than only ever reachable pre-seeded with a result the
+          // conversation already ran (useConversation.js's own onStart call, below).
+          onBrowseCategories={() => onStart()}
         />
 
         {/* capture="environment" opens the rear camera directly on mobile rather than a

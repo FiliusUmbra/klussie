@@ -612,6 +612,11 @@ export const APP_CSS = `
   .conv-action:hover{ transform:none; }
 }
 
+@media (prefers-reduced-motion: reduce){
+  .ai-category-tile, .ai-step-num{ transition:none; }
+  .ai-category-tile:active{ transform:none; }
+}
+
 .ai-intake-cta{
   display:flex; align-items:center; gap:10px; width:100%; text-align:start;
   background:linear-gradient(135deg, var(--forest) 0%, var(--forest-dark) 100%); color:#fff;
@@ -620,6 +625,39 @@ export const APP_CSS = `
 }
 .ai-intake-cta span{ flex:1; }
 .ai-input-row{ display:flex; gap:8px; margin:10px 0; }
+
+/* ADR-0033 category-assisted intake, 2026-09-15 — .ai-category-tile matches .intent-tile
+   (homeStyles.js) exactly, same visual language, kept as its own copy since AiIntakeSheet
+   lives in the sheet-shared stylesheet, not the home surface's. */
+.ai-steps{ display:flex; align-items:center; gap:6px; margin-bottom:14px; }
+.ai-step{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--ink-soft); }
+.ai-step-num{
+  display:flex; align-items:center; justify-content:center; width:18px; height:18px;
+  border-radius:50%; background:var(--line-soft); color:var(--ink-soft); font-size:11px;
+  transition:background var(--motion-base), color var(--motion-base);
+}
+.ai-step-on{ color:var(--forest-dark); }
+.ai-step-on .ai-step-num{ background:var(--forest); color:#fff; }
+.ai-category-grid{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--space-2); margin-bottom:10px; }
+.ai-category-tile{
+  display:flex; flex-direction:column; align-items:center; gap:6px; min-height:44px;
+  padding:var(--space-3) var(--space-1); border-radius:16px;
+  border:1px solid var(--line-soft); background:var(--surface); box-shadow:var(--shadow-card);
+  font-family:var(--font-body); cursor:pointer;
+  transition:background var(--motion-base), border-color var(--motion-base), transform var(--motion-fast);
+}
+.ai-category-tile:active{ transform:scale(0.98); }
+.ai-category-tile-icon{
+  width:38px; height:38px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--sage-bg); color:var(--forest-dark);
+  transition:background var(--motion-base), color var(--motion-base);
+}
+.ai-category-tile-label{ font-size:11px; font-weight:600; color:var(--ink); text-align:center; line-height:1.25; }
+.ai-category-tile-on{ background:var(--forest); border-color:var(--forest); }
+.ai-category-tile-on .ai-category-tile-icon{ background:rgba(255,255,255,0.18); color:#fff; }
+.ai-category-tile-on .ai-category-tile-label{ color:#fff; }
+.ai-or-divider{ text-align:center; font-size:11px; color:var(--ink-soft); margin:4px 0 10px; }
 .spin{ animation:ai-spin 0.9s linear infinite; }
 @keyframes ai-spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
 .ai-analysis-summary{ background:var(--amber-bg); border-radius:10px; padding:10px 12px; margin:8px 0; }

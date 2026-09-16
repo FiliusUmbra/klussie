@@ -37,14 +37,26 @@ vi.mock("../ItemAssociationField.jsx", () => ({
 
 import { LangContext } from "../../lib/lang";
 import { AiIntakeSheet } from "../AiIntakeSheet.jsx";
+import { analyzeJobRequest } from "../../lib/aiIntake";
+import { Wrench, Zap } from "lucide-react";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 
-const BASE_SERVICES = [{ id: "svc-plumbing", cat: "repairs" }];
+const BASE_SERVICES = [
+  { id: "svc-plumbing", cat: "repairs" },
+  { id: "svc-electric", cat: "electrical" },
+];
+const CATS = [
+  { id: "repairs", icon: Wrench },
+  { id: "electrical", icon: Zap },
+];
+const CAT_NAMES = { repairs: "Loodgieterswerk", electrical: "Elektriciteit" };
 const ctx = {
   t,
   langCode: "nl",
   BASE_SERVICES,
+  CATS,
+  catName: (id) => CAT_NAMES[id] ?? id,
   serviceInfo: (id) => ({ name: `name:${id}`, blurb: `blurb:${id}` }),
   whenLabel: (w) => w,
 };
@@ -99,5 +111,100 @@ describe("AiIntakeSheet — final submit", () => {
     expect(screen.queryByText("insufficient_privilege")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText("sendRequestBtn").closest("button").disabled).toBe(false);
+  });
+});
+
+// ADR-0033 (2026-09-15) — the category grid on the compose stage: a real, additional way
+// to start a request, alongside the free-text/voice/photo composer, never instead of it.
+function renderComposeSheet({ onSubmitted = vi.fn(), onClose = vi.fn() } = {}) {
+  render(
+    <LangContext.Provider value={ctx}>
+      <AiIntakeSheet onClose={onClose} onSubmitted={onSubmitted} />
+    </LangContext.Provider>
+  );
+  return { onSubmitted, onClose };
+}
+
+describe("AiIntakeSheet — category grid (ADR-0033)", () => {
+  it("shows every real category as a tile, none selected to begin with", () => {
+    renderComposeSheet();
+    for (const name of Object.values(CAT_NAMES)) {
+      expect(screen.getByText(name).closest("button").getAttribute("aria-pressed")).toBe("false");
+    }
+  });
+
+  it("lets exactly one category be selected, with a mis-tap undone by a second tap", () => {
+    renderComposeSheet();
+    const tile = screen.getByText("Loodgieterswerk").closest("button");
+
+    fireEvent.click(tile);
+    expect(tile.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(tile);
+    expect(tile.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("enables Analyze from a category alone, with no typed text or photo", () => {
+    renderComposeSheet();
+    const button = screen.getByText("aiAnalyzeBtn").closest("button");
+    expect(button.disabled).toBe(true);
+
+    fireEvent.click(screen.getByText("Loodgieterswerk"));
+    expect(button.disabled).toBe(false);
+  });
+
+  it("narrows the services the model sees to the selected category, and seeds its own translated name as the text", async () => {
+    vi.mocked(analyzeJobRequest).mockResolvedValue({ matchedServiceId: "svc-plumbing", confidence: 90, followUpQuestions: [] });
+    renderComposeSheet();
+
+    fireEvent.click(screen.getByText("Loodgieterswerk"));
+    fireEvent.click(screen.getByText("aiAnalyzeBtn"));
+
+    await waitFor(() => expect(analyzeJobRequest).toHaveBeenCalled());
+    // .at(-1), not [0] — this mock's call history is never reset between tests in this
+    // file (matching its own established pattern), so an earlier test's call would
+    // otherwise still sit at index 0.
+    const call = vi.mocked(analyzeJobRequest).mock.calls.at(-1)[0];
+    expect(call.text).toBe("Loodgieterswerk");
+    expect(call.services).toEqual([{ id: "svc-plumbing", name: "name:svc-plumbing", category: "repairs", blurb: "blurb:svc-plumbing" }]);
+  });
+
+  it("prefers typed text over the category's own name once the customer describes it themselves", async () => {
+    vi.mocked(analyzeJobRequest).mockResolvedValue({ matchedServiceId: "svc-plumbing", confidence: 90, followUpQuestions: [] });
+    renderComposeSheet();
+
+    fireEvent.click(screen.getByText("Loodgieterswerk"));
+    fireEvent.change(screen.getByPlaceholderText("aiComposerPlaceholder"), { target: { value: "mijn kraan lekt" } });
+    fireEvent.click(screen.getByText("aiAnalyzeBtn"));
+
+    await waitFor(() => expect(analyzeJobRequest).toHaveBeenCalled());
+    expect(vi.mocked(analyzeJobRequest).mock.calls.at(-1)[0].text).toBe("mijn kraan lekt");
+  });
+
+  it("still analyzes the full catalog when no category was chosen", async () => {
+    vi.mocked(analyzeJobRequest).mockResolvedValue({ matchedServiceId: "svc-plumbing", confidence: 90, followUpQuestions: [] });
+    renderComposeSheet();
+
+    fireEvent.change(screen.getByPlaceholderText("aiComposerPlaceholder"), { target: { value: "mijn kraan lekt" } });
+    fireEvent.click(screen.getByText("aiAnalyzeBtn"));
+
+    await waitFor(() => expect(analyzeJobRequest).toHaveBeenCalled());
+    expect(vi.mocked(analyzeJobRequest).mock.calls.at(-1)[0].services).toHaveLength(2);
+  });
+});
+
+describe("AiIntakeSheet — step indicator (ADR-0033)", () => {
+  it("marks step 1 (What) current on the compose stage", () => {
+    renderComposeSheet();
+    const [step1, step2] = document.querySelectorAll(".ai-step");
+    expect(step1.className).toContain("ai-step-on");
+    expect(step2.className).not.toContain("ai-step-on");
+  });
+
+  it("marks step 2 (Details) current once a result is already in hand", () => {
+    renderSheet();
+    const [step1, step2] = document.querySelectorAll(".ai-step");
+    expect(step2.className).toContain("ai-step-on");
+    expect(step1.className).not.toContain("ai-step-on");
   });
 });
