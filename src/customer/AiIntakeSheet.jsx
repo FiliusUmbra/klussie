@@ -16,7 +16,7 @@
 // The rules this follows — how many times to ask again, what counts as confident, what a
 // reviewed result becomes — live in src/lib/aiIntakeModel.js. This file is the screen.
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Camera, Mic, Sparkles, Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { X, Send, Camera, Mic, Sparkles, Loader2, AlertTriangle, ShieldCheck, Check } from "lucide-react";
 import { useLang, LANGS } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Badge, Drawer } from "../design-system";
@@ -34,12 +34,33 @@ import {
   buildIntakeRequest,
 } from "../lib/aiIntakeModel.js";
 
+// ADR-0033 (2026-09-15) — the category grid on the compose stage below. Two real phases
+// of this flow, not three: "What" (compose — category or free text, voice, photo) and
+// "Details" (followup's clarifying questions, or review's manual form) both gather more
+// before the customer ever sends. A third "Send" pip would never highlight differently
+// from "Details", since sending isn't its own screen here — that would be a progress
+// indicator lying about a step that doesn't exist, not a simplification worth making.
+function IntakeSteps({ t, stage }) {
+  const detailsActive = stage === "followup" || stage === "review";
+  return (
+    <div className="ai-steps" role="group" aria-label={t.aiStepWhat + " / " + t.aiStepDetails}>
+      <span className={"ai-step" + (!detailsActive ? " ai-step-on" : "")} aria-current={!detailsActive ? "step" : undefined}>
+        <span className="ai-step-num">1</span> {t.aiStepWhat}
+      </span>
+      <span className={"ai-step" + (detailsActive ? " ai-step-on" : "")} aria-current={detailsActive ? "step" : undefined}>
+        <span className="ai-step-num">2</span> {t.aiStepDetails}
+      </span>
+    </div>
+  );
+}
+
 export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos = [], initialResult = null }) {
-  const { t, langCode, BASE_SERVICES, serviceInfo, whenLabel } = useLang();
+  const { t, langCode, BASE_SERVICES, CATS, catName, serviceInfo, whenLabel } = useLang();
   const { user, profile, activeWorkspace } = useAuth();
   const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
 
   const [text, setText] = useState(initialText);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [listening, setListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognizerRef = useRef(null);
@@ -115,17 +136,27 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
     setEditWhen(next.when);
   };
 
+  // A category tap narrows which services the model even considers — a real accuracy
+  // improvement (fewer, closer candidates), not just a cosmetic filter on the grid
+  // itself. Falls back to the full catalog once nothing is selected.
+  const candidateServices = selectedCategoryId
+    ? BASE_SERVICES.filter((s) => s.cat === selectedCategoryId)
+    : BASE_SERVICES;
+
   const runAnalysis = async (qaForThisCall) => {
     if (listening) toggleListening();
     setLoading(true);
     setError("");
     try {
       const res = await analyzeJobRequest({
-        text,
+        // A category alone (no typed text) still needs something for the model to
+        // classify — its own translated name is the honest minimum, never a guessed
+        // problem description.
+        text: text.trim() || (selectedCategoryId ? catName(selectedCategoryId) : text),
         voiceTranscript: null,
         photos: photos.map((p) => p.file),
         priorQA: qaForThisCall,
-        services: servicesForApi(BASE_SERVICES, serviceInfo),
+        services: servicesForApi(candidateServices, serviceInfo),
         locale: langCode,
       });
       setResult(res);
@@ -200,12 +231,43 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
     }
   };
 
+  const selectCategory = (id) => setSelectedCategoryId((cur) => (cur === id ? null : id));
+
   return (
     <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+      <IntakeSteps t={t} stage={stage} />
+
       {stage === "compose" && (
         <>
           <div className="sheet-title"><Sparkles size={18} /> {t.aiIntakeTitle}</div>
           <div className="sheet-sub">{t.aiIntakeSub}</div>
+
+          {CATS.length > 0 && (
+            <>
+              <label className="field-label">{t.aiCategoryGridLabel}</label>
+              <div className="ai-category-grid" role="group" aria-label={t.aiCategoryGridLabel}>
+                {CATS.map((cat) => {
+                  const active = selectedCategoryId === cat.id;
+                  const Icon = cat.icon;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      className={"ai-category-tile" + (active ? " ai-category-tile-on" : "")}
+                      aria-pressed={active}
+                      onClick={() => selectCategory(cat.id)}
+                    >
+                      <span className="ai-category-tile-icon" aria-hidden="true">
+                        {active ? <Check size={16} /> : <Icon size={16} />}
+                      </span>
+                      <span className="ai-category-tile-label">{catName(cat.id)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="ai-or-divider">{t.aiOrDescribeLabel}</div>
+            </>
+          )}
 
           <textarea
             className="textarea"
@@ -248,7 +310,7 @@ export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialP
           <button
             className="btn-primary"
             style={{ marginTop: 16 }}
-            disabled={loading || (!text.trim() && photos.length === 0)}
+            disabled={loading || (!text.trim() && photos.length === 0 && !selectedCategoryId)}
             onClick={() => runAnalysis([])}
           >
             {loading ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />} {loading ? t.aiAnalyzing : t.aiAnalyzeBtn}

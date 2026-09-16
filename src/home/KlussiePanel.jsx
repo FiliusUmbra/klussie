@@ -52,7 +52,7 @@ function ActiveRequests({ t, requests, serviceInfo, onOpenRequest }) {
 }
 
 export function KlussiePanel({
-  t, fmt, serviceInfo, proBadgeLabel, homeCtx, conv, photoInputRef, onOpenRequest, onSetUpHome,
+  t, fmt, serviceInfo, proBadgeLabel, homeCtx, conv, photoInputRef, onOpenRequest, onSetUpHome, onBrowseCategories,
 }) {
   const flow = useIntentFlow({
     t,
@@ -120,7 +120,21 @@ export function KlussiePanel({
       {flow.safetyPending ? (
         <SafetyNotice t={t} onBack={flow.dismissSafety} onContinue={flow.acceptSafetyAndContinue} />
       ) : (
-        <AskArea t={t} flow={flow} conv={conv} photoInputRef={photoInputRef} />
+        <>
+          <AskArea t={t} flow={flow} conv={conv} photoInputRef={photoInputRef} />
+          {/* ADR-0033 (2026-09-15) — the real entry point into AiIntakeSheet's own new
+              category grid (compose stage). Before this, AiIntakeSheet only ever opened
+              pre-seeded with an already-run AI result (useConversation.js's own onStart
+              call, after analysis) -- there was no live path that reached its compose
+              stage at all, which would have made that grid unreachable dead code. Hidden
+              once a question is already running, the same way the intent tiles above stay
+              out of the way mid-flow. */}
+          {onBrowseCategories && !flow.currentQuestion && (
+            <button type="button" className="home-ask-link" onClick={onBrowseCategories}>
+              {t.homeBrowseCategoriesBtn}
+            </button>
+          )}
+        </>
       )}
 
       {/* "Vandaag voor jouw woning" and "Loopt op dit moment" merge under one heading

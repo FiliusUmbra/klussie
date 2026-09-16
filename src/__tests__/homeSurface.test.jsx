@@ -339,6 +339,31 @@ describe("today for your home", () => {
   });
 });
 
+// ADR-0033 (2026-09-15) — before this entry point existed, AiIntakeSheet's own compose
+// stage (the category grid) was only ever reachable pre-seeded with a result
+// useConversation.js's own onStart call already ran an analysis for — never fresh. This
+// is the real, live path onto it.
+describe("browse categories entry point (ADR-0033)", () => {
+  it("calls onStart with no seed, so AiIntakeSheet opens fresh at its own compose stage", () => {
+    const { onStart } = renderHome();
+    fireEvent.click(screen.getByText("homeBrowseCategoriesBtn"));
+    expect(onStart).toHaveBeenCalledWith();
+  });
+
+  it("hides while a follow-up question is already running, the same way the intent tiles do", () => {
+    renderHome();
+    fireEvent.click(screen.getByText("intentBroken"));
+    expect(screen.queryByText("homeBrowseCategoriesBtn")).toBeNull();
+  });
+
+  it("is hidden during the safety interruption too", async () => {
+    renderHome();
+    fireEvent.click(screen.getByText("intentBroken"));
+    await type(answerBox(), "ik ruik gas in de keuken");
+    expect(screen.queryByText("homeBrowseCategoriesBtn")).toBeNull();
+  });
+});
+
 describe("hero", () => {
   it("reserves its box and treats the image as decoration", () => {
     renderHome();
