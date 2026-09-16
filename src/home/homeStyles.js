@@ -332,6 +332,23 @@ export const HOME_CSS = `
 }
 .property-summary-line{ margin:0; font-size:12.5px; line-height:1.5; color:var(--ink-soft); }
 
+/* Property health (ADR-0033) — real data or nothing at all (myHomeParts.jsx's own
+   PropertyHealthCard, propertyHealthStatus() in lib/maintenance.js). "Good" reads as a
+   quiet reassurance, "attention" reads as its own distinct amber card — WCAG 1.4.1: the
+   icon and the body text carry the meaning, not the background color alone. */
+.property-health{
+  display:flex; align-items:flex-start; gap:var(--space-2); margin-top:var(--space-2);
+  border-radius:14px; padding:var(--space-3) var(--space-4);
+}
+.property-health-good{ background:var(--sage-bg); }
+.property-health-attention{ background:var(--amber-bg); }
+.property-health-icon{ flex-shrink:0; margin-top:1px; }
+.property-health-good .property-health-icon{ color:var(--forest-dark); }
+.property-health-attention .property-health-icon{ color:var(--amber-dark); }
+.property-health-text{ display:flex; flex-direction:column; gap:2px; }
+.property-health-title{ font-size:13px; font-weight:700; color:var(--ink); }
+.property-health-body{ font-size:12px; line-height:1.4; color:var(--ink-soft); }
+
 .home-panel-action{
   display:inline-flex; align-items:center; justify-content:center; gap:var(--space-2);
   align-self:flex-start; min-height:44px; padding:0 var(--space-4);

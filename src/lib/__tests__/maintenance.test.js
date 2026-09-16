@@ -14,6 +14,7 @@ vi.mock("../supabaseClient", () => ({
 import {
   fetchMaintenanceObligations, createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation,
   fetchMaintenanceSchedules, createMaintenanceSchedule, cancelMaintenanceSchedule, mergeMaintenanceWithSchedules,
+  propertyHealthStatus,
 } from "../maintenance.js";
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-000000000020";
@@ -392,5 +393,48 @@ describe("mergeMaintenanceWithSchedules", () => {
       dueOn: "2026-12-01", status: "open", isOverdue: false,
       completedAt: null, cancelledAt: null, cancellationReason: null,
     }]);
+  });
+});
+
+// ADR-0033's own mockup — "Property health." Real data or nothing at all, never a
+// fabricated score — see this function's own header for the full reasoning.
+describe("propertyHealthStatus", () => {
+  const obligation = (over) => ({ id: "ob-1", status: "open", isOverdue: false, ...over });
+
+  it("returns null when nothing has ever been tracked — no basis to claim either state", () => {
+    expect(propertyHealthStatus([])).toBeNull();
+  });
+
+  it("returns null for a null/undefined list, the same as empty — still loading or genuinely nothing", () => {
+    expect(propertyHealthStatus(null)).toBeNull();
+    expect(propertyHealthStatus(undefined)).toBeNull();
+  });
+
+  it("is good when something real is open and none of it is overdue", () => {
+    expect(propertyHealthStatus([obligation(), obligation({ id: "ob-2" })]))
+      .toEqual({ status: "good", overdueCount: 0 });
+  });
+
+  it("needs attention when at least one open item is overdue, with the real count", () => {
+    expect(propertyHealthStatus([
+      obligation({ id: "ob-1", isOverdue: true }),
+      obligation({ id: "ob-2", isOverdue: true }),
+      obligation({ id: "ob-3" }),
+    ])).toEqual({ status: "attention", overdueCount: 2 });
+  });
+
+  it("ignores completed and cancelled entries — only open ones count either way", () => {
+    // All settled, none open: the honest "nothing to judge" case, not a fabricated Good.
+    expect(propertyHealthStatus([
+      obligation({ status: "completed", isOverdue: true }),
+      obligation({ status: "cancelled", isOverdue: true }),
+    ])).toBeNull();
+  });
+
+  it("never lets a settled overdue entry count toward the open overdue total", () => {
+    expect(propertyHealthStatus([
+      obligation({ id: "ob-1" }),
+      obligation({ id: "ob-2", status: "completed", isOverdue: true }),
+    ])).toEqual({ status: "good", overdueCount: 0 });
   });
 });
