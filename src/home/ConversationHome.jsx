@@ -20,7 +20,7 @@ import { useHomeContext } from "./useHomeContext.js";
 import { useConversation } from "./useConversation.js";
 
 export function ConversationHome({ onStart, requests = [], onOpenRequest, onOpenMyHome }) {
-  const { t, fmt, serviceInfo, proBadgeLabel } = useLang();
+  const { t, fmt, serviceInfo, proBadgeLabel, CATS, catName } = useLang();
   const { profile } = useAuth();
   const photoInputRef = useRef(null);
 
@@ -45,10 +45,14 @@ export function ConversationHome({ onStart, requests = [], onOpenRequest, onOpen
           photoInputRef={photoInputRef}
           onOpenRequest={openRequest}
           onSetUpHome={openMyHome}
+          CATS={CATS}
+          catName={catName}
           // ADR-0033 — opens AiIntakeSheet fresh, at its own compose stage (the category
           // grid), rather than only ever reachable pre-seeded with a result the
           // conversation already ran (useConversation.js's own onStart call, below).
-          onBrowseCategories={() => onStart()}
+          // categoryId is the tapped tile's own id, or null from "More" — either way it
+          // becomes AiIntakeSheet's initialCategoryId, never text/photos/result.
+          onBrowseCategories={(categoryId) => onStart({ initialCategoryId: categoryId ?? null })}
         />
 
         {/* capture="environment" opens the rear camera directly on mobile rather than a

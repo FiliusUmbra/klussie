@@ -377,6 +377,7 @@ export function CustomerApp({ showToast, onBecomePro }) {
           initialText={aiIntakeOpen.text || ""}
           initialPhotos={aiIntakeOpen.photos || []}
           initialResult={aiIntakeOpen.result || null}
+          initialCategoryId={aiIntakeOpen.initialCategoryId || null}
           onClose={() => setAiIntakeOpen(false)}
           onSubmitted={async (payload) => { await createRequestFromAi(payload); setTab("requests"); }}
         />

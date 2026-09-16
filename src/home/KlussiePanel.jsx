@@ -12,6 +12,7 @@ import { interpolate } from "../lib/homeStrings.js";
 import { kindOf } from "../lib/homeToday.js";
 import { KIND_COPY } from "../lib/homeTodayCopy.js";
 import { IntentSuggestions } from "./IntentSuggestions.jsx";
+import { HomeCategoryRow } from "./HomeCategoryRow.jsx";
 import { SafetyNotice } from "./SafetyNotice.jsx";
 import { HomeTodayCard } from "./HomeTodayCard.jsx";
 import { ConversationCanvas } from "./ConversationCanvas.jsx";
@@ -53,6 +54,7 @@ function ActiveRequests({ t, requests, serviceInfo, onOpenRequest }) {
 
 export function KlussiePanel({
   t, fmt, serviceInfo, proBadgeLabel, homeCtx, conv, photoInputRef, onOpenRequest, onSetUpHome, onBrowseCategories,
+  CATS, catName,
 }) {
   const flow = useIntentFlow({
     t,
@@ -122,17 +124,19 @@ export function KlussiePanel({
       ) : (
         <>
           <AskArea t={t} flow={flow} conv={conv} photoInputRef={photoInputRef} />
-          {/* ADR-0033 (2026-09-15) — the real entry point into AiIntakeSheet's own new
-              category grid (compose stage). Before this, AiIntakeSheet only ever opened
-              pre-seeded with an already-run AI result (useConversation.js's own onStart
-              call, after analysis) -- there was no live path that reached its compose
-              stage at all, which would have made that grid unreachable dead code. Hidden
-              once a question is already running, the same way the intent tiles above stay
-              out of the way mid-flow. */}
+          {/* ADR-0033 (2026-09-15) — the real entry point into AiIntakeSheet's own
+              category grid (compose stage). Before a version of this existed,
+              AiIntakeSheet only ever opened pre-seeded with an already-run AI result
+              (useConversation.js's own onStart call, after analysis) -- there was no
+              live path that reached its compose stage at all, which would have made
+              that grid unreachable dead code. The mockup's own compact row replaces the
+              plain text link an earlier slice of this same ADR shipped -- tapping a real
+              category opens the sheet with it already selected; "More" opens it with
+              nothing preselected, landing on the full grid. Hidden once a question is
+              already running, the same way the intent tiles above stay out of the way
+              mid-flow. */}
           {onBrowseCategories && !flow.currentQuestion && (
-            <button type="button" className="home-ask-link" onClick={onBrowseCategories}>
-              {t.homeBrowseCategoriesBtn}
-            </button>
+            <HomeCategoryRow t={t} CATS={CATS} catName={catName} onSelectCategory={onBrowseCategories} />
           )}
         </>
       )}

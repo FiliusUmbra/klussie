@@ -190,7 +190,8 @@ automated (§4) or listed here. Walk the rows relevant to what changed.
 
 | # | Flow | Surface |
 |---|---|---|
-| C1 | Home renders hero, section tabs and "today" card | `ConversationHome` *(automated)* |
+| C1 | Home renders hero, the conversational canvas and "today" card — no section tabs since ADR-0033 (2026-09-15) moved My Home/My Items to their own bottom-nav destination, `MyHomeScreen` (§5.4) | `ConversationHome` *(automated)* |
+| C1a | ADR-0033's own mockup — a compact category row sits alongside the composer/intent tiles as a real, additional way to start a request; tapping a category opens `AiIntakeSheet` with it already selected, "More" opens it with nothing preselected | `HomeCategoryRow` *(automated)* |
 | C2 | First-login tour appears once | `CustomerOnboarding` *(automated)* |
 | C3 | Describe a job as free text | `ConversationCanvas` *(automated)* |
 | C4 | Voice capture produces a transcript | `VoiceCapturePanel` *(partial)* |

@@ -54,13 +54,19 @@ function IntakeSteps({ t, stage }) {
   );
 }
 
-export function AiIntakeSheet({ onClose, onSubmitted, initialText = "", initialPhotos = [], initialResult = null }) {
+export function AiIntakeSheet({
+  onClose, onSubmitted, initialText = "", initialPhotos = [], initialResult = null, initialCategoryId = null,
+}) {
   const { t, langCode, BASE_SERVICES, CATS, catName, serviceInfo, whenLabel } = useLang();
   const { user, profile, activeWorkspace } = useAuth();
   const langMeta = LANGS.find((l) => l.code === langCode) || LANGS[0];
 
   const [text, setText] = useState(initialText);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  // Home foundation category row (ADR-0033) — a tapped tile on the Home screen arrives
+  // here already selected, the exact same selection state the compose-stage grid below
+  // already tracks; "More" (or any other caller with nothing to preselect) leaves this
+  // null, landing on the full grid unselected.
+  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
   const [listening, setListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognizerRef = useRef(null);
