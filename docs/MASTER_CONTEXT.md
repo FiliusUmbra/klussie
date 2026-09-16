@@ -132,7 +132,11 @@ Klussie is an AI-powered operating system for trusted professional
 services — not a handyman app. A customer describes a problem by text,
 speech, or photo; AI understands it, builds a structured work order,
 matches a professional, and manages the job through completion and
-payment. No category picker, no jargon, no manually comparing providers.
+payment. No jargon, no manually comparing providers. A category grid is
+a real, additional entry point as of ADR-0033 (2026-09-15, supersedes
+ADR-0007's original "no category picker") — it sits alongside the
+conversational description, never instead of it, and maps onto the
+same service taxonomy the AI intake already uses.
 
 **Mission:** remove every barrier between a customer with a problem and the
 professional who can solve it. Full vision: §5.
@@ -711,8 +715,8 @@ so this section doesn't duplicate a source of truth (Constitution Rule
 | [0004](./adr/0004-domain-events-via-security-definer-rpc.md) | Route domain events through `emit_domain_event()` RPC | Implemented |
 | [0005](./adr/0005-testing-ci-disaster-recovery-before-payments.md) | Move Testing/CI/Disaster Recovery ahead of Payments in the roadmap | Implemented |
 | [0006](./adr/0006-design-direction-lock.md) | Design Direction Lock: evolve the warm identity, reject the cooler SaaS-dashboard register | Implemented |
-| [0007](./adr/0007-conversational-homepage-ia.md) | Conversational-first homepage over marketplace/category-grid IA | Implemented (built, Epic 03) |
-| [0008](./adr/0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Implemented (built as homepage sections, not a nav destination — Epic 03) |
+| [0007](./adr/0007-conversational-homepage-ia.md) | Conversational-first homepage over marketplace/category-grid IA | Superseded by [0033](./adr/0033-property-first-home-and-category-request-ia.md) (2026-09-15) |
+| [0008](./adr/0008-my-home-replaces-discover-tab.md) | "My Home" replaces the Discover tab, not a new tab | Superseded by [0033](./adr/0033-property-first-home-and-category-request-ia.md) (2026-09-15) — My Home is now a real nav destination |
 | [0009](./adr/0009-docs-folder-reorganization.md) | Reorganize `docs/` into category subfolders | Implemented |
 | [0010](./adr/0010-defer-permissions-layer-formalization.md) | Defer formalizing the Permissions layer | Implemented |
 | [0011](./adr/0011-trust-strip-shows-only-verified-signals.md) | The trust strip shows only signals backed by real data | Implemented (built, Epic 03 WP7) |
@@ -735,6 +739,9 @@ so this section doesn't duplicate a source of truth (Constitution Rule
 | [0028](./adr/0028-stewardship-current-pointer-and-closed-period-log.md) | Stewardship is a mutable current pointer plus an append-only log of closed periods | **Accepted** — resolves a contradiction between `DATABASE_ARCHITECTURE.md` §4 and §12's literal wording; the isolation predicate reuses Epic 03's membership helper directly, no new resolver |
 | [0029](./adr/0029-client-access-pattern-for-new-engines.md) | RPC/API routes are the default client-access pattern for the new engines; direct PostgREST reads are the named exception | **Accepted** — governs Platform Activation Slice 1 onward |
 | [0030](./adr/0030-operator-identity-via-operations-workspace.md) | Operator identity is a membership in a real, internal Operations Workspace — not a new access mechanism | **Accepted** — governs Platform Activation Slice 0 WP 0.3 onward |
+| [0031](./adr/0031-background-consumer-pattern-cursor-quarantine-pg-cron.md) | The background-consumer pattern: a per-hash-partition `pg_cron` cursor loop over the parent event table, quarantining per-event, never blocking a partition | **Accepted** — governs every future background event consumer |
+| [0032](./adr/0032-multi-property-support-is-a-real-read-path.md) | Multi-property support is a real read path — `api.my_properties()` filters by a new `kind` column, `PropertySwitcher`/`AddPropertySheet` make it reachable | **Accepted** — reopens WP 05.02's single-property restraint |
+| [0033](./adr/0033-property-first-home-and-category-request-ia.md) | Property-first Home, a real My Home nav destination, and category-assisted requests | **Accepted** — supersedes 0007 and 0008 |
 
 ---
 

@@ -1,7 +1,10 @@
 # ADR-0007: Conversational-First Homepage Over Marketplace/Category-Grid IA
 
-**Status:** Implemented (design direction — see Consequences for what
-this does and doesn't mean is built)
+**Status:** Superseded by [ADR-0033](0033-property-first-home-and-category-request-ia.md)
+(2026-09-15) — a concrete mockup with a category grid and a real My
+Home nav destination is now the target; this ADR's "no category grid"
+reasoning no longer governs. Kept on record for the reasoning that
+applied until then.
 **Date:** 2026-08-06
 **Related:** `../product/HOMEPAGE_CONCEPTS.md`,
 `../product/HOMEPAGE_DIRECTION.md`, `../product/EXPERIENCE_VISION.md`

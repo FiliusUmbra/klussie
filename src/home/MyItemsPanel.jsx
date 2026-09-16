@@ -143,7 +143,7 @@ function ItemCard({ item, rooms, onOpen }) {
 export function MyItemsPanel({
   t, ownerId, items, itemsError, onRefresh, fmtDate, rooms, documents, maintenance, propertyId, workspaceId,
   // Home Builder slice: the customer's own rooms now live prominently in My Home
-  // instead (ConversationHome.jsx passes false there); Mijn spullen keeps the section
+  // instead (MyHomeScreen.jsx passes false there); Mijn spullen keeps the section
   // for ProApp.jsx's "My Business" reuse (MyBusinessPanel.jsx), which has no My Home
   // equivalent and must not lose it.
   showRoomsSection = true,
