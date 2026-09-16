@@ -127,3 +127,39 @@ follow it:
 - Inventing a third service/intent taxonomy for the category grid —
   it must reuse `CATS`/`BASE_SERVICES` (or `HOME_INTENTS`, whichever
   fits the specific screen), never a new one.
+
+## Status update — five slices shipped, Messages resolved (2026-09-15)
+
+Five vertical PRs have shipped against this decision, each live-verified
+on staging: My Home as its own bottom-nav destination (#198), the
+category grid + step indicator inside `AiIntakeSheet` (#199), the Home
+screen's own compact category row (#200), and the Property health card
+(#201) — on top of #197's multi-property foundation this ADR was
+originally scoped alongside. `docs/engineering/TESTING.md` §5.2/§5.4
+name each real flow; nothing here is unlisted.
+
+**Messages is resolved, not left open.** It stays exactly where it
+already was — its own bottom-nav position, alongside Home, Requests
+(renamed "Jobs" only in the mockup's own copy, not in the shipped code),
+My Home and Profile — permanently, not as an interim placeholder. The
+mockup's own nav omits it because the mockup shows only the "start a new
+job" flow in isolation; a real customer with an open conversation with a
+professional needs that reachable exactly as reliably as everything
+else, and dropping it to match an icon count in a static mockup would be
+optimizing the literal pixel count over the actual capability. No PR
+after this one should treat "match the mockup's exact five icons" as a
+live requirement — it was never re-opened after this update.
+
+**Still genuinely open, unchanged:**
+
+- The property hero photo (Google Maps Street View) remains blocked on
+  a real API key from the founder — no workaround exists for this from
+  inside a development session, and none should be attempted.
+- The mockup's own "Request a service" full-screen route (its own
+  header, back arrow, no modal chrome) was never built — `AiIntakeSheet`
+  is still a `Drawer`, not a dedicated screen. This was a deliberate
+  scope-narrowing choice across #199/#200 (the step indicator and
+  category grid deliver the flow's own substance without a bigger
+  navigation-shell change), not an oversight — revisit only with a real
+  reason to prefer a full screen over the working, tested, live-verified
+  sheet that exists today.

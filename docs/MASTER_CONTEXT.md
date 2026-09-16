@@ -741,7 +741,7 @@ so this section doesn't duplicate a source of truth (Constitution Rule
 | [0030](./adr/0030-operator-identity-via-operations-workspace.md) | Operator identity is a membership in a real, internal Operations Workspace — not a new access mechanism | **Accepted** — governs Platform Activation Slice 0 WP 0.3 onward |
 | [0031](./adr/0031-background-consumer-pattern-cursor-quarantine-pg-cron.md) | The background-consumer pattern: a per-hash-partition `pg_cron` cursor loop over the parent event table, quarantining per-event, never blocking a partition | **Accepted** — governs every future background event consumer |
 | [0032](./adr/0032-multi-property-support-is-a-real-read-path.md) | Multi-property support is a real read path — `api.my_properties()` filters by a new `kind` column, `PropertySwitcher`/`AddPropertySheet` make it reachable | **Accepted** — reopens WP 05.02's single-property restraint |
-| [0033](./adr/0033-property-first-home-and-category-request-ia.md) | Property-first Home, a real My Home nav destination, and category-assisted requests | **Accepted** — supersedes 0007 and 0008 |
+| [0033](./adr/0033-property-first-home-and-category-request-ia.md) | Property-first Home, a real My Home nav destination, and category-assisted requests | **Accepted** — supersedes 0007 and 0008; 5 slices shipped (#197-#201), Messages nav placement resolved (permanent) |
 
 ---
 
