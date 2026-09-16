@@ -6,7 +6,7 @@
 //
 // Everything here is presentational. What is real and what is absent was already decided
 // by src/lib/homeTimeline.js; these components render one or the other and never guess.
-import { MapPin, Clock, ChevronRight, Camera } from "lucide-react";
+import { MapPin, Clock, ChevronRight, Camera, CircleCheck, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Avatar, Rating } from "../design-system";
 import { fetchRequestPhotos } from "../lib/requestPhotos";
@@ -46,6 +46,38 @@ export function PropertyHeader({ t, property, fmtDate }) {
           {interpolate(t.myHomeJobsSummary, { total: property.totalJobs, completed: property.completedJobs })}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * "Property health" (ADR-0033's own mockup). `health` is `propertyHealthStatus()`'s own
+ * result (src/lib/maintenance.js) — `null` means nothing has ever been tracked, and this
+ * renders nothing at all rather than a placeholder or a guessed "Good": the same
+ * "never show a metric with no real data behind it" restraint the trust strip already
+ * holds itself to (ADR-0011).
+ *
+ * WCAG 1.4.1 ("not by color alone") — the "attention" state is never color-only: a
+ * distinct icon (AlertTriangle vs CircleCheck) and its own body text carry the meaning
+ * too, matching this codebase's own established pattern for every other status here.
+ */
+export function PropertyHealthCard({ t, health }) {
+  if (!health) return null;
+
+  const attention = health.status === "attention";
+  return (
+    <div className={"property-health" + (attention ? " property-health-attention" : " property-health-good")}>
+      <span className="property-health-icon" aria-hidden="true">
+        {attention ? <AlertTriangle size={16} /> : <CircleCheck size={16} />}
+      </span>
+      <span className="property-health-text">
+        <span className="property-health-title">{attention ? t.propertyHealthAttentionTitle : t.propertyHealthGoodTitle}</span>
+        <span className="property-health-body">
+          {attention
+            ? interpolate(t.propertyHealthAttentionBody, { count: health.overdueCount })
+            : t.propertyHealthGoodBody}
+        </span>
+      </span>
     </div>
   );
 }

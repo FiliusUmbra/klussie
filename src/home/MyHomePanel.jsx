@@ -32,6 +32,7 @@ import { AlertTriangle, Plus } from "lucide-react";
 import { HomeSection } from "./panelParts.jsx";
 import {
   PropertyHeader,
+  PropertyHealthCard,
   HomeTimelineCard,
   ActiveWorkCard,
   TrustedProsList,
@@ -44,6 +45,7 @@ import { LocationFormSheet } from "./LocationFormSheet.jsx";
 import { ItemAddWizard } from "./ItemAddWizard.jsx";
 import { PropertySwitcher } from "./PropertySwitcher.jsx";
 import { reviewsGiven, aiSummaries } from "../lib/homeTimeline.js";
+import { propertyHealthStatus } from "../lib/maintenance.js";
 
 // Home Builder vertical slice — "building your home" belongs here, in My Home, not
 // tucked inside My Items where a homeowner has no reason to look for it (found live:
@@ -142,11 +144,12 @@ export function MyHomePanel({
   const [addItemToRoom, setAddItemToRoom] = useState(undefined);
   const {
     property, openWork, trustedPros, history, photoSources, propertyId, refreshItems,
-    properties, activePropertyId, selectProperty,
+    properties, activePropertyId, selectProperty, maintenance,
   } = homeCtx;
 
   const reviews = reviewsGiven(requests);
   const analyses = aiSummaries(requests);
+  const health = propertyHealthStatus(maintenance);
 
   return (
     <div className="home-panel">
@@ -155,6 +158,8 @@ export function MyHomePanel({
       <PropertySwitcher properties={properties} activePropertyId={activePropertyId} onSelect={selectProperty} />
 
       <PropertyHeader t={t} property={property} fmtDate={fmtDate} />
+
+      <PropertyHealthCard t={t} health={health} />
 
       {/* The one action that has always worked here, and still the only way to start
           something new: hand back to the conversation (ADR-0007). */}

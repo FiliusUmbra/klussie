@@ -75,6 +75,10 @@ const t = {
   itemRoomKitchen: "Kitchen", itemRoomLiving: "Living room", itemRoomBedroom: "Bedroom",
   itemRoomBathroom: "Bathroom", itemRoomGarage: "Garage", itemRoomGarden: "Garden",
   itemRoomAttic: "Attic", itemRoomBasement: "Basement",
+  // Property health (ADR-0033)
+  propertyHealthGoodTitle: "Good", propertyHealthAttentionTitle: "Needs attention",
+  propertyHealthGoodBody: "You're not behind on maintenance.",
+  propertyHealthAttentionBody: "{count} maintenance task(s) overdue.",
 };
 
 const fmtDate = (iso) => iso;
@@ -197,5 +201,49 @@ describe("MyHomePanel — HomeBuilderSection actions", () => {
     await waitFor(() => expect(createAsset).toHaveBeenCalledWith(expect.objectContaining({
       propertyId: "prop-1", locationId: "loc-1", name: "Washing machine",
     })));
+  });
+});
+
+// ADR-0033's own mockup — "Property health," real data or nothing at all (never a
+// fabricated "Good"). obligation() below mirrors fetchMaintenanceObligations()'s own
+// shaped-row output (src/lib/maintenance.js) closely enough for propertyHealthStatus()'s
+// own purposes: status and isOverdue are the only two fields it reads.
+describe("MyHomePanel — property health (ADR-0033)", () => {
+  const obligation = (over) => ({ id: "ob-1", status: "open", isOverdue: false, ...over });
+
+  it("shows nothing at all when maintenance has never resolved", () => {
+    render(<MyHomePanel {...BASE_PROPS} homeCtx={baseHomeCtx({ maintenance: null })} />);
+    expect(screen.queryByText("Good")).toBeNull();
+    expect(screen.queryByText("Needs attention")).toBeNull();
+  });
+
+  it("shows nothing at all when nothing has ever been tracked — never a guessed Good", () => {
+    render(<MyHomePanel {...BASE_PROPS} homeCtx={baseHomeCtx({ maintenance: [] })} />);
+    expect(screen.queryByText("Good")).toBeNull();
+    expect(screen.queryByText("Needs attention")).toBeNull();
+  });
+
+  it("shows Good when something real is tracked and none of it is overdue", () => {
+    render(<MyHomePanel {...BASE_PROPS} homeCtx={baseHomeCtx({ maintenance: [obligation()] })} />);
+    expect(screen.getByText("Good")).toBeTruthy();
+    expect(screen.getByText("You're not behind on maintenance.")).toBeTruthy();
+  });
+
+  it("shows Needs attention, with the real overdue count, when something is overdue", () => {
+    render(<MyHomePanel {...BASE_PROPS} homeCtx={baseHomeCtx({
+      maintenance: [obligation({ id: "ob-1", isOverdue: true }), obligation({ id: "ob-2", isOverdue: true }), obligation({ id: "ob-3" })],
+    })} />);
+    expect(screen.getByText("Needs attention")).toBeTruthy();
+    expect(screen.getByText("2 maintenance task(s) overdue.")).toBeTruthy();
+    expect(screen.queryByText("Good")).toBeNull();
+  });
+
+  it("ignores completed and cancelled entries — only open ones count toward either state", () => {
+    render(<MyHomePanel {...BASE_PROPS} homeCtx={baseHomeCtx({
+      maintenance: [obligation({ status: "completed", isOverdue: true }), obligation({ status: "cancelled", isOverdue: true })],
+    })} />);
+    // Nothing open at all, real or overdue — the honest "nothing tracked" case.
+    expect(screen.queryByText("Good")).toBeNull();
+    expect(screen.queryByText("Needs attention")).toBeNull();
   });
 });

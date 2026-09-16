@@ -210,6 +210,33 @@ export function mergeMaintenanceWithSchedules(maintenance, schedules) {
 }
 
 /**
+ * "Property health" (ADR-0033's own mockup) — the founder's own explicit choice was a
+ * real, derived signal or nothing at all, never a fabricated score (this codebase's own
+ * standing rule, ADR-0011's precedent: no claim on screen without real data behind it).
+ *
+ * Deliberately narrow for this first pass: the one unambiguous, already-tracked signal
+ * this schema has is whether any open maintenance obligation is overdue
+ * (`is_overdue`, computed server-side — see fetchMaintenanceObligations()'s own header).
+ * Address completeness and document coverage are real too, but folding them in here
+ * would mean inventing a weighting between genuinely different kinds of "not okay" with
+ * no product research behind the weights — a second pass's job, not this one's.
+ *
+ * Returns `null` — never a fabricated "Good" — when nothing has ever been tracked at
+ * all (`maintenance` still loading, or genuinely empty): an account with zero
+ * maintenance recorded has no real basis to claim either state, the same restraint
+ * trustItemsFrom() (useHomeContext.js) already holds for the trust strip.
+ */
+export function propertyHealthStatus(maintenance) {
+  const open = (maintenance || []).filter((m) => m.status === "open");
+  if (open.length === 0) return null;
+
+  const overdueCount = open.filter((m) => m.isOverdue).length;
+  return overdueCount > 0
+    ? { status: "attention", overdueCount }
+    : { status: "good", overdueCount: 0 };
+}
+
+/**
  * Creates a recurring maintenance schedule for an asset (`api.create_maintenance_
  * schedule()`, Recurring Maintenance Activation slice) — the first real client caller.
  * `recurrence` is a plain interval literal Postgres already understands ("1 month",
