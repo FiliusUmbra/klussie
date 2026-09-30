@@ -1,14 +1,17 @@
 // Money is the one place where "close enough" is a bug report. These tests pin the
 // rounding and the rates, so a refactor that moves this math somewhere else has to keep
 // producing the same cents.
+//
+// platformFee()/netPayout() are gone — superseded by the real, capped, first-job-only
+// acquisition fee (commerce.acquisition_fee_assessments, Payments Slice A). See
+// billing.js's own header for the full reconciliation note; their pinned-rate tests
+// (platformFee(100) === 12, etc.) are removed with them, not left testing a function
+// that no longer exists.
 import { describe, it, expect } from "vitest";
 import {
   PLATFORM_COMMISSION_RATE,
   VAT_RATE,
   FLEXI_TAX_FREE_THRESHOLD,
-  BOOST_WEEKLY_PRICE,
-  platformFee,
-  netPayout,
   invoiceTotals,
   typicalPriceRange,
   netEarnings,
@@ -22,31 +25,6 @@ describe("rates", () => {
     expect(PLATFORM_COMMISSION_RATE).toBe(0.12);
     expect(VAT_RATE).toBe(0.21);
     expect(FLEXI_TAX_FREE_THRESHOLD).toBe(18440);
-    expect(BOOST_WEEKLY_PRICE).toBe(9);
-  });
-});
-
-describe("platformFee / netPayout", () => {
-  it("splits a quote into commission and payout, to the cent", () => {
-    expect(platformFee(100)).toBe(12);
-    expect(netPayout(100)).toBe(88);
-  });
-
-  it("rounds to cents rather than trailing float noise into an invoice", () => {
-    // 65 * 0.12 is 7.799999999999999 in IEEE 754. A professional must never see that.
-    expect(platformFee(65)).toBe(7.8);
-    expect(netPayout(65)).toBe(57.2);
-  });
-
-  it("never loses or invents money: fee plus payout is the quote", () => {
-    for (const price of [1, 33, 65, 99.99, 250, 1234.56]) {
-      expect(platformFee(price) + netPayout(price)).toBeCloseTo(price, 10);
-    }
-  });
-
-  it("handles a free job without producing a negative payout", () => {
-    expect(platformFee(0)).toBe(0);
-    expect(netPayout(0)).toBe(0);
   });
 });
 

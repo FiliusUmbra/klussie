@@ -9,8 +9,33 @@
 // because the shell's first decision is which surface an unauthenticated visitor sees.
 import { AuthProvider } from "./lib/auth.jsx";
 import { AppShell } from "./shell/AppShell.jsx";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ProtectedRoute, PublicOnlyRoute, SessionRedirect } from "./auth/AuthRoutes.jsx";
+import { customerDestination, customerPath } from "./lib/customerNavigation.js";
+
+// 2026-09-30 — "Customer navigation continuity," brought in from the parallel "Klussie
+// via ChatGPT" pass: dedicated addresses for Today/Help/My Home (+Items)/Requests/
+// Messages/Account and a persistent /app/family route, so a reload or the browser's own
+// Back button lands where a customer actually was, not always back on Today.
+// customerNavigation.js owns the one true mapping between a tab (+ My Home's own
+// section) and its path; this component's only job is turning that into the real
+// location object react-router already gives every route.
+function SignedInShell() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (
+    <AppShell
+      familyRoute={location.pathname === "/app/family"}
+      customerDestination={customerDestination(location.pathname)}
+      onCustomerNavigate={(tab, section) => {
+        const path = customerPath(tab, section);
+        if (path !== location.pathname) navigate(path);
+      }}
+      onOpenFamily={() => navigate("/app/family")}
+      onLeaveFamily={() => navigate("/app")}
+    />
+  );
+}
 
 export default function App() {
   return (
@@ -21,7 +46,7 @@ export default function App() {
             <Route path="/" element={<AppShell />} />
           </Route>
           <Route element={<ProtectedRoute loadingFallback={<AppShell />} />}>
-            <Route path="/app/*" element={<AppShell />} />
+            <Route path="/app/*" element={<SignedInShell />} />
           </Route>
           <Route path="*" element={<SessionRedirect loadingFallback={<AppShell />} />} />
         </Routes>

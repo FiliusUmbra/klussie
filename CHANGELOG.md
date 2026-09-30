@@ -1,5 +1,69 @@
 # Changelog
 
+## 2026-09-30 — Payments Slice 1/A/B: payout onboarding, acquisition fee, Klussie Pro billing
+
+### Added
+
+- **Stripe Connect Express payout accounts** (`0226`/`0227`) — a professional
+  workspace's link to a real Stripe Connect account and the
+  `/api/stripe-connect-onboarding` / `/api/stripe-connect-status` endpoints
+  that create and check it. No charge, transfer or payout call exists in
+  `api/_lib/stripeGateway.js` — this slice is onboarding only.
+- **Acquisition fee** (`0228`–`0231`) — a versioned, configurable fee (5%,
+  capped, first job per customer-pro relationship only, charged to the
+  professional, never itemized out of the customer's own price), wired live
+  into `approveLocationDisclosure()`. Replaces the old flat 12% platform
+  commission (`platformFee()`/`netPayout()`, removed from `billing.js` and
+  `RequestDetailSheet.jsx`) and the Boost feature it funded (`boostProfile()`/
+  `isBoosted()`, removed from `pros.js`/`proStatus.js`).
+- **Klussie Pro subscription** (`0232`/`0233`) — one optional plan on top of
+  Epic 22's subscription contract, plus the Stripe Billing webhook trust
+  boundary (deduplication, `service_role`-only delegate).
+- **Business** (`BusinessApp.jsx` and its Profile/Billing/Team sections) —
+  replaces `MyBusinessPanel.jsx` as the pro's own Business tab, now also
+  hosting what used to live on Profile (services, portfolio, testimonials,
+  pause/resume moved to `ProDashboard.jsx`/Today instead).
+
+**Not yet active in production**: `STRIPE_SECRET_KEY` (and the Billing
+webhook secret) are not configured in the `klussie` Vercel project's
+Production environment as of this entry — every endpoint in
+`stripeGateway.js` throws a clear "not configured on the server" error until
+that's deliberately added. Shipping this code does not itself enable any
+real Stripe account creation, charge, or payout.
+
+## 2026-09-30 — Unified Today, Family coordination, and quieter navigation
+
+### Added
+
+- **"Today" (`DailyHome`) is the customer's real landing tab** — request
+  decisions awaiting a reply, unread messages, due household tasks and
+  ongoing family plans in one place, the same instinct `ProDashboard`
+  already has for a professional. The AI composer (`ConversationHome`) moves
+  to "Help", one tap away via Today's own back-and-forth button, not the
+  default landing screen.
+- **Family coordination** (staging only — `20260930053808_family_coordination.sql`
+  not yet applied to production) — a household's own shared space behind a
+  private, RLS-enabled `family` schema: shared lists, assigned/recurring
+  chores, an all-day calendar, managed adult/child profiles with no login of
+  their own, and 7-day single-use invite codes. Reachable from AppShell's own
+  header and from Today's own family card. See `docs/product/FAMILY_RELEASE.md`.
+- **Real, URL-backed customer navigation** (`customerNavigation.js`, wired
+  through `App.jsx`'s `SignedInShell`) — each tab/section has its own path,
+  the browser Back button returns to the previous tab, and a deep link
+  (e.g. `/app/home/items`) lands directly on it instead of always on Today.
+
+### Changed
+
+- **`WorkspaceSwitcher`** is a single native `<select>`, not segmented
+  buttons — stays compact now that the header also holds a Family entry
+  point and the language switcher. Hidden while the Family space is open.
+- **`LanguageSwitcher`** moved behind a `<details>` disclosure in the
+  header (showing just the current code, e.g. "EN") rather than always
+  rendered open.
+- **My Home's property name** is now always a real `<h1>`, not gated to the
+  single-property case — a page needs a stable, announced title independent
+  of whether the property switcher also happens to be showing the same name.
+
 ## 2026-09-11 — Supabase auth route boundary
 
 - Added `/` as the public-only sign-in entry and `/app/*` as the protected

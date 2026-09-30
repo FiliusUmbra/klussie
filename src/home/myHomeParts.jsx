@@ -221,14 +221,3 @@ export function HomePhotoGallery({ t, sources }) {
     </div>
   );
 }
-
-/** A review the household wrote, outside the timeline — used by the reviews section. */
-export function ReviewRow({ t, serviceInfo, entry }) {
-  return (
-    <li className="home-review-row">
-      <span className="home-review-service">{serviceInfo(entry.serviceId).name}</span>
-      <Rating value={entry.review.stars} size={12} label={interpolate(t.ratingLabel, { value: entry.review.stars })} />
-      <p className="timeline-card-quote">"{entry.review.text}"</p>
-    </li>
-  );
-}

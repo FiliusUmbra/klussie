@@ -121,12 +121,6 @@ export async function updateProProfile(proId, fields) {
   if (error) throw error;
 }
 
-export async function boostProfile(proId, days = 7) {
-  const boostedUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-  await updateProProfile(proId, { boosted_until: boostedUntil });
-  return boostedUntil;
-}
-
 // Bulk-fetches the public info needed to render a pro on a quote card: name, rating, badge.
 //
 // The name and avatar come from the identity engine as of Epic 02 WP06, through

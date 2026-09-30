@@ -47,6 +47,7 @@ vi.mock("../lib/householdItems", () => ({
 }));
 
 import { ConversationHome } from "../home/ConversationHome.jsx";
+import { HomeHero } from "../home/HomeHero.jsx";
 import { LangContext } from "../lib/lang";
 import { fetchPlatformTrustStats, findBestProForService } from "../lib/pros";
 import { analyzeJobRequest } from "../lib/aiIntake";
@@ -68,9 +69,10 @@ const TEMPLATES = {
 };
 const t = new Proxy({}, { get: (_, key) => TEMPLATES[key] ?? String(key) });
 
-// Six categories, one more than HomeCategoryRow's own five-tile limit — real fixtures
-// so the "More" overflow tile (ADR-0033) is exercised the same way a real CATS list
-// with more than five entries already does live.
+// Six categories — kept as a real lang-context fixture even though HomeCategoryRow no
+// longer reads CATS/catName at all (UX redesign, 2026-09-28: it renders one link, not
+// per-category tiles) — other lang-context consumers in this tree may still expect the
+// shape, and the "Browse all services" tests below assert none of these names render.
 const CAT_NAMES = {
   repairs: "Herstelling", electrical: "Elektriciteit", renovation: "Renovatie",
   cleaning: "Schoonmaak", moving: "Verhuizing", tutoring: "Bijles",
@@ -140,18 +142,25 @@ describe("ConversationHome — a single conversational canvas, no section tabs",
 });
 
 describe("intent before input method", () => {
-  it("offers all five conversation starters, none selected to begin with", () => {
+  // UX redesign, 2026-09-28 — trimmed to the three the brief names (Repair/Improve/
+  // Maintain): "up to three useful intent shortcuts... other needs remain possible
+  // through free text and service selection." Advice/Something else lose their own
+  // one-tap tile but not their underlying question sequences (src/lib/homeIntents.js
+  // itself is untouched, and "scripts nothing for something else" below still covers
+  // free-text reaching the same place) — see IntentSuggestions.jsx's own header.
+  it("offers three conversation starters, none selected to begin with", () => {
     renderHome();
-    for (const key of ["intentBroken", "intentImprove", "intentMaintain", "intentAdvice", "intentOther"]) {
+    for (const key of ["intentBroken", "intentImprove", "intentMaintain"]) {
       expect(screen.getByText(key).closest("button").getAttribute("aria-pressed")).toBe("false");
     }
+    expect(screen.queryByText("intentAdvice")).toBeNull();
+    expect(screen.queryByText("intentOther")).toBeNull();
   });
 
   it.each([
     ["intentBroken", "fuBrokenWhat"],
     ["intentImprove", "fuImproveWhat"],
     ["intentMaintain", "fuMaintainWhat"],
-    ["intentAdvice", "fuAdviceAbout"],
   ])("opens %s on its own first question", (label, firstQuestion) => {
     renderHome();
     fireEvent.click(screen.getByText(label));
@@ -162,9 +171,8 @@ describe("intent before input method", () => {
     expect(screen.getByText(/^step 1\/\d+$/)).toBeTruthy();
   });
 
-  it("scripts nothing for 'something else', because that is the one that did not fit a script", () => {
+  it("still reaches the composer with no intent tile tapped at all — free text is how 'something else' is reached now", () => {
     renderHome();
-    fireEvent.click(screen.getByText("intentOther"));
     expect(screen.queryByText(/^fu/)).toBeNull();
     expect(composer()).toBeTruthy();
   });
@@ -238,9 +246,14 @@ describe("one question at a time", () => {
   });
 
   it("starts the conversation once the last question is answered", async () => {
+    // UX redesign, 2026-09-28 — switched from intentAdvice (no longer a visible tile,
+    // see the describe block above) to intentMaintain, one of the three still shown;
+    // homeIntents.js's own "maintain" sequence has five questions (what/last/saved/
+    // recurring/dates), none carrying a knownFact this fixture's empty knownFacts
+    // would filter out.
     renderHome();
-    fireEvent.click(screen.getByText("intentAdvice"));
-    for (const answer of ["kosten", "kosten", "geen foto", "alleen advies"]) {
+    fireEvent.click(screen.getByText("intentMaintain"));
+    for (const answer of ["boiler", "vorig jaar", "geen", "jaarlijks", "geen voorkeur"]) {
       await type(answerBox(), answer);
     }
     await waitFor(() => expect(document.querySelector(".unfold")).not.toBeNull());
@@ -357,49 +370,53 @@ describe("today for your home", () => {
 
 // ADR-0033 (2026-09-15) — before a live entry point existed, AiIntakeSheet's own
 // compose stage (the category grid) was only ever reachable pre-seeded with a result
-// useConversation.js's own onStart call already ran an analysis for — never fresh. The
-// compact category row (the mockup's own Home screen) is the real, live path onto it —
-// this replaced an earlier plain-text-link version of the same entry point.
-describe("Home category row (ADR-0033)", () => {
-  it("shows five real categories plus a More tile, since CATS holds one more than the row's own limit", () => {
+// useConversation.js's own onStart call already ran an analysis for — never fresh.
+//
+// UX redesign, 2026-09-28 — the six-tile compact row this block used to test scrolled
+// horizontally at ordinary phone widths (confirmed live), which the redesign brief bans
+// outright. Replaced with a single "Browse all services" link (HomeCategoryRow.jsx) —
+// this block now tests that link, not individual category tiles.
+describe("Browse all services link (replaces the ADR-0033 category row)", () => {
+  it("shows one link, not a row of category tiles", () => {
     renderHome();
-    for (const name of Object.values(CAT_NAMES).slice(0, 5)) {
-      expect(screen.getByText(name)).toBeTruthy();
+    expect(screen.getByText("homeBrowseCategoriesBtn")).toBeTruthy();
+    for (const name of Object.values(CAT_NAMES)) {
+      expect(screen.queryByText(name)).toBeNull();
     }
-    // The sixth fixture category is deliberately not one of the five shown directly.
-    expect(screen.queryByText(CAT_NAMES.tutoring)).toBeNull();
-    expect(screen.getByText("homeCategoryMoreBtn")).toBeTruthy();
   });
 
-  it("opens AiIntakeSheet with that category already selected", () => {
+  it("opens AiIntakeSheet with nothing preselected, landing on the full grid", () => {
     const { onStart } = renderHome();
-    fireEvent.click(screen.getByText(CAT_NAMES.repairs));
-    expect(onStart).toHaveBeenCalledWith({ initialCategoryId: "repairs" });
-  });
-
-  it("opens AiIntakeSheet with nothing preselected from the More tile, landing on the full grid", () => {
-    const { onStart } = renderHome();
-    fireEvent.click(screen.getByText("homeCategoryMoreBtn"));
+    fireEvent.click(screen.getByText("homeBrowseCategoriesBtn"));
     expect(onStart).toHaveBeenCalledWith({ initialCategoryId: null });
   });
 
   it("hides while a follow-up question is already running, the same way the intent tiles do", () => {
     renderHome();
     fireEvent.click(screen.getByText("intentBroken"));
-    expect(screen.queryByText(CAT_NAMES.repairs)).toBeNull();
+    expect(screen.queryByText("homeBrowseCategoriesBtn")).toBeNull();
   });
 
   it("is hidden during the safety interruption too", async () => {
     renderHome();
     fireEvent.click(screen.getByText("intentBroken"));
     await type(answerBox(), "ik ruik gas in de keuken");
-    expect(screen.queryByText(CAT_NAMES.repairs)).toBeNull();
+    expect(screen.queryByText("homeBrowseCategoriesBtn")).toBeNull();
   });
 });
 
+// UX redesign, 2026-09-30 — ConversationHome ("Help", reached from Today) now always
+// renders HomeHero with `compact`, since it is no longer the customer's own landing
+// screen (CustomerApp.jsx's own "Unified Today"); the full-bleed photo variant this
+// describe block exercises has no live call site left, but stays real, tested behavior
+// of HomeHero.jsx itself, not something to delete along with its one former caller — a
+// future landing screen (or `compact={false}` from an existing one) is one prop flip
+// away, not a rebuild. Rendered directly rather than through renderHome(): HomeHero.jsx
+// takes no context, only props, so pulling in ConversationHome's own heavy AI/pro/trust
+// mocking here would test nothing this component actually depends on.
 describe("hero", () => {
   it("reserves its box and treats the image as decoration", () => {
-    renderHome();
+    render(<HomeHero greeting="Goedemiddag" question="homeQuestion" />);
     const img = document.querySelector(".home-hero-img");
     expect(img.getAttribute("alt")).toBe("");
     expect(document.querySelector(".home-hero-media").getAttribute("aria-hidden")).toBe("true");
@@ -408,11 +425,19 @@ describe("hero", () => {
   });
 
   it("falls back to a surface rather than a broken image", () => {
-    renderHome();
+    render(<HomeHero greeting="Goedemiddag" question="homeQuestion" />);
     fireEvent.error(document.querySelector(".home-hero-img"));
     expect(document.querySelector(".home-hero-img")).toBeNull();
     expect(document.querySelector(".home-hero-media-fallback")).not.toBeNull();
     // The question is still readable, which is the only thing that actually matters.
+    expect(document.querySelector(".home-hero-question").textContent).toBe("homeQuestion");
+  });
+
+  it("skips the photo and scrim entirely when compact — Help's own reduced header", () => {
+    render(<HomeHero greeting="Goedemiddag" question="homeQuestion" compact />);
+    expect(document.querySelector(".home-hero-media")).toBeNull();
+    expect(document.querySelector(".home-hero-img")).toBeNull();
+    expect(document.querySelector(".home-hero-scrim")).toBeNull();
     expect(document.querySelector(".home-hero-question").textContent).toBe("homeQuestion");
   });
 });

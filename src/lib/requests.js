@@ -252,9 +252,16 @@ export async function createServiceRequest({
 // api.resolve_public_professional_workspace() (0065, already public, already
 // established, already the pattern src/lib/portfolio.js's own resolveProWorkspace()
 // uses), so no caller needs to know the new schema deals in workspaces at all.
+// existingRelationship (Payments Slice A, 0228/0231) — the customer's own explicit,
+// affirmative "I already know this professional" toggle. Only meaningful here: the open/
+// AI-matched createServiceRequest() flow above can never carry it — a customer opening a
+// request to matching has not yet met whoever ends up quoting, so there is no "existing
+// relationship" to declare. False (the default) is not "unproven" here — it correctly
+// asserts "no, I found this professional through Klussie," which is the ordinary,
+// legitimately chargeable case for a directed request, not a fallback.
 export async function createDirectedRequest({
   customerId, workspaceId, serviceId, categoryId, proId, autoAcceptMax,
-  details, detailsJson, aiAnalysis, whenPref, city, location,
+  details, detailsJson, aiAnalysis, whenPref, city, location, existingRelationship = false,
 }) {
   if (!proId) throw new Error("createDirectedRequest requires a professional to direct to");
   if (!(autoAcceptMax > 0)) throw new Error("createDirectedRequest requires a positive ceiling");
@@ -306,6 +313,7 @@ export async function createDirectedRequest({
     p_correlation_id: uuidv7(),
     p_actor_type: "person",
     p_actor_ref: customerId,
+    p_origin: existingRelationship ? "existing_relationship" : "marketplace_match",
   });
   if (error) throw error;
 
@@ -567,6 +575,12 @@ export async function approveLocationDisclosure(requestId, customerId) {
     p_engagement_id: engagementId,
     p_disclosure_id: uuidv7(),
     p_engagement_event_id: uuidv7(),
+    // Payments Slice A (0231) — decides, in the same transaction, whether this booking is
+    // the first real Klussie introduction between these two workspaces. Always sent, even
+    // though most bookings resolve to a not_chargeable or losing-the-race row with no
+    // visible effect here (0230's own unique constraint is what actually decides).
+    p_fee_assessment_id: uuidv7(),
+    p_fee_assessment_event_id: uuidv7(),
     p_correlation_id: uuidv7(),
     p_actor_type: "person",
     p_actor_ref: customerId,

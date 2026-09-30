@@ -190,7 +190,8 @@ automated (§4) or listed here. Walk the rows relevant to what changed.
 
 | # | Flow | Surface |
 |---|---|---|
-| C1 | Home renders hero, the conversational canvas and "today" card — no section tabs since ADR-0033 (2026-09-15) moved My Home/My Items to their own bottom-nav destination, `MyHomeScreen` (§5.4) | `ConversationHome` *(automated)* |
+| C0 | "Unified Today" (2026-09-30, brought in from the parallel "Klussie via ChatGPT" pass) — the customer's real landing tab is a single daily summary: request decisions awaiting a reply, unread messages, due household tasks and ongoing family plans in one place, the same instinct `ProApp.jsx`'s own `ProDashboard` Today screen already has for a professional. A "Help" button opens the AI composer (C1 below); its own back button returns to Today | `DailyHome` *(automated)* |
+| C1 | Home renders hero, the conversational canvas and "today" card — no section tabs since ADR-0033 (2026-09-15) moved My Home/My Items to their own bottom-nav destination, `MyHomeScreen` (§5.4). No longer the customer's landing screen (C0 above) — reached from Today's own "Help" button, one tap away, not the default | `ConversationHome` *(automated)* |
 | C1a | ADR-0033's own mockup — a compact category row sits alongside the composer/intent tiles as a real, additional way to start a request; tapping a category opens `AiIntakeSheet` with it already selected, "More" opens it with nothing preselected | `HomeCategoryRow` *(automated)* |
 | C2 | First-login tour appears once | `CustomerOnboarding` *(automated)* |
 | C3 | Describe a job as free text | `ConversationCanvas` *(automated)* |
@@ -276,12 +277,15 @@ does something else worth pinning — see the corrected row below.
 | P5 | Jobs list separates active from completed | `ProJobs` |
 | P6 | A completed job shows the customer's own review, or says plainly that none has arrived yet — never a blank card | `ProJobs` *(automated)* |
 | P7 | Pro profile shows rating, badge and trust signals | `Profile` (pro variant) |
-| P8 | Portfolio items can be added and appear publicly | `PortfolioItemSheet`, `ProPublicProfileSheet` |
-| P9 | Testimonials can be added and appear publicly | `AddTestimonialSheet` |
-| P10 | Pause toggle removes the pro from matching | `Profile` (pro variant) |
-| P11 | Flexi tax tracker shows earnings against the threshold | `Profile` (pro variant) |
-| P12 | Boost shows its price and expiry | `Profile` (pro variant) |
-| P13 | My Business reuses the customer physical twin against the pro's own workspace, lazily creating its first property on first open | `MyBusinessPanel` |
+| P8 | Portfolio items can be added and appear publicly | `PortfolioItemSheet`, `ProPublicProfileSheet`, `BusinessProfileSection` |
+| P9 | Testimonials can be added and appear publicly | `AddTestimonialSheet`, `BusinessProfileSection` |
+| P10 | Pause toggle removes the pro from matching (UX redesign, 2026-09-29 — moved from Account to Today, UX_TAB_SCOPE.md P5 "move availability to Today") | `ProDashboard` |
+| P11 | Flexi tax tracker shows earnings against the threshold, with an explicit estimate/gross-net-basis/settlement-status caveat — not presented as verified taxable income (UX redesign, 2026-09-29 — moved from Account to Billing, UX_TAB_SCOPE.md P5 "financial reporting to Billing") | `BusinessBillingSection` |
+| P11b | Professional type (flexi vs. registered business) toggle, with a real explanation of the regulatory distinction it enforces — not a casual visual preference (UX redesign, 2026-09-29 — moved from Account to Business, UX_TAB_SCOPE.md P5 "business configuration to Business") | `BusinessApp` |
+| P12 | Removed (UX redesign, 2026-09-29, UX_TAB_SCOPE.md P5) — Boost was a client-side `updateProProfile({ boosted_until })` write with a fake price next to it, no real charge, no commerce/billing schema involved; nothing customer-facing ever read `isBoosted()`. Kept as a row so its removal is a deliberate, findable fact, not a silently vanished number | — |
+| P13 | Business is a real grouped-destinations landing (UX redesign, 2026-09-28 — replaces My Business as a direct inventory-only landing, UX_TAB_SCOPE.md P3): four real destinations only (Public profile & services, Billing, Team, Equipment & premises — Customers and Automations stay off the landing entirely until they have real backends, not shipped as inert rows); viewing the landing itself never creates a property — Equipment & premises still lazily creates the pro's own workspace's first property, but only once a pro actually opens it | `BusinessApp`, `MyBusinessPanel` |
+| P13b | Klussie Pro subscription (Payments Slice B): subscribe, cancel, past-due/grace-period state, all against the active workspace, never silently implying the acquisition fee is removed by subscribing | `BusinessBillingSection` |
+| P13c | Business membership (join) requests can be approved or declined independently; a dedicated empty state when none are pending (this screen is a destination a pro opens on purpose, not a buried section where silence was free) | `BusinessTeamSection` |
 | P14 | Tapping a booked or completed job opens its detail — timeline, a direct link into the conversation, and (once WP 2.4's scoped grant resolves it) the customer's own property twin; a "sent" (quoted, not yet booked) job stays unclickable | `ProJobDetailSheet` |
 | P15 | A completed job with no Service Record yet shows a real "Write up what you did" entry point (WP 3.1's own decided gate); one with a record shows the pro's own read-only summary instead, never a reopened editor | `ProServiceRecordSection` |
 | P16 | First-login pro tour appears once for a pro who just became one, closing the "no separate tour" gap `UX_PATTERNS.md` named (`GUIDANCE_SYSTEM.md` §17.2.1) — six beats, skippable at every one, replayable from Profile → Help | `ProOnboarding` *(automated)* |
@@ -297,7 +301,7 @@ does something else worth pinning — see the corrected row below.
 | M4 | A message in another language is translated on open | `ConversationSheet` |
 | M5 | Translation is cached — reopening makes no new call | `ConversationSheet` |
 | M6 | "View original" shows the untranslated text | `ConversationSheet` |
-| M7 | Unread badge clears on read | `BottomNav`, `MessagesList` |
+| M7 | Unread badge clears on read | `AppNav`, `MessagesList` |
 
 ### 5.7 · Profile
 
@@ -328,15 +332,43 @@ built from.
 |---|---|---|
 | X1 | All 10 locales render without missing keys | *(automated — `homeStrings.test.js`)* |
 | X2 | Arabic and Persian render right-to-left | All surfaces |
-| X3 | Bottom navigation switches tabs in both apps | `BottomNav` |
+| X3 | Navigation switches tabs in all three apps — a mobile bottom tab bar for Customer/Pro's five destinations, a desktop sidebar for all three, and a header menu (not a sixth bottom-bar column) for Operator's six on narrow screens (UX redesign, 2026-09-28, replaces `BottomNav`) | `AppNav` |
 | X4 | Loading states appear and clear | `Loading` |
 | X5 | Toasts appear and dismiss | `AppShell` |
 | X6 | Focus trap and focus restoration work for both overlays — Drawer, not only Modal, closed 2026-09-08 (found via code audit: `useFocusTrap()`'s own header already claimed both used it, but `Drawer` never actually called it) | `overlays.jsx` *(automated)* |
 | X7 | Touch targets stay at least 44px | All surfaces |
 | X8 | No console errors on any surface | All surfaces |
 | X9 | A single-workspace person sees no workspace chrome at all — the old "Previewing as" demo toggle was retired 2026-08-22 (PR #87) once becoming a pro reliably created a real second membership; `role` state still exists as defence-in-depth but nothing in the UI sets it any more | `AppShell` |
-| X10 | A person with two live workspaces (Epic 03 WP12 — today, an existing pro's Personal + Professional pair) sees `WorkspaceSwitcher` instead, listing both by name; picking one switches which app renders and is remembered on reload. Reachable in two places since 2026-08-22 — AppShell's own topbar (desktop-width phone-mockup view only, `display:none` below 460px) and Profile (`Profile`/`OperatorApp`, the real path on an actual phone) — both read the identical `useAuth()` state, so switching from either shows the same result in the other | `WorkspaceSwitcher` |
-| X11 | The language picker changes `langCode` immediately, every locale's own strings render, and the choice is reachable on an actual phone — not only the desktop-width topbar (`display:none` below 460px), which is where this lived exclusively until 2026-08-22, when it was found unreachable on mobile the same way `WorkspaceSwitcher` was | `LanguageSwitcher` |
+| X10 | A person with two live workspaces (Epic 03 WP12 — today, an existing pro's Personal + Professional pair) sees `WorkspaceSwitcher` instead, listing both by name; picking one switches which app renders and is remembered on reload. A single native `<select>`, not segmented buttons, since 2026-09-30 (brought in from the parallel "Klussie via ChatGPT" pass — a compact control that doesn't grow with membership count once Family and the language switcher share the same header row). Reachable in two places — AppShell's own header and Profile (`Profile`/`OperatorApp`, the real path on an actual phone) — both read the identical `useAuth()` state, so switching from either shows the same result in the other. Hidden entirely while the Family space is open (a family membership has nothing to switch to mid-flow) | `WorkspaceSwitcher` *(automated)* |
+| X11 | The language picker changes `langCode` immediately, every locale's own strings render, and the choice is reachable on an actual phone. Since 2026-09-30, tucked behind a `<details>` disclosure in AppShell's header (showing just the current code, e.g. "EN") rather than rendered open at all times, now that the header also holds a Family entry point and the workspace switcher | `LanguageSwitcher` |
+| X12 | Real, URL-backed customer navigation (2026-09-30, brought in from the parallel "Klussie via ChatGPT" pass) — each customer tab/section has its own path (`customerNavigation.js`'s `customerPath()`/`customerDestination()`, wired through `App.jsx`'s `SignedInShell`); the browser Back button returns to the previous tab, and reloading a deep link (e.g. `/app/home/items`) lands directly on it instead of always on Today. Every existing caller/test that doesn't pass `destination`/`onNavigate` keeps its own local tab state unchanged (`CustomerApp`, `MyHomeScreen`) | `customerNavigation.js` *(automated)* |
+
+### 5.9 · Family coordination (staging, 2026-09-30)
+
+**`docs/product/FAMILY_RELEASE.md`** is the full spec, brought in from
+the parallel "Klussie via ChatGPT" pass. A household's own shared
+space — lists, assigned/recurring chores and an all-day calendar — sits
+behind its own `family` Postgres schema (private, RLS-enabled,
+deny-by-default, exposed only through two `api.*` SECURITY DEFINER
+delegates, matching ADR-0026's established pattern elsewhere), an
+additional `workspace.workspaces` type alongside personal/professional/
+business. The migration (`20260930053808_family_coordination.sql`) is
+applied on **klussie-staging only** as of this writing — not yet on
+production.
+
+| # | Flow | Surface |
+|---|---|---|
+| FM1 | Reachable from AppShell's own header ("Familie") and from Today's own family card (C0); create a new family or join one via a 7-day single-use invite code | `FamilyApp` |
+| FM2 | An organiser adds a managed adult or child profile with no login of their own, alongside real adult logins via ordinary workspace membership | `FamilyEditor` *(automated — `FamilyEditor.test.jsx`)* |
+| FM3 | Shared lists (groceries, errands) — adding, checking off and removing an item | `ListsAndChores` (`FamilyPanels.jsx`) |
+| FM4 | Chores — assigning a task to a person, marking it done, recurring cadences | `ListsAndChores` (`FamilyPanels.jsx`) |
+| FM5 | Calendar — all-day plans and holidays, localized per `langCode` | `FamilyCalendar` (`FamilyPanels.jsx`) |
+| FM6 | People — the member list, inviting another adult, revoking a pending invite | `FamilyPeople` (`FamilyPanels.jsx`) |
+| FM7 | A conflicting edit (someone else already completed/changed a task) is rejected, not silently overwritten — optimistic concurrency via each record's own `version` column | `useFamily` *(automated — `useFamily.test.jsx`)* |
+| FM8 | The data layer itself — `api.family_snapshot()`/`api.family_command()`, client-minted UUIDs (ADR-0022), idempotency receipts, canonical audit events | `family.js`/`familyModel.js` *(automated — `familyModel.test.js`, `supabase/tests/family_coordination.sql`)* |
+
+`Today` (the family's own daily tab, `FamilyParts.jsx`) is a part
+of `FamilyApp`'s own `SECTIONS`, not a separate surface — see §7.
 
 ## 6 · Known defects — preserved deliberately
 

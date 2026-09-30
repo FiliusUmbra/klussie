@@ -8,12 +8,26 @@
 // this screen are siblings, never both mounted), so there is no tree to share a hook
 // through. This does mean switching Home <-> My Home re-fetches the property twin on
 // each mount, the same remount-refetch behavior Profile's own tab switch already has.
+//
+// SHARED PROPERTY HEADER — UX_TAB_SCOPE.md C4, 2026-09-29: "property name/address,
+// property switcher, 'Add' menu... above all subsections so Items cannot lose visible
+// property context." Real gap before this: PropertySwitcher.jsx used to render only
+// inside MyHomePanel.jsx (Overview), so a customer on My Items had no property context
+// at all, and — PropertySwitcher.jsx's own header even said so on purpose — "My Home has
+// no creation entry point of its own." Both fixed here: the switcher (plus a name label
+// for the single-property case, where the switcher itself renders nothing — its own
+// header explains why) now sits above the segmented tabs, and Add property is reachable
+// from here directly, with Profile.jsx (Account) now only a management shortcut back
+// to this same list (its own header explains that half).
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { SegmentedTabs, TabPanel } from "../design-system";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { MyHomePanel } from "./MyHomePanel.jsx";
 import { MyItemsPanel } from "./MyItemsPanel.jsx";
+import { PropertySwitcher } from "./PropertySwitcher.jsx";
+import { AddPropertySheet } from "../profile/AddPropertySheet.jsx";
 import { useHomeContext } from "./useHomeContext.js";
 
 const SECTIONS = [
@@ -23,20 +37,42 @@ const SECTIONS = [
 
 const ID_PREFIX = "myhome";
 
-export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem }) {
+export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, activeSection, onSectionChange }) {
   const { t, dir, fmtDate, serviceInfo } = useLang();
-  const { profile } = useAuth();
-  const [section, setSection] = useState("myHome");
+  const { user, profile } = useAuth();
+  // activeSection/onSectionChange come from CustomerApp.jsx's own destination/onNavigate
+  // (App.jsx's <SignedInShell>, real URLs — customerNavigation.js's own `/app/home/items`)
+  // when a caller wires real routing; every existing caller and test keeps its own local
+  // section state exactly as before, the same optional-routing shape CustomerApp.jsx's
+  // own tab state already has.
+  const [localSection, setLocalSection] = useState("myHome");
+  const section = activeSection || localSection;
+  const setSection = (next) => { if (onSectionChange) onSectionChange(next); else setLocalSection(next); };
+  const [addPropertyOpen, setAddPropertyOpen] = useState(false);
 
   const homeCtx = useHomeContext({ t, profile, requests });
+  const { properties, activePropertyId, selectProperty, workspaceId, refreshItems } = homeCtx;
   const openRequest = onOpenRequest || (() => {});
   const reportProblem = onReportProblem || (() => {});
 
   const tabs = SECTIONS.map((s) => ({ id: s.id, label: t[s.labelKey] }));
+  // Always a real heading, regardless of how many properties exist — the switcher
+  // (below two properties, invisible by design; its own header explains why) is not a
+  // substitute for one: a page needs a stable, announced title independent of whether a
+  // <select> also happens to be showing the same name.
+  const activeName = properties?.find((p) => p.id === activePropertyId)?.name;
 
   return (
     <div className="home">
       <div className="home-body">
+        <div className="myhome-header">
+          {activeName && <h1 className="myhome-header-name">{activeName}</h1>}
+          <PropertySwitcher properties={properties} activePropertyId={activePropertyId} onSelect={selectProperty} />
+          <button type="button" className="myhome-header-add" onClick={() => setAddPropertyOpen(true)}>
+            <Plus size={13} aria-hidden="true" /> {t.addPropertyBtn}
+          </button>
+        </div>
+
         <SegmentedTabs
           tabs={tabs}
           activeId={section}
@@ -51,7 +87,6 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem }) 
             t={t}
             homeCtx={homeCtx}
             ownerId={profile?.id}
-            requests={requests}
             serviceInfo={serviceInfo}
             fmtDate={fmtDate}
             onReportProblem={reportProblem}
@@ -85,6 +120,16 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem }) 
           />
         </TabPanel>
       </div>
+
+      {addPropertyOpen && (
+        <AddPropertySheet
+          t={t}
+          workspaceId={workspaceId}
+          actorRef={user.id}
+          onClose={() => setAddPropertyOpen(false)}
+          onSaved={refreshItems}
+        />
+      )}
     </div>
   );
 }

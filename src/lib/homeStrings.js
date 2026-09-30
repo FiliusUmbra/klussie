@@ -36,6 +36,7 @@ export const HOME_STRINGS = {
     safetyContinue: "Toch verder met mijn aanvraag", safetyBack: "Terug",
 
     homeForYouTitle: "Voor jou",
+    homeViewAllRequests: "Bekijk alle aanvragen",
     todayQuotesTitle: "Offertes wachten op je keuze",
     todayQuotesBody: "Bekijk de offertes voor {service} en kies wie de klus doet.",
     todayBookedTitle: "Je klus staat gepland",
@@ -55,7 +56,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "Wat wil je over je woning bekijken of bijhouden?",
     homeReportProblem: "Probleem melden",
-    myHomeNoPropertyYet: "Zodra je iets via Klussie laat doen, bouwt de geschiedenis van je woning zich hier op.",
+    myHomeNoPropertyYet: "Voeg je woning toe om ruimtes, toestellen en documenten op één plek te bewaren.",
     myHomeKnownSince: "Bij Klussie sinds {date}",
     myHomeJobsSummary: "{total} aanvragen, waarvan {completed} afgerond.",
     propertyHealthGoodTitle: "Goed",
@@ -229,6 +230,7 @@ export const HOME_STRINGS = {
     safetyContinue: "Continuer quand même ma demande", safetyBack: "Retour",
 
     homeForYouTitle: "Pour toi",
+    homeViewAllRequests: "Voir toutes les demandes",
     todayQuotesTitle: "Des devis attendent ton choix",
     todayQuotesBody: "Consulte les devis pour {service} et choisis qui fera le travail.",
     todayBookedTitle: "Ta tâche est planifiée",
@@ -248,7 +250,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "Que veux-tu consulter ou suivre pour ton logement ?",
     homeReportProblem: "Signaler un problème",
-    myHomeNoPropertyYet: "Dès que tu fais réaliser quelque chose via Klussie, l'histoire de ton logement se construit ici.",
+    myHomeNoPropertyYet: "Ajoute ton logement pour garder les pièces, appareils et documents au même endroit.",
     myHomeKnownSince: "Sur Klussie depuis le {date}",
     myHomeJobsSummary: "{total} demandes, dont {completed} terminées.",
     propertyHealthGoodTitle: "Bon",
@@ -422,6 +424,7 @@ export const HOME_STRINGS = {
     safetyContinue: "Trotzdem mit meiner Anfrage weitermachen", safetyBack: "Zurück",
 
     homeForYouTitle: "Für dich",
+    homeViewAllRequests: "Alle Anfragen ansehen",
     todayQuotesTitle: "Angebote warten auf deine Wahl",
     todayQuotesBody: "Sieh dir die Angebote für {service} an und wähle, wer die Arbeit macht.",
     todayBookedTitle: "Dein Auftrag ist geplant",
@@ -441,7 +444,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "Was möchtest du zu deinem Zuhause ansehen oder festhalten?",
     homeReportProblem: "Problem melden",
-    myHomeNoPropertyYet: "Sobald du etwas über Klussie erledigen lässt, entsteht hier die Geschichte deines Zuhauses.",
+    myHomeNoPropertyYet: "Füge dein Zuhause hinzu, um Räume, Geräte und Dokumente an einem Ort zu behalten.",
     myHomeKnownSince: "Bei Klussie seit {date}",
     myHomeJobsSummary: "{total} Anfragen, davon {completed} abgeschlossen.",
     propertyHealthGoodTitle: "Gut",
@@ -615,6 +618,7 @@ export const HOME_STRINGS = {
     safetyContinue: "Continue with my request anyway", safetyBack: "Back",
 
     homeForYouTitle: "For you",
+    homeViewAllRequests: "View all requests",
     todayQuotesTitle: "Quotes are waiting for your choice",
     todayQuotesBody: "Review the quotes for {service} and choose who does the job.",
     todayBookedTitle: "Your job is scheduled",
@@ -634,7 +638,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "What would you like to see or keep track of about your home?",
     homeReportProblem: "Report a problem",
-    myHomeNoPropertyYet: "As soon as you have something done through Klussie, your home's history starts building here.",
+    myHomeNoPropertyYet: "Add your home to keep its rooms, appliances and documents together in one place.",
     myHomeKnownSince: "On Klussie since {date}",
     myHomeJobsSummary: "{total} requests, {completed} of them completed.",
     propertyHealthGoodTitle: "Good",
@@ -808,6 +812,7 @@ export const HOME_STRINGS = {
     safetyContinue: "Continuar igualmente con mi solicitud", safetyBack: "Volver",
 
     homeForYouTitle: "Para ti",
+    homeViewAllRequests: "Ver todas las solicitudes",
     todayQuotesTitle: "Hay presupuestos esperando tu decisión",
     todayQuotesBody: "Revisa los presupuestos de {service} y elige quién hace el trabajo.",
     todayBookedTitle: "Tu trabajo está programado",
@@ -827,7 +832,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "¿Qué quieres consultar o registrar sobre tu vivienda?",
     homeReportProblem: "Informar de un problema",
-    myHomeNoPropertyYet: "En cuanto hagas algo a través de Klussie, aquí empezará a construirse la historia de tu vivienda.",
+    myHomeNoPropertyYet: "Añade tu vivienda para mantener juntas sus habitaciones, electrodomésticos y documentos.",
     myHomeKnownSince: "En Klussie desde el {date}",
     myHomeJobsSummary: "{total} solicitudes, {completed} de ellas completadas.",
     propertyHealthGoodTitle: "Bien",
@@ -1003,6 +1008,7 @@ export const HOME_STRINGS = {
     safetyContinue: "المتابعة بطلبي على أي حال", safetyBack: "رجوع",
 
     homeForYouTitle: "من أجلك",
+    homeViewAllRequests: "عرض كل الطلبات",
     todayQuotesTitle: "عروض أسعار بانتظار اختيارك",
     todayQuotesBody: "راجع عروض {service} واختر من سينفّذ العمل.",
     todayBookedTitle: "تم جدولة مهمتك",
@@ -1022,7 +1028,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "ما الذي تريد الاطلاع عليه أو تتبعه بشأن منزلك؟",
     homeReportProblem: "الإبلاغ عن مشكلة",
-    myHomeNoPropertyYet: "بمجرد أن تنجز شيئًا عبر Klussie، يبدأ تاريخ منزلك بالتكوّن هنا.",
+    myHomeNoPropertyYet: "أضف منزلك لتجمع غرفه وأجهزته ومستنداته في مكان واحد.",
     myHomeKnownSince: "على Klussie منذ {date}",
     myHomeJobsSummary: "{total} طلبات، منها {completed} مكتملة.",
     propertyHealthGoodTitle: "جيد",
@@ -1196,6 +1202,7 @@ export const HOME_STRINGS = {
     safetyContinue: "با این حال درخواستم را ادامه بده", safetyBack: "بازگشت",
 
     homeForYouTitle: "برای شما",
+    homeViewAllRequests: "مشاهده همه درخواست‌ها",
     todayQuotesTitle: "پیشنهادهای قیمت منتظر انتخاب شماست",
     todayQuotesBody: "پیشنهادهای {service} را ببینید و انتخاب کنید چه کسی کار را انجام دهد.",
     todayBookedTitle: "کار شما زمان‌بندی شد",
@@ -1215,7 +1222,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "می‌خواهید چه چیزی از خانه‌تان را ببینید یا ثبت کنید؟",
     homeReportProblem: "گزارش مشکل",
-    myHomeNoPropertyYet: "به‌محض اینکه کاری را از طریق Klussie انجام دهید، تاریخچه خانه‌تان اینجا شکل می‌گیرد.",
+    myHomeNoPropertyYet: "خانه‌تان را اضافه کنید تا اتاق‌ها، لوازم و مدارک آن در یک‌جا نگه‌داری شود.",
     myHomeKnownSince: "در Klussie از {date}",
     myHomeJobsSummary: "{total} درخواست، که {completed} مورد آن تکمیل شده است.",
     propertyHealthGoodTitle: "خوب",
@@ -1391,6 +1398,7 @@ export const HOME_STRINGS = {
     safetyContinue: "Yine de talebimle devam et", safetyBack: "Geri",
 
     homeForYouTitle: "Senin için",
+    homeViewAllRequests: "Tüm talepleri görüntüle",
     todayQuotesTitle: "Teklifler seçimini bekliyor",
     todayQuotesBody: "{service} için teklifleri incele ve işi kimin yapacağını seç.",
     todayBookedTitle: "İşin planlandı",
@@ -1410,7 +1418,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "Evinle ilgili neyi görmek veya takip etmek istersin?",
     homeReportProblem: "Sorun bildir",
-    myHomeNoPropertyYet: "Klussie üzerinden bir iş yaptırdığın anda evinin geçmişi burada oluşmaya başlar.",
+    myHomeNoPropertyYet: "Odalarını, cihazlarını ve belgelerini bir arada tutmak için evini ekle.",
     myHomeKnownSince: "{date} tarihinden beri Klussie'de",
     myHomeJobsSummary: "{total} talep, bunlardan {completed} tanesi tamamlandı.",
     propertyHealthGoodTitle: "İyi",
@@ -1584,6 +1592,7 @@ export const HOME_STRINGS = {
     safetyContinue: "Всё равно продолжить заявку", safetyBack: "Назад",
 
     homeForYouTitle: "Для тебя",
+    homeViewAllRequests: "Смотреть все заявки",
     todayQuotesTitle: "Предложения ждут вашего выбора",
     todayQuotesBody: "Посмотрите предложения по услуге «{service}» и выберите исполнителя.",
     todayBookedTitle: "Работа запланирована",
@@ -1603,7 +1612,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "Что вы хотите посмотреть или отслеживать по своему дому?",
     homeReportProblem: "Сообщить о проблеме",
-    myHomeNoPropertyYet: "Как только вы что-то сделаете через Klussie, здесь начнёт складываться история вашего дома.",
+    myHomeNoPropertyYet: "Добавьте свой дом, чтобы хранить его комнаты, технику и документы в одном месте.",
     myHomeKnownSince: "В Klussie с {date}",
     myHomeJobsSummary: "{total} заявок, из них {completed} завершено.",
     propertyHealthGoodTitle: "Хорошо",
@@ -1777,6 +1786,7 @@ export const HOME_STRINGS = {
     safetyContinue: "仍然继续我的申请", safetyBack: "返回",
 
     homeForYouTitle: "为你",
+    homeViewAllRequests: "查看所有请求",
     todayQuotesTitle: "报价正在等你选择",
     todayQuotesBody: "查看「{service}」的报价，选择由谁来做。",
     todayBookedTitle: "你的工作已排期",
@@ -1796,7 +1806,7 @@ export const HOME_STRINGS = {
 
     myHomeQuestion: "关于你的住宅，你想查看或记录什么？",
     homeReportProblem: "报告问题",
-    myHomeNoPropertyYet: "只要你通过 Klussie 完成一件事，这里就会开始积累你住宅的历史。",
+    myHomeNoPropertyYet: "添加你的住宅，将房间、家电和文件集中保存在一处。",
     myHomeKnownSince: "自 {date} 起在 Klussie",
     myHomeJobsSummary: "共 {total} 个请求，其中 {completed} 个已完成。",
     propertyHealthGoodTitle: "良好",

@@ -2,8 +2,9 @@
 // "collecting quotes" through to "reviewed". Each status renders the one action that
 // status actually affords, rather than a panel of buttons most of which don't apply.
 //
-// The timeline and the commission breakdown both come from src/lib — the lifecycle from
-// requestStatus.js, the fee and payout from billing.js.
+// The timeline comes from src/lib/requestStatus.js. This screen no longer shows a
+// platform-fee/net-payout breakdown at all — see Payments Slice A's own reconciliation
+// note where the booked-quote card is rendered, below.
 import { useState } from "react";
 import { Ban, Check, Clock, MessageCircle, ShieldCheck, MapPin, Loader2 } from "lucide-react";
 import { useLang } from "../lib/lang";
@@ -15,7 +16,6 @@ import { ProPublicProfileSheet } from "../profile/ProPublicProfileSheet.jsx";
 import { InvoiceSheet } from "./InvoiceSheet.jsx";
 import { ReportSheet } from "./ReportSheet.jsx";
 import { timelineSteps } from "../lib/requestStatus.js";
-import { platformFee, netPayout } from "../lib/billing.js";
 import { interpolate } from "../lib/homeStrings.js";
 
 export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage }) {
@@ -158,8 +158,6 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
 
       {request.status === "booked" && bookedQuote && (() => {
         const pro = bookedQuote.pro;
-        const fee = platformFee(bookedQuote.price);
-        const net = netPayout(bookedQuote.price);
         return (
           <QuoteCard booked>
             <div className="quote-top">
@@ -170,8 +168,15 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
             <div className="ticket-divider" />
-            <div className="fee-row"><span>{t.platformFeeLabel}</span><PriceTag amount={fee} fmt={fmt} size="sm" /></div>
-            <div className="fee-row fee-row-net"><span>{t.netPayoutLabel}</span><PriceTag amount={net} fmt={fmt} size="sm" /></div>
+            {/* Payments Slice A — platformFee()/netPayout() (a flat 12% on every job)
+                removed: superseded by the real acquisition-fee model (5%, capped at €75,
+                first job per relationship only, charged to the professional, never
+                itemized out of the customer's own price). Showing a flat-rate breakdown
+                here would now be actively wrong on every job it isn't the first for a
+                given customer-pro pair, not merely stale (Rule 9, trust beats growth).
+                The professional's own real fee, when one applies, is disclosed to them
+                directly (src/pro/ProJobDetailSheet.jsx) — this was never information the
+                customer's own price depended on either way. */}
             <div className="fineprint" style={{ marginTop: 10 }}><ShieldCheck size={12} /> {t.guaranteeNote}</div>
             {/* Found by code audit: no busy state, no await, no catch at all -- a real
                 refusal (complete_engagement()'s own refusal, a network error) used to

@@ -178,7 +178,11 @@ describe("ProApp — closing a conversation refreshes the list best-effort", () 
     renderApp();
     await waitFor(() => expect(screen.getByText("open-quote-sheet")).toBeTruthy());
 
-    fireEvent.click(screen.getByText("navMessages"));
+    // getAllByText, not getByText: AppNav (UX redesign, 2026-09-28) renders the same
+    // labelled item twice — a mobile tab bar and a desktop sidebar, one hidden by CSS
+    // per breakpoint, both present in jsdom's own DOM since it applies no real layout.
+    // Either click reaches the identical setTab handler, so the first match is enough.
+    fireEvent.click(screen.getAllByText("navMessages")[0]);
     fireEvent.click(await screen.findByText("open-conversation"));
     const closeBtn = await screen.findByText("close-conversation");
     fetchConversationsMock.mockRejectedValueOnce(new Error("network blip refreshing conversations"));

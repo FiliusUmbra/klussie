@@ -14,9 +14,22 @@ vi.mock("../../lib/propertyTwin.js", () => ({
 vi.mock("../../lib/serviceRecords.js", () => ({
   fetchServiceRecordForRequest: vi.fn(),
 }));
+// Payments Slice A (WP A5) — the fee-disclosure card. Mocked the same way as the two
+// above; jobs with no engagementId (every test before this section) never call any of
+// these at all (the component's own guard), so this mock is inert for them.
+vi.mock("../../lib/acquisitionFees.js", () => ({
+  fetchMyAcquisitionFeeAssessments: vi.fn(),
+  acceptAcquisitionFeeDisclosure: vi.fn(),
+  confirmAcquisitionFeePaymentReceived: vi.fn(),
+}));
 
 import { fetchPropertyTwin } from "../../lib/propertyTwin.js";
 import { fetchServiceRecordForRequest } from "../../lib/serviceRecords.js";
+import {
+  fetchMyAcquisitionFeeAssessments,
+  acceptAcquisitionFeeDisclosure,
+  confirmAcquisitionFeePaymentReceived,
+} from "../../lib/acquisitionFees.js";
 import { ProJobDetailSheet } from "../ProJobDetailSheet.jsx";
 import { LangContext } from "../../lib/lang";
 
@@ -49,6 +62,97 @@ beforeEach(() => {
   fetchPropertyTwin.mockResolvedValue({ property: null, locations: [], assets: [], documents: [] });
   fetchServiceRecordForRequest.mockReset();
   fetchServiceRecordForRequest.mockResolvedValue(null);
+  fetchMyAcquisitionFeeAssessments.mockReset();
+  fetchMyAcquisitionFeeAssessments.mockResolvedValue([]);
+  acceptAcquisitionFeeDisclosure.mockReset();
+  acceptAcquisitionFeeDisclosure.mockResolvedValue(undefined);
+  confirmAcquisitionFeePaymentReceived.mockReset();
+  confirmAcquisitionFeePaymentReceived.mockResolvedValue(undefined);
+});
+
+// Payments Slice A (WP A5) — the fee-disclosure card only ever appears for a job whose
+// engagement actually has a chargeable assessment; every test above this describe leaves
+// job.engagementId unset, so fetchMyAcquisitionFeeAssessments is never even called for
+// them (asserted once, below, rather than in every pre-existing test).
+describe("ProJobDetailSheet — acquisition-fee disclosure (Payments Slice A)", () => {
+  const feeArgs = { job: { engagementId: "eng-1" } };
+
+  it("never fetches assessments for a job with no engagement", () => {
+    renderSheet();
+    expect(fetchMyAcquisitionFeeAssessments).not.toHaveBeenCalled();
+  });
+
+  it("renders nothing when the job's engagement has no chargeable assessment", async () => {
+    fetchMyAcquisitionFeeAssessments.mockResolvedValue([]);
+    renderSheet(feeArgs);
+    await waitFor(() => expect(fetchMyAcquisitionFeeAssessments).toHaveBeenCalledWith("ws-pro"));
+    expect(screen.queryByText("acqFeeTitle")).toBeNull();
+  });
+
+  it("ignores a not_chargeable row for this engagement — same as no row at all", async () => {
+    fetchMyAcquisitionFeeAssessments.mockResolvedValue([
+      { engagementId: "eng-1", status: "not_chargeable", feeAmount: 0, rate: null, maxFee: null },
+    ]);
+    renderSheet(feeArgs);
+    await waitFor(() => expect(fetchMyAcquisitionFeeAssessments).toHaveBeenCalled());
+    expect(screen.queryByText("acqFeeTitle")).toBeNull();
+  });
+
+  it("shows the disclosed fee, its basis, and an Accept button", async () => {
+    fetchMyAcquisitionFeeAssessments.mockResolvedValue([
+      { id: "assess-1", engagementId: "eng-1", status: "disclosed", feeAmount: 6, rate: 0.05, maxFee: 75 },
+    ]);
+    renderSheet(feeArgs);
+
+    expect(await screen.findByText("acqFeeTitle")).toBeTruthy();
+    expect(screen.getByText("€6")).toBeTruthy();
+    expect(screen.getByText("acqFeeAcceptBtn")).toBeTruthy();
+  });
+
+  it("accepting the fee calls the API and switches to the accepted state", async () => {
+    fetchMyAcquisitionFeeAssessments.mockResolvedValue([
+      { id: "assess-1", engagementId: "eng-1", status: "disclosed", feeAmount: 6, rate: 0.05, maxFee: 75 },
+    ]);
+    renderSheet({ job: { engagementId: "eng-1", status: "booked" } });
+
+    fireEvent.click(await screen.findByText("acqFeeAcceptBtn"));
+
+    await waitFor(() => expect(acceptAcquisitionFeeDisclosure).toHaveBeenCalledWith("assess-1", "pro-1"));
+    expect(await screen.findByText("acqFeeAcceptedNote")).toBeTruthy();
+  });
+
+  it("shows Confirm payment received only once accepted AND the job is completed", async () => {
+    fetchMyAcquisitionFeeAssessments.mockResolvedValue([
+      { id: "assess-1", engagementId: "eng-1", status: "accepted", feeAmount: 6, rate: 0.05, maxFee: 75 },
+    ]);
+    renderSheet({ job: { engagementId: "eng-1", status: "booked" } });
+    await screen.findByText("acqFeeAcceptedNote");
+    expect(screen.queryByText("acqFeeConfirmPaymentBtn")).toBeNull();
+  });
+
+  it("confirming payment invoices the fee and shows the invoiced note", async () => {
+    fetchMyAcquisitionFeeAssessments.mockResolvedValue([
+      { id: "assess-1", engagementId: "eng-1", status: "accepted", feeAmount: 6, rate: 0.05, maxFee: 75 },
+    ]);
+    renderSheet({ job: { engagementId: "eng-1", status: "completed" } });
+
+    fireEvent.click(await screen.findByText("acqFeeConfirmPaymentBtn"));
+
+    await waitFor(() => expect(confirmAcquisitionFeePaymentReceived).toHaveBeenCalledWith("assess-1", "pro-1"));
+    expect(await screen.findByText("acqFeeInvoicedNote")).toBeTruthy();
+  });
+
+  it("shows a retry message when accepting the fee fails, without crashing", async () => {
+    fetchMyAcquisitionFeeAssessments.mockResolvedValue([
+      { id: "assess-1", engagementId: "eng-1", status: "disclosed", feeAmount: 6, rate: 0.05, maxFee: 75 },
+    ]);
+    acceptAcquisitionFeeDisclosure.mockRejectedValue(new Error("denied"));
+    renderSheet(feeArgs);
+
+    fireEvent.click(await screen.findByText("acqFeeAcceptBtn"));
+
+    expect(await screen.findByText("acqFeeActionFailedMsg")).toBeTruthy();
+  });
 });
 
 describe("ProJobDetailSheet", () => {

@@ -102,37 +102,6 @@ export function trustedProfessionals(requests) {
   return [...byPro.values()].sort((a, b) => b.jobCount - a.jobCount || b.lastJobAt - a.lastJobAt);
 }
 
-/** Reviews this household has written, newest first. */
-export function reviewsGiven(requests) {
-  return (requests || [])
-    .filter((r) => r.review)
-    .sort(byNewest)
-    .map((r) => ({ id: r.id, serviceId: r.serviceId, createdAt: r.createdAt, review: r.review }));
-}
-
-/**
- * The AI's read of each job, where one exists and says something.
- *
- * An analysis with no causes and no materials is a row that technically exists and tells
- * the customer nothing, so it is filtered out rather than rendered as an empty card. Same
- * rule AiAnalysisSummary already applies at render time; applying it here means the
- * section can report itself empty honestly.
- */
-export function aiSummaries(requests) {
-  return (requests || [])
-    .filter((r) => {
-      const analysis = r.answers?.aiAnalysis;
-      return !!analysis && (analysis.possibleCauses?.length > 0 || analysis.recommendedMaterials?.length > 0);
-    })
-    .sort(byNewest)
-    .map((r) => ({
-      id: r.id,
-      serviceId: r.serviceId,
-      createdAt: r.createdAt,
-      analysis: r.answers.aiAnalysis,
-    }));
-}
-
 /**
  * Every request that might carry photos, newest first.
  *

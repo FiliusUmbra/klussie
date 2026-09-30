@@ -7,8 +7,6 @@ import {
   openWork,
   finishedWork,
   trustedProfessionals,
-  reviewsGiven,
-  aiSummaries,
   requestsWithPossiblePhotos,
   homeHistory,
 } from "../homeTimeline.js";
@@ -187,46 +185,6 @@ describe("trustedProfessionals", () => {
   it("returns nothing for a household that has finished nothing", () => {
     expect(trustedProfessionals([req({ status: "collecting" })])).toEqual([]);
     expect(trustedProfessionals(null)).toEqual([]);
-  });
-});
-
-describe("reviewsGiven", () => {
-  it("lists only requests carrying a review, newest first", () => {
-    const list = reviewsGiven([
-      req({ id: "a", createdAt: 10, review: { stars: 5, text: "Great" } }),
-      req({ id: "b", createdAt: 50, review: { stars: 4, text: "Good" } }),
-      req({ id: "c", createdAt: 90, review: null }),
-    ]);
-    expect(list.map((r) => r.id)).toEqual(["b", "a"]);
-    expect(list[0].review.stars).toBe(4);
-  });
-
-  it("is empty for a household that has reviewed nothing", () => {
-    expect(reviewsGiven([req({})])).toEqual([]);
-    expect(reviewsGiven(undefined)).toEqual([]);
-  });
-});
-
-describe("aiSummaries", () => {
-  it("keeps an analysis that actually says something", () => {
-    const list = aiSummaries([
-      req({ id: "a", answers: { aiAnalysis: { possibleCauses: ["Worn washer"] } } }),
-      req({ id: "b", answers: { aiAnalysis: { recommendedMaterials: ["Sealant"] } } }),
-    ]);
-    expect(list.map((r) => r.id).sort()).toEqual(["a", "b"]);
-  });
-
-  it("drops an analysis with nothing in it rather than rendering an empty card", () => {
-    expect(aiSummaries([req({ answers: { aiAnalysis: { confidence: 90 } } })])).toEqual([]);
-    expect(aiSummaries([req({ answers: { aiAnalysis: { possibleCauses: [], recommendedMaterials: [] } } })])).toEqual([]);
-  });
-
-  it("ignores requests that were never analysed", () => {
-    expect(aiSummaries([req({ answers: {} }), req({ answers: { aiAnalysis: null } })])).toEqual([]);
-  });
-
-  it("survives a request with no answers object at all", () => {
-    expect(aiSummaries([{ ...req({}), answers: undefined }])).toEqual([]);
   });
 });
 

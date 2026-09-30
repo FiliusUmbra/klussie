@@ -5,24 +5,80 @@
 // created resolves, the customer's own Location/Asset/Document twin for the property
 // concerned.
 //
-// PROGRESSIVE DISCLOSURE, NOT A DASHBOARD — a "sent" (quoted, not yet booked) job never
-// reaches this sheet at all: there is no engagement, no conversation, no twin to show, and
-// ProJobs.jsx only wires onOpen for booked/completed segments. Nothing here ever asks a
-// pro to understand "engagement," "workspace," or "scope" — those stay internal; what a
-// pro sees is a job, a customer, and (if it exists) what that customer's home looks like.
+// PROGRESSIVE DISCLOSURE, NOT A DASHBOARD — every section here degrades honestly when its
+// own data doesn't exist yet, which matters because a "sent" (quoted, not yet booked) job
+// DOES reach this sheet (UX_TAB_SCOPE.md P2, 2026-09-28 — "quotes must open for inspection
+// even when not accepted"; ProJobs.jsx no longer gates onOpen by segment). A sent quote has
+// no engagement (no fee assessment section renders), no conversation (no message button),
+// no twin data (twinUnavailableMsg) — the same component, just fewer facts to show. Nothing
+// here ever asks a pro to understand "engagement," "workspace," or "scope" — those stay
+// internal; what a pro sees is a job, a customer, and (if it exists) what that customer's
+// home looks like.
 import { useEffect, useState } from "react";
-import { MessageCircle, MapPin, Wrench, FileText, Home } from "lucide-react";
+import { MessageCircle, MapPin, Wrench, FileText, Home, Handshake } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Badge, PriceTag, Timeline, Button, Drawer } from "../design-system";
 import { timelineSteps, statusPresentation } from "../lib/requestStatus.js";
 import { documentTypeLabelKey } from "../lib/documents.js";
 import { fetchPropertyTwin } from "../lib/propertyTwin.js";
+import { interpolate } from "../lib/homeStrings.js";
+import {
+  fetchMyAcquisitionFeeAssessments,
+  acceptAcquisitionFeeDisclosure,
+  confirmAcquisitionFeePaymentReceived,
+} from "../lib/acquisitionFees.js";
 import { ProServiceRecordSection } from "./ProServiceRecordSection.jsx";
 
 export function ProJobDetailSheet({ job, customerName, onMessage, onClose, workspaceId, actorRef, onRecordSaved }) {
   const { t, fmt, serviceInfo } = useLang();
   const [twin, setTwin] = useState(null);
   const [twinLoading, setTwinLoading] = useState(Boolean(job.propertyId));
+  const [feeAssessment, setFeeAssessment] = useState(null);
+  const [feeActionPending, setFeeActionPending] = useState(false);
+  const [feeActionError, setFeeActionError] = useState(false);
+
+  // Payments Slice A (WP A5) — one assessment can exist at most for this job's own
+  // engagement (0230's own unique constraint); most jobs resolve to none at all
+  // (not_chargeable is filtered out below, same as "no row" -- neither is ever shown to
+  // the professional, since neither is chargeable).
+  useEffect(() => {
+    let cancelled = false;
+    if (!job.engagementId || !workspaceId) return undefined;
+    fetchMyAcquisitionFeeAssessments(workspaceId)
+      .then((rows) => {
+        if (cancelled) return;
+        const mine = rows.find((r) => r.engagementId === job.engagementId && r.status !== "not_chargeable");
+        setFeeAssessment(mine || null);
+      })
+      .catch(() => { if (!cancelled) setFeeAssessment(null); });
+    return () => { cancelled = true; };
+  }, [job.engagementId, workspaceId]);
+
+  async function handleAcceptFee() {
+    setFeeActionPending(true);
+    setFeeActionError(false);
+    try {
+      await acceptAcquisitionFeeDisclosure(feeAssessment.id, actorRef);
+      setFeeAssessment({ ...feeAssessment, status: "accepted" });
+    } catch {
+      setFeeActionError(true);
+    } finally {
+      setFeeActionPending(false);
+    }
+  }
+
+  async function handleConfirmPayment() {
+    setFeeActionPending(true);
+    setFeeActionError(false);
+    try {
+      await confirmAcquisitionFeePaymentReceived(feeAssessment.id, actorRef);
+      setFeeAssessment({ ...feeAssessment, status: "invoiced" });
+    } catch {
+      setFeeActionError(true);
+    } finally {
+      setFeeActionPending(false);
+    }
+  }
 
   useEffect(() => {
     // No property attached to this job at all: the initial state above (twin = null,
@@ -78,6 +134,54 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
         </div>
         {myQuote && <PriceTag amount={myQuote.price} fmt={fmt} />}
       </div>
+
+      {/* Payments Slice A (WP A5) — "show the professional the exact proposed fee and
+          its basis before commitment" (decision table). Renders nothing at all for the
+          ordinary case (no assessment, or one already not_chargeable — filtered out
+          before this ever reaches state) rather than cluttering every job with a fee
+          section that almost never applies. */}
+      {feeAssessment && (
+        <div className="empty-block" style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+            <Handshake size={15} />
+            {t.acqFeeTitle}
+          </div>
+          {feeAssessment.status === "invoiced" ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>{t.acqFeeInvoicedNote}</span>
+              <PriceTag amount={feeAssessment.feeAmount} fmt={fmt} />
+            </div>
+          ) : (
+            <>
+              <p style={{ margin: 0 }}>
+                {interpolate(t.acqFeeBody, {
+                  rate: Math.round(feeAssessment.rate * 100),
+                  cap: fmt(feeAssessment.maxFee),
+                })}
+              </p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <PriceTag amount={feeAssessment.feeAmount} fmt={fmt} />
+                {feeAssessment.status === "disclosed" && (
+                  <Button variant="secondary" onClick={handleAcceptFee} disabled={feeActionPending}>
+                    {t.acqFeeAcceptBtn}
+                  </Button>
+                )}
+              </div>
+              {feeAssessment.status === "accepted" && (
+                <>
+                  <span style={{ color: "var(--ink-soft)" }}>{t.acqFeeAcceptedNote}</span>
+                  {(job.status === "completed" || job.status === "reviewed") && (
+                    <Button variant="secondary" onClick={handleConfirmPayment} disabled={feeActionPending}>
+                      {t.acqFeeConfirmPaymentBtn}
+                    </Button>
+                  )}
+                </>
+              )}
+            </>
+          )}
+          {feeActionError && <span style={{ color: "#b3432f" }}>{t.acqFeeActionFailedMsg}</span>}
+        </div>
+      )}
 
       {onMessage && (
         <Button variant="secondary" icon={MessageCircle} style={{ marginTop: 12, width: "100%" }} onClick={onMessage}>

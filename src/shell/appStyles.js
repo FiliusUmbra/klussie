@@ -22,53 +22,93 @@ export const APP_CSS = `
   :root{ --motion-fast:0ms; --motion-base:0ms; }
 }
 *{box-sizing:border-box;}
-.stage{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:radial-gradient(circle at 30% 20%, #24382e 0%, #121b16 70%); padding:32px 16px; font-family:var(--font-body); }
-.topbar{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; }
+
+/* WorkspaceSwitcher.jsx's own pill-segmented control — restored here after being
+   accidentally dropped by the shell rework below (found by cssFocusVisibility.test.js
+   failing, not by inspection — the fix is a straight restoration, not a redesign).
+   Unchanged from before the phone-frame removal: real, active usage in
+   WorkspaceSwitcher.jsx, PropertySwitcher.jsx and ProJobs.jsx, none of which moved. */
 .role-switch{ display:flex; align-items:center; gap:10px; }
 .segmented{ display:flex; background:rgba(255,255,255,0.08); border-radius:999px; padding:3px; }
 .segmented button{ border:none; background:none; color:#c9d6cd; font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:999px; cursor:pointer; font-family:var(--font-body); }
 .segmented .seg-on{ background:var(--surface); color:var(--forest); }
+/* LanguageSwitcher.jsx's own two variants — also restored here for the same reason.
+   UX redesign, 2026-09-28 — the plain (non-light) variant below is no longer reachable:
+   the dark .topbar it was built for is gone, and AppShell.jsx now always passes "light"
+   (its own header explains why) — kept rather than deleted anyway, since
+   .lang-switch-light is additive to it, not a replacement, and a future dark-background
+   render site (there is none today) would still want the base rule to exist. */
 .lang-switch{ display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); border-radius:999px; padding:5px 12px; }
 .lang-switch svg{ color:#c9d6cd; }
 .lang-switch select{ background:none; border:none; color:#fff; font-size:12.5px; font-weight:600; font-family:var(--font-body); cursor:pointer; }
 .lang-switch select option{ color:#111; }
-/* Same control, rendered against a light page background (Profile screens) rather than
-   the dark topbar — see LanguageSwitcher.jsx's own header for why it needs to render
-   there at all. White-on-transparent-white would be invisible here, so this reuses the
-   same sage-bg/forest-dark pill treatment .pin/.badge-sage/.btn-secondary already use. */
 .lang-switch-light{ background:var(--sage-bg); }
 .lang-switch-light svg{ color:var(--forest-dark) !important; }
 .lang-switch-light select{ color:var(--forest-dark); }
 .lang-switch-light select option{ color:var(--ink); }
 
-.phone{ position:relative; width:390px; height:820px; background:var(--paper); border-radius:44px; border:8px solid #0d1512; box-shadow:0 30px 70px rgba(0,0,0,0.5); overflow:hidden; }
-/* Persian uses the Arabic script, so it takes the same face. Noto Sans Arabic covers the
-   four extra Persian letters (پ چ ژ گ); Inter does not, and would fall back per-glyph. */
-.phone.lang-ar, .phone.lang-fa{ --font-body:'Noto Sans Arabic', sans-serif; --font-display:'Noto Sans Arabic', sans-serif; }
-.phone.lang-zh{ --font-body:'Noto Sans SC', sans-serif; --font-display:'Noto Sans SC', sans-serif; }
-.notch{ position:absolute; top:0; left:50%; transform:translateX(-50%); width:150px; height:22px; background:#0d1512; border-radius:0 0 16px 16px; z-index:5; }
-.statusbar{ display:flex; justify-content:space-between; padding:10px 26px 2px; font-size:12px; font-weight:600; color:var(--ink); direction:ltr; }
-.statusbar-dots{ letter-spacing:2px; opacity:0.5; }
-.screen{ position:relative; height:calc(100% - 26px); display:flex; flex-direction:column; }
+/* ---- the real application shell ----
+   UX redesign, 2026-09-28 — replaces the simulated phone frame (fixed 390x820 box,
+   painted notch, painted "9:41" status bar) that used to wrap the ENTIRE app, on every
+   viewport. That frame was demo device chrome, not app UI, and the redesign brief this
+   replaces it for is explicit: "no painted clock, notch or phone border... on desktop,
+   adapt the same information hierarchy to a sidebar and useful content width, do not
+   enlarge a simulated phone." A real screenshot at 150% browser zoom showed exactly what
+   that produced in practice: the frame's own fixed height ran past the browser viewport,
+   the outer page AND the inner phone content each had their own scrollbar, and the
+   language switcher sat outside the frame entirely. .app-shell below is a real,
+   full-viewport application shell instead — mobile IS the app below the sidebar
+   breakpoint, not a mockup of a phone showing the app.
 
-/* The phone frame is a demo shell — device chrome, not app UI (docs/design/DESIGN_TOKENS.md
-   draws the same distinction). At 390px fixed width it overflowed a real 375px phone
-   viewport by 8px, found in Epic 03's WP10 pass. On an actual phone the device is the
-   frame, so below this width the mockup gives way and the app goes full-bleed: no
-   border, no radius, no notch, and the real status bar replaces the painted one.
-   dvh rather than vh so mobile browser chrome collapsing doesn't leave a gap. */
-@media (max-width: 460px){
-  .stage{ padding:0; gap:0; min-height:100vh; min-height:100dvh; justify-content:flex-start; }
-  .phone{ width:100%; height:100vh; height:100dvh; border:none; border-radius:0; box-shadow:none; }
-  .notch, .statusbar{ display:none; }
-  .screen{ height:100%; }
-  /* The role/language switcher is demo scaffolding; keeping it above the app costs
-     vertical space that a real phone does not have to spare. */
-  .topbar{ display:none; }
+   dvh rather than vh so mobile browser chrome collapsing doesn't leave a gap (the exact
+   reason the old .phone rule already used it). */
+.app-shell{ min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; background:var(--paper); font-family:var(--font-body); }
+.app-shell.lang-ar, .app-shell.lang-fa{ --font-body:'Noto Sans Arabic', sans-serif; --font-display:'Noto Sans Arabic', sans-serif; }
+.app-shell.lang-zh{ --font-body:'Noto Sans SC', sans-serif; --font-display:'Noto Sans SC', sans-serif; }
+
+/* The real app header — workspace switcher and language switcher, visible on every
+   viewport including mobile (the old .topbar was hidden below 460px entirely, silently
+   taking the workspace switcher with it — a real, live "how do I get to my other
+   workspace" gap on any phone-width screen for the exact people who most need it:
+   pros or operators holding more than one real membership). Sticky, not merely first in
+   flow, so switching context is always one tap away without scrolling back up through
+   whatever a long list has grown to. */
+.app-header{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--space-3);
+  padding:var(--space-2) var(--space-4);
+  padding-top:calc(var(--space-2) + env(safe-area-inset-top));
+  background:var(--surface); border-bottom:1px solid var(--line);
+  flex-shrink:0; position:sticky; top:0; z-index:10;
 }
-.view{ flex:1; display:flex; flex-direction:column; min-height:0; }
+.app-header-brand{ display:flex; align-items:center; gap:var(--space-2); font-family:var(--font-display); font-weight:600; font-size:15px; color:var(--forest-dark); flex-shrink:0; }
+/* Hidden on the narrow phone widths this header still needs to fit a workspace switcher
+   AND a language switcher into at once — the wordmark is decoration once the rest of
+   the app already establishes what this is; on desktop, with real width to spare, it
+   earns its place back as the one static anchor next to a sidebar that otherwise
+   changes with every tab. */
+@media (max-width:540px){ .app-header-brand{ display:none; } }
+
+.app-body{ flex:1; display:flex; min-height:0; }
+.app-sidebar{ display:none; }
+
+.view{ flex:1; display:flex; flex-direction:column; min-height:0; min-width:0; }
 .content{ flex:1; overflow-y:auto; }
 .pad{ padding:18px 20px 30px; }
+
+/* ---- desktop: a real sidebar and a real content width, not a scaled-up phone ---- */
+@media (min-width:768px){
+  .tabbar{ display:none; }
+  .app-sidebar{
+    display:flex; flex-direction:column; gap:2px; flex-shrink:0; width:232px;
+    padding:var(--space-4) var(--space-3); background:var(--surface); border-right:1px solid var(--line);
+  }
+  /* margin:auto on the flex item, not justify-content:center on the row — centering the
+     row itself would also float the sidebar away from the left edge the moment .view
+     hits its own max-width and stops growing; auto margins on .view absorb only ITS
+     leftover space, leaving the sidebar pinned. */
+  .view{ max-width:720px; margin:0 auto; }
+  .content{ padding-bottom:var(--space-6); }
+}
 
 .hello{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; gap:10px; }
 .eyebrow{ font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px; }
@@ -161,6 +201,10 @@ export const APP_CSS = `
    further than intended if a future footer ever ends in an unrelated icon. */
 .ticket-foot-chevron{ flex-shrink:0; }
 [dir="rtl"] .ticket-foot-chevron{ transform:scaleX(-1); }
+/* BusinessApp.jsx, 2026-09-29 — same "leads forward"/"leads backward" RTL flip as
+   .ticket-foot-chevron/.send-icon above, applied to Business's own row chevron and its
+   sub-view back arrow. */
+[dir="rtl"] .biz-row-chevron, [dir="rtl"] .biz-back-icon{ transform:scaleX(-1); }
 /* --amber-dark, not the bare --amber ACCESSIBILITY.md's own audit named as unchecked:
    #E8A33D on #FFFFFF/#EFEEE6 is ~2.16:1, nowhere near the 4.5:1 normal-text floor --
    the exact --ink-faint class of bug that audit already found and fixed once. --amber
@@ -216,7 +260,11 @@ export const APP_CSS = `
 .star-picker{ display:flex; gap:8px; margin:14px 0 16px; }
 .star-picker button{ background:none; border:none; cursor:pointer; padding:0; }
 
-.tabbar{ display:flex; border-top:1px solid var(--line); background:var(--surface); padding:8px 6px 14px; }
+/* Safe-area padding, not a flat 14px guess — the old value happened to clear most home
+   indicators but was never actually tied to the device reporting one; env() degrades to
+   0 on a device with nothing to inset for, so this is strictly additive, never a
+   regression on an ordinary rectangular phone. */
+.tabbar{ display:flex; flex-shrink:0; border-top:1px solid var(--line); background:var(--surface); padding:8px 6px calc(10px + env(safe-area-inset-bottom)); }
 /* min-height:44px — the tab was 38px tall, under the minimum touch target, on the one bar
    every screen depends on to get anywhere (Epic 03 WP10). */
 .tab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:44px; gap:3px; background:none; border:none; font-size:10px; color:var(--ink-soft); font-family:var(--font-body); font-weight:600; cursor:pointer; }
@@ -237,7 +285,45 @@ export const APP_CSS = `
    decoration, so the 4.5:1 floor applies. #8a5c14 gets white text to ~5.8:1. */
 .tab-badge{ position:absolute; top:-5px; right:-8px; background:var(--amber-dark); color:#fff; font-size:9px; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
 
-.sheet-overlay{ position:absolute; inset:0; background:rgba(13,21,18,0.45); display:flex; align-items:flex-end; z-index:20; }
+/* ---- desktop sidebar nav — same items, a vertical list instead of five equal-width
+   columns. Reuses .tab-icon-wrap/.tab-badge for the icon treatment so the "selected"
+   language matches the mobile tab bar exactly, just laid out differently. ---- */
+.sidebar-nav-item{
+  display:flex; align-items:center; gap:var(--space-3); width:100%; text-align:start;
+  padding:var(--space-2) var(--space-3); border-radius:12px; border:none; background:none; cursor:pointer;
+  font-family:var(--font-body); font-size:13.5px; font-weight:600; color:var(--ink-soft);
+  transition:background var(--motion-base), color var(--motion-base);
+}
+.sidebar-nav-item:hover{ background:var(--line-soft); }
+.sidebar-nav-item-on{ color:var(--forest-dark); }
+.sidebar-nav-item-on .tab-icon-wrap{ background:var(--sage-bg); }
+.sidebar-nav-item .tab-icon-wrap{ width:30px; height:30px; flex-shrink:0; }
+.sidebar-nav-item .tab-badge{ position:static; margin-inline-start:auto; }
+
+/* ---- operator's own narrow-screen menu — six destinations, deliberately not a bottom
+   bar (six equal-width columns fail the 44px touch-target floor and clip labels in
+   several locales) and deliberately not a sliding sheet (this codebase's own standing
+   "no sliding Drawer/bottom-sheet menus" rule) — a plain, centered, keyboard-reachable
+   overlay list, the same Modal primitive already used everywhere else in this app for a
+   short focused choice. ---- */
+.op-menu-trigger-row{ padding:var(--space-3) var(--space-4) 0; flex-shrink:0; }
+.op-menu-trigger{
+  display:flex; align-items:center; gap:6px; background:var(--sage-bg); color:var(--forest-dark);
+  border:none; border-radius:999px; padding:8px 14px; font-family:var(--font-body); font-size:13px; font-weight:700; cursor:pointer;
+  min-height:44px;
+}
+/* Desktop already shows the current destination via the sidebar's own selected state —
+   the header-menu button is a narrow-screen substitute for it, not an addition to it. */
+@media (min-width:768px){ .op-menu-trigger-row{ display:none; } }
+.op-menu-list{ display:flex; flex-direction:column; gap:2px; margin-top:12px; }
+.op-menu-item{
+  display:flex; align-items:center; gap:var(--space-3); width:100%; text-align:start; min-height:48px;
+  padding:0 var(--space-3); border-radius:12px; border:none; background:none; cursor:pointer;
+  font-family:var(--font-body); font-size:14px; font-weight:600; color:var(--ink);
+}
+.op-menu-item-on{ background:var(--sage-bg); color:var(--forest-dark); }
+
+.sheet-overlay{ position:fixed; inset:0; background:rgba(13,21,18,0.45); display:flex; align-items:flex-end; z-index:20; }
 .sheet{ position:relative; width:100%; max-height:88%; background:var(--paper); border-radius:24px 24px 0 0; padding:10px 20px 26px; box-shadow:0 -10px 30px rgba(0,0,0,0.2); }
 .sheet-grabber{ width:36px; height:4px; background:var(--line-strong); border-radius:99px; margin:0 auto 10px; }
 /* docs/design/ACCESSIBILITY.md's own "Touch targets" finding: 28x28px, real
@@ -254,7 +340,12 @@ export const APP_CSS = `
 .sheet-sub{ font-size:12.5px; color:var(--ink-soft); margin-bottom:12px; display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
 .price-hint{ font-size:13px; color:var(--ink); background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:10px; padding:10px 12px; margin-bottom:16px; }
 
-.toast{ position:absolute; bottom:90px; left:20px; right:20px; background:var(--ink); color:#fff; font-size:12.5px; font-weight:600; text-align:center; padding:11px; border-radius:11px; z-index:30; box-shadow:0 8px 20px rgba(0,0,0,0.3); }
+.toast{
+  position:fixed; bottom:calc(90px + env(safe-area-inset-bottom)); left:20px; right:20px;
+  background:var(--ink); color:#fff; font-size:12.5px; font-weight:600; text-align:center;
+  padding:11px; border-radius:11px; z-index:30; box-shadow:0 8px 20px rgba(0,0,0,0.3);
+  max-width:400px; margin:0 auto;
+}
 
 .fee-row{ display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); padding:2px 0; }
 .fee-row-net{ font-weight:700; color:var(--forest-dark); }

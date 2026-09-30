@@ -20,6 +20,11 @@ import { VoiceCapturePanel } from "./VoiceCapturePanel.jsx";
 import { PhotoCapturePanel } from "./PhotoCapturePanel.jsx";
 import { useIntentFlow } from "./useIntentFlow.js";
 
+// UX redesign, 2026-09-28 — capped, not the full in-flight list: "at most three
+// actionable items, with a link to all Requests" (brief). The cap counts HomeTodayCard's
+// own highlighted item too — KlussiePanel passes requests already sliced to leave room
+// for it, not sliced to 3 on its own.
+//
 // Homepage redesign, 2026-09-15 — rows now carry the same icon+tone badge
 // HomeTodayCard's own card already uses (reusing its exported KIND_COPY rather than
 // keeping this file's own separate title-only copy of the same kind->titleKey
@@ -52,9 +57,13 @@ function ActiveRequests({ t, requests, serviceInfo, onOpenRequest }) {
   );
 }
 
+// "At most three actionable items" total (brief) — HomeTodayCard's own highlighted item
+// counts toward this, so the list below it only ever fills the remaining room.
+const FOR_YOU_LIMIT = 3;
+
 export function KlussiePanel({
   t, fmt, serviceInfo, proBadgeLabel, homeCtx, conv, photoInputRef, onOpenRequest, onSetUpHome, onBrowseCategories,
-  CATS, catName,
+  onViewAllRequests,
 }) {
   const flow = useIntentFlow({
     t,
@@ -117,28 +126,35 @@ export function KlussiePanel({
 
   return (
     <>
-      <IntentSuggestions t={t} activeIntentId={flow.intentId} onSelect={flow.selectIntent} />
-
+      {/* UX redesign, 2026-09-28 — the composer comes before the intent shortcuts now,
+          not after: "the composer comes before classification choices... it should
+          feel like a useful input area, not a thin search pill" (brief). The safety
+          interrupt still gates this exact block. */}
       {flow.safetyPending ? (
         <SafetyNotice t={t} onBack={flow.dismissSafety} onContinue={flow.acceptSafetyAndContinue} />
       ) : (
-        <>
-          <AskArea t={t} flow={flow} conv={conv} photoInputRef={photoInputRef} />
-          {/* ADR-0033 (2026-09-15) — the real entry point into AiIntakeSheet's own
-              category grid (compose stage). Before a version of this existed,
-              AiIntakeSheet only ever opened pre-seeded with an already-run AI result
-              (useConversation.js's own onStart call, after analysis) -- there was no
-              live path that reached its compose stage at all, which would have made
-              that grid unreachable dead code. The mockup's own compact row replaces the
-              plain text link an earlier slice of this same ADR shipped -- tapping a real
-              category opens the sheet with it already selected; "More" opens it with
-              nothing preselected, landing on the full grid. Hidden once a question is
-              already running, the same way the intent tiles above stay out of the way
-              mid-flow. */}
-          {onBrowseCategories && !flow.currentQuestion && (
-            <HomeCategoryRow t={t} CATS={CATS} catName={catName} onSelectCategory={onBrowseCategories} />
-          )}
-        </>
+        <AskArea t={t} flow={flow} conv={conv} photoInputRef={photoInputRef} />
+      )}
+
+      {/* IntentSuggestions stays visible even mid-question (unchanged from before this
+          redesign) — tapping the active tile again is the customer's own real "undo and
+          restart with something else" path, on top of followUpBack's own one-question-
+          at-a-time back button. Only moved below the composer, never hidden by it. */}
+      {!flow.safetyPending && <IntentSuggestions t={t} activeIntentId={flow.intentId} onSelect={flow.selectIntent} />}
+
+      {/* ADR-0033 (2026-09-15) — the real entry point into AiIntakeSheet's own category
+          grid (compose stage). Before a version of this existed, AiIntakeSheet only ever
+          opened pre-seeded with an already-run AI result (useConversation.js's own
+          onStart call, after analysis) -- there was no live path that reached its
+          compose stage at all, which would have made that grid unreachable dead code.
+          UX redesign, 2026-09-28 — now a single "Browse all services" link
+          (HomeCategoryRow.jsx's own header explains why the six-tile scrolling row it
+          used to render is gone), kept, not removed: still the one secondary route into
+          that same grid. Hidden once a question is already running (unchanged from
+          before this redesign) — unlike the intent tiles, this one has always given way
+          to the question in progress. */}
+      {!flow.safetyPending && !flow.currentQuestion && onBrowseCategories && (
+        <HomeCategoryRow t={t} onSelectCategory={onBrowseCategories} />
       )}
 
       {/* "Vandaag voor jouw woning" and "Loopt op dit moment" merge under one heading
@@ -148,17 +164,29 @@ export function KlussiePanel({
           running requests, if any, follow directly under it -- both card types now
           share the same icon-badge visual language (see ActiveRequests's own header
           above for why). */}
-      <section className="home-foryou" aria-labelledby="home-foryou-heading">
-        <h2 className="home-section-title" id="home-foryou-heading">{t.homeForYouTitle}</h2>
-        <HomeTodayCard
-          t={t}
-          item={homeCtx.today}
-          serviceName={todayServiceName}
-          onOpenRequest={onOpenRequest}
-          onSetUpHome={onSetUpHome}
-        />
-        <ActiveRequests t={t} requests={homeCtx.activeRequests} serviceInfo={serviceInfo} onOpenRequest={onOpenRequest} />
-      </section>
+      {(() => {
+        const remaining = FOR_YOU_LIMIT - (homeCtx.today ? 1 : 0);
+        const visibleActive = homeCtx.activeRequests.slice(0, Math.max(remaining, 0));
+        const hasMore = homeCtx.activeRequests.length > visibleActive.length;
+        return (
+          <section className="home-foryou" aria-labelledby="home-foryou-heading">
+            <h2 className="home-section-title" id="home-foryou-heading">{t.homeForYouTitle}</h2>
+            <HomeTodayCard
+              t={t}
+              item={homeCtx.today}
+              serviceName={todayServiceName}
+              onOpenRequest={onOpenRequest}
+              onSetUpHome={onSetUpHome}
+            />
+            <ActiveRequests t={t} requests={visibleActive} serviceInfo={serviceInfo} onOpenRequest={onOpenRequest} />
+            {hasMore && onViewAllRequests && (
+              <button type="button" className="home-view-all-link" onClick={onViewAllRequests}>
+                {t.homeViewAllRequests}
+              </button>
+            )}
+          </section>
+        );
+      })()}
     </>
   );
 }

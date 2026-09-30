@@ -1,39 +1,12 @@
-// Two of these three decide what work a professional is allowed to see and take, which
-// makes them compliance rules rather than styling. The third decides whether klussie
-// claims a professional is being promoted.
+// Both of these decide what work a professional is allowed to see and take, which makes
+// them compliance rules rather than styling.
 import { describe, it, expect } from "vitest";
 import {
   SPECIALIST_CATEGORY_ID,
   PRO_TYPE_FLEXI,
-  isBoosted,
   offeredCategoryIds,
   isCategoryLocked,
 } from "../proStatus.js";
-
-describe("isBoosted", () => {
-  const now = new Date("2026-08-11T12:00:00Z");
-
-  it("is active while the promotion still has time left", () => {
-    expect(isBoosted({ boosted_until: "2026-08-18T12:00:00Z" }, now)).toBe(true);
-  });
-
-  it("expires the moment the window closes", () => {
-    // Not "on or after" — a boost that ended is over, and showing it as active would
-    // claim placement the professional is no longer getting.
-    expect(isBoosted({ boosted_until: "2026-08-11T12:00:00Z" }, now)).toBe(false);
-    expect(isBoosted({ boosted_until: "2026-08-04T12:00:00Z" }, now)).toBe(false);
-  });
-
-  it("is false for a profile that has never been boosted", () => {
-    expect(isBoosted({ boosted_until: null }, now)).toBe(false);
-    expect(isBoosted({}, now)).toBe(false);
-    expect(isBoosted(null, now)).toBe(false);
-  });
-
-  it("returns a real boolean, not a truthy timestamp", () => {
-    expect(isBoosted({ boosted_until: "2026-08-18T12:00:00Z" }, now)).toStrictEqual(true);
-  });
-});
 
 describe("offeredCategoryIds", () => {
   const services = [

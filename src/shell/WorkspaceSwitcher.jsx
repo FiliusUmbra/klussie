@@ -13,31 +13,41 @@
 // component's own established "recognition, not reading" philosophy one line below: real
 // names ("My Home", a business's own name) need no caption explaining what they are.
 //
-// "Recognition, not reading": buttons show the workspace's own name (set at creation —
-// migration 0033/0034's backfill named every existing workspace "My Home" or the pro's
-// business name), never a raw id, and — since this same review — never the raw
+// "Recognition, not reading": the option list shows the workspace's own name (set at
+// creation — migration 0033/0034's backfill named every existing workspace "My Home" or
+// the pro's business name), never a raw id, and — since this same review — never the raw
 // backend `workspace_type` string either (humanWorkspaceName(), workspaceContext.js).
+//
+// A SELECT, NOT SEGMENTED BUTTONS — brought in 2026-09-30 from the parallel "Klussie via
+// ChatGPT" pass ("replaced competing workspace pills with one compact selector"): once the
+// header could also hold a Family entry point and a language switcher alongside this, a
+// segmented button row that grows with every membership stopped being "compact" the moment
+// a third or fourth real workspace existed. A native select stays one control regardless
+// of how many memberships a person has.
 import { useAuth } from "../lib/auth.jsx";
 import { humanWorkspaceName } from "../lib/workspaceContext.js";
 
-export function WorkspaceSwitcher({ t }) {
+export function WorkspaceSwitcher({ t, onSelect }) {
   const { workspaceMemberships, activeWorkspace, setActiveWorkspaceId } = useAuth();
 
   if (workspaceMemberships.length < 2) return null;
 
+  const activeId = activeWorkspace?.workspace_id || workspaceMemberships[0].workspace_id;
+
   return (
     <div className="role-switch">
-      <div className="segmented">
+      <select
+        className="place-picker"
+        aria-label={humanWorkspaceName(activeWorkspace || workspaceMemberships[0], t)}
+        value={activeId}
+        onChange={(event) => { setActiveWorkspaceId(event.target.value); onSelect?.(); }}
+      >
         {workspaceMemberships.map((m) => (
-          <button
-            key={m.workspace_id}
-            className={activeWorkspace?.workspace_id === m.workspace_id ? "seg-on" : ""}
-            onClick={() => setActiveWorkspaceId(m.workspace_id)}
-          >
+          <option key={m.workspace_id} value={m.workspace_id}>
             {humanWorkspaceName(m, t)}
-          </button>
+          </option>
         ))}
-      </div>
+      </select>
     </div>
   );
 }

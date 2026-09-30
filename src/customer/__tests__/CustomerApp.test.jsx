@@ -43,15 +43,26 @@ vi.mock("../../lib/messages", () => ({
 const uploadRequestPhotoMock = vi.fn(() => Promise.resolve());
 vi.mock("../../lib/requestPhotos", () => ({ uploadRequestPhoto: (...args) => uploadRequestPhotoMock(...args) }));
 
-// The onStart/onOpenRequest buttons below are what a real ConversationHome's own
-// AI-intake CTA and request-card taps ultimately do — needed so the regression tests
-// further down can actually reach createRequestFromAi()/RequestDetailSheet's own
-// callbacks.
+// The onStart button below is what a real ConversationHome's own AI-intake CTA
+// ultimately does — needed so the regression tests further down can actually reach
+// createRequestFromAi().
 vi.mock("../../home/ConversationHome.jsx", () => ({
-  ConversationHome: ({ onStart, onOpenRequest }) => (
+  ConversationHome: ({ onStart }) => (
     <div data-testid="conversation-home">
       <button onClick={() => onStart({ text: "leak" })}>open-ai-intake</button>
-      <button onClick={() => onOpenRequest("req-1")}>open-request</button>
+    </div>
+  ),
+}));
+// "Unified Today" (2026-09-30): DailyHome, not ConversationHome, is what actually mounts
+// first now — ConversationHome only renders once "help" (CustomerApp.jsx's own
+// help-back affordance) switches the tab to "discover". onRequest below mirrors
+// DailyHome's own request-card taps, the same way open-request used to reach
+// ConversationHome directly.
+vi.mock("../../home/DailyHome.jsx", () => ({
+  DailyHome: ({ onHelp, onRequest }) => (
+    <div data-testid="daily-home">
+      <button onClick={onHelp}>help</button>
+      <button onClick={() => onRequest("req-1")}>open-request</button>
     </div>
   ),
 }));
@@ -136,7 +147,7 @@ beforeEach(() => {
 async function openRequestDetail() {
   fetchCustomerRequestsMock.mockResolvedValue([REQUEST]);
   const { showToast } = renderApp();
-  await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId("daily-home")).toBeTruthy());
   fireEvent.click(screen.getByText("open-request"));
   await screen.findByText("accept-quote");
   return { showToast };
@@ -145,7 +156,7 @@ async function openRequestDetail() {
 describe("CustomerApp — initial load failure", () => {
   it("renders the real app once requests and conversations both load successfully", async () => {
     renderApp();
-    await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("daily-home")).toBeTruthy());
   });
 
   it("shows a generic localized message and a real retry, never an infinite spinner, when a fetch fails", async () => {
@@ -154,17 +165,17 @@ describe("CustomerApp — initial load failure", () => {
 
     await waitFor(() => expect(screen.getByText("catalogLoadFailed")).toBeTruthy());
     expect(screen.queryByText(/does not exist/)).toBeNull();
-    expect(screen.queryByTestId("conversation-home")).toBeNull();
+    expect(screen.queryByTestId("daily-home")).toBeNull();
 
     fetchCustomerRequestsMock.mockResolvedValueOnce([]);
     fireEvent.click(screen.getByText("retryBtn"));
 
-    await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("daily-home")).toBeTruthy());
   });
 
   it("keeps the already-loaded app on screen when a later realtime-triggered refresh fails, rather than tearing it down", async () => {
     renderApp();
-    await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("daily-home")).toBeTruthy());
 
     // The real subscribeToCustomerRequests(..., refresh) callback -- what a live realtime
     // event actually invokes -- rejecting after a successful initial load must not replace
@@ -177,7 +188,7 @@ describe("CustomerApp — initial load failure", () => {
     const onChange = subscribeToCustomerRequestsMock.mock.calls[0][2];
     await onChange().catch(() => {});
 
-    expect(screen.getByTestId("conversation-home")).toBeTruthy();
+    expect(screen.getByTestId("daily-home")).toBeTruthy();
     expect(screen.queryByText("catalogLoadFailed")).toBeNull();
   });
 });
@@ -197,15 +208,16 @@ describe("CustomerApp — initial load failure", () => {
 //
 // Both tests below reach into tab-switching as the observable signal that the real
 // onSubmitted={async (payload) => { await createRequestFromAi(payload); setTab("requests"); }}
-// wrapper in CustomerApp.jsx did not throw: a rejection there would leave `tab` at its
-// initial "discover" value, so ConversationHome (only rendered while tab === "discover")
-// would still be on screen; setTab("requests") running is only reachable past a real,
-// non-throwing await.
+// wrapper in CustomerApp.jsx did not throw: a rejection there would leave `tab` at
+// "discover" (reached via the "help" tap below, Today's own gateway to the AI composer),
+// so ConversationHome would still be on screen; setTab("requests") running is only
+// reachable past a real, non-throwing await.
 describe("CustomerApp — creating a request survives a failed photo upload or a failed post-create refresh", () => {
   async function openAndSubmitAiIntake() {
     renderApp();
-    await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
-    fireEvent.click(screen.getByText("open-ai-intake"));
+    await waitFor(() => expect(screen.getByTestId("daily-home")).toBeTruthy());
+    fireEvent.click(screen.getByText("help"));
+    fireEvent.click(await screen.findByText("open-ai-intake"));
     fireEvent.click(await screen.findByText("submit-ai-intake"));
   }
 
@@ -222,12 +234,13 @@ describe("CustomerApp — creating a request survives a failed photo upload or a
 
   it("still creates the request and moves past the sheet when the post-create refresh fails", async () => {
     renderApp();
-    await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("daily-home")).toBeTruthy());
     // The initial load above already consumed the default resolved value; only the
     // refresh() triggered by submitting below should fail.
     fetchCustomerRequestsMock.mockRejectedValueOnce(new Error("network blip refetching the list"));
 
-    fireEvent.click(screen.getByText("open-ai-intake"));
+    fireEvent.click(screen.getByText("help"));
+    fireEvent.click(await screen.findByText("open-ai-intake"));
     fireEvent.click(await screen.findByText("submit-ai-intake"));
 
     await waitFor(() => expect(screen.queryByTestId("conversation-home")).toBeNull());
@@ -300,9 +313,13 @@ describe("CustomerApp — closing a conversation refreshes the list best-effort"
   it("never leaves an unhandled rejection when the post-close refreshConversations() fails", async () => {
     fetchConversationsMock.mockResolvedValueOnce([]);
     renderApp();
-    await waitFor(() => expect(screen.getByTestId("conversation-home")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("daily-home")).toBeTruthy());
 
-    fireEvent.click(screen.getByText("navMessages"));
+    // getAllByText, not getByText: AppNav (UX redesign, 2026-09-28) renders the same
+    // labelled item twice — a mobile tab bar and a desktop sidebar, one hidden by CSS
+    // per breakpoint, both present in jsdom's own DOM since it applies no real layout.
+    // Either click reaches the identical setTab handler, so the first match is enough.
+    fireEvent.click(screen.getAllByText("navMessages")[0]);
     fireEvent.click(await screen.findByText("open-conversation"));
     const closeBtn = await screen.findByText("close-conversation");
     fetchConversationsMock.mockRejectedValueOnce(new Error("network blip refreshing conversations"));

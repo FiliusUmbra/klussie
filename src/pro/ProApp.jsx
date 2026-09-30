@@ -20,13 +20,13 @@ import { fetchProServices, fetchPublicProInfo } from "../lib/pros";
 import { fetchConversations, subscribeToConversationsForUser } from "../lib/messages";
 import { MessagesList } from "../messaging/MessagesList.jsx";
 import { ConversationSheet } from "../messaging/ConversationSheet.jsx";
-import { BottomNav } from "../ui/BottomNav.jsx";
+import { AppNav } from "../ui/AppNav.jsx";
 import { LoadingScreen } from "../ui/Loading.jsx";
 import { ProDashboard } from "./ProDashboard.jsx";
 import { ProJobs } from "./ProJobs.jsx";
 import { ProJobDetailSheet } from "./ProJobDetailSheet.jsx";
 import { Profile } from "../profile/Profile.jsx";
-import { MyBusinessPanel } from "./MyBusinessPanel.jsx";
+import { BusinessApp } from "./BusinessApp.jsx";
 import { SendQuoteSheet } from "./SendQuoteSheet.jsx";
 import { ProOnboarding } from "./ProOnboarding.jsx";
 import { useProTour } from "./useProTour.js";
@@ -176,24 +176,28 @@ export function ProApp({ showToast }) {
   };
 
   return (
-    <div className="view">
-      <div className="content">
-        {tab === "dashboard" && <ProDashboard leads={leads} onQuote={(l) => setQuoteLead(l)} proInfo={proInfo} />}
+    <>
+      <AppNav
+        tab={tab}
+        setTab={setTab}
+        items={[
+          { id: "dashboard", label: t.navDashboard, icon: Briefcase, badge: leads.length },
+          { id: "jobs", label: t.navMyJobs, icon: ClipboardList },
+          { id: "business", label: t.navMyBusiness, icon: Building2 },
+          { id: "messages", label: t.navMessages, icon: MessageCircle, badge: unreadTotal(conversations) },
+          { id: "profile", label: t.navProfile, icon: User },
+        ]}
+      >
+        {tab === "dashboard" && <ProDashboard leads={leads} onQuote={(l) => setQuoteLead(l)} proInfo={proInfo} onPauseToggled={refreshLeads} />}
         {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} onOpenJob={setOpenJob} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && (
-          <Profile variant="pro" proInfo={proInfo} completedCount={jobs.completed.length} earnedGross={earnedGross} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} onProfileSaved={refreshProInfo} onPauseToggled={refreshLeads} onReplayTour={tour.replay} />
+          <Profile variant="pro" proInfo={proInfo} completedCount={jobs.completed.length} onProfileSaved={refreshProInfo} onReplayTour={tour.replay} />
         )}
-        {tab === "business" && <MyBusinessPanel t={t} fmtDate={fmtDate} />}
-      </div>
-
-      <BottomNav tab={tab} setTab={setTab} items={[
-        { id: "dashboard", label: t.navDashboard, icon: Briefcase, badge: leads.length },
-        { id: "jobs", label: t.navMyJobs, icon: ClipboardList },
-        { id: "business", label: t.navMyBusiness, icon: Building2 },
-        { id: "messages", label: t.navMessages, icon: MessageCircle, badge: unreadTotal(conversations) },
-        { id: "profile", label: t.navProfile, icon: User },
-      ]} />
+        {tab === "business" && (
+          <BusinessApp t={t} fmtDate={fmtDate} proInfo={proInfo} offeredServiceIds={offeredServiceIds} onServicesChange={setOfferedServiceIds} earnedGross={earnedGross} />
+        )}
+      </AppNav>
 
       {tour.open && <ProOnboarding t={t} onFinish={tour.finish} />}
 
@@ -230,6 +234,6 @@ export function ProApp({ showToast }) {
           onClose={() => { setOpenConversation(null); refreshConversations().catch(() => {}); }}
         />
       )}
-    </div>
+    </>
   );
 }
