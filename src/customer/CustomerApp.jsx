@@ -7,7 +7,7 @@
 // then upload photos, then refresh), not rules; src/lib/requests.js owns the actual
 // writes.
 import { useState, useEffect } from "react";
-import { User, Home, House, ClipboardList, MessageCircle } from "lucide-react";
+import { User, ArrowLeft, Sun, House, ClipboardList, MessageCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import {
@@ -23,12 +23,14 @@ import {
 import { fetchConversations, subscribeToConversationsForUser } from "../lib/messages";
 import { uploadRequestPhoto } from "../lib/requestPhotos";
 import { ConversationHome } from "../home/ConversationHome.jsx";
+import { DailyHome } from "../home/DailyHome.jsx";
+import { TODAY_LABELS } from "../lib/dailyStrings.js";
 import { MyHomeScreen } from "../home/MyHomeScreen.jsx";
 import { CustomerOnboarding } from "../home/CustomerOnboarding.jsx";
 import { useHomeTour } from "../home/useHomeTour.js";
 import { MessagesList } from "../messaging/MessagesList.jsx";
 import { ConversationSheet } from "../messaging/ConversationSheet.jsx";
-import { BottomNav } from "../ui/BottomNav.jsx";
+import { AppNav } from "../ui/AppNav.jsx";
 import { LoadingScreen } from "../ui/Loading.jsx";
 import { ServiceSheet } from "./ServiceSheet.jsx";
 import { QuoteFormSheet } from "./QuoteFormSheet.jsx";
@@ -44,11 +46,24 @@ import { unreadTotal } from "../lib/conversationSelectors.js";
 // "flexible". Neither should reach the database as the string "".
 const numericBudget = (budget) => (budget === "" || budget == null ? null : Number(budget));
 
-export function CustomerApp({ showToast, onBecomePro }) {
-  const { t } = useLang();
+// 2026-09-30 — "Unified Today" brought in from the parallel "Klussie via ChatGPT" pass:
+// the customer's own landing tab is no longer the AI composer (ConversationHome, "discover")
+// but a single daily summary (DailyHome) surfacing request decisions, unread messages, due
+// household tasks and ongoing family plans in one place — the same instinct src/pro/
+// ProDashboard.jsx's own Today screen already has for a professional. The composer itself
+// didn't go away: it's "Help" now, one tap from Today (the help-back button below), not the
+// thing a customer lands on by default.
+export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onNavigate }) {
+  const { t, langCode } = useLang();
   const { user, activeWorkspace } = useAuth();
   const workspaceId = activeWorkspace?.workspace_id;
-  const [tab, setTab] = useState("discover");
+  // destination/onNavigate come from AppShell.jsx's own customerDestination/
+  // onCustomerNavigate (App.jsx's <SignedInShell>, real URLs) when a caller wires real
+  // routing; every existing caller and test — nothing passes these yet outside App.jsx —
+  // keeps working off plain local state exactly as before.
+  const [localTab, setLocalTab] = useState("today");
+  const tab = destination?.tab || localTab;
+  const setTab = (next) => { if (onNavigate) onNavigate(next); else setLocalTab(next); };
   // activeService/quoteForm — checked directly, 2026-08-28: setActiveService is never
   // called anywhere in this codebase. Discover.jsx (the only screen with a real
   // onOpenService trigger) is itself deliberately unrendered — its own header explains
@@ -327,45 +342,91 @@ export function CustomerApp({ showToast, onBecomePro }) {
   };
 
   return (
-    <div className="view">
-      <div className="content">
-        {tab === "discover" && (
-          <ConversationHome
-            onStart={(seed) => setAiIntakeOpen(seed || {})}
+    <>
+      <AppNav
+        // "today" is the real landing tab; "discover" (Help) stays reachable from there
+        // (and from My Home's own "report a problem") but deliberately isn't its own
+        // nav destination any more — see this file's own header.
+        tab={tab === "discover" ? "today" : tab}
+        setTab={setTab}
+        items={[
+          { id: "today", label: TODAY_LABELS[langCode] || TODAY_LABELS.en, icon: Sun },
+          { id: "myHome", label: t.navMyHome, icon: House },
+          { id: "requests", label: t.navRequests, icon: ClipboardList, badge: awaitingDecisionCount(requests) },
+          { id: "messages", label: t.navMessages, icon: MessageCircle, badge: unreadTotal(conversations) },
+          { id: "profile", label: t.navProfile, icon: User },
+        ]}
+      >
+        {tab === "today" && (
+          <DailyHome
+            // Remounts per person/workspace — a stale useFamily() selection from a
+            // previous session or workspace must never carry over.
+            key={`${user.id}:${workspaceId || ""}`}
             requests={requests}
-            onOpenRequest={(id) => setOpenRequest(id)}
-            onOpenMyHome={() => setTab("myHome")}
+            conversations={conversations}
+            onHelp={() => setTab("discover")}
+            onHome={() => setTab("myHome")}
+            onFamily={onFamily}
+            onRequest={(id) => setOpenRequest(id)}
+            onMessages={() => setTab("messages")}
+            onRequests={() => setTab("requests")}
           />
+        )}
+        {tab === "discover" && (
+          <>
+            <button type="button" className="help-back" onClick={() => setTab("today")}>
+              <ArrowLeft size={16} aria-hidden="true" /> {TODAY_LABELS[langCode] || TODAY_LABELS.en}
+            </button>
+            <ConversationHome
+              onStart={(seed) => setAiIntakeOpen(seed || {})}
+              requests={requests}
+              onOpenRequest={(id) => setOpenRequest(id)}
+              onOpenMyHome={() => setTab("myHome")}
+              onViewAllRequests={() => setTab("requests")}
+            />
+          </>
         )}
         {tab === "myHome" && (
           <MyHomeScreen
+            activeSection={destination?.section}
+            onSectionChange={onNavigate ? (section) => onNavigate("myHome", section) : undefined}
             requests={requests}
             onOpenRequest={(id) => setOpenRequest(id)}
             onReportProblem={() => setTab("discover")}
           />
         )}
-        {tab === "requests" && <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} />}
-        {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
-        {tab === "profile" && <Profile variant="customer" requests={requests} onReplayTour={tour.replay} onBecomePro={onBecomePro} />}
-      </div>
-
-      <BottomNav tab={tab} setTab={setTab} items={[
-        { id: "discover", label: t.navDiscover, icon: Home },
-        { id: "requests", label: t.navRequests, icon: ClipboardList, badge: awaitingDecisionCount(requests) },
-        { id: "messages", label: t.navMessages, icon: MessageCircle, badge: unreadTotal(conversations) },
-        { id: "myHome", label: t.navMyHome, icon: House },
-        { id: "profile", label: t.navProfile, icon: User },
-      ]} />
+        {tab === "requests" && (
+          <RequestsList requests={requests} onOpen={(id) => setOpenRequest(id)} onCreateRequest={() => setAiIntakeOpen({})} />
+        )}
+        {tab === "messages" && (
+          <MessagesList
+            conversations={conversations}
+            onOpen={setOpenConversation}
+            hasRequests={requests.length > 0}
+            onViewRequests={() => setTab("requests")}
+            onCreateRequest={() => setAiIntakeOpen({})}
+          />
+        )}
+        {tab === "profile" && (
+          <Profile
+            variant="customer"
+            onReplayTour={tour.replay}
+            onBecomePro={onBecomePro}
+            onManageHome={() => setTab("myHome")}
+            onViewJobHistory={() => setTab("requests")}
+          />
+        )}
+      </AppNav>
 
       {/* Ending the tour on "set up my home first" lands the customer on the real My
           Home tab (ADR-0033 — its own bottom-nav destination now, not an internal
-          section of Home) rather than always returning to the Klussie tab. */}
+          section of Home) rather than always returning to Today. */}
       {tour.open && (
         <CustomerOnboarding
           t={t}
           onFinish={async (result) => {
-            const destination = await tour.finish(result);
-            setTab(destination === "myHome" ? "myHome" : "discover");
+            const tourDestination = await tour.finish(result);
+            setTab(tourDestination === "myHome" ? "myHome" : "today");
           }}
         />
       )}
@@ -416,6 +477,6 @@ export function CustomerApp({ showToast, onBecomePro }) {
           onClose={() => { setOpenConversation(null); refreshConversations().catch(() => {}); }}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -29,6 +29,7 @@ import { buildLangContext } from "../lib/langContext.js";
 import { fetchCatalog } from "../lib/catalog";
 import { HOME_CSS } from "../home/homeStyles.js";
 import { APP_CSS } from "./appStyles.js";
+import { CALM_CSS } from "./calmStyles.js";
 import { WelcomeScreen } from "../auth/WelcomeScreen.jsx";
 import { BecomeProPrompt } from "../profile/BecomeProPrompt.jsx";
 import { BecomeProSheet } from "../profile/BecomeProSheet.jsx";
@@ -38,6 +39,8 @@ import { OperatorApp } from "../operator/OperatorApp.jsx";
 import { LoadingScreen } from "../ui/Loading.jsx";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher.jsx";
 import { LanguageSwitcher } from "./LanguageSwitcher.jsx";
+import { FamilyApp } from "../family/FamilyApp.jsx";
+import { familyStrings } from "../lib/familyStrings.js";
 import { deriveEffectiveRole } from "../lib/workspaceContext.js";
 import { isOperatorWorkspace } from "../lib/operatorContext.js";
 import { getPreferredLangCode, setPreferredLangCode } from "../lib/langPreference.js";
@@ -46,7 +49,22 @@ import { getPreferredLangCode, setPreferredLangCode } from "../lib/langPreferenc
 // it never sits over the thing the customer tapped next.
 const TOAST_DURATION_MS = 2600;
 
-export function AppShell() {
+// 2026-09-30 — brought in from the parallel "Klussie via ChatGPT" pass on `main`
+// (docs/product/FAMILY_RELEASE.md): a private Family workspace type (shared lists,
+// chores, calendar), reachable from the header on every screen and from a persistent
+// `/app/family` route (App.jsx's own SignedInShell). Re-platformed onto this session's
+// own `.app-header`/`.app-shell` — the source version was written against the pre-redesign
+// `.stage`/`.topbar`/`.phone` chrome this file replaced (see the `.app-header` comment
+// below); FamilyApp.jsx/FamilyPanels.jsx/etc. themselves needed no changes — they render
+// into their own `<div className="family-app">`, entirely independent of the shell around
+// them.
+//
+// `familyRoute`/`onOpenFamily`/`onLeaveFamily`/`customerDestination`/`onCustomerNavigate`
+// are all optional: undefined for every existing caller/test that doesn't pass them (this
+// component's own local `familyEntry` state and CustomerApp's own local tab state keep
+// working exactly as before), and supplied only by App.jsx's <SignedInShell>, which turns
+// them into real browser URLs and Back-button support.
+export function AppShell({ familyRoute = false, onOpenFamily, onLeaveFamily, customerDestination, onCustomerNavigate }) {
   // Found live during a UX review, 2026-09-12: this had nowhere to live but memory --
   // every reload reverted to Dutch, for every one of the 10 shipped locales, no matter
   // what a customer had explicitly picked. getPreferredLangCode() (langPreference.js)
@@ -61,6 +79,12 @@ export function AppShell() {
   const [catalogRetryToken, setCatalogRetryToken] = useState(0);
   const [becomeProOpen, setBecomeProOpen] = useState(false);
   const [operatorCheck, setOperatorCheck] = useState({ workspaceId: null, result: false });
+  // Local fallback for whoever doesn't pass familyRoute/onOpenFamily (every test, and any
+  // caller that never adopts real routing) — mirrors what CustomerApp.jsx's own local
+  // `tab` state does for `destination`/`onNavigate` below. `familyId` carries the specific
+  // family DailyHome.jsx's own "Family" shortcut was already looking at, so opening Family
+  // from there lands on that family rather than whichever one loaded first.
+  const [familyEntry, setFamilyEntry] = useState(null);
   const toastTimer = useRef(null);
   const { session, loading: authLoading, proProfile, workspaceMemberships = [], activeWorkspace, setActiveWorkspaceId } = useAuth();
 
@@ -112,6 +136,12 @@ export function AppShell() {
   // the Operations Workspace.
   const operatorCheckPending = activeWorkspaceId !== null && operatorCheck.workspaceId !== activeWorkspaceId;
   const isOperator = operatorCheck.workspaceId === activeWorkspaceId && operatorCheck.result;
+  // Scoped to this session AND this workspace: switching workspaces (or signing out and
+  // back in as someone else, in a test or a shared device) must not reopen a stale
+  // family entry left over from before.
+  const familyEntryMatches = familyEntry?.userId === session?.user?.id && familyEntry?.workspaceId === activeWorkspaceId;
+  const familyOpen = !onOpenFamily && familyEntryMatches;
+  const familyVisible = familyRoute || familyOpen;
 
   const ctx = buildLangContext(langCode, catalog, setLangCode);
   const { t, dir } = ctx;
@@ -162,6 +192,28 @@ export function AppShell() {
     );
   } else if (!session) {
     body = <WelcomeScreen />;
+  } else if (familyVisible || activeWorkspace?.workspace_type === "family") {
+    // Checked before operator/pro/customer — Family is neither of those, and a family
+    // membership grants nothing beyond family.records.* (workspace.role_permissions,
+    // this migration's own grants), so none of the branches below may ever be reached
+    // while looking at one.
+    body = (
+      <FamilyApp
+        initialId={familyEntryMatches && familyEntry.familyId ? familyEntry.familyId : activeWorkspace?.workspace_type === "family" ? activeWorkspace.workspace_id : undefined}
+        onClose={() => {
+          setFamilyEntry(null);
+          onLeaveFamily?.();
+          // Only relevant when Family was reached by switching the active workspace to
+          // one (not the header button's own overlay) — return to whichever personal
+          // workspace this person also has, the same "land back on the Personal
+          // Workspace" default the rest of this file already uses.
+          if (activeWorkspace?.workspace_type === "family") {
+            const personal = workspaceMemberships.find((m) => m.workspace_type === "personal");
+            if (personal) setActiveWorkspaceId(personal.workspace_id);
+          }
+        }}
+      />
+    );
   } else if (isOperator) {
     // Platform Activation Slice 0, WP 0.5 — checked before the customer/pro branch
     // below, and never falls through to it: the Operations Workspace is neither a
@@ -179,47 +231,96 @@ export function AppShell() {
     // UNIFIED_PRODUCT_IA_REVIEW.md §5 — the real, reachable entry point into
     // BecomeProSheet, alongside the topbar-only demo toggle below (still real for a
     // desktop-width session, but never the only path now).
-    body = <CustomerApp showToast={showToast} onBecomePro={() => setBecomeProOpen(true)} />;
+    body = (
+      <CustomerApp
+        showToast={showToast}
+        onBecomePro={() => setBecomeProOpen(true)}
+        destination={customerDestination}
+        onNavigate={onCustomerNavigate}
+        onFamily={(familyId) => {
+          setFamilyEntry({ userId: session.user.id, workspaceId: activeWorkspaceId, familyId });
+          onOpenFamily?.();
+        }}
+      />
+    );
   }
 
   return (
     <LangContext.Provider value={ctx}>
-      <div className="stage" dir={dir}>
-        <style>{APP_CSS + HOME_CSS}</style>
+      <div className={`app-shell lang-${langCode}`} dir={dir}>
+        <style>{APP_CSS + HOME_CSS + CALM_CSS}</style>
 
-        <div className="topbar">
-          {session && multiWorkspace && <WorkspaceSwitcher t={t} />}
-          <LanguageSwitcher />
-        </div>
-
-        <div className={`phone lang-${langCode}`}>
-          <div className="notch" />
-          <div className="statusbar"><span>9:41</span><span className="statusbar-dots">• • •</span></div>
-          <div className="screen">
-            {body}
-            {becomeProOpen && (
-              <BecomeProSheet
-                onClose={() => setBecomeProOpen(false)}
-                onDone={(workspaceId) => {
-                  setBecomeProOpen(false);
-                  setRole("pro");
-                  // 0168_professional_workspace_provisioning.sql's own consequence — see
-                  // becomePro()'s own comment in auth.jsx for why this is now required,
-                  // not optional, the instant a real second membership exists.
-                  if (workspaceId) setActiveWorkspaceId(workspaceId);
-                }}
-              />
+        {/* UX redesign, 2026-09-28 — replaces the fixed 390x820 simulated phone frame
+            (painted notch, painted "9:41" status bar) that used to wrap the whole app on
+            every viewport, desktop included. See appStyles.js's own header on .app-shell
+            for the full reasoning and the real screenshot evidence this responds to.
+            The header itself is new too: the old .topbar (workspace + language switcher)
+            was hidden outright below 460px — the workspace switcher, a real control a
+            multi-workspace pro or operator genuinely needs, was unreachable on any real
+            phone. It renders on every viewport now.
+            2026-09-30 — gained a Family entry point, brought in from the parallel
+            "ChatGPT" pass (this file's own header). A visible, always-there button rather
+            than folded into WorkspaceSwitcher: family membership is not a role switch
+            (FAMILY_RELEASE.md — "no family membership grants property or professional
+            access"), so it doesn't belong in the control built for role switching. */}
+        <div className="app-header">
+          <div className="app-header-brand">Klussie</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginInlineStart: "auto" }}>
+            {session && (
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ width: "auto", minHeight: 44 }}
+                aria-pressed={familyVisible || activeWorkspace?.workspace_type === "family"}
+                onClick={() => (onOpenFamily ? onOpenFamily() : setFamilyEntry(familyOpen ? null : { userId: session.user.id, workspaceId: activeWorkspaceId }))}
+              >
+                {familyStrings(langCode).title}
+              </button>
             )}
+            {session && multiWorkspace && !familyVisible && activeWorkspace?.workspace_type !== "family" && (
+              <WorkspaceSwitcher t={t} onSelect={() => { setFamilyEntry(null); onLeaveFamily?.(); }} />
+            )}
+            {/* The header is a real, light --surface background on every viewport now,
+                never the old dark .topbar this component's own default styling was
+                built for — light, matching Profile.jsx's own identical reasoning.
+                2026-09-30 — tucked behind a disclosure (calmStyles.js's own
+                .shell-preferences) now that Family and the workspace select can share
+                this header too: three always-expanded controls competed for the same
+                row, and language is the one changed least often. */}
+            <details className="shell-preferences">
+              <summary aria-label={t.languageSwitcherLabel}>{langCode.toUpperCase()}</summary>
+              <div className="shell-preferences-panel">
+                <LanguageSwitcher light />
+              </div>
+            </details>
           </div>
-          {/* Found by code audit: no aria-live/role anywhere on this -- the one shared
-              toast every confirmation in the app goes through (a booking confirmed, a
-              review sent, a quote sent, a request accepted...) appeared and
-              disappeared with zero announcement to a screen reader. Matches
-              ACCESSIBILITY.md's own named-but-unfixed "No live-region announcements
-              exist for async state changes" gap exactly -- this single shared render
-              site closes it for every toast in the app at once, not per call site. */}
-          {toast && <div className="toast" role="status">{toast}</div>}
         </div>
+
+        <div className="app-body">
+          {body}
+        </div>
+
+        {becomeProOpen && (
+          <BecomeProSheet
+            onClose={() => setBecomeProOpen(false)}
+            onDone={(workspaceId) => {
+              setBecomeProOpen(false);
+              setRole("pro");
+              // 0168_professional_workspace_provisioning.sql's own consequence — see
+              // becomePro()'s own comment in auth.jsx for why this is now required,
+              // not optional, the instant a real second membership exists.
+              if (workspaceId) setActiveWorkspaceId(workspaceId);
+            }}
+          />
+        )}
+        {/* Found by code audit: no aria-live/role anywhere on this -- the one shared
+            toast every confirmation in the app goes through (a booking confirmed, a
+            review sent, a quote sent, a request accepted...) appeared and
+            disappeared with zero announcement to a screen reader. Matches
+            ACCESSIBILITY.md's own named-but-unfixed "No live-region announcements
+            exist for async state changes" gap exactly -- this single shared render
+            site closes it for every toast in the app at once, not per call site. */}
+        {toast && <div className="toast" role="status">{toast}</div>}
       </div>
     </LangContext.Provider>
   );

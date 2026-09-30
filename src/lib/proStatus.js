@@ -1,6 +1,5 @@
-// Rules about what a professional's account currently is: promoted or not, which
-// categories their offered services put them in, and what their registration type keeps
-// them out of.
+// Rules about what a professional's account currently is: which categories their offered
+// services put them in, and what their registration type keeps them out of.
 //
 // Extracted from src/App.jsx, where each was a one-line expression inside a render
 // function. They are small, but they are rules — "a flexi-job worker may not take
@@ -13,17 +12,6 @@ export const SPECIALIST_CATEGORY_ID = "specialist";
 
 /** Registration type that carries the Belgian flexi-job restrictions. */
 export const PRO_TYPE_FLEXI = "flexi";
-
-/**
- * Whether a profile's promotion is currently running.
- *
- * Compares against the moment it is asked rather than a cached timestamp — a boost that
- * expired mid-session has expired, and showing it as active would be klussie claiming
- * placement the professional is no longer getting.
- */
-export function isBoosted(proProfile, now = new Date()) {
-  return !!proProfile?.boosted_until && new Date(proProfile.boosted_until) > now;
-}
 
 /**
  * The distinct categories a professional's offered services belong to — the subscription

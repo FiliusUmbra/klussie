@@ -9,7 +9,11 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 vi.mock("../../lib/supabaseClient", () => ({ supabase: { from: vi.fn(), auth: {}, channel: vi.fn() } }));
 vi.mock("../../lib/auth.jsx", () => ({
   AuthProvider: ({ children }) => children,
-  useAuth: () => ({ profile: { id: "cust-1", full_name: "Cathy Customer", city: "Brussels" }, session: null }),
+  useAuth: () => ({
+    user: { id: "cust-1" },
+    profile: { id: "cust-1", full_name: "Cathy Customer", city: "Brussels" },
+    session: null,
+  }),
 }));
 vi.mock("../../lib/pros", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -112,6 +116,29 @@ describe("MyHomeScreen — section tabs", () => {
   });
 });
 
+// UX_TAB_SCOPE.md C4, 2026-09-29 — "property name/address, property switcher, 'Add' menu
+// and overflow settings. Place above all subsections so Items cannot lose visible property
+// context." Real gap before this: the switcher (and the only way to add a property at all)
+// lived inside MyHomePanel.jsx, so it vanished the moment a customer switched to My Items —
+// see MyHomeScreen.jsx's own header for the full explanation.
+describe("MyHomeScreen — shared property header", () => {
+  it("shows Add property above the tabs, reachable from either tab", () => {
+    renderScreen();
+    const addBtn = screen.getByText("addPropertyBtn");
+    // Above the tablist in source order — "above all subsections", not inside one of them.
+    expect(addBtn.compareDocumentPosition(screen.getByRole("tablist")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(within(screen.getByRole("tablist")).getAllByRole("tab")[1]);
+    expect(screen.getByText("addPropertyBtn")).toBeTruthy();
+  });
+
+  it("opens AddPropertySheet on tap", () => {
+    renderScreen();
+    fireEvent.click(screen.getByText("addPropertyBtn"));
+    expect(screen.getByText("addPropertyTitle")).toBeTruthy();
+  });
+});
+
 describe("My Home", () => {
   const openMyItems = () => fireEvent.click(within(screen.getByRole("tablist")).getAllByRole("tab")[1]);
   const openMyHome = () => fireEvent.click(within(screen.getByRole("tablist")).getAllByRole("tab")[0]);
@@ -134,8 +161,6 @@ describe("My Home", () => {
     expect(screen.getByText("myHomeActiveEmpty")).toBeTruthy();
     expect(screen.getByText("myHomeHistoryEmpty")).toBeTruthy();
     expect(screen.getByText("myHomeProsEmpty")).toBeTruthy();
-    expect(screen.getByText("myHomeReviewsEmpty")).toBeTruthy();
-    expect(screen.getByText("myHomeAiEmpty")).toBeTruthy();
   });
 
   it("states each section's emptiness in its own words, not one repeated line", () => {
@@ -184,19 +209,27 @@ describe("My Home", () => {
     expect(screen.getByText("myHomeOneJobTogether")).toBeTruthy();
   });
 
-  it("shows a review the customer wrote, on the job it belongs to", () => {
+  // UX_TAB_SCOPE.md C4, 2026-09-29 — reviews and AI reads live ONLY on their job's own
+  // history card now, never as a second, duplicate flat section (MyHomePanel.jsx's own
+  // header explains why the old ones were removed rather than kept "for a customer who
+  // wants to read only those" — that content was never anything but a copy of what History
+  // already shows).
+  it("shows a review the customer wrote, on the job it belongs to — not as a separate section", () => {
     renderScreen({
       requests: [request({ id: "done", status: "reviewed", review: { stars: 5, text: "Excellent work" } })],
     });
     expect(screen.getAllByText('"Excellent work"').length).toBeGreaterThan(0);
-    expect(screen.queryByText("myHomeReviewsEmpty")).toBeNull();
+    expect(screen.queryByText("myHomeReviewsTitle")).toBeNull();
   });
 
-  it("does not render an AI section for an analysis that says nothing", () => {
+  it("shows the AI's read on the job card when the analysis says something, and nothing extra when it doesn't", () => {
     renderScreen({
-      requests: [request({ status: "completed", answers: { aiAnalysis: { confidence: 90 } } })],
+      requests: [
+        request({ id: "has-analysis", status: "completed", answers: { aiAnalysis: { possibleCauses: ["Worn washer"] } } }),
+      ],
     });
-    expect(screen.getByText("myHomeAiEmpty")).toBeTruthy();
+    expect(screen.getByText(/myHomeAiRead/)).toBeTruthy();
+    expect(screen.queryByText("myHomeAiTitle")).toBeNull();
   });
 
   it("switches to My Items and back without losing state", () => {

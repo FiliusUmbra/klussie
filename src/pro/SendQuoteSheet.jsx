@@ -68,6 +68,14 @@ export function SendQuoteSheet({ lead, onClose, onSubmit }) {
       <label className="field-label">{t.messageToCustomerLabel}</label>
       <textarea className="textarea" rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} />
 
+      {/* Payments Slice A / UX redesign — disclosed before commitment (the decision
+          table's own requirement), but only the general policy, not a computed rate: no
+          acquisition-fee assessment row exists yet at quote time (commerce.acquisition_
+          fee_assessments is only ever created once an engagement forms — see
+          acquisitionFees.js's own header), so a specific figure here would be a guess,
+          not a fact this screen actually has. */}
+      <p className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 12 }}>{t.acqFeeQuoteNote}</p>
+
       <button className="btn-primary" disabled={!canSubmit} onClick={submit}>
         {submitting ? <Loader2 size={15} className="spin" /> : <Send size={15} className="send-icon" />} {t.sendQuoteSubmit}
       </button>

@@ -43,7 +43,7 @@ import { Flag, LayoutDashboard, ScrollText, Search, Sparkles, User } from "lucid
 import { useAuth } from "../lib/auth.jsx";
 import { WorkspaceSwitcher } from "../shell/WorkspaceSwitcher.jsx";
 import { SignOutButton } from "../profile/SignOutButton.jsx";
-import { BottomNav } from "../ui/BottomNav.jsx";
+import { AppNav } from "../ui/AppNav.jsx";
 import { Overview } from "./Overview.jsx";
 import { AuditLog } from "./AuditLog.jsx";
 import { WorkspaceLookup } from "./WorkspaceLookup.jsx";
@@ -71,7 +71,9 @@ const TABS = [
   // Reports (Trust & Safety specific, see that section's own header) or Overview
   // (explicitly scoped to Activation Ratio only).
   { id: "services", label: "Services", icon: Sparkles },
-  { id: "profile", label: "Profile", icon: User },
+  // UX redesign, 2026-09-28 — "Account", matching Customer/Pro's own renamed
+  // destination and the brief's own operator nav list exactly.
+  { id: "profile", label: "Account", icon: User },
 ];
 
 export function OperatorApp() {
@@ -127,8 +129,8 @@ export function OperatorApp() {
   };
 
   return (
-    <div className="view">
-      <div className="content">
+    <>
+      <AppNav tab={tab} setTab={setTab} items={TABS} variant="menu">
         {tab === "overview" && (
           <div className="pad">
             <Overview />
@@ -178,13 +180,11 @@ export function OperatorApp() {
             <SignOutButton onClick={signOut} label="Sign out" />
           </div>
         )}
-      </div>
-
-      <BottomNav tab={tab} setTab={setTab} items={TABS} />
+      </AppNav>
 
       {openCaseId && caseDetail && (
         <CaseDetailSheet caseDetail={caseDetail} actorRef={user.id} onClose={closeCase} onDecided={onDecided} />
       )}
-    </div>
+    </>
   );
 }

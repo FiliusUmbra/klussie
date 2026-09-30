@@ -1,5 +1,5 @@
-// Every number klussie charges, keeps, or reports — the platform commission, Belgian
-// VAT, the flexi-job tax-free ceiling, and the boost price.
+// Every number klussie charges, keeps, or reports — Belgian VAT and the flexi-job tax-free
+// ceiling.
 //
 // Extracted from src/App.jsx, where the same rounding expression was written out inline
 // three times and the rates were bare literals next to the components that spent them.
@@ -9,8 +9,36 @@
 //
 // Everything here is pure and currency-agnostic in the sense that it never formats —
 // callers still run the result through the locale formatter from the lang context.
+//
+// PLATFORM_COMMISSION_RATE, platformFee() AND netPayout() ARE GONE — SUPERSEDED, NOT
+// REFACTORED
+//
+// The monetization brief this reconciliation was done for supersedes "a flat 12% on
+// every booked job" outright: the real acquisition fee (commerce.pricing_versions/
+// commerce.acquisition_fee_assessments, migrations 0229-0231) is 5%, capped at €75,
+// charged to the professional only on the first job with a given customer — most jobs
+// now carry no fee at all. Nothing that showed the old flat figure to a customer
+// (src/customer/RequestDetailSheet.jsx's own booked-quote card) can be kept accurate by
+// changing a constant; it made a specific, now-false per-job claim, so it was removed
+// rather than silently left wrong (Rule 9, trust beats growth). No historical financial
+// record is affected — MONETIZATION.md's own "zero real revenue" was still true when
+// this reconciliation happened, so there was nothing to preserve, only a demo display to
+// stop showing.
+//
+// netEarnings()/PLATFORM_COMMISSION_RATE's OWN 12% REMAINS, AS A NAMED, DELIBERATE GAP
+//
+// The flexi-job tracker below (ProApp.jsx's own earnedGross) is the one remaining
+// consumer of a flat-rate deduction, and it is now equally inaccurate for the same
+// reason — but unlike the customer-facing fee breakdown, it makes no claim to a
+// counterparty; it is a professional's own rough progress estimate against a personal
+// Belgian tax threshold, already labelled "demo figure" at FLEXI_TAX_FREE_THRESHOLD's own
+// definition. Replacing it correctly means a real product decision this reconciliation
+// pass does not make on its own — whether "earned" should mean gross quote value (no
+// deduction, since most jobs now have none) or something that reads real acquisition-fee
+// assessments per job — not a mechanical constant swap. Named here rather than silently
+// left as though it were still correct.
 
-/** Share of a booked quote klussie keeps. */
+/** Share of a booked quote the flexi-job tracker estimates as commission — see this file's own header for why this is a known-approximate figure, not the real per-job fee. */
 export const PLATFORM_COMMISSION_RATE = 0.12;
 
 /** Belgian standard VAT rate, applied on the demo invoice. */
@@ -22,9 +50,6 @@ export const VAT_RATE = 0.21;
  */
 export const FLEXI_TAX_FREE_THRESHOLD = 18440;
 
-/** One week of profile promotion, in euro. */
-export const BOOST_WEEKLY_PRICE = 9;
-
 // The "typical price" band on a service is the catalog's base price widened either way.
 // Named because a bare 0.8 and 1.3 in a template literal is exactly the magic number the
 // standards forbid.
@@ -35,16 +60,6 @@ const TYPICAL_PRICE_HIGH_FACTOR = 1.3;
 // two decimals rather than trailing a float artefact into an invoice line.
 function toCents(amount) {
   return Math.round(amount * 100) / 100;
-}
-
-/** What klussie deducts from a booked quote, to the cent. */
-export function platformFee(price) {
-  return toCents(price * PLATFORM_COMMISSION_RATE);
-}
-
-/** What the professional receives for a booked quote, to the cent. */
-export function netPayout(price) {
-  return toCents(price - platformFee(price));
 }
 
 /**

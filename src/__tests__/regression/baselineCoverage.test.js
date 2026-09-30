@@ -27,6 +27,7 @@ const SURFACE_DIRS = [
   "src/messaging",
   "src/requests",
   "src/home",
+  "src/family",
   "src/ui",
   "src/design-system",
 ];

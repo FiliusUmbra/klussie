@@ -40,6 +40,16 @@ describe("SendQuoteSheet", () => {
     expect(document.querySelector(".send-icon")).toBeTruthy();
   });
 
+  // UX redesign, 2026-09-28 — the acquisition-fee policy is disclosed here, before the
+  // pro (or the customer, once they accept) commits to anything. Deliberately the
+  // general policy text only, not a computed rate: no fee assessment row exists yet at
+  // quote time (acquisitionFees.js's own header — an assessment is only ever created
+  // once an engagement forms), so a specific figure here would be a guess.
+  it("discloses the acquisition-fee policy before the quote can be sent", () => {
+    renderSheet();
+    expect(screen.getByText("acqFeeQuoteNote")).toBeTruthy();
+  });
+
   // Found by code audit, 2026-09-11: unlike every other price field in this codebase
   // (QuoteFormSheet.jsx, ServiceRecordEditorSheet.jsx), this one had no `min="0"` and no
   // disabled-submit guard at all — a pro could send a zero, negative, or entirely

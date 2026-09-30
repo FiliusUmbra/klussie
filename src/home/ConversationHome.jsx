@@ -19,8 +19,8 @@ import { KlussiePanel } from "./KlussiePanel.jsx";
 import { useHomeContext } from "./useHomeContext.js";
 import { useConversation } from "./useConversation.js";
 
-export function ConversationHome({ onStart, requests = [], onOpenRequest, onOpenMyHome }) {
-  const { t, fmt, serviceInfo, proBadgeLabel, CATS, catName } = useLang();
+export function ConversationHome({ onStart, requests = [], onOpenRequest, onOpenMyHome, onViewAllRequests }) {
+  const { t, fmt, serviceInfo, proBadgeLabel } = useLang();
   const { profile } = useAuth();
   const photoInputRef = useRef(null);
 
@@ -32,7 +32,9 @@ export function ConversationHome({ onStart, requests = [], onOpenRequest, onOpen
 
   return (
     <div className="home">
-      <HomeHero greeting={homeCtx.greeting} question={t.homeQuestion} />
+      {/* compact: 2026-09-30 — this screen is "Help" now, reached from Today, not the
+          customer's own landing; see HomeHero.jsx's own header for what that changes. */}
+      <HomeHero greeting={homeCtx.greeting} question={t.homeQuestion} compact />
 
       <div className="home-body">
         <KlussiePanel
@@ -45,8 +47,7 @@ export function ConversationHome({ onStart, requests = [], onOpenRequest, onOpen
           photoInputRef={photoInputRef}
           onOpenRequest={openRequest}
           onSetUpHome={openMyHome}
-          CATS={CATS}
-          catName={catName}
+          onViewAllRequests={onViewAllRequests}
           // ADR-0033 — opens AiIntakeSheet fresh, at its own compose stage (the category
           // grid), rather than only ever reachable pre-seeded with a result the
           // conversation already ran (useConversation.js's own onStart call, below).

@@ -62,6 +62,16 @@ export const HOME_CSS = `
   font-size:clamp(19px, 5.4vw, 24px);
   text-wrap:balance;
 }
+/* Help's own hero (HomeHero.jsx's "compact" prop, 2026-09-30) — no photo, no scrim, so
+   .home-hero-copy can no longer be the absolutely-positioned overlay the rules above
+   build it as, and white-on-nothing would be invisible. A plain, static, dark-text
+   greeting instead — everything this reduced hero actually needs now that it isn't the
+   customer's own landing screen (CustomerApp.jsx's own "Unified Today" header). */
+.home-hero-compact .home-hero-copy{
+  position:static; padding:var(--space-4) var(--space-5) 0; gap:var(--space-1);
+}
+.home-hero-compact .home-hero-greeting{ color:var(--ink-soft); text-transform:none; letter-spacing:0; font-weight:400; }
+.home-hero-compact .home-hero-question{ color:var(--forest-dark); }
 
 /* ---- section tabs ---- */
 .seg-tabs{
@@ -119,27 +129,17 @@ export const HOME_CSS = `
 .intent-tile-on .intent-tile-icon{ background:rgba(255,255,255,0.18); color:#fff; }
 .intent-tile-on .intent-tile-label{ color:#fff; }
 
-/* ---- home category row (ADR-0033 mockup, 2026-09-15) ----
-   A single compact horizontal strip, deliberately not a wrapping grid like
-   .intent-grid above it — the mockup's own Home screen shows one glanceable row, not a
-   second 3x2 block competing with the intent tiles for the same "what do you need"
-   role. Scrolls horizontally rather than wrapping when a locale's labels or CATS'
-   own length don't fit six tiles at once. */
-.home-category-row{ display:flex; gap:var(--space-2); overflow-x:auto; padding-bottom:2px; }
-.home-category-tile{
-  display:flex; flex-direction:column; align-items:center; gap:5px; flex:0 0 auto; width:64px;
-  min-height:44px; padding:var(--space-2) 2px; border:none; background:none; cursor:pointer;
-  font-family:var(--font-body);
-}
-.home-category-tile:active{ transform:scale(0.96); }
-.home-category-tile-icon{
-  width:38px; height:38px; border-radius:12px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--sage-bg); color:var(--forest-dark);
-}
-.home-category-tile-label{
-  font-size:10.5px; font-weight:600; color:var(--ink); text-align:center; line-height:1.2;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;
+/* ---- browse all services (UX redesign, 2026-09-28) ----
+   Replaces the six-tile horizontally-scrolling row ADR-0033's own mockup pass shipped
+   here — confirmed live to genuinely scroll at ordinary phone widths (424px of content
+   in a 342px row at 390px viewport), exactly what the redesign brief bans. One
+   always-visible secondary link into the same destination (AiIntakeSheet's own category
+   grid) instead of a row competing with the composer and the three intent shortcuts for
+   the same attention. */
+.home-browse-services{
+  align-self:center; min-height:44px; padding:0 var(--space-2);
+  border:none; background:none; cursor:pointer; font-family:var(--font-body);
+  font-size:12.5px; font-weight:700; color:var(--forest-dark); text-decoration:underline;
 }
 
 /* ---- the ask (composer + one follow-up question at a time) ---- */
@@ -217,6 +217,13 @@ export const HOME_CSS = `
    independent <section> elements. */
 .home-foryou{ display:flex; flex-direction:column; gap:var(--space-2); }
 .home-active-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
+/* UX redesign, 2026-09-28 — the "at most three" cap's own escape hatch, shown only when
+   there genuinely is more than what's on screen. */
+.home-view-all-link{
+  align-self:center; min-height:44px; padding:0 var(--space-2); margin-top:2px;
+  border:none; background:none; cursor:pointer; font-family:var(--font-body);
+  font-size:12.5px; font-weight:700; color:var(--forest-dark); text-decoration:underline;
+}
 .home-active-row{
   display:flex; align-items:center; gap:var(--space-3); width:100%; text-align:start;
   background:var(--surface); border:1px solid var(--line-soft); border-radius:12px;
@@ -248,6 +255,13 @@ export const HOME_CSS = `
   margin:0; font-size:13px; font-weight:700; color:var(--ink);
   display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-2);
 }
+/* UX_TAB_SCOPE.md C4 — photos as "an optional gallery route" (MyHomePanel.jsx): a plain
+   disclosure trigger, not a button styled to look like a destructive or primary action. */
+.home-photos-toggle{
+  display:flex; align-items:center; gap:var(--space-2); width:100%;
+  background:none; border:none; padding:0; cursor:pointer; color:var(--ink);
+}
+.home-photos-toggle svg:last-child{ margin-inline-start:auto; color:var(--ink-soft); }
 /* --ink-soft, not --ink-faint, here and at every other former --ink-faint usage in this
    file (.location-node-type, .location-node-edit, .timeline-card-date, .timeline-card-chevron,
    .trusted-pro, .home-photo-missing, .item-card-room, .item-card-edit,
@@ -316,6 +330,19 @@ export const HOME_CSS = `
 }
 
 /* ---- My Home: the property record ---- */
+
+/* UX_TAB_SCOPE.md C4, 2026-09-29 — the shared header above BOTH My Home and My Items
+   (MyHomeScreen.jsx), so a property switch and "Add property" are reachable without
+   losing them the moment a customer taps into Items. ".role-switch"/".segmented" (the
+   switcher itself) are reused as-is; this only lays out the row it sits in. */
+.myhome-header{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2); }
+.myhome-header .role-switch{ margin:0; }
+.myhome-header-name{ margin:0; font-size:13.5px; font-weight:700; color:var(--ink); }
+.myhome-header-add{
+  margin-inline-start:auto; display:flex; align-items:center; gap:5px;
+  background:none; border:none; color:var(--forest-dark); font-weight:700; font-size:12.5px;
+  font-family:var(--font-body); cursor:pointer; padding:6px 4px;
+}
 
 /* The header is a quiet band, not a stat dashboard — the brief asks for a calm record,
    and three numbers in boxes is the enterprise layout it rules out. */

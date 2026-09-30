@@ -63,15 +63,18 @@ describe("WorkspaceSwitcher", () => {
     expect(screen.queryByText("Workspace")).toBeNull();
   });
 
-  it("marks the active workspace's button, not the others", () => {
+  // 2026-09-30 — a select, not segmented buttons (this component's own header explains
+  // why); "marks the active one" now means the select's own value, and each workspace is
+  // an <option>, not a separately classed button.
+  it("selects the active workspace in the dropdown, not the others", () => {
     authState.workspaceMemberships = [PERSONAL, PROFESSIONAL];
     authState.activeWorkspace = PROFESSIONAL;
     authState.setActiveWorkspaceId = vi.fn();
 
     render(<WorkspaceSwitcher t={t} />);
 
-    expect(screen.getByText("Peter Painter").className).toContain("seg-on");
-    expect(screen.getByText("My Home").className).not.toContain("seg-on");
+    expect(screen.getByRole("combobox").value).toBe("ws-pro");
+    expect(screen.getByText("My Home").selected).toBe(false);
   });
 
   it("switches by calling setActiveWorkspaceId with the picked workspace's id", () => {
@@ -80,8 +83,20 @@ describe("WorkspaceSwitcher", () => {
     authState.setActiveWorkspaceId = vi.fn();
 
     render(<WorkspaceSwitcher t={t} />);
-    fireEvent.click(screen.getByText("Peter Painter"));
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "ws-pro" } });
 
     expect(authState.setActiveWorkspaceId).toHaveBeenCalledWith("ws-pro");
+  });
+
+  it("calls the optional onSelect once a switch is made, for a caller (AppShell.jsx) that needs to react to it", () => {
+    authState.workspaceMemberships = [PERSONAL, PROFESSIONAL];
+    authState.activeWorkspace = PERSONAL;
+    authState.setActiveWorkspaceId = vi.fn();
+    const onSelect = vi.fn();
+
+    render(<WorkspaceSwitcher t={t} onSelect={onSelect} />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "ws-pro" } });
+
+    expect(onSelect).toHaveBeenCalled();
   });
 });

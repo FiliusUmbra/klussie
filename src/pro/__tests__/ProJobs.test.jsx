@@ -1,8 +1,15 @@
 // Platform Activation Slice 2, WP 2.4 — ProJobs.jsx gains a real drill-in for the first
-// time: booked and completed jobs are now clickable (the sheet that opens is
-// ProJobDetailSheet.jsx, wired by ProApp.jsx, not tested here); "sent" (quoted, not yet
-// booked) jobs deliberately stay unclickable — there is no engagement, no conversation, no
-// twin to show yet.
+// time: booked and completed jobs are clickable.
+//
+// UX_TAB_SCOPE.md P2, 2026-09-28 — two further real fixes, not a relayout:
+// 1. Upcoming (booked) is now the default segment, not Sent (quotes) — "Upcoming as the
+//    normal default" is the spec's own wording; a pro opening Jobs almost always wants to
+//    see what's coming up next, not what's still awaiting a reply.
+// 2. Sent quotes are now clickable too — "Quotes must open for inspection even when not
+//    accepted" (the spec's own words). This used to be the one segment with no detail
+//    handler at all (onOpenJob was gated `seg !== "sent"`); ProJobDetailSheet.jsx was
+//    already written to degrade gracefully with no engagement/conversation/twin (see its
+//    own header), so nothing there needed to change — only this screen's own gate.
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { LangContext } from "../../lib/lang";
@@ -24,17 +31,23 @@ function renderJobs(onOpenJob) {
 }
 
 describe("ProJobs", () => {
-  it("a sent (quoted, not yet booked) job is not clickable — no engagement exists yet", () => {
+  it("opens on Upcoming (booked) by default, not Quotes (sent)", () => {
+    renderJobs(vi.fn());
+    expect(screen.getByText("service:svc-2")).toBeTruthy();
+    expect(screen.queryByText("service:svc-1")).toBeNull();
+  });
+
+  it("a sent (quoted, not yet booked) quote is clickable and calls onOpenJob with that job", () => {
     const onOpenJob = vi.fn();
     renderJobs(onOpenJob);
-    // "sent" is the default segment shown.
-    expect(screen.getByText("service:svc-1").closest("button")).toBeNull();
+    fireEvent.click(screen.getByText("segSent (1)"));
+    fireEvent.click(screen.getByText("service:svc-1"));
+    expect(onOpenJob).toHaveBeenCalledWith(SENT[0]);
   });
 
   it("a booked job is clickable and calls onOpenJob with that job", () => {
     const onOpenJob = vi.fn();
     renderJobs(onOpenJob);
-    fireEvent.click(screen.getByText("segBooked (1)"));
     fireEvent.click(screen.getByText("service:svc-2"));
     expect(onOpenJob).toHaveBeenCalledWith(BOOKED[0]);
   });
@@ -53,7 +66,6 @@ describe("ProJobs", () => {
         <ProJobs sent={SENT} booked={BOOKED} completed={COMPLETED} proId="pro-1" />
       </LangContext.Provider>
     );
-    fireEvent.click(screen.getByText("segBooked (1)"));
     expect(screen.getByText("service:svc-2").closest("button")).toBeNull();
   });
 

@@ -15,7 +15,9 @@ const catalog = {
 describe("buildLangContext", () => {
   it("merges the app, homepage and follow-up tables into one flat lookup", () => {
     const { t } = buildLangContext("en", catalog);
-    expect(t.navDiscover).toBe("Discover");
+    // UX redesign, 2026-09-28/30 — "Discover" renamed to "Ask Klussie", then to "Help"
+    // once Today (not this screen) became the customer's own landing tab.
+    expect(t.navDiscover).toBe("Help");
     // A key from src/lib/homeStrings.js, proving the merge happened.
     expect(typeof t.helpReplayTour).toBe("string");
   });

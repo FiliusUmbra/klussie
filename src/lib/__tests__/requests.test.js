@@ -282,11 +282,29 @@ describe("createDirectedRequest", () => {
     const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
     expect(createCall[1]).toMatchObject({
       p_service_request_id: legacyRow.id, p_directed_workspace_id: "pro-ws-9", p_auto_accept_max: 260,
+      // Payments Slice A (0228) — the default, un-toggled case is still a real Klussie
+      // introduction (the customer found this pro through Klussie), not "unproven."
+      p_origin: "marketplace_match",
     });
 
     // reshapeWorkRequest carries directed_workspace_id straight through, unresolved.
     expect(result.directedProId).toBe("pro-ws-9");
     expect(result.autoAcceptMax).toBe(260);
+  });
+
+  // Payments Slice A (0228) — the one explicit, affirmative rebuttal a customer can make.
+  it("sends existing_relationship only when the customer explicitly says so", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilder({ error: null }));
+    const rpc = mockApi({
+      resolve_public_professional_workspace: () => ({ data: "pro-ws-9", error: null }),
+      create_request: () => ({ error: null }),
+      ...noQuotesNoReview,
+    });
+
+    await createDirectedRequest({ ...args, existingRelationship: true });
+
+    const createCall = rpc.mock.calls.find(([name]) => name === "create_request");
+    expect(createCall[1].p_origin).toBe("existing_relationship");
   });
 
   it("throws on a failed legacy insert without calling create_request", async () => {
@@ -739,6 +757,10 @@ describe("approveLocationDisclosure", () => {
     const call = rpc.mock.calls.find(([name]) => name === "approve_location_disclosure");
     expect(call[1]).toMatchObject({ p_engagement_id: "eng-1", p_actor_type: "person", p_actor_ref: "cust-1" });
     expect(call[1].p_disclosure_id).toBeTruthy();
+    // Payments Slice A (0231) — always sent, so the DB's own unique constraint (0230),
+    // not this call site, is what decides whether a fee ever attaches.
+    expect(call[1].p_fee_assessment_id).toBeTruthy();
+    expect(call[1].p_fee_assessment_event_id).toBeTruthy();
   });
 
   it("throws rather than approving when no engagement is found", async () => {

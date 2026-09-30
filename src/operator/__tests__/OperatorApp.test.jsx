@@ -10,7 +10,7 @@
 // matching src/profile/Profile.jsx's own placement exactly, so those tests
 // navigate there first rather than finding them on every screen.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 
 const apiRpc = vi.fn();
 const signOut = vi.fn();
@@ -45,16 +45,23 @@ beforeEach(() => {
 });
 
 describe("OperatorApp", () => {
-  it("shows six tabs on the same BottomNav Customer/Pro share, Overview selected by default", async () => {
+  // UX redesign, 2026-09-28 — Operator no longer shares Customer/Pro's five-item bottom
+  // tab bar at all (AppNav's own "menu" variant, src/ui/AppNav.jsx: six destinations
+  // fail the 44px touch-target floor and clip labels in several real locales long before
+  // five do) — a real sidebar (desktop) plus a header menu button (mobile), never a
+  // six-column bottom bar. Selected state now lives on the sidebar's own
+  // .sidebar-nav-item-on class, not .tab-on.
+  it("shows six destinations in the sidebar, Overview selected by default", async () => {
     render(<OperatorApp />);
 
     await waitFor(() => expect(screen.getByText("Property/asset recorded")).toBeTruthy());
-    expect(screen.getByText("Overview").closest("button").className).toContain("tab-on");
-    expect(screen.getByText("Audit").closest("button").className).not.toContain("tab-on");
-    expect(screen.getByText("Workspaces").closest("button").className).not.toContain("tab-on");
-    expect(screen.getByText("Reports").closest("button").className).not.toContain("tab-on");
-    expect(screen.getByText("Services").closest("button").className).not.toContain("tab-on");
-    expect(screen.getByText("Profile").closest("button").className).not.toContain("tab-on");
+    const sidebar = document.querySelector(".app-sidebar");
+    expect(within(sidebar).getByText("Overview").closest("button").className).toContain("sidebar-nav-item-on");
+    expect(within(sidebar).getByText("Audit").closest("button").className).not.toContain("sidebar-nav-item-on");
+    expect(within(sidebar).getByText("Workspaces").closest("button").className).not.toContain("sidebar-nav-item-on");
+    expect(within(sidebar).getByText("Reports").closest("button").className).not.toContain("sidebar-nav-item-on");
+    expect(within(sidebar).getByText("Services").closest("button").className).not.toContain("sidebar-nav-item-on");
+    expect(within(sidebar).getByText("Account").closest("button").className).not.toContain("sidebar-nav-item-on");
   });
 
   it("renders the real Overview under its own tab, all five Activation Ratio journeys", async () => {
@@ -114,7 +121,11 @@ describe("OperatorApp", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /view audit trail/i }));
 
-    await waitFor(() => expect(screen.getByText("Audit").closest("button").className).toContain("tab-on"));
+    // Scoped to the sidebar — once Audit is the active tab, "Audit" also appears as the
+    // narrow-screen menu trigger's own current-destination label (AppNav.jsx), so a bare
+    // screen.getByText("Audit") is ambiguous here in a way it wasn't before switching.
+    const sidebar = document.querySelector(".app-sidebar");
+    await waitFor(() => expect(within(sidebar).getByText("Audit").closest("button").className).toContain("sidebar-nav-item-on"));
     expect(screen.getByLabelText("Filter by workspace id").value).toBe(workspaceId);
   });
 
@@ -124,7 +135,7 @@ describe("OperatorApp", () => {
   it("Profile always shows a way to sign out, even with a single membership", () => {
     render(<OperatorApp />);
 
-    fireEvent.click(screen.getByText("Profile"));
+    fireEvent.click(screen.getByText("Account"));
     fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
     expect(signOut).toHaveBeenCalled();
   });
@@ -134,14 +145,14 @@ describe("OperatorApp", () => {
     await waitFor(() => expect(screen.getByText("Property/asset recorded")).toBeTruthy());
     expect(screen.queryByText("Klussie Operations")).toBeNull();
 
-    fireEvent.click(screen.getByText("Profile"));
+    fireEvent.click(screen.getByText("Account"));
     expect(screen.getByText("Operations")).toBeTruthy();
     expect(screen.getByText("Signed in as an operator")).toBeTruthy();
   });
 
   it("shows no switcher, in Profile, for a single-membership operator", () => {
     render(<OperatorApp />);
-    fireEvent.click(screen.getByText("Profile"));
+    fireEvent.click(screen.getByText("Account"));
     expect(screen.queryAllByText("Klussie Operations")).toHaveLength(0); // the workspace's own name, not shown when there's nothing to switch between
   });
 
@@ -157,10 +168,10 @@ describe("OperatorApp", () => {
     });
 
     render(<OperatorApp />);
-    fireEvent.click(screen.getByText("Profile"));
+    fireEvent.click(screen.getByText("Account"));
 
     expect(screen.queryByText("Workspace")).toBeNull();
-    fireEvent.click(screen.getByText("My Home"));
+    fireEvent.change(screen.getByText("My Home").closest("select"), { target: { value: "personal-ws" } });
     expect(setActiveWorkspaceId).toHaveBeenCalledWith("personal-ws");
   });
 
@@ -177,7 +188,7 @@ describe("OperatorApp", () => {
     });
 
     render(<OperatorApp />);
-    fireEvent.click(screen.getByText("Profile"));
+    fireEvent.click(screen.getByText("Account"));
 
     expect(screen.getByText("Business")).toBeTruthy();
     expect(screen.queryByText("business")).toBeNull();
