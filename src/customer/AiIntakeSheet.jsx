@@ -82,6 +82,7 @@ export function AiIntakeSheet({
   const [round, setRound] = useState(0);
 
   const [editServiceId, setEditServiceId] = useState(seeded.serviceId);
+  const [changingService, setChangingService] = useState(false);
   const [editDescription, setEditDescription] = useState(seeded.description);
   const [editBudget, setEditBudget] = useState(seeded.budget);
   const [editCity, setEditCity] = useState(profile?.city || "");
@@ -356,13 +357,28 @@ export function AiIntakeSheet({
           </div>
 
           <label className="field-label">{t.aiDetectedServiceLabel}</label>
-          <div className="chiprow" style={{ marginBottom: 14 }}>
-            {BASE_SERVICES.map((s) => (
-              <button key={s.id} type="button" className={"chip" + (editServiceId === s.id ? " chip-on" : "")} onClick={() => setEditServiceId(s.id)}>
-                {serviceInfo(s.id).name}
-              </button>
-            ))}
-          </div>
+          {/* Found live, 2026-10-01: this used to list every single service the
+              platform offers, with the AI's own guess just one equally-weighted chip
+              among them — noise at a 30% confidence moment that should read as "here's
+              what we think," not "pick from this whole catalogue." Collapsed to the one
+              detected service plus a real way out (reusing IntentSuggestions.jsx's own
+              "Kies iets anders" copy, not a new string) for the genuine mismatch case. */}
+          {!changingService ? (
+            <div className="chiprow" style={{ marginBottom: 14 }}>
+              {/* No onClick, not `disabled` — a disabled button picks up the browser's
+                  own dimmed styling, which would read as broken rather than confirmed. */}
+              <button type="button" className="chip chip-on" style={{ cursor: "default" }}>{serviceInfo(editServiceId).name}</button>
+              <button type="button" className="chip" onClick={() => setChangingService(true)}>{t.intentChange}</button>
+            </div>
+          ) : (
+            <div className="chiprow" style={{ marginBottom: 14 }}>
+              {BASE_SERVICES.map((s) => (
+                <button key={s.id} type="button" className={"chip" + (editServiceId === s.id ? " chip-on" : "")} onClick={() => { setEditServiceId(s.id); setChangingService(false); }}>
+                  {serviceInfo(s.id).name}
+                </button>
+              ))}
+            </div>
+          )}
 
           <label className="field-label">{t.detailsLabel}</label>
           <textarea className="textarea" rows={3} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
