@@ -12,6 +12,7 @@ import { describe, it, expect } from "vitest";
 import { HOME_STRINGS, interpolate } from "../homeStrings.js";
 import { FOLLOW_UP_STRINGS } from "../homeFollowUpStrings.js";
 import { APP_STRINGS } from "../appStrings.js";
+import { FAMILY_STRINGS } from "../familyStrings.js";
 import { LANGS } from "../lang.js";
 
 const SUPPORTED = LANGS.map((l) => l.code);
@@ -20,6 +21,13 @@ describe.each([
   ["APP_STRINGS", APP_STRINGS],
   ["HOME_STRINGS", HOME_STRINGS],
   ["FOLLOW_UP_STRINGS", FOLLOW_UP_STRINGS],
+  // FAMILY_STRINGS was brought in from the parallel "Klussie via ChatGPT" pass with
+  // only en/nl defined (familyStrings(locale) fell back to en for every other locale,
+  // silently — found live, 2026-10-01, by a customer who switched to Arabic and saw
+  // "Family"/"Nothing due today" in English). Added here rather than a separate test
+  // file so this exact class of gap fails loudly for every string table, not just this
+  // one, from now on.
+  ["FAMILY_STRINGS", FAMILY_STRINGS],
 ])("%s", (_name, table) => {
   it("covers every locale the language picker offers, and no others", () => {
     expect(Object.keys(table).sort()).toEqual([...SUPPORTED].sort());
