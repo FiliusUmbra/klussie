@@ -18,6 +18,12 @@ export const CALM_CSS = `
 .daily-heading h1{font:500 34px var(--font-display);color:var(--forest-dark);margin:6px 0 0;}
 .daily-heading p,.daily-section-title > span{font-size:13px;color:var(--ink-soft);margin:0;}
 .daily-heading .btn-secondary{display:flex;gap:8px;width:auto;min-height:44px;align-items:center;}
+.daily-heading-actions{display:flex;align-items:center;gap:8px;}
+/* Reusable icon-only button — same 28px-visual/44px-hit-area shape as .modal-close
+   (appStyles.js), generalized rather than duplicated since PageTour.jsx's replay
+   trigger here is the first of what will likely be more icon-only controls. */
+.icon-btn{position:relative;width:28px;height:28px;border-radius:50%;border:none;background:var(--surface-2, var(--sage-bg));color:var(--ink-soft);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.icon-btn::after{content:"";position:absolute;inset:-8px;}
 .daily-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .daily-shortcuts button{display:flex;align-items:center;gap:12px;min-height:56px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font:500 14px var(--font-body);color:var(--forest);cursor:pointer;}
 .daily-shortcuts button svg:last-child{margin-inline-start:auto;}
