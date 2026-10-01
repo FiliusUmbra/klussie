@@ -22,6 +22,15 @@ export const CALM_CSS = `
 .daily-shortcuts button{display:flex;align-items:center;gap:12px;min-height:56px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font:500 14px var(--font-body);color:var(--forest);cursor:pointer;}
 .daily-shortcuts button svg:last-child{margin-inline-start:auto;}
 [dir="rtl"] .daily-shortcuts button svg:last-child,[dir="rtl"] .daily-row > svg:last-child,[dir="rtl"] .daily-more svg:last-child{transform:scaleX(-1);}
+/* HomeCategoryTiles.jsx — a CSS GRID (wraps to a second row), not the horizontal-
+   scrolling flex row HomeCategoryRow.jsx's own header warns against reviving; see that
+   file's own header for the full history. Icon backgrounds alternate amber/sage, the
+   same two accent tokens the rest of this screen's own icon badges already draw from. */
+.home-category-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.home-category-tile{display:flex;flex-direction:column;align-items:center;gap:7px;min-height:76px;padding:12px 6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;font-family:var(--font-body);cursor:pointer;}
+.home-category-tile-icon{width:38px;height:38px;border-radius:11px;background:var(--amber-bg);color:var(--amber-dark);display:flex;align-items:center;justify-content:center;}
+.home-category-tile-alt .home-category-tile-icon{background:var(--sage-bg);color:var(--forest-dark);}
+.home-category-tile-label{font-size:11px;font-weight:600;color:var(--ink);text-align:center;line-height:1.25;}
 .daily-section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;}
 .daily-section-title{margin-bottom:12px;}
 .daily-section-title h2{font:500 21px var(--font-display);margin:0;color:var(--forest-dark);}

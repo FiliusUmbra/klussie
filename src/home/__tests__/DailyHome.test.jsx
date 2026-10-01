@@ -1,10 +1,12 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { Wrench } from 'lucide-react';
 import { DailyHome } from '../DailyHome.jsx';
 import { dateKey } from '../../lib/familyModel.js';
 const state = vi.hoisted(() => ({}));
 vi.mock('../../family/useFamily.js', () => ({useFamily: () => state}));
-vi.mock('../../lib/lang', () => ({useLang: () => ({langCode:'en',fmtDate:(d)=>d,serviceInfo:()=>({name:'Repair'}),t:{homeForYouTitle:'For you',navDiscover:'Help',navMyHome:'My Home',navRequests:'Requests',navMessages:'Messages',statusQuotesReady:'Choose a quote'}})}));
+const CATS = [{ id: 'repairs', icon: Wrench }];
+vi.mock('../../lib/lang', () => ({useLang: () => ({langCode:'en',fmtDate:(d)=>d,serviceInfo:()=>({name:'Repair'}),CATS,catName:(id)=>({repairs:'Repairs'})[id] ?? id,t:{homeForYouTitle:'For you',navDiscover:'Help',navMyHome:'My Home',navRequests:'Requests',navMessages:'Messages',statusQuotesReady:'Choose a quote',homeBrowseCategoriesBtn:'Browse categories'}})}));
 afterEach(cleanup);
 beforeEach(() => Object.assign(state,{selected:'family-2',groups:[{id:'family-2',name:'Our family'}],data:{tasks:[],events:[],people:[]},ready:true,error:false,refresh:vi.fn(),setSelected:vi.fn()}));
 const props = () => ({requests:[],conversations:[],onHelp:vi.fn(),onHome:vi.fn(),onFamily:vi.fn(),onRequest:vi.fn(),onMessages:vi.fn(),onRequests:vi.fn()});
@@ -24,5 +26,15 @@ describe('DailyHome',()=>{
   state.error=true;state.ready=false;state.data=null;state.groups=[];render(<DailyHome {...props()}/>);
   expect(screen.getByRole('alert')).toBeTruthy();expect(screen.queryByText('Make room for everyday life')).toBeNull();
   fireEvent.click(screen.getByText('Try again'));expect(state.refresh).toHaveBeenCalled();
+ });
+ it('renders no category tiles at all when onSelectCategory is not passed (every existing caller before this slice)',()=>{
+  render(<DailyHome {...props()}/>);
+  expect(screen.queryByText('Repairs')).toBeNull();
+ });
+ it('wires HomeCategoryTiles.jsx in with the real catalog once onSelectCategory is passed, and forwards its own callback unchanged',()=>{
+  const onSelectCategory=vi.fn();
+  render(<DailyHome {...props()} onSelectCategory={onSelectCategory}/>);
+  fireEvent.click(screen.getByText('Repairs'));
+  expect(onSelectCategory).toHaveBeenCalledWith('repairs');
  });
 });

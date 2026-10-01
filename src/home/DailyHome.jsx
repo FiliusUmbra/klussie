@@ -5,12 +5,13 @@ import { familyStrings } from '../lib/familyStrings.js';
 import { dateKey, todayTasks, eventsOn } from '../lib/familyModel.js';
 import { statusPresentation } from '../lib/requestStatus.js';
 import { unreadTotal } from '../lib/conversationSelectors.js';
+import { HomeCategoryTiles } from './HomeCategoryTiles.jsx';
 
 import { TODAY_LABELS, DAILY_CLEAR } from '../lib/dailyStrings.js';
 
 // A read-only daily summary. Editing stays in each feature's existing flow.
-export function DailyHome({ requests, conversations, onHelp, onHome, onFamily, onRequest, onMessages, onRequests }) {
-  const { t, langCode, fmtDate, serviceInfo } = useLang();
+export function DailyHome({ requests, conversations, onHelp, onHome, onFamily, onRequest, onMessages, onRequests, onSelectCategory }) {
+  const { t, langCode, fmtDate, serviceInfo, CATS, catName } = useLang();
   const f = familyStrings(langCode);
   const family = useFamily();
   const today = dateKey();
@@ -24,6 +25,7 @@ export function DailyHome({ requests, conversations, onHelp, onHome, onFamily, o
       <button type="button" onClick={onHome}><House size={18} aria-hidden="true" />{t.navMyHome}<ChevronRight size={16} aria-hidden="true" /></button>
       <button type="button" onClick={() => onFamily(family.selected)}><Heart size={18} aria-hidden="true" />{f.title}<ChevronRight size={16} aria-hidden="true" /></button>
     </div>
+    {onSelectCategory && <HomeCategoryTiles t={t} CATS={CATS} catName={catName} onSelectCategory={onSelectCategory} />}
     <section className="daily-section"><div className="daily-section-title"><h2>{t.homeForYouTitle}</h2><button type="button" onClick={onRequests}>{t.navRequests}</button></div>
       {!attention.length && !unread && <p className="daily-empty">{DAILY_CLEAR[langCode] || DAILY_CLEAR.en}</p>}
       {attention.slice(0,3).map((request) => <button className="daily-row" type="button" key={request.id} onClick={() => onRequest(request.id)}><span><strong>{serviceInfo(request.serviceId).name}</strong><small>{t[statusPresentation(request.status).labelKey]}</small></span><ChevronRight size={18} aria-hidden="true" /></button>)}
