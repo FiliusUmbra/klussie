@@ -225,6 +225,12 @@ export function mergeMaintenanceWithSchedules(maintenance, schedules) {
  * all (`maintenance` still loading, or genuinely empty): an account with zero
  * maintenance recorded has no real basis to claim either state, the same restraint
  * trustItemsFrom() (useHomeContext.js) already holds for the trust strip.
+ *
+ * `openCount` (visual-refresh direction, 2026-10-01) is additive — PropertyHealthCard's
+ * own progress bar derives its fill fraction from `(openCount - overdueCount) /
+ * openCount`, the real "how much of what's open is actually on schedule" ratio, never a
+ * second, independently-invented score. Every existing caller that only reads `status`/
+ * `overdueCount` is unaffected.
  */
 export function propertyHealthStatus(maintenance) {
   const open = (maintenance || []).filter((m) => m.status === "open");
@@ -232,8 +238,8 @@ export function propertyHealthStatus(maintenance) {
 
   const overdueCount = open.filter((m) => m.isOverdue).length;
   return overdueCount > 0
-    ? { status: "attention", overdueCount }
-    : { status: "good", overdueCount: 0 };
+    ? { status: "attention", overdueCount, openCount: open.length }
+    : { status: "good", overdueCount: 0, openCount: open.length };
 }
 
 /**

@@ -114,6 +114,32 @@ describe("AiIntakeSheet — final submit", () => {
   });
 });
 
+// Found live, 2026-10-01: this used to list every single BASE_SERVICES entry as an
+// equal-weight chip, with the AI's own guess just one among them -- noise at a
+// confidence moment that should read as "here's what we think," not "pick from the
+// whole catalogue." Collapsed to the one detected service, with "intentChange" (reused
+// from IntentSuggestions.jsx, not a new string) as the real way out for a genuine
+// mismatch.
+describe("AiIntakeSheet — the detected-service chip shows one service, not the whole catalogue", () => {
+  it("shows only the detected service, not every BASE_SERVICES entry", () => {
+    renderSheet();
+    expect(screen.getByText("name:svc-plumbing")).toBeTruthy();
+    expect(screen.queryByText("name:svc-electric")).toBeNull();
+  });
+
+  it("expands to the full list on \"intentChange\", and collapses back once a different service is picked", () => {
+    renderSheet();
+
+    fireEvent.click(screen.getByText("intentChange"));
+    expect(screen.getByText("name:svc-electric")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("name:svc-electric"));
+    expect(screen.getByText("name:svc-electric")).toBeTruthy();
+    expect(screen.queryByText("name:svc-plumbing")).toBeNull();
+    expect(screen.queryByText("intentChange")).toBeTruthy();
+  });
+});
+
 // ADR-0033 (2026-09-15) — the category grid on the compose stage: a real, additional way
 // to start a request, alongside the free-text/voice/photo composer, never instead of it.
 function renderComposeSheet({ onSubmitted = vi.fn(), onClose = vi.fn(), initialCategoryId = null } = {}) {

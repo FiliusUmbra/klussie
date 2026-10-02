@@ -20,13 +20,14 @@
 // from here directly, with Profile.jsx (Account) now only a management shortcut back
 // to this same list (its own header explains that half).
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, House } from "lucide-react";
 import { SegmentedTabs, TabPanel } from "../design-system";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { MyHomePanel } from "./MyHomePanel.jsx";
 import { MyItemsPanel } from "./MyItemsPanel.jsx";
 import { PropertySwitcher } from "./PropertySwitcher.jsx";
+import { HomeStatRow } from "./HomeStatRow.jsx";
 import { AddPropertySheet } from "../profile/AddPropertySheet.jsx";
 import { useHomeContext } from "./useHomeContext.js";
 
@@ -61,16 +62,27 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
   // substitute for one: a page needs a stable, announced title independent of whether a
   // <select> also happens to be showing the same name.
   const activeName = properties?.find((p) => p.id === activePropertyId)?.name;
+  const activeCity = homeCtx.homeProfile?.property?.municipality;
 
   return (
     <div className="home">
       <div className="home-body">
+        {/* The drafted My Home hero (visual-refresh direction, 2026-10-02). The gradient
+            cover stands in for the property photo — the Street View hero is deferred — and
+            the stat row is the same real-data strip Today's card shows. */}
         <div className="myhome-header">
-          {activeName && <h1 className="myhome-header-name">{activeName}</h1>}
-          <PropertySwitcher properties={properties} activePropertyId={activePropertyId} onSelect={selectProperty} />
-          <button type="button" className="myhome-header-add" onClick={() => setAddPropertyOpen(true)}>
-            <Plus size={13} aria-hidden="true" /> {t.addPropertyBtn}
-          </button>
+          <div className="myhome-hero-cover" aria-hidden="true"><House size={56} strokeWidth={1.3} /></div>
+          <div className="myhome-hero-body">
+            {activeName && <h1 className="myhome-header-name">{activeName}</h1>}
+            {activeCity && <p className="myhome-hero-city">{activeCity}</p>}
+            <HomeStatRow items={homeCtx.items} homeProfile={homeCtx.homeProfile} maintenance={homeCtx.maintenance} requests={requests} />
+            <div className="myhome-hero-actions">
+              <PropertySwitcher properties={properties} activePropertyId={activePropertyId} onSelect={selectProperty} />
+              <button type="button" className="myhome-header-add" onClick={() => setAddPropertyOpen(true)}>
+                <Plus size={13} aria-hidden="true" /> {t.addPropertyBtn}
+              </button>
+            </div>
+          </div>
         </div>
 
         <SegmentedTabs

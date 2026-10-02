@@ -16,8 +16,9 @@
 import { describe, it, expect } from "vitest";
 import { APP_CSS } from "../appStyles.js";
 import { HOME_CSS } from "../../home/homeStyles.js";
+import { CALM_CSS } from "../calmStyles.js";
 
-const CSS = APP_CSS + HOME_CSS;
+const CSS = APP_CSS + HOME_CSS + CALM_CSS;
 
 // Scope: only the two shared stylesheet strings. It does not catch a regression in an
 // inline style="{{ color: 'var(--amber)' }}" prop (ReviewSheet.jsx, primitives.jsx, and

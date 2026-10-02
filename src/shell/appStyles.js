@@ -285,6 +285,16 @@ export const APP_CSS = `
    decoration, so the 4.5:1 floor applies. #8a5c14 gets white text to ~5.8:1. */
 .tab-badge{ position:absolute; top:-5px; right:-8px; background:var(--amber-dark); color:#fff; font-size:9px; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
 
+/* AppNav.jsx's own FAB — a raised circular shortcut (start a new request) breaking out
+   of the flat tab row, visual-refresh direction 2026-10-01. The 4px border matching
+   .tabbar's own background is what creates the "cut into the bar" look against
+   whatever's directly behind it; negative margin-top is what raises it above the row
+   rather than sitting flush in it. Optional on AppNav (a "fab" prop) — Pro/Operator's
+   own bars are unaffected until they're deliberately given one too. */
+.tabbar-fab-slot{ flex-shrink:0; width:56px; display:flex; justify-content:center; }
+.tabbar-fab{ width:52px; height:52px; border-radius:50%; background:var(--forest); border:4px solid var(--surface); margin-top:-30px; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(31,77,58,0.35); cursor:pointer; }
+.tabbar-fab svg{ color:#fff; }
+
 /* ---- desktop sidebar nav — same items, a vertical list instead of five equal-width
    columns. Reuses .tab-icon-wrap/.tab-badge for the icon treatment so the "selected"
    language matches the mobile tab bar exactly, just laid out differently. ---- */
@@ -778,6 +788,19 @@ button.ds-card{ cursor:pointer; }
    modal panel, nothing nearby to overlap. */
 .modal-close{ position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:50%; border:none; background:var(--surface-2, var(--sage-bg)); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; cursor:pointer; }
 .modal-close::after{ content:""; position:absolute; inset:-8px; }
+
+/* PageTour.jsx — a per-page contextual tour. Deliberately no dimming overlay (founder
+   decision, 2026-10-01: full focus stays on the real button, the rest of the page stays
+   exactly as reachable as it already was) -- just a ring on the target
+   (.page-tour-highlight, purely decorative, pointer-events:none) and a card pointing at
+   it from above or below (.page-tour-card, positioned by PageTour.jsx's own
+   computeCardPosition()), with a small rotated-square arrow bridging the two
+   (.page-tour-arrow) the same way a native OS tooltip would. */
+.page-tour-highlight{ position:fixed; border:2px solid var(--forest); border-radius:12px; box-shadow:0 0 0 4px rgba(26,61,46,0.18); pointer-events:none; z-index:70; transition:top var(--motion-base), left var(--motion-base), width var(--motion-base), height var(--motion-base); }
+.page-tour-card{ position:fixed; background:var(--surface); border-radius:14px; padding:16px; box-shadow:0 12px 32px rgba(0,0,0,0.22); z-index:70; }
+.page-tour-arrow{ position:absolute; width:14px; height:14px; margin-left:-7px; background:var(--surface); transform:rotate(45deg); }
+.page-tour-card-below .page-tour-arrow{ top:-7px; box-shadow:-2px -2px 3px rgba(0,0,0,0.04); }
+.page-tour-card-above .page-tour-arrow{ bottom:-7px; box-shadow:2px 2px 3px rgba(0,0,0,0.04); }
 
 .timeline{ display:flex; align-items:flex-start; gap:0; margin:14px 0; }
 .timeline-step{ flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; }

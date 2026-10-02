@@ -19,10 +19,11 @@
 import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
-import { Badge, Button, JobCard } from "../design-system";
+import { Avatar, Badge, Button } from "../design-system";
+import { messageStamp } from "../lib/messageStamp.js";
 
 export function MessagesList({ conversations, onOpen, hasRequests, onViewRequests, onCreateRequest }) {
-  const { t, serviceInfo } = useLang();
+  const { t, serviceInfo, fmtDate, langCode } = useLang();
   const [filter, setFilter] = useState("all");
   const emptyAction = hasRequests ? onViewRequests : onCreateRequest;
   const emptyActionLabel = hasRequests ? t.messagesViewRequestsBtn : t.requestsEmptyCta;
@@ -59,21 +60,29 @@ export function MessagesList({ conversations, onOpen, hasRequests, onViewRequest
           )}
         </div>
       )}
-      {visible.map((c) => (
-        <JobCard
-          key={c.id}
-          onClick={() => onOpen(c)}
-          title={c.otherName || t.counterpartFallbackName}
-          badge={c.unreadCount > 0 && <Badge tone="amber">{c.unreadCount}</Badge>}
-          subtitle={c.serviceId ? serviceInfo(c.serviceId).name : ""}
-        >
-          {c.lastMessage ? (
-            <p className="quote-msg" style={{ margin: "8px 0 0" }}>"{c.lastMessage.body}"</p>
-          ) : (
-            <p className="quote-msg" style={{ margin: "8px 0 0", color: "var(--ink-soft)" }}>{t.messagesConversationEmpty}</p>
-          )}
-        </JobCard>
-      ))}
+      {visible.map((c) => {
+        const name = c.otherName || t.counterpartFallbackName;
+        const unread = c.unreadCount > 0;
+        return (
+          // Visual-refresh direction, 2026-10-02 — the drafted row: avatar initial, name
+          // with the service as the secondary line, a one-line preview, the time of the
+          // last message, and the unread count. Same data as the JobCard it replaces.
+          <button key={c.id} type="button" className={"msg-row" + (unread ? " msg-row-unread" : "")} onClick={() => onOpen(c)}>
+            <Avatar initials={name.trim()[0]?.toUpperCase()} />
+            <span className="msg-row-main">
+              <span className="msg-row-top">
+                <strong>{name}</strong>
+                {c.lastMessage && <time>{messageStamp(c.lastMessage.createdAt, { fmtDate, langCode })}</time>}
+              </span>
+              {c.serviceId && <small className="msg-row-service">{serviceInfo(c.serviceId).name}</small>}
+              <span className="msg-row-bottom">
+                <span className="msg-row-preview">{c.lastMessage ? c.lastMessage.body : t.messagesConversationEmpty}</span>
+                {unread && <Badge tone="amber">{c.unreadCount}</Badge>}
+              </span>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

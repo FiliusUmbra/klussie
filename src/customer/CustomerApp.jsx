@@ -7,7 +7,7 @@
 // then upload photos, then refresh), not rules; src/lib/requests.js owns the actual
 // writes.
 import { useState, useEffect } from "react";
-import { User, ArrowLeft, Sun, House, ClipboardList, MessageCircle } from "lucide-react";
+import { User, ArrowLeft, Sun, House, ClipboardList, MessageCircle, Plus } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import {
@@ -356,6 +356,11 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
           { id: "messages", label: t.navMessages, icon: MessageCircle, badge: unreadTotal(conversations) },
           { id: "profile", label: t.navProfile, icon: User },
         ]}
+        // Visual-refresh direction, 2026-10-01 — a raised shortcut into the exact same
+        // AiIntakeSheet open RequestsList's/MessagesList's own "New request" CTAs
+        // already use (setAiIntakeOpen({})), reachable from every tab rather than only
+        // from Help or an empty state.
+        fab={{ icon: Plus, label: t.requestsNewBtn, onClick: () => setAiIntakeOpen({}) }}
       >
         {tab === "today" && (
           <DailyHome
@@ -370,6 +375,10 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
             onRequest={(id) => setOpenRequest(id)}
             onMessages={() => setTab("messages")}
             onRequests={() => setTab("requests")}
+            // Same seed shape ConversationHome.jsx's own onBrowseCategories already
+            // uses — AiIntakeSheet opens straight to its compose stage with this
+            // category (or, for "More", nothing) already selected.
+            onSelectCategory={(categoryId) => setAiIntakeOpen({ initialCategoryId: categoryId ?? null })}
           />
         )}
         {tab === "discover" && (
