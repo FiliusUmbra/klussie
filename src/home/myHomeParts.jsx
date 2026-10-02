@@ -60,11 +60,20 @@ export function PropertyHeader({ t, property, fmtDate }) {
  * WCAG 1.4.1 ("not by color alone") — the "attention" state is never color-only: a
  * distinct icon (AlertTriangle vs CircleCheck) and its own body text carry the meaning
  * too, matching this codebase's own established pattern for every other status here.
+ *
+ * The bar (visual-refresh direction, 2026-10-01) is `aria-hidden` — purely a second,
+ * visual reinforcement of what the title/body text already state in words, never the
+ * only carrier of the information (the same reasoning as the icon choice above). Its
+ * fill is `(openCount - overdueCount) / openCount` — real, already-known counts, not an
+ * invented score; see propertyHealthStatus()'s own header for why `openCount` exists at
+ * all. `good` is always a full bar (overdueCount is always 0 there) without needing the
+ * division.
  */
 export function PropertyHealthCard({ t, health }) {
   if (!health) return null;
 
   const attention = health.status === "attention";
+  const fillPct = attention ? Math.round(((health.openCount - health.overdueCount) / health.openCount) * 100) : 100;
   return (
     <div className={"property-health" + (attention ? " property-health-attention" : " property-health-good")}>
       <span className="property-health-icon" aria-hidden="true">
@@ -76,6 +85,9 @@ export function PropertyHealthCard({ t, health }) {
           {attention
             ? interpolate(t.propertyHealthAttentionBody, { count: health.overdueCount })
             : t.propertyHealthGoodBody}
+        </span>
+        <span className="property-health-bar" aria-hidden="true">
+          <span className="property-health-bar-fill" style={{ width: `${fillPct}%` }} />
         </span>
       </span>
     </div>
