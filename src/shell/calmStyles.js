@@ -52,9 +52,9 @@ export const CALM_CSS = `
 .today-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
 .today-card-head strong{font:600 16px var(--font-display);color:var(--ink);}
 .today-card-head small{font-size:11.5px;color:var(--ink-faint);}
-.today-card-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:12px;}
-.today-card-stats b{display:block;font:600 15px var(--font-body);color:var(--ink);}
-.today-card-stats small{display:block;font-size:10px;color:var(--ink-faint);overflow-wrap:anywhere;}
+.home-stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:12px;}
+.home-stat-row b{display:block;font:600 15px var(--font-body);color:var(--ink);}
+.home-stat-row small{display:block;font-size:10px;color:var(--ink-faint);overflow-wrap:anywhere;}
 .today-soon-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .today-soon-head h2{font:600 17px var(--font-display);color:var(--ink);margin:0;}
 .today-soon-head button{border:0;background:none;min-height:44px;color:var(--forest);font:600 12px var(--font-body);cursor:pointer;}

@@ -14,6 +14,7 @@ import { House, ChevronRight, Clock } from 'lucide-react';
 import { useLang } from '../lib/lang';
 import { usePropertyTwin } from './usePropertyTwin.js';
 import { homeStats } from './homeStats.js';
+import { HomeStatRow } from './HomeStatRow.jsx';
 import { TODAY_CARD } from '../lib/dailyStrings.js';
 
 const UPCOMING_LIMIT = 2;
@@ -26,12 +27,6 @@ export function TodayHomeSummary({ requests, onOpenHome }) {
   const property = twin.properties?.find((p) => p.id === twin.activePropertyId) || twin.properties?.[0];
   const name = property?.name || twin.homeProfile?.property?.name;
   const city = twin.homeProfile?.property?.municipality;
-  const stats = [
-    { key: 'items', value: s.items, label: c.items },
-    { key: 'docs', value: s.docs, label: c.docs },
-    { key: 'upcoming', value: s.upcoming, label: c.upcoming },
-    { key: 'pros', value: s.pros, label: c.pros },
-  ];
   const soon = (s.open || []).filter((m) => m.dueOn).slice(0, UPCOMING_LIMIT);
 
   return <>
@@ -42,9 +37,7 @@ export function TodayHomeSummary({ requests, onOpenHome }) {
           <strong>{name || ''}</strong>
           {city && <small>{city}</small>}
         </span>
-        <span className="today-card-stats">
-          {stats.map((st) => <span key={st.key}><b>{st.value ?? '–'}</b><small>{st.label}</small></span>)}
-        </span>
+        <HomeStatRow items={twin.items} homeProfile={twin.homeProfile} maintenance={twin.maintenance} requests={requests} />
       </span>
     </button>
     {soon.length > 0 && <section className="today-soon" aria-label={c.upcoming}>

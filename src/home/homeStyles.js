@@ -335,13 +335,18 @@ export const HOME_CSS = `
    (MyHomeScreen.jsx), so a property switch and "Add property" are reachable without
    losing them the moment a customer taps into Items. ".role-switch"/".segmented" (the
    switcher itself) are reused as-is; this only lays out the row it sits in. */
-.myhome-header{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2); }
+.myhome-header{ background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow-card); overflow:hidden; }
+.myhome-hero-cover{ display:flex; align-items:flex-end; justify-content:flex-end; height:110px; padding:0 18px; background:linear-gradient(135deg,var(--sage),var(--forest)); color:rgba(255,255,255,0.5); }
+.myhome-hero-cover svg{ margin-bottom:-12px; }
+.myhome-hero-body{ padding:14px 16px 12px; }
 .myhome-header .role-switch{ margin:0; }
-.myhome-header-name{ margin:0; font-size:13.5px; font-weight:700; color:var(--ink); }
+.myhome-header-name{ margin:0; font:600 21px var(--font-display); color:var(--ink); }
+.myhome-hero-city{ margin:2px 0 0; font-size:12.5px; color:var(--ink-faint); }
+.myhome-hero-actions{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2); margin-top:8px; }
 .myhome-header-add{
   margin-inline-start:auto; display:flex; align-items:center; gap:5px;
   background:none; border:none; color:var(--forest-dark); font-weight:700; font-size:12.5px;
-  font-family:var(--font-body); cursor:pointer; padding:6px 4px;
+  font-family:var(--font-body); cursor:pointer; padding:6px 4px; min-height:44px;
 }
 
 /* The header is a quiet band, not a stat dashboard — the brief asks for a calm record,
