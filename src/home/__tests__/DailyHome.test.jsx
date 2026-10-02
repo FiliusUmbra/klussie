@@ -5,8 +5,12 @@ import { DailyHome } from '../DailyHome.jsx';
 import { dateKey } from '../../lib/familyModel.js';
 const state = vi.hoisted(() => ({}));
 vi.mock('../../family/useFamily.js', () => ({useFamily: () => state}));
+vi.mock('../../lib/auth.jsx', () => ({useAuth: () => ({profile:{full_name:'Cathy Janssens'}})}));
+// TodayHomeSummary.jsx has its own test file — stubbed so these tests stay on DailyHome's
+// own composition (the card's own data-tour anchor is asserted below through the stub).
+vi.mock('../TodayHomeSummary.jsx', () => ({TodayHomeSummary: ({onOpenHome}) => <button type="button" data-tour="today-myhome" onClick={onOpenHome}>Summary card</button>}));
 const CATS = [{ id: 'repairs', icon: Wrench }];
-vi.mock('../../lib/lang', () => ({useLang: () => ({langCode:'en',fmtDate:(d)=>d,serviceInfo:()=>({name:'Repair'}),CATS,catName:(id)=>({repairs:'Repairs'})[id] ?? id,t:{homeForYouTitle:'For you',navDiscover:'Help',navMyHome:'My Home',navRequests:'Requests',navMessages:'Messages',statusQuotesReady:'Choose a quote',homeBrowseCategoriesBtn:'Browse categories',helpReplayTour:'Replay tour'}})}));
+vi.mock('../../lib/lang', () => ({useLang: () => ({langCode:'en',fmtDate:(d)=>d,serviceInfo:()=>({name:'Repair'}),CATS,catName:(id)=>({repairs:'Repairs'})[id] ?? id,t:{homeForYouTitle:'For you',navDiscover:'Help',navMyHome:'My Home',navRequests:'Requests',navMessages:'Messages',statusQuotesReady:'Choose a quote',homeBrowseCategoriesBtn:'Browse categories',greetMorning:'Good morning',greetAfternoon:'Good afternoon',greetEvening:'Good evening',homeGreetName:'{greeting}, {name}',homeGreetNoName:'{greeting}',homeQuestion:'What can Klussie help you with today?',helpReplayTour:'Replay tour'}})}));
 // PageTour.jsx itself has its own test file — stubbed here to false/no-op so these
 // pre-existing tests stay focused on DailyHome's own daily-summary concerns, the same
 // way useHomeTour.js's own "open" gets held closed in CustomerApp's own tests.
@@ -47,5 +51,14 @@ describe('DailyHome',()=>{
   render(<DailyHome {...props()} onSelectCategory={onSelectCategory}/>);
   fireEvent.click(screen.getByText('Repairs'));
   expect(onSelectCategory).toHaveBeenCalledWith('repairs');
+ });
+ it('greets the signed-in person by first name, and the search pill opens Help',()=>{
+  const p=props();render(<DailyHome {...p}/>);
+  expect(screen.getByRole('heading',{level:1}).textContent).toMatch(/^Good (morning|afternoon|evening), Cathy$/);
+  fireEvent.click(screen.getByText('What can Klussie help you with today?'));expect(p.onHelp).toHaveBeenCalled();
+ });
+ it('opens My Home from the property summary',()=>{
+  const p=props();render(<DailyHome {...p}/>);
+  fireEvent.click(screen.getByText('Summary card'));expect(p.onHome).toHaveBeenCalled();
  });
 });

@@ -1,5 +1,6 @@
-import { CalendarDays, ChevronRight, HandHelping, Heart, House, HelpCircle } from 'lucide-react';
+import { CalendarDays, ChevronRight, Heart, HelpCircle, Search } from 'lucide-react';
 import { useLang } from '../lib/lang';
+import { useAuth } from '../lib/auth.jsx';
 import { useFamily } from '../family/useFamily.js';
 import { familyStrings } from '../lib/familyStrings.js';
 import { dateKey, todayTasks, eventsOn } from '../lib/familyModel.js';
@@ -8,8 +9,10 @@ import { unreadTotal } from '../lib/conversationSelectors.js';
 import { PageTour } from '../ui/PageTour.jsx';
 import { usePageTour } from '../ui/usePageTour.js';
 import { HomeCategoryTiles } from './HomeCategoryTiles.jsx';
+import { TodayHomeSummary } from './TodayHomeSummary.jsx';
+import { greetingLine } from './useHomeContext.js';
 
-import { TODAY_LABELS, DAILY_CLEAR } from '../lib/dailyStrings.js';
+import { DAILY_CLEAR } from '../lib/dailyStrings.js';
 
 // Today's own PageTour.jsx steps — the three real shortcuts this screen is built
 // around (Help, My Home, Family), each anchored to its own data-tour attribute below.
@@ -23,6 +26,7 @@ const TODAY_TOUR_STEPS = [
 export function DailyHome({ requests, conversations, onHelp, onHome, onFamily, onRequest, onMessages, onRequests, onSelectCategory }) {
   const { t, langCode, fmtDate, serviceInfo, CATS, catName } = useLang();
   const f = familyStrings(langCode);
+  const { profile } = useAuth();
   const family = useFamily();
   const tour = usePageTour('today');
   const today = dateKey();
@@ -31,13 +35,17 @@ export function DailyHome({ requests, conversations, onHelp, onHome, onFamily, o
   const attention = requests.filter((r) => ['quotes_ready','accepted_pending_location_approval','completed'].includes(r.status));
   const unread = unreadTotal(conversations);
   return <main className="daily-home">
-    <header className="daily-heading"><div><p>{fmtDate(today)}</p><h1>{TODAY_LABELS[langCode] || TODAY_LABELS.en}</h1></div><div className="daily-heading-actions"><button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button><button type="button" className="btn-secondary" data-tour="today-help" onClick={onHelp}><HandHelping size={18} aria-hidden="true" />{t.navDiscover}</button></div></header>
-    <div className="daily-shortcuts">
-      <button type="button" data-tour="today-myhome" onClick={onHome}><House size={18} aria-hidden="true" />{t.navMyHome}<ChevronRight size={16} aria-hidden="true" /></button>
-      <button type="button" data-tour="today-family" onClick={() => onFamily(family.selected)}><Heart size={18} aria-hidden="true" />{f.title}<ChevronRight size={16} aria-hidden="true" /></button>
-    </div>
+    <header className="daily-heading">
+      <div><h1>{greetingLine(t, profile?.full_name)}</h1><p>{fmtDate(today)}</p></div>
+      <button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button>
+    </header>
+    <button type="button" className="daily-search" data-tour="today-help" onClick={onHelp}><Search size={18} aria-hidden="true" /><span>{t.homeQuestion}</span></button>
     {tour.open && <PageTour steps={TODAY_TOUR_STEPS} onFinish={tour.finish} />}
     {onSelectCategory && <HomeCategoryTiles t={t} CATS={CATS} catName={catName} onSelectCategory={onSelectCategory} />}
+    <TodayHomeSummary requests={requests} onOpenHome={onHome} />
+    <div className="daily-shortcuts">
+      <button type="button" data-tour="today-family" onClick={() => onFamily(family.selected)}><Heart size={18} aria-hidden="true" />{f.title}<ChevronRight size={16} aria-hidden="true" /></button>
+    </div>
     <section className="daily-section"><div className="daily-section-title"><h2>{t.homeForYouTitle}</h2><button type="button" onClick={onRequests}>{t.navRequests}</button></div>
       {!attention.length && !unread && <p className="daily-empty">{DAILY_CLEAR[langCode] || DAILY_CLEAR.en}</p>}
       {attention.slice(0,3).map((request) => <button className="daily-row" type="button" key={request.id} onClick={() => onRequest(request.id)}><span><strong>{serviceInfo(request.serviceId).name}</strong><small>{t[statusPresentation(request.status).labelKey]}</small></span><ChevronRight size={18} aria-hidden="true" /></button>)}
