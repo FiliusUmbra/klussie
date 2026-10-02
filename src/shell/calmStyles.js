@@ -31,6 +31,10 @@ export const CALM_CSS = `
 .home-category-tile-icon{width:38px;height:38px;border-radius:11px;background:var(--amber-bg);color:var(--amber-dark);display:flex;align-items:center;justify-content:center;}
 .home-category-tile-alt .home-category-tile-icon{background:var(--sage-bg);color:var(--forest-dark);}
 .home-category-tile-label{font-size:11px;font-weight:600;color:var(--ink);text-align:center;line-height:1.25;}
+
+.messages-filter{display:flex;gap:8px;margin-bottom:14px;}
+.messages-filter-pill{min-height:44px;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font:600 12px var(--font-body);cursor:pointer;}
+.messages-filter-pill-on{background:var(--forest);border-color:var(--forest);color:#fff;}
 .daily-section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;}
 .daily-section-title{margin-bottom:12px;}
 .daily-section-title h2{font:500 21px var(--font-display);margin:0;color:var(--forest-dark);}
