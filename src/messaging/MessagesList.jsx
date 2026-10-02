@@ -9,17 +9,45 @@
 // caller with neither (professional side — Jobs, not Requests, is its own equivalent
 // destination, not yet wired here) still gets the same honest explanation as before,
 // just without a dead end.
+//
+// All / Unread filter (visual-refresh direction, 2026-10-01). The design canvas also
+// showed "Professionals" and "System" tabs; neither exists as real data here — every
+// conversation is with a counterpart professional and no system-message conversation
+// type exists — so they are not rendered (a tab that is always identical to "All", or
+// always empty, would be a claim with no data behind it). Unread is real: it filters on
+// the same unreadCount the row badge already shows.
+import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Badge, Button, JobCard } from "../design-system";
 
 export function MessagesList({ conversations, onOpen, hasRequests, onViewRequests, onCreateRequest }) {
   const { t, serviceInfo } = useLang();
+  const [filter, setFilter] = useState("all");
   const emptyAction = hasRequests ? onViewRequests : onCreateRequest;
   const emptyActionLabel = hasRequests ? t.messagesViewRequestsBtn : t.requestsEmptyCta;
+  const visible = filter === "unread" ? conversations.filter((c) => c.unreadCount > 0) : conversations;
   return (
     <div className="pad">
       <div className="h1" style={{ marginBottom: 14 }}>{t.messagesTitle}</div>
+      {conversations.length > 0 && (
+        <div className="messages-filter" role="group" aria-label={t.messagesTitle}>
+          {[["all", t.messagesFilterAll], ["unread", t.messagesFilterUnread]].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={"messages-filter-pill" + (filter === id ? " messages-filter-pill-on" : "")}
+              aria-pressed={filter === id}
+              onClick={() => setFilter(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {conversations.length > 0 && visible.length === 0 && (
+        <div className="empty-block"><p>{t.messagesUnreadEmpty}</p></div>
+      )}
       {conversations.length === 0 && (
         <div className="empty-block">
           <MessageCircle size={26} color="var(--ink-soft)" />
@@ -31,7 +59,7 @@ export function MessagesList({ conversations, onOpen, hasRequests, onViewRequest
           )}
         </div>
       )}
-      {conversations.map((c) => (
+      {visible.map((c) => (
         <JobCard
           key={c.id}
           onClick={() => onOpen(c)}

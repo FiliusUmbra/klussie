@@ -22,6 +22,9 @@ export const CALM_CSS = `
 .daily-shortcuts button{display:flex;align-items:center;gap:12px;min-height:56px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font:500 14px var(--font-body);color:var(--forest);cursor:pointer;}
 .daily-shortcuts button svg:last-child{margin-inline-start:auto;}
 [dir="rtl"] .daily-shortcuts button svg:last-child,[dir="rtl"] .daily-row > svg:last-child,[dir="rtl"] .daily-more svg:last-child{transform:scaleX(-1);}
+.messages-filter{display:flex;gap:8px;margin-bottom:14px;}
+.messages-filter-pill{min-height:44px;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font:600 12px var(--font-body);cursor:pointer;}
+.messages-filter-pill-on{background:var(--forest);border-color:var(--forest);color:#fff;}
 .daily-section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;}
 .daily-section-title{margin-bottom:12px;}
 .daily-section-title h2{font:500 21px var(--font-display);margin:0;color:var(--forest-dark);}

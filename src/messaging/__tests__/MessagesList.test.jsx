@@ -74,4 +74,45 @@ describe("MessagesList", () => {
       expect(onCreateRequest).toHaveBeenCalled();
     });
   });
+
+  // Visual-refresh direction, 2026-10-01 — All / Unread. See MessagesList.jsx's own
+  // header for why "Professionals" and "System" tabs deliberately don't exist.
+  describe("All / Unread filter", () => {
+    const READ = { ...CONVO, id: "c1", otherName: "Read Pro", unreadCount: 0 };
+    const UNREAD = { ...CONVO, id: "c2", otherName: "Unread Pro", unreadCount: 2 };
+
+    it("shows no filter at all when there are no conversations — nothing to filter", () => {
+      renderList([]);
+      expect(screen.queryByText("messagesFilterUnread")).toBeNull();
+    });
+
+    it("starts on All, showing every conversation", () => {
+      renderList([READ, UNREAD]);
+      expect(screen.getByText("Read Pro")).toBeTruthy();
+      expect(screen.getByText("Unread Pro")).toBeTruthy();
+    });
+
+    it("Unread hides conversations with nothing unread, and All brings them back", () => {
+      renderList([READ, UNREAD]);
+      fireEvent.click(screen.getByText("messagesFilterUnread"));
+      expect(screen.queryByText("Read Pro")).toBeNull();
+      expect(screen.getByText("Unread Pro")).toBeTruthy();
+
+      fireEvent.click(screen.getByText("messagesFilterAll"));
+      expect(screen.getByText("Read Pro")).toBeTruthy();
+    });
+
+    it("says so, rather than showing a blank list, when nothing is unread", () => {
+      renderList([READ]);
+      fireEvent.click(screen.getByText("messagesFilterUnread"));
+      expect(screen.getByText("messagesUnreadEmpty")).toBeTruthy();
+    });
+
+    it("marks the active filter with aria-pressed", () => {
+      renderList([READ, UNREAD]);
+      fireEvent.click(screen.getByText("messagesFilterUnread"));
+      expect(screen.getByText("messagesFilterUnread").getAttribute("aria-pressed")).toBe("true");
+      expect(screen.getByText("messagesFilterAll").getAttribute("aria-pressed")).toBe("false");
+    });
+  });
 });
