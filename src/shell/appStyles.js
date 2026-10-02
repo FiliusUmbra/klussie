@@ -285,6 +285,16 @@ export const APP_CSS = `
    decoration, so the 4.5:1 floor applies. #8a5c14 gets white text to ~5.8:1. */
 .tab-badge{ position:absolute; top:-5px; right:-8px; background:var(--amber-dark); color:#fff; font-size:9px; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
 
+/* AppNav.jsx's own FAB — a raised circular shortcut (start a new request) breaking out
+   of the flat tab row, visual-refresh direction 2026-10-01. The 4px border matching
+   .tabbar's own background is what creates the "cut into the bar" look against
+   whatever's directly behind it; negative margin-top is what raises it above the row
+   rather than sitting flush in it. Optional on AppNav (a "fab" prop) — Pro/Operator's
+   own bars are unaffected until they're deliberately given one too. */
+.tabbar-fab-slot{ flex-shrink:0; width:56px; display:flex; justify-content:center; }
+.tabbar-fab{ width:52px; height:52px; border-radius:50%; background:var(--forest); border:4px solid var(--surface); margin-top:-30px; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(31,77,58,0.35); cursor:pointer; }
+.tabbar-fab svg{ color:#fff; }
+
 /* ---- desktop sidebar nav — same items, a vertical list instead of five equal-width
    columns. Reuses .tab-icon-wrap/.tab-badge for the icon treatment so the "selected"
    language matches the mobile tab bar exactly, just laid out differently. ---- */

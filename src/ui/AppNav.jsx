@@ -13,13 +13,19 @@
 // header row naming the current destination plus a button opening a plain, centered
 // Modal list of the other five — not a bottom sheet (this codebase's own standing "no
 // sliding Drawer/bottom-sheet menus" rule), and not a second bottom bar.
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Menu } from "lucide-react";
 import { Modal } from "../design-system";
 
-export function AppNav({ tab, setTab, items, variant = "tabbar", children }) {
+export function AppNav({ tab, setTab, items, variant = "tabbar", fab, children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const current = items.find((it) => it.id === tab);
+  // Splits the flat items around the FAB rather than appending it — a trailing FAB
+  // reads as a sixth tab, not a break from the row. floor(), not ceil(): for an odd
+  // count (five, today's real case) this puts one more item after the FAB than before
+  // it, closer to centered than the reverse (2-and-3 beats 3-and-2 for an off-center
+  // circle people's thumbs actually have to find).
+  const fabIndex = fab ? Math.floor(items.length / 2) : -1;
 
   return (
     <>
@@ -51,11 +57,20 @@ export function AppNav({ tab, setTab, items, variant = "tabbar", children }) {
 
         {variant === "tabbar" && (
           <div className="tabbar">
-            {items.map((it) => (
-              <button key={it.id} className={"tab" + (tab === it.id ? " tab-on" : "")} onClick={() => setTab(it.id)}>
-                <span className="tab-icon-wrap"><it.icon size={19} />{!!it.badge && <span className="tab-badge">{it.badge}</span>}</span>
-                {it.label}
-              </button>
+            {items.map((it, i) => (
+              <Fragment key={it.id}>
+                {i === fabIndex && (
+                  <div className="tabbar-fab-slot">
+                    <button type="button" className="tabbar-fab" aria-label={fab.label} onClick={fab.onClick}>
+                      <fab.icon size={22} strokeWidth={2.2} />
+                    </button>
+                  </div>
+                )}
+                <button className={"tab" + (tab === it.id ? " tab-on" : "")} onClick={() => setTab(it.id)}>
+                  <span className="tab-icon-wrap"><it.icon size={19} />{!!it.badge && <span className="tab-badge">{it.badge}</span>}</span>
+                  {it.label}
+                </button>
+              </Fragment>
             ))}
           </div>
         )}
