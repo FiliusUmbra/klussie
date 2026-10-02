@@ -11,9 +11,9 @@
 import { useState } from "react";
 import { ClipboardList, ChevronRight, Clock, Plus } from "lucide-react";
 import { useLang } from "../lib/lang";
-import { Button, JobCard } from "../design-system";
+import { Button } from "../design-system";
 import { StatusPill } from "../requests";
-import { OPEN_STATUSES } from "../lib/requestStatus.js";
+import { OPEN_STATUSES, statusPresentation } from "../lib/requestStatus.js";
 
 export function RequestsList({ requests, onOpen, onCreateRequest }) {
   const { t, fmtDate, serviceInfo, whenLabel } = useLang();
@@ -61,20 +61,26 @@ export function RequestsList({ requests, onOpen, onCreateRequest }) {
       )}
 
       {list.map((r) => (
-        <JobCard
-          key={r.id}
-          onClick={() => onOpen(r.id)}
-          title={serviceInfo(r.serviceId).name}
-          badge={<StatusPill status={r.status} />}
-          subtitle={`${whenLabel(r.answers.when)} · ${fmtDate(r.createdAt)}`}
-          footer={
-            <>
-              {r.status === "collecting" && <span className="waiting"><Clock size={12} /> {t.waitingForQuotes}</span>}
-              {r.status !== "collecting" && <span>{r.quotes.length} {t.quotesReceived}</span>}
-              <ChevronRight className="ticket-foot-chevron" size={16} color="var(--ink-soft)" />
-            </>
-          }
-        />
+        // Visual-refresh direction, 2026-10-02 — the same card language as the redesigned
+        // Today/Messages rows: an icon tile (amber when a decision is waiting on the
+        // customer, sage otherwise), the service and when, the status pill, then a
+        // quiet footer line. Same data and same click target as the JobCard it replaces.
+        <button key={r.id} type="button" className="req-row" onClick={() => onOpen(r.id)}>
+          <span className="req-row-head">
+            <span className={"req-row-icon" + (statusPresentation(r.status).tone === "amber" ? " req-row-icon-amber" : "")} aria-hidden="true"><ClipboardList size={19} /></span>
+            <span className="req-row-text">
+              <strong>{serviceInfo(r.serviceId).name}</strong>
+              <small>{`${whenLabel(r.answers.when)} · ${fmtDate(r.createdAt)}`}</small>
+            </span>
+            <StatusPill status={r.status} />
+          </span>
+          <span className="req-row-foot">
+            {r.status === "collecting"
+              ? <span className="waiting"><Clock size={12} /> {t.waitingForQuotes}</span>
+              : <span>{r.quotes.length} {t.quotesReceived}</span>}
+            <ChevronRight className="ticket-foot-chevron" size={16} aria-hidden="true" />
+          </span>
+        </button>
       ))}
     </div>
   );
