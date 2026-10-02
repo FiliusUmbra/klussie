@@ -7,7 +7,8 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
 import { LangContext } from "../../lib/lang";
-import { MessagesList, messageStamp } from "../MessagesList.jsx";
+import { MessagesList } from "../MessagesList.jsx";
+import { messageStamp } from "../../lib/messageStamp.js";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = { t, serviceInfo: (id) => ({ name: `service:${id}`, blurb: "" }) };
