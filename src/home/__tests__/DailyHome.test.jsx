@@ -1,10 +1,12 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { Wrench } from 'lucide-react';
 import { DailyHome } from '../DailyHome.jsx';
 import { dateKey } from '../../lib/familyModel.js';
 const state = vi.hoisted(() => ({}));
 vi.mock('../../family/useFamily.js', () => ({useFamily: () => state}));
-vi.mock('../../lib/lang', () => ({useLang: () => ({langCode:'en',fmtDate:(d)=>d,serviceInfo:()=>({name:'Repair'}),t:{homeForYouTitle:'For you',navDiscover:'Help',navMyHome:'My Home',navRequests:'Requests',navMessages:'Messages',statusQuotesReady:'Choose a quote',helpReplayTour:'Replay tour'}})}));
+const CATS = [{ id: 'repairs', icon: Wrench }];
+vi.mock('../../lib/lang', () => ({useLang: () => ({langCode:'en',fmtDate:(d)=>d,serviceInfo:()=>({name:'Repair'}),CATS,catName:(id)=>({repairs:'Repairs'})[id] ?? id,t:{homeForYouTitle:'For you',navDiscover:'Help',navMyHome:'My Home',navRequests:'Requests',navMessages:'Messages',statusQuotesReady:'Choose a quote',homeBrowseCategoriesBtn:'Browse categories',helpReplayTour:'Replay tour'}})}));
 // PageTour.jsx itself has its own test file — stubbed here to false/no-op so these
 // pre-existing tests stay focused on DailyHome's own daily-summary concerns, the same
 // way useHomeTour.js's own "open" gets held closed in CustomerApp's own tests.
@@ -35,5 +37,15 @@ describe('DailyHome',()=>{
   expect(document.querySelector('[data-tour="today-help"]')).toBeTruthy();
   expect(document.querySelector('[data-tour="today-myhome"]')).toBeTruthy();
   expect(document.querySelector('[data-tour="today-family"]')).toBeTruthy();
+ });
+ it('renders no category tiles at all when onSelectCategory is not passed (every existing caller before this slice)',()=>{
+  render(<DailyHome {...props()}/>);
+  expect(screen.queryByText('Repairs')).toBeNull();
+ });
+ it('wires HomeCategoryTiles.jsx in with the real catalog once onSelectCategory is passed, and forwards its own callback unchanged',()=>{
+  const onSelectCategory=vi.fn();
+  render(<DailyHome {...props()} onSelectCategory={onSelectCategory}/>);
+  fireEvent.click(screen.getByText('Repairs'));
+  expect(onSelectCategory).toHaveBeenCalledWith('repairs');
  });
 });

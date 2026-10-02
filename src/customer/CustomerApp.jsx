@@ -375,6 +375,10 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
             onRequest={(id) => setOpenRequest(id)}
             onMessages={() => setTab("messages")}
             onRequests={() => setTab("requests")}
+            // Same seed shape ConversationHome.jsx's own onBrowseCategories already
+            // uses — AiIntakeSheet opens straight to its compose stage with this
+            // category (or, for "More", nothing) already selected.
+            onSelectCategory={(categoryId) => setAiIntakeOpen({ initialCategoryId: categoryId ?? null })}
           />
         )}
         {tab === "discover" && (
