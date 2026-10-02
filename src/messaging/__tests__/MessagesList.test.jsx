@@ -7,7 +7,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
 import { LangContext } from "../../lib/lang";
-import { MessagesList } from "../MessagesList.jsx";
+import { MessagesList, messageStamp } from "../MessagesList.jsx";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = { t, serviceInfo: (id) => ({ name: `service:${id}`, blurb: "" }) };
@@ -114,5 +114,17 @@ describe("MessagesList", () => {
       expect(screen.getByText("messagesFilterUnread").getAttribute("aria-pressed")).toBe("true");
       expect(screen.getByText("messagesFilterAll").getAttribute("aria-pressed")).toBe("false");
     });
+  });
+});
+
+describe("messageStamp", () => {
+  const fmtDate = (ts) => `date:${new Date(ts).getFullYear()}`;
+  const now = new Date(2026, 9, 2, 15, 0);
+  it("shows a time of day for a message sent today", () => {
+    const out = messageStamp(new Date(2026, 9, 2, 9, 5).getTime(), { fmtDate, langCode: "en", now });
+    expect(out).toMatch(/9:05|09:05/);
+  });
+  it("shows a date for anything older", () => {
+    expect(messageStamp(new Date(2026, 8, 1, 9, 5).getTime(), { fmtDate, langCode: "en", now })).toBe("date:2026");
   });
 });

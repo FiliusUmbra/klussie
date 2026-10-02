@@ -68,6 +68,16 @@ export const CALM_CSS = `
 .today-soon-row > svg{flex-shrink:0;color:var(--ink-soft);}
 [dir="rtl"] .today-soon-row > svg{transform:scaleX(-1);}
 
+.msg-row{display:flex;align-items:flex-start;gap:12px;width:100%;margin-bottom:8px;padding:13px 14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;text-align:start;font-family:var(--font-body);cursor:pointer;}
+.msg-row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.msg-row-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.msg-row-top strong{font:600 13.5px var(--font-body);color:var(--ink);overflow-wrap:anywhere;}
+.msg-row-top time{flex-shrink:0;font-size:11px;color:var(--ink-soft);}
+.msg-row-service{font-size:11.5px;color:var(--forest);font-weight:600;}
+.msg-row-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.msg-row-preview{flex:1;min-width:0;font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.msg-row-unread .msg-row-preview{color:var(--ink);font-weight:500;}
+
 .messages-filter{display:flex;gap:8px;margin-bottom:14px;}
 .messages-filter-pill{min-height:44px;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font:600 12px var(--font-body);cursor:pointer;}
 .messages-filter-pill-on{background:var(--forest);border-color:var(--forest);color:#fff;}
