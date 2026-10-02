@@ -341,7 +341,7 @@ export const HOME_CSS = `
 .myhome-hero-body{ padding:14px 16px 12px; }
 .myhome-header .role-switch{ margin:0; }
 .myhome-header-name{ margin:0; font:600 21px var(--font-display); color:var(--ink); }
-.myhome-hero-city{ margin:2px 0 0; font-size:12.5px; color:var(--ink-faint); }
+.myhome-hero-city{ margin:2px 0 0; font-size:12.5px; color:var(--ink-soft); }
 .myhome-hero-actions{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2); margin-top:8px; }
 .myhome-header-add{
   margin-inline-start:auto; display:flex; align-items:center; gap:5px;

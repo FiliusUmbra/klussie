@@ -21,7 +21,7 @@ export const CALM_CSS = `
 .daily-section-title > span{margin:0;}
 /* Search-style entry into Help (the drafted Today screen's composer pill) — a button, not
    an input: typing happens on the Help screen itself, this only opens it. */
-.daily-search{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow-card);color:var(--ink-faint);font:400 13.5px var(--font-body);text-align:start;cursor:pointer;}
+.daily-search{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow-card);color:var(--ink-soft);font:400 13.5px var(--font-body);text-align:start;cursor:pointer;}
 .daily-search svg{flex-shrink:0;color:var(--ink-soft);}
 .daily-search span{flex:1;min-width:0;}
 /* Reusable icon-only button — same 28px-visual/44px-hit-area shape as .modal-close
@@ -51,10 +51,10 @@ export const CALM_CSS = `
 .today-card-body{display:block;padding:14px 16px 16px;}
 .today-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
 .today-card-head strong{font:600 16px var(--font-display);color:var(--ink);}
-.today-card-head small{font-size:11.5px;color:var(--ink-faint);}
+.today-card-head small{font-size:11.5px;color:var(--ink-soft);}
 .home-stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:12px;}
 .home-stat-row b{display:block;font:600 15px var(--font-body);color:var(--ink);}
-.home-stat-row small{display:block;font-size:10px;color:var(--ink-faint);overflow-wrap:anywhere;}
+.home-stat-row small{display:block;font-size:10px;color:var(--ink-soft);overflow-wrap:anywhere;}
 .today-soon-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .today-soon-head h2{font:600 17px var(--font-display);color:var(--ink);margin:0;}
 .today-soon-head button{border:0;background:none;min-height:44px;color:var(--forest);font:600 12px var(--font-body);cursor:pointer;}
@@ -62,10 +62,10 @@ export const CALM_CSS = `
 .today-soon-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;border-radius:10px;background:var(--amber-bg);color:var(--amber-dark);}
 .today-soon-text{flex:1;min-width:0;}
 .today-soon-text strong{display:block;font:600 13.5px var(--font-body);color:var(--ink);overflow-wrap:anywhere;}
-.today-soon-text small{display:block;margin-top:2px;font-size:11.5px;color:var(--ink-faint);}
+.today-soon-text small{display:block;margin-top:2px;font-size:11.5px;color:var(--ink-soft);}
 .today-soon-pill{flex-shrink:0;padding:4px 9px;border-radius:999px;background:var(--sage-bg);color:var(--forest);font:600 10.5px var(--font-body);}
 .today-soon-pill-overdue{background:var(--amber-bg);color:var(--amber-dark);}
-.today-soon-row > svg{flex-shrink:0;color:var(--ink-faint);}
+.today-soon-row > svg{flex-shrink:0;color:var(--ink-soft);}
 [dir="rtl"] .today-soon-row > svg{transform:scaleX(-1);}
 
 .messages-filter{display:flex;gap:8px;margin-bottom:14px;}
