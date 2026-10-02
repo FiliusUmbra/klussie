@@ -412,7 +412,7 @@ describe("propertyHealthStatus", () => {
 
   it("is good when something real is open and none of it is overdue", () => {
     expect(propertyHealthStatus([obligation(), obligation({ id: "ob-2" })]))
-      .toEqual({ status: "good", overdueCount: 0 });
+      .toEqual({ status: "good", overdueCount: 0, openCount: 2 });
   });
 
   it("needs attention when at least one open item is overdue, with the real count", () => {
@@ -420,7 +420,7 @@ describe("propertyHealthStatus", () => {
       obligation({ id: "ob-1", isOverdue: true }),
       obligation({ id: "ob-2", isOverdue: true }),
       obligation({ id: "ob-3" }),
-    ])).toEqual({ status: "attention", overdueCount: 2 });
+    ])).toEqual({ status: "attention", overdueCount: 2, openCount: 3 });
   });
 
   it("ignores completed and cancelled entries — only open ones count either way", () => {
@@ -435,6 +435,6 @@ describe("propertyHealthStatus", () => {
     expect(propertyHealthStatus([
       obligation({ id: "ob-1" }),
       obligation({ id: "ob-2", status: "completed", isOverdue: true }),
-    ])).toEqual({ status: "good", overdueCount: 0 });
+    ])).toEqual({ status: "good", overdueCount: 0, openCount: 1 });
   });
 });

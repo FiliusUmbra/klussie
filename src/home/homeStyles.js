@@ -375,6 +375,9 @@ export const HOME_CSS = `
 .property-health-text{ display:flex; flex-direction:column; gap:2px; }
 .property-health-title{ font-size:13px; font-weight:700; color:var(--ink); }
 .property-health-body{ font-size:12px; line-height:1.4; color:var(--ink-soft); }
+.property-health-bar{ display:block; height:6px; border-radius:999px; background:rgba(22,35,28,0.12); overflow:hidden; margin-top:6px; }
+.property-health-bar-fill{ display:block; height:100%; border-radius:999px; background:var(--forest-dark); transition:width var(--motion-base); }
+.property-health-attention .property-health-bar-fill{ background:var(--amber-dark); }
 
 .home-panel-action{
   display:inline-flex; align-items:center; justify-content:center; gap:var(--space-2);
