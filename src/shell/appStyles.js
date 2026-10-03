@@ -29,9 +29,15 @@ export const APP_CSS = `
    Unchanged from before the phone-frame removal: real, active usage in
    WorkspaceSwitcher.jsx, PropertySwitcher.jsx and ProJobs.jsx, none of which moved. */
 .role-switch{ display:flex; align-items:center; gap:10px; }
-.segmented{ display:flex; background:rgba(255,255,255,0.08); border-radius:999px; padding:3px; }
-.segmented button{ border:none; background:none; color:#c9d6cd; font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:999px; cursor:pointer; font-family:var(--font-body); }
-.segmented .seg-on{ background:var(--surface); color:var(--forest); }
+/* Found live, 2026-10-03: this control was written for the old dark phone-frame header
+   (pale #c9d6cd labels on a translucent-white track) but every real caller now sits on the
+   light paper background — Requests, Pro Jobs, the property switcher, business and
+   become-a-pro tabs — where the inactive labels measured ~1.4:1, effectively invisible.
+   Restyled for the light app (the drafted pill tabs): sage track, ink-soft inactive text,
+   white active pill. Also lifts the buttons to the 44px touch-target floor. */
+.segmented{ display:flex; background:var(--sage-bg); border-radius:999px; padding:3px; }
+.segmented button{ border:none; background:none; color:var(--ink-soft); font-size:12.5px; font-weight:600; padding:6px 14px; min-height:44px; border-radius:999px; cursor:pointer; font-family:var(--font-body); }
+.segmented .seg-on{ background:var(--surface); color:var(--forest); box-shadow:0 1px 2px rgba(31,77,58,0.12); }
 /* LanguageSwitcher.jsx's own two variants — also restored here for the same reason.
    UX redesign, 2026-09-28 — the plain (non-light) variant below is no longer reachable:
    the dark .topbar it was built for is gone, and AppShell.jsx now always passes "light"
