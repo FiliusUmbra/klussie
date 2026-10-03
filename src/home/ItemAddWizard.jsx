@@ -157,7 +157,7 @@ export function ItemAddWizard({ t, ownerId, propertyId, rooms, initialLocationId
   };
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="tour">
         <p className="tour-progress">{interpolate(t.itemWizardStepProgress, { n: stepIndex + 1, total: STEPS.length })}</p>
 

@@ -23,13 +23,23 @@
 //    settings page a scroll away from the leads it affects was the actual bug, not a
 //    layout preference.
 import { useEffect, useState } from "react";
-import { ClipboardList, TrendingUp, BadgeCheck } from "lucide-react";
+import { TrendingUp, BadgeCheck, Pause, Play, HelpCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, JobCard } from "../design-system";
 import { JobDetailsSummary, AiAnalysisSummary, RequestPhotosStrip } from "../requests";
 import { PRO_TYPE_FLEXI } from "../lib/proStatus.js";
 import { updateProProfile } from "../lib/pros";
+import { greetingLine } from "../home/useHomeContext.js";
+import { PageTour } from "../ui/PageTour.jsx";
+import { usePageTour } from "../ui/usePageTour.js";
+import { requestTitle } from "../lib/requestTitle.js";
+
+// PageTour.jsx steps (2026-10-03) — the availability control and the lead list.
+const PRO_TODAY_TOUR_STEPS = [
+  { id: "pro-pause", titleKey: "pageTourProTodayStep1Title", bodyKey: "pageTourProTodayStep1Body" },
+  { id: "pro-leads", titleKey: "pageTourProTodayStep2Title", bodyKey: "pageTourProTodayStep2Body" },
+];
 
 function seenLeadsKey(proId) {
   return `klussie.seenLeadIds.${proId}`;
@@ -70,6 +80,7 @@ function useSeenLeadIds(proId, leadIds) {
 export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled }) {
   const { t, serviceInfo, whenLabel } = useLang();
   const { proProfile, user, refreshProfile } = useAuth();
+  const tour = usePageTour("proToday");
   const isNewLead = useSeenLeadIds(user.id, leads.map((r) => r.id));
   const [pausing, setPausing] = useState(false);
   const [pauseError, setPauseError] = useState("");
@@ -106,22 +117,26 @@ export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled }) {
 
   return (
     <div className="pad">
-      <div className="hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{proInfo.name || t.proFallbackName}</div></div><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} /></div>
+      {/* Visual-refresh direction, 2026-10-03 — the same greeting header Today has (time of
+          day + first name), with the pause control as a status card instead of a bare button.
+          Same toggle, same copy; only the presentation moved. */}
+      <div className="hello pro-hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{greetingLine(t, proInfo.name)}</div></div><div className="daily-heading-actions"><button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} /></div></div>
 
       {proProfile.paused ? (
-        <div className="empty-block" style={{ marginBottom: 16 }}>
-          <ClipboardList size={22} color="var(--ink-soft)" />
+        <div className="pro-availability pro-availability-paused" data-tour="pro-pause" style={{ marginBottom: 16 }}>
+          <span className="pro-availability-icon" aria-hidden="true"><Pause size={18} /></span>
           <p><b>{t.pausedBannerTitle}</b><br />{t.pausedBannerMsg}</p>
-          <button className="btn-primary" disabled={pausing} onClick={togglePaused}>{t.resumeProfileBtn}</button>
+          <button className="btn-primary" disabled={pausing} onClick={togglePaused}><Play size={14} aria-hidden="true" /> {t.resumeProfileBtn}</button>
         </div>
       ) : (
-        <button className="btn-secondary" style={{ marginBottom: pauseError ? 6 : 16 }} disabled={pausing} onClick={togglePaused}>
-          {t.pauseProfileBtn}
+        <button className="btn-secondary pro-pause-btn" data-tour="pro-pause" style={{ marginBottom: pauseError ? 6 : 16 }} disabled={pausing} onClick={togglePaused}>
+          <Pause size={14} aria-hidden="true" /> {t.pauseProfileBtn}
         </button>
       )}
       {pauseError && <div className="fineprint" style={{ color: "#b3432f", justifyContent: "flex-start", marginBottom: 16 }}>{pauseError}</div>}
 
-      <div className="section-title">{t.newLeadsTitle}</div>
+      {tour.open && <PageTour steps={PRO_TODAY_TOUR_STEPS} onFinish={tour.finish} />}
+      <div className="section-title" data-tour="pro-leads">{t.newLeadsTitle}</div>
       {leads.length === 0 && <div className="empty-block"><TrendingUp size={22} color="var(--ink-soft)" /><p>{t.noLeadsMsg}</p></div>}
       {leads.map((r) => {
         // Beta priority: approximate location during quoting (migration 0187) —
@@ -135,7 +150,7 @@ export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled }) {
         return (
           <JobCard
             key={r.id}
-            title={serviceInfo(r.serviceId).name}
+            title={requestTitle(r, serviceInfo, t.navRequests)}
             badge={isNewLead(r.id) && <Badge tone="amber">{t.newBadge}</Badge>}
             subtitle={`${whenLabel(r.answers.when)} · ${r.answers.budget ? `€${r.answers.budget}` : t.budgetFlexible}${municipality ? ` · ${municipality}` : ""}`}
             footer={<button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>}

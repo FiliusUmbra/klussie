@@ -173,7 +173,7 @@ export function LocationFormSheet({ t, propertyId, actorRef, rooms, room, onClos
   };
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{editing ? t.locationEditTitle : t.locationFormAddTitle}</div>
 
       <label className="field-label" htmlFor="location-name">{t.locationFormNameLabel}</label>

@@ -52,7 +52,7 @@ export function SendQuoteSheet({ lead, onClose, onSubmit }) {
     }
   };
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.sendQuoteTitle}</div>
       <div className="sheet-sub">{serviceInfo(lead.serviceId).name}</div>
       <JobDetailsSummary serviceId={lead.serviceId} fields={lead.answers.fields} />

@@ -14,7 +14,7 @@ export function InvoiceSheet({ request, quote, onClose }) {
   const pro = quote.pro;
   const { vat, total } = invoiceTotals(quote.price);
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.invoiceTitle}</div>
       <div className="invoice-box">
         <div className="invoice-row"><span>{t.invoiceRef}</span><span>KLS-{request.id.toUpperCase()}</span></div>

@@ -71,7 +71,7 @@ export function CaseDetailSheet({ caseDetail, actorRef, onClose, onDecided }) {
   const canSubmit = action && (action !== "suspend" || capabilityKey.trim().length > 0);
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} variant="page">
       <div className="sheet-title">{caseDetail.reportedWorkspaceName || "(unnamed workspace)"}</div>
       <Badge tone={caseDetail.status === "escalated" ? "amber" : caseDetail.status === "resolved" ? "sage" : "forest"}>
         {caseDetail.status}

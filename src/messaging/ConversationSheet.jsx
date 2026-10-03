@@ -156,7 +156,7 @@ export function ConversationSheet({ conversationId, userId, workspaceId, otherNa
   };
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{otherName || t.counterpartFallbackName}</div>
       {messages === null && messagesLoadError ? (
         <div className="pad">

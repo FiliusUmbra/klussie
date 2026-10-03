@@ -95,7 +95,7 @@ export function SupportAccessSheet({ workspaceId, workspaceName, actorRef, onClo
   const canSubmit = purpose.trim().length > 0;
 
   return (
-    <Drawer onClose={onClose}>
+    <Drawer onClose={onClose} variant="page">
       <div className="sheet-title">Support access</div>
       <div className="fineprint" style={{ justifyContent: "flex-start", marginTop: 4 }}>
         {workspaceName || "(unnamed workspace)"}

@@ -63,13 +63,17 @@ function useFocusTrap(panelRef, active) {
   }, [panelRef, active]);
 }
 
-export function Drawer({ children, onClose, closeLabel = "Close", labelledBy, describedBy }) {
+// `variant="page"` (2026-10-03, the no-sliding-sheets mandate + the drafted Request screen):
+// the same focus-trapped, Escape-closable dialog, but presented as a full-screen page
+// instead of a bottom sheet — no scrim, no grabber, no rounded top edge. Optional, so
+// every existing Drawer caller is untouched; callers move over one screen at a time.
+export function Drawer({ children, onClose, closeLabel = "Close", labelledBy, describedBy, variant }) {
   const panelRef = useRef(null);
   useFocusTrap(panelRef, true);
 
   return (
     <div
-      className="sheet-overlay"
+      className={"sheet-overlay" + (variant === "page" ? " sheet-overlay-page" : "")}
       onClick={onClose}
       // Found by code audit, 2026-09-11: no stopPropagation, unlike Modal's own
       // identical handler just below -- and several sheets nest a second Drawer-based
@@ -86,7 +90,7 @@ export function Drawer({ children, onClose, closeLabel = "Close", labelledBy, de
     >
       <div
         ref={panelRef}
-        className="sheet"
+        className={"sheet" + (variant === "page" ? " sheet-page" : "")}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}

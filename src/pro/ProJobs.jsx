@@ -8,9 +8,19 @@
 // dropping the seg-based gate entirely. Nothing about ProJobDetailSheet.jsx itself is
 // segment-specific — it already renders whatever job/quote state it's given.
 import { useState } from "react";
+import { HelpCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Badge, Rating, JobCard } from "../design-system";
 import { interpolate } from "../lib/homeStrings.js";
+import { PageTour } from "../ui/PageTour.jsx";
+import { usePageTour } from "../ui/usePageTour.js";
+import { requestTitle } from "../lib/requestTitle.js";
+
+// PageTour.jsx steps (2026-10-03) — the three-way split and the job list itself.
+const PRO_JOBS_TOUR_STEPS = [
+  { id: "pro-jobs-segments", titleKey: "pageTourProJobsStep1Title", bodyKey: "pageTourProJobsStep1Body" },
+  { id: "pro-jobs-list", titleKey: "pageTourProJobsStep2Title", bodyKey: "pageTourProJobsStep2Body" },
+];
 
 const SEGMENTS = ["booked", "sent", "completed"];
 
@@ -24,18 +34,24 @@ const SEGMENT_BADGE = {
 export function ProJobs({ sent, booked, completed, proId, onOpenJob }) {
   const { t, fmt, serviceInfo } = useLang();
   const [seg, setSeg] = useState("booked");
+  const tour = usePageTour("proJobs");
   const lists = { sent, booked, completed };
   const list = lists[seg];
   const segmentLabels = { sent: t.segSent, booked: t.segBooked, completed: t.segDone };
   return (
     <div className="pad">
-      <div className="h1" style={{ marginBottom: 14 }}>{t.myJobsTitle}</div>
-      <div className="segmented" style={{ marginBottom: 16 }}>
+      <div className="hello" style={{ marginBottom: 14 }}>
+        <div className="h1">{t.myJobsTitle}</div>
+        <button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button>
+      </div>
+      {tour.open && <PageTour steps={PRO_JOBS_TOUR_STEPS} onFinish={tour.finish} />}
+      <div className="segmented" style={{ marginBottom: 16 }} data-tour="pro-jobs-segments">
         {SEGMENTS.map((s) => (
           <button key={s} className={seg === s ? "seg-on" : ""} onClick={() => setSeg(s)}>{segmentLabels[s]} ({lists[s].length})</button>
         ))}
       </div>
 
+      <div data-tour="pro-jobs-list">
       {list.length === 0 && <div className="empty-block"><p>{t.nothingHereYet}</p></div>}
 
       {list.map((r) => {
@@ -45,7 +61,7 @@ export function ProJobs({ sent, booked, completed, proId, onOpenJob }) {
           <JobCard
             key={r.id}
             onClick={onOpenJob ? () => onOpenJob(r) : undefined}
-            title={serviceInfo(r.serviceId).name}
+            title={requestTitle(r, serviceInfo, t.navRequests)}
             badge={<Badge tone={badge.tone}>{t[badge.labelKey]}</Badge>}
             subtitle={`${t.yourQuoteLabel} €${fmt(myQuote?.price ?? 0)}`}
           >
@@ -54,6 +70,7 @@ export function ProJobs({ sent, booked, completed, proId, onOpenJob }) {
           </JobCard>
         );
       })}
+      </div>
     </div>
   );
 }

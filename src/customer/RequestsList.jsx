@@ -16,6 +16,7 @@ import { StatusPill } from "../requests";
 import { PageTour } from "../ui/PageTour.jsx";
 import { usePageTour } from "../ui/usePageTour.js";
 import { OPEN_STATUSES, statusPresentation } from "../lib/requestStatus.js";
+import { requestTitle } from "../lib/requestTitle.js";
 
 // PageTour.jsx steps (2026-10-03) — the real header action and the Active/History split.
 const REQUESTS_TOUR_STEPS = [
@@ -24,7 +25,10 @@ const REQUESTS_TOUR_STEPS = [
 ];
 
 export function RequestsList({ requests, onOpen, onCreateRequest }) {
-  const { t, fmtDate, serviceInfo, whenLabel } = useLang();
+  const { t, fmtDate, serviceInfo, whenLabel, CATS = [], BASE_SERVICES = [] } = useLang();
+  // The service's own category icon (the same one Today's tiles use) when the catalog
+  // knows it, the generic clipboard otherwise — never a blank tile.
+  const categoryIcon = (serviceId) => CATS.find((c) => c.id === BASE_SERVICES.find((b) => b.id === serviceId)?.cat)?.icon || ClipboardList;
   const [seg, setSeg] = useState("active");
   const tour = usePageTour("requests");
 
@@ -82,9 +86,9 @@ export function RequestsList({ requests, onOpen, onCreateRequest }) {
         // quiet footer line. Same data and same click target as the JobCard it replaces.
         <button key={r.id} type="button" className="req-row" onClick={() => onOpen(r.id)}>
           <span className="req-row-head">
-            <span className={"req-row-icon" + (statusPresentation(r.status).tone === "amber" ? " req-row-icon-amber" : "")} aria-hidden="true"><ClipboardList size={19} /></span>
+            <span className={"req-row-icon" + (statusPresentation(r.status).tone === "amber" ? " req-row-icon-amber" : "")} aria-hidden="true">{(() => { const Icon = categoryIcon(r.serviceId); return <Icon size={19} />; })()}</span>
             <span className="req-row-text">
-              <strong>{serviceInfo(r.serviceId).name}</strong>
+              <strong>{requestTitle(r, serviceInfo, t.myRequestsTitle)}</strong>
               <small>{`${whenLabel(r.answers.when)} · ${fmtDate(r.createdAt)}`}</small>
             </span>
             <StatusPill status={r.status} />

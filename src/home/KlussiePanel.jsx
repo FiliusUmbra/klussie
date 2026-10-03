@@ -19,6 +19,7 @@ import { ConversationCanvas } from "./ConversationCanvas.jsx";
 import { VoiceCapturePanel } from "./VoiceCapturePanel.jsx";
 import { PhotoCapturePanel } from "./PhotoCapturePanel.jsx";
 import { useIntentFlow } from "./useIntentFlow.js";
+import { requestTitle } from "../lib/requestTitle.js";
 
 // UX redesign, 2026-09-28 — capped, not the full in-flight list: "at most three
 // actionable items, with a link to all Requests" (brief). The cap counts HomeTodayCard's
@@ -45,7 +46,7 @@ function ActiveRequests({ t, requests, serviceInfo, onOpenRequest }) {
                 </span>
               )}
               <span className="home-active-text">
-                <span className="home-active-name">{serviceInfo(r.serviceId).name}</span>
+                <span className="home-active-name">{requestTitle(r, serviceInfo, t.navRequests)}</span>
                 <span className="home-active-state">{copy ? t[copy.titleKey] : ""}</span>
               </span>
               <ChevronRight className="home-active-chevron" size={15} aria-hidden="true" />

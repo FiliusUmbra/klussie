@@ -13,6 +13,7 @@ import { TodayHomeSummary } from './TodayHomeSummary.jsx';
 import { greetingLine } from './useHomeContext.js';
 
 import { DAILY_CLEAR } from '../lib/dailyStrings.js';
+import { requestTitle } from '../lib/requestTitle.js';
 
 // Today's own PageTour.jsx steps — the three real shortcuts this screen is built
 // around (Help, My Home, Family), each anchored to its own data-tour attribute below.
@@ -48,7 +49,7 @@ export function DailyHome({ requests, conversations, onHelp, onHome, onFamily, o
     </div>
     <section className="daily-section"><div className="daily-section-title"><h2>{t.homeForYouTitle}</h2><button type="button" onClick={onRequests}>{t.navRequests}</button></div>
       {!attention.length && !unread && <p className="daily-empty">{DAILY_CLEAR[langCode] || DAILY_CLEAR.en}</p>}
-      {attention.slice(0,3).map((request) => <button className="daily-row" type="button" key={request.id} onClick={() => onRequest(request.id)}><span><strong>{serviceInfo(request.serviceId).name}</strong><small>{t[statusPresentation(request.status).labelKey]}</small></span><ChevronRight size={18} aria-hidden="true" /></button>)}
+      {attention.slice(0,3).map((request) => <button className="daily-row" type="button" key={request.id} onClick={() => onRequest(request.id)}><span><strong>{requestTitle(request, serviceInfo, t.navRequests)}</strong><small>{t[statusPresentation(request.status).labelKey]}</small></span><ChevronRight size={18} aria-hidden="true" /></button>)}
       {unread>0 && <button type="button" className="daily-row" onClick={onMessages}><span>{t.navMessages}</span><span className="daily-count">{unread}</span><ChevronRight size={18} aria-hidden="true" /></button>}
     </section>
     <section className="daily-section"><div className="daily-section-title"><h2>{f.title}</h2>{family.groups.length>1 && <select aria-label={f.familyName} value={family.selected || ''} onChange={(e) => family.setSelected(e.target.value)}>{family.groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>}{family.groups.length===1 && <span>{family.groups[0].name}</span>}</div>
