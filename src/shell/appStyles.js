@@ -345,6 +345,12 @@ export const APP_CSS = `
 .sheet-close{ position:absolute; top:12px; inset-inline-end:16px; background:var(--surface); border:1px solid var(--line); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); }
 .sheet-close::after{ content:""; position:absolute; inset:-8px; }
 .sheet-scroll{ overflow-y:auto; max-height:calc(88vh - 40px); padding-top:8px; }
+/* Drawer variant="page" — a full-screen page, not a bottom sheet (overlays.jsx's own note). */
+.sheet-overlay-page{ background:var(--paper); align-items:stretch; justify-content:center; }
+.sheet-page{ max-height:none; height:100%; max-width:720px; border-radius:0; box-shadow:none; padding:calc(14px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; }
+.sheet-page .sheet-grabber{ display:none; }
+.sheet-page .sheet-scroll{ flex:1; max-height:none; padding-top:36px; }
+.sheet-page .sheet-close{ top:calc(12px + env(safe-area-inset-top, 0px)); }
 .sheet-icon-lg{ width:44px; height:44px; border-radius:13px; background:var(--sage-bg); display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
 .sheet-title{ font-family:var(--font-display); font-size:19px; font-weight:600; color:var(--ink); margin-bottom:4px; }
 .sheet-sub{ font-size:12.5px; color:var(--ink-soft); margin-bottom:12px; display:flex; align-items:center; gap:4px; flex-wrap:wrap; }

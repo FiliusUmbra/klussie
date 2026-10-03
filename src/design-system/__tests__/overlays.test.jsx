@@ -151,3 +151,21 @@ describe("Drawer/Modal — Escape and backdrop click", () => {
     });
   });
 });
+
+describe("Drawer variant", () => {
+  it("is a bottom sheet by default and a full-screen page only when asked", () => {
+    const { rerender, container } = render(<Drawer onClose={() => {}}>x</Drawer>);
+    expect(container.querySelector(".sheet-overlay-page")).toBeNull();
+    expect(container.querySelector(".sheet-page")).toBeNull();
+    rerender(<Drawer onClose={() => {}} variant="page">x</Drawer>);
+    expect(container.querySelector(".sheet-overlay-page")).toBeTruthy();
+    expect(container.querySelector(".sheet-page")).toBeTruthy();
+  });
+  it("keeps the dialog semantics and Escape-to-close in page mode", () => {
+    const onClose = vi.fn();
+    render(<Drawer onClose={onClose} variant="page">x</Drawer>);
+    expect(screen.getByRole("dialog").getAttribute("aria-modal")).toBe("true");
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+  });
+});
