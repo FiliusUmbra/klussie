@@ -78,6 +78,23 @@ export const CALM_CSS = `
 .msg-row-preview{flex:1;min-width:0;font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .msg-row-unread .msg-row-preview{color:var(--ink);font-weight:500;}
 
+.req-row{display:block;width:100%;margin-bottom:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-card);text-align:start;font-family:var(--font-body);cursor:pointer;}
+.req-row-head{display:flex;align-items:center;gap:12px;}
+.req-row-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:var(--sage-bg);color:var(--forest);}
+.req-row-icon-amber{background:var(--amber-bg);color:var(--amber-dark);}
+.req-row-text{flex:1;min-width:0;}
+.req-row-text strong{display:block;font:600 14px var(--font-body);color:var(--ink);overflow-wrap:anywhere;}
+.req-row-text small{display:block;margin-top:2px;font-size:11.5px;color:var(--ink-soft);}
+.req-row-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--ink-soft);}
+.req-row-foot .waiting{display:flex;align-items:center;gap:6px;}
+
+/* Profile identity block (Profile.jsx via ProfileIdentityHeader.jsx) — the drafted Account
+   screen: centered, larger gradient avatar. Shared with the pro profile on purpose (one
+   unified Profile screen), so both pick it up. */
+.profile-head{flex-direction:column;text-align:center;gap:10px;margin-bottom:14px;}
+.profile-head .avatar-lg{width:76px;height:76px;font:600 30px var(--font-display);background:linear-gradient(135deg,var(--sage),var(--forest));}
+.profile-head .h1{font-size:22px !important;}
+
 .messages-filter{display:flex;gap:8px;margin-bottom:14px;}
 .messages-filter-pill{min-height:44px;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font:600 12px var(--font-body);cursor:pointer;}
 .messages-filter-pill-on{background:var(--forest);border-color:var(--forest);color:#fff;}
