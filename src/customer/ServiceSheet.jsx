@@ -18,7 +18,7 @@ export function ServiceSheet({ service, onClose, onRequest }) {
   // the codebase already has it. See that file's own comment for why this is currently
   // unreachable (CustomerApp.jsx's own header) and fixed anyway.
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-icon-lg"><Icon size={22} color="var(--forest)" /></div>
       <div className="sheet-title">{info.name}</div>
       {service.certifiedOnly && <Badge tone="forest">{t.certifiedOnlyBadge}</Badge>}

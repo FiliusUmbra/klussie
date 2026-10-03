@@ -62,7 +62,7 @@ export function PortfolioItemSheet({ item, onClose, onChanged }) {
   };
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <img src={item.image_url} alt="" style={{ width: "100%", borderRadius: 12, marginBottom: 14 }} />
       <label className="field-label">{t.captionLabel}</label>
       <div className="search" style={{ marginBottom: 16 }}>

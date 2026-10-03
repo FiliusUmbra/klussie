@@ -85,7 +85,7 @@ export function EditProfileSheet({ onClose, onSaved }) {
   };
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.editProfileTitle}</div>
 
       <div className="avatar-upload-row">

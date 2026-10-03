@@ -54,7 +54,7 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
   // for a real customer right now; fixed anyway since both are real bugs the moment this
   // surface is reconnected, and the fix is a trivial, already-proven pattern match.
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.quoteFormTitle}</div>
       <div className="sheet-sub">{t.forService} {info.name}</div>
 
