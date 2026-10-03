@@ -10,6 +10,11 @@ import { LangContext } from "../../lib/lang";
 import { MessagesList } from "../MessagesList.jsx";
 import { messageStamp } from "../../lib/messageStamp.js";
 
+// PageTour.jsx / usePageTour.js have their own tests — held closed here so these stay on
+// the page's own concerns; the tour wiring is asserted separately below.
+const tourState = vi.hoisted(() => ({ open: false, replay: vi.fn() }));
+vi.mock("../../ui/usePageTour.js", () => ({ usePageTour: () => ({ open: tourState.open, finish: vi.fn(), replay: tourState.replay }) }));
+
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = { t, serviceInfo: (id) => ({ name: `service:${id}`, blurb: "" }) };
 
@@ -127,5 +132,21 @@ describe("messageStamp", () => {
   });
   it("shows a date for anything older", () => {
     expect(messageStamp(new Date(2026, 8, 1, 9, 5).getTime(), { fmtDate, langCode: "en", now })).toBe("date:2026");
+  });
+});
+
+describe("MessagesList tour wiring", () => {
+  const convo = { id: "c1", otherName: "Pierre", unreadCount: 0, lastMessage: { body: "hi", createdAt: 1 }, serviceId: null };
+  const renderList = (conversations) => render(
+    <LangContext.Provider value={{ t, serviceInfo: () => ({ name: "" }), fmtDate: () => "", langCode: "en" }}>
+      <MessagesList conversations={conversations} onOpen={() => {}} />
+    </LangContext.Provider>
+  );
+  it("anchors the tour on the first conversation and the filter, and offers a replay", () => {
+    renderList([convo]);
+    expect(document.querySelector('[data-tour="messages-first"]')).toBeTruthy();
+    expect(document.querySelector('[data-tour="messages-filter"]')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("helpReplayTour"));
+    expect(tourState.replay).toHaveBeenCalled();
   });
 });

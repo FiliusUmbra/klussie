@@ -15,6 +15,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { LangContext } from "../../lib/lang";
 import { RequestsList } from "../RequestsList.jsx";
 
+// PageTour.jsx / usePageTour.js have their own tests — held closed here so these stay on
+// the page's own concerns; the tour wiring is asserted separately below.
+const tourState = vi.hoisted(() => ({ open: false, replay: vi.fn() }));
+vi.mock("../../ui/usePageTour.js", () => ({ usePageTour: () => ({ open: tourState.open, finish: vi.fn(), replay: tourState.replay }) }));
+
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = {
   t,
@@ -96,5 +101,15 @@ describe("RequestsList", () => {
     renderList({ requests: [request({ status: "quotes_ready" })] });
     fireEvent.click(screen.getByText(/requestsHistorySeg/));
     expect(screen.getByText("requestsHistoryEmpty")).toBeTruthy();
+  });
+});
+
+describe("RequestsList tour wiring", () => {
+  it("anchors the tour on New request and the Active/History split, and offers a replay", () => {
+    render(<LangContext.Provider value={ctx}><RequestsList requests={[request()]} onOpen={() => {}} onCreateRequest={() => {}} /></LangContext.Provider>);
+    expect(document.querySelector('[data-tour="requests-new"]')).toBeTruthy();
+    expect(document.querySelector('[data-tour="requests-segments"]')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("helpReplayTour"));
+    expect(tourState.replay).toHaveBeenCalled();
   });
 });
