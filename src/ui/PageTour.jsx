@@ -82,6 +82,27 @@ export function PageTour({ steps, onFinish }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onFinish]);
 
+  // Locks the page's own scrolling while the tour is open (founder feedback, 2026-10-03:
+  // scrolling under the ring made the highlight and card look detached and "bugged").
+  // Event-level rather than `overflow:hidden` on the scroller — hiding the scrollbar
+  // would shift the layout under the ring, and the tour's own programmatic
+  // scrollIntoView() (above) is unaffected by blocked user input. Scrolling inside the
+  // card itself stays allowed, and Space/Enter on its buttons keep working.
+  useEffect(() => {
+    const insideCard = (target) => target instanceof Element && target.closest(".page-tour-card");
+    const block = (e) => { if (!insideCard(e.target)) e.preventDefault(); };
+    const SCROLL_KEYS = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"];
+    const blockKeys = (e) => { if (SCROLL_KEYS.includes(e.key) && !insideCard(e.target)) e.preventDefault(); };
+    window.addEventListener("wheel", block, { passive: false });
+    window.addEventListener("touchmove", block, { passive: false });
+    window.addEventListener("keydown", blockKeys);
+    return () => {
+      window.removeEventListener("wheel", block);
+      window.removeEventListener("touchmove", block);
+      window.removeEventListener("keydown", blockKeys);
+    };
+  }, []);
+
   // The target isn't mounted (a conditional section, a slow data fetch, a step
   // misconfigured for this page) — never point at nothing.
   if (!rect) return null;

@@ -17,22 +17,35 @@
 // always empty, would be a claim with no data behind it). Unread is real: it filters on
 // the same unreadCount the row badge already shows.
 import { useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, HelpCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Avatar, Badge, Button } from "../design-system";
+import { PageTour } from "../ui/PageTour.jsx";
+import { usePageTour } from "../ui/usePageTour.js";
 import { messageStamp } from "../lib/messageStamp.js";
+
+// PageTour.jsx steps (2026-10-03) — only shown once there is a conversation to point at.
+const MESSAGES_TOUR_STEPS = [
+  { id: "messages-first", titleKey: "pageTourMessagesStep1Title", bodyKey: "pageTourMessagesStep1Body" },
+  { id: "messages-filter", titleKey: "pageTourMessagesStep2Title", bodyKey: "pageTourMessagesStep2Body" },
+];
 
 export function MessagesList({ conversations, onOpen, hasRequests, onViewRequests, onCreateRequest }) {
   const { t, serviceInfo, fmtDate, langCode } = useLang();
   const [filter, setFilter] = useState("all");
+  const tour = usePageTour("messages");
   const emptyAction = hasRequests ? onViewRequests : onCreateRequest;
   const emptyActionLabel = hasRequests ? t.messagesViewRequestsBtn : t.requestsEmptyCta;
   const visible = filter === "unread" ? conversations.filter((c) => c.unreadCount > 0) : conversations;
   return (
     <div className="pad">
-      <div className="h1" style={{ marginBottom: 14 }}>{t.messagesTitle}</div>
+      <div className="hello" style={{ marginBottom: 14 }}>
+        <div className="h1">{t.messagesTitle}</div>
+        <button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button>
+      </div>
+      {tour.open && conversations.length > 0 && <PageTour steps={MESSAGES_TOUR_STEPS} onFinish={tour.finish} />}
       {conversations.length > 0 && (
-        <div className="messages-filter" role="group" aria-label={t.messagesTitle}>
+        <div className="messages-filter" data-tour="messages-filter" role="group" aria-label={t.messagesTitle}>
           {[["all", t.messagesFilterAll], ["unread", t.messagesFilterUnread]].map(([id, label]) => (
             <button
               key={id}
@@ -60,14 +73,14 @@ export function MessagesList({ conversations, onOpen, hasRequests, onViewRequest
           )}
         </div>
       )}
-      {visible.map((c) => {
+      {visible.map((c, i) => {
         const name = c.otherName || t.counterpartFallbackName;
         const unread = c.unreadCount > 0;
         return (
           // Visual-refresh direction, 2026-10-02 — the drafted row: avatar initial, name
           // with the service as the secondary line, a one-line preview, the time of the
           // last message, and the unread count. Same data as the JobCard it replaces.
-          <button key={c.id} type="button" className={"msg-row" + (unread ? " msg-row-unread" : "")} onClick={() => onOpen(c)}>
+          <button key={c.id} type="button" data-tour={i === 0 ? "messages-first" : undefined} className={"msg-row" + (unread ? " msg-row-unread" : "")} onClick={() => onOpen(c)}>
             <Avatar initials={name.trim()[0]?.toUpperCase()} />
             <span className="msg-row-main">
               <span className="msg-row-top">

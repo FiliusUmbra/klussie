@@ -9,15 +9,24 @@
 // real intake flow, not a second one invented for this screen) and Active/History,
 // the same `.segmented` pattern ProJobs.jsx already established for an identical split.
 import { useState } from "react";
-import { ClipboardList, ChevronRight, Clock, Plus } from "lucide-react";
+import { ClipboardList, ChevronRight, Clock, Plus, HelpCircle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Button } from "../design-system";
 import { StatusPill } from "../requests";
+import { PageTour } from "../ui/PageTour.jsx";
+import { usePageTour } from "../ui/usePageTour.js";
 import { OPEN_STATUSES, statusPresentation } from "../lib/requestStatus.js";
+
+// PageTour.jsx steps (2026-10-03) — the real header action and the Active/History split.
+const REQUESTS_TOUR_STEPS = [
+  { id: "requests-new", titleKey: "pageTourRequestsStep1Title", bodyKey: "pageTourRequestsStep1Body" },
+  { id: "requests-segments", titleKey: "pageTourRequestsStep2Title", bodyKey: "pageTourRequestsStep2Body" },
+];
 
 export function RequestsList({ requests, onOpen, onCreateRequest }) {
   const { t, fmtDate, serviceInfo, whenLabel } = useLang();
   const [seg, setSeg] = useState("active");
+  const tour = usePageTour("requests");
 
   const active = requests.filter((r) => OPEN_STATUSES.includes(r.status));
   const history = requests.filter((r) => !OPEN_STATUSES.includes(r.status));
@@ -27,15 +36,21 @@ export function RequestsList({ requests, onOpen, onCreateRequest }) {
     <div className="pad">
       <div className="hello" style={{ marginBottom: 14 }}>
         <div className="h1">{t.myRequestsTitle}</div>
-        {onCreateRequest && (
-          <Button variant="secondary" icon={Plus} style={{ width: "auto", padding: "9px 14px" }} onClick={onCreateRequest}>
-            {t.requestsNewBtn}
-          </Button>
-        )}
+        <div className="daily-heading-actions">
+          <button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button>
+          {onCreateRequest && (
+            <span data-tour="requests-new">
+              <Button variant="secondary" icon={Plus} style={{ width: "auto", padding: "9px 14px" }} onClick={onCreateRequest}>
+                {t.requestsNewBtn}
+              </Button>
+            </span>
+          )}
+        </div>
       </div>
+      {tour.open && requests.length > 0 && <PageTour steps={REQUESTS_TOUR_STEPS.filter((st) => st.id !== "requests-new" || onCreateRequest)} onFinish={tour.finish} />}
 
       {requests.length > 0 && (
-        <div className="segmented" style={{ marginBottom: 16 }}>
+        <div className="segmented" style={{ marginBottom: 16 }} data-tour="requests-segments">
           <button className={seg === "active" ? "seg-on" : ""} onClick={() => setSeg("active")}>{t.requestsActiveSeg} ({active.length})</button>
           <button className={seg === "history" ? "seg-on" : ""} onClick={() => setSeg("history")}>{t.requestsHistorySeg} ({history.length})</button>
         </div>

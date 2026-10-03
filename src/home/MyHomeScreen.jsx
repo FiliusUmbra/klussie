@@ -20,7 +20,7 @@
 // from here directly, with Profile.jsx (Account) now only a management shortcut back
 // to this same list (its own header explains that half).
 import { useState } from "react";
-import { Plus, House } from "lucide-react";
+import { Plus, House, HelpCircle } from "lucide-react";
 import { SegmentedTabs, TabPanel } from "../design-system";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
@@ -28,6 +28,8 @@ import { MyHomePanel } from "./MyHomePanel.jsx";
 import { MyItemsPanel } from "./MyItemsPanel.jsx";
 import { PropertySwitcher } from "./PropertySwitcher.jsx";
 import { HomeStatRow } from "./HomeStatRow.jsx";
+import { PageTour } from "../ui/PageTour.jsx";
+import { usePageTour } from "../ui/usePageTour.js";
 import { AddPropertySheet } from "../profile/AddPropertySheet.jsx";
 import { useHomeContext } from "./useHomeContext.js";
 
@@ -37,6 +39,12 @@ const SECTIONS = [
 ];
 
 const ID_PREFIX = "myhome";
+
+// PageTour.jsx steps — the hero's real-data strip and the section switch.
+const MYHOME_TOUR_STEPS = [
+  { id: "myhome-hero", titleKey: "pageTourHomeStep1Title", bodyKey: "pageTourHomeStep1Body" },
+  { id: "myhome-tabs", titleKey: "pageTourHomeStep2Title", bodyKey: "pageTourHomeStep2Body" },
+];
 
 export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, activeSection, onSectionChange }) {
   const { t, dir, fmtDate, serviceInfo } = useLang();
@@ -51,6 +59,7 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
   const setSection = (next) => { if (onSectionChange) onSectionChange(next); else setLocalSection(next); };
   const [addPropertyOpen, setAddPropertyOpen] = useState(false);
 
+  const tour = usePageTour("myHome");
   const homeCtx = useHomeContext({ t, profile, requests });
   const { properties, activePropertyId, selectProperty, workspaceId, refreshItems } = homeCtx;
   const openRequest = onOpenRequest || (() => {});
@@ -70,7 +79,7 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
         {/* The drafted My Home hero (visual-refresh direction, 2026-10-02). The gradient
             cover stands in for the property photo — the Street View hero is deferred — and
             the stat row is the same real-data strip Today's card shows. */}
-        <div className="myhome-header">
+        <div className="myhome-header" data-tour="myhome-hero">
           <div className="myhome-hero-cover" aria-hidden="true"><House size={56} strokeWidth={1.3} /></div>
           <div className="myhome-hero-body">
             {activeName && <h1 className="myhome-header-name">{activeName}</h1>}
@@ -81,10 +90,12 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
               <button type="button" className="myhome-header-add" onClick={() => setAddPropertyOpen(true)}>
                 <Plus size={13} aria-hidden="true" /> {t.addPropertyBtn}
               </button>
+              <button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button>
             </div>
           </div>
         </div>
 
+        <div data-tour="myhome-tabs">
         <SegmentedTabs
           tabs={tabs}
           activeId={section}
@@ -93,6 +104,7 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
           idPrefix={ID_PREFIX}
           dir={dir}
         />
+        </div>
 
         <TabPanel id={`${ID_PREFIX}-panel-myHome`} tabId={`${ID_PREFIX}-tab-myHome`} active={section === "myHome"}>
           <MyHomePanel
@@ -132,6 +144,8 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
           />
         </TabPanel>
       </div>
+
+      {tour.open && <PageTour steps={MYHOME_TOUR_STEPS} onFinish={tour.finish} />}
 
       {addPropertyOpen && (
         <AddPropertySheet

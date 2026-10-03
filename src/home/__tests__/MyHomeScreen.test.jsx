@@ -27,6 +27,11 @@ vi.mock("../../lib/householdItems", () => ({
   deleteHouseholdItem: vi.fn(),
 }));
 
+// PageTour.jsx / usePageTour.js have their own tests — held closed here so these stay on
+// the screen's own concerns; the tour wiring is asserted separately below.
+const tourState = vi.hoisted(() => ({ open: false, replay: vi.fn() }));
+vi.mock("../../ui/usePageTour.js", () => ({ usePageTour: () => ({ open: tourState.open, finish: vi.fn(), replay: tourState.replay }) }));
+
 import { MyHomeScreen } from "../MyHomeScreen.jsx";
 import { fetchHouseholdItems } from "../../lib/householdItems";
 import { LangContext } from "../../lib/lang";
@@ -314,5 +319,15 @@ describe("My Items", () => {
     openMyItems();
     await waitFor(() => expect(screen.getByText("myItemsLoadFailed")).toBeTruthy());
     expect(screen.queryByText("myItemsEmptyTitle")).toBeNull();
+  });
+});
+
+describe("MyHomeScreen — page tour wiring", () => {
+  it("anchors the tour on the hero and the section tabs, and offers a replay", () => {
+    renderScreen();
+    expect(document.querySelector('[data-tour="myhome-hero"]')).toBeTruthy();
+    expect(document.querySelector('[data-tour="myhome-tabs"]')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("helpReplayTour"));
+    expect(tourState.replay).toHaveBeenCalled();
   });
 });
