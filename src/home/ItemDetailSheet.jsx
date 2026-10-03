@@ -700,7 +700,7 @@ export function ItemDetailSheet({
   const citedSources = groundedIn.map((source) => GROUND_SOURCE_LABELS[source]).filter(Boolean);
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       {/* Identity hero — Item Detail redesign, 2026-09-15. Replaces the old stacked
           "sheet-title, then a photo square, then a facts list, then a full-width Edit
           button" (four separate blocks reading as a form) with one grouped moment: the

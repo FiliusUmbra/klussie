@@ -350,6 +350,8 @@ export const APP_CSS = `
 .sheet-page{ max-height:none; height:100%; max-width:720px; border-radius:0; box-shadow:none; padding:calc(14px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; }
 .sheet-page .sheet-grabber{ display:none; }
 .sheet-page .sheet-scroll{ flex:1; max-height:none; padding-top:36px; }
+.sheet-page .sheet-scroll:has(> .chat-input-row){ display:flex; flex-direction:column; overflow:hidden; }
+.sheet-page .sheet-scroll:has(> .chat-input-row) .chat-scroll{ flex:1; min-height:0; max-height:none; }
 .sheet-page .sheet-close{ top:calc(12px + env(safe-area-inset-top, 0px)); }
 .sheet-icon-lg{ width:44px; height:44px; border-radius:13px; background:var(--sage-bg); display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
 .sheet-title{ font-family:var(--font-display); font-size:19px; font-weight:600; color:var(--ink); margin-bottom:4px; }
