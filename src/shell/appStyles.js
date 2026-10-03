@@ -173,7 +173,7 @@ export const APP_CSS = `
 .badge-forest{ background:var(--forest); color:#fff; }
 .badge-amber{ background:var(--amber-bg); color:var(--amber-dark); }
 
-.ticket{ position:relative; width:100%; display:block; text-align:start; background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:16px; margin-bottom:14px; cursor:pointer; font-family:var(--font-body); overflow:hidden; }
+.ticket{ position:relative; width:100%; display:block; text-align:start; background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-card); border-radius:16px; margin-bottom:14px; cursor:pointer; font-family:var(--font-body); overflow:hidden; }
 .tear{ height:1px; background:var(--line-soft); }
 .ticket-body{ padding:14px 16px 16px; }
 .ticket-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:5px; }
@@ -189,9 +189,9 @@ export const APP_CSS = `
    own header comment calls out as worth seeing without opening anything, so the title gives
    way here, not the badge: truncated with an ellipsis rather than the badge losing pixels off
    its own edge with no indication anything was cut off at all. */
-.ticket-title{ font-family:var(--font-display); font-size:15.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.ticket-title{ font-family:var(--font-body); font-size:14px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .ticket-sub{ font-size:11.5px; color:var(--ink-soft); }
-.ticket-divider{ border-top:1.5px dashed var(--line-strong); margin:11px 0; }
+.ticket-divider{ border-top:1px solid var(--line-soft); margin:11px 0; }
 .ticket-foot{ display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft); }
 /* Found by a later audit, 2026-09-11: a "this card leads forward" chevron, same
    meaning as myHomeParts.jsx's own .timeline-card-chevron (which does get flipped) —

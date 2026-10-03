@@ -24,7 +24,10 @@ const REQUESTS_TOUR_STEPS = [
 ];
 
 export function RequestsList({ requests, onOpen, onCreateRequest }) {
-  const { t, fmtDate, serviceInfo, whenLabel } = useLang();
+  const { t, fmtDate, serviceInfo, whenLabel, CATS = [], BASE_SERVICES = [] } = useLang();
+  // The service's own category icon (the same one Today's tiles use) when the catalog
+  // knows it, the generic clipboard otherwise — never a blank tile.
+  const categoryIcon = (serviceId) => CATS.find((c) => c.id === BASE_SERVICES.find((b) => b.id === serviceId)?.cat)?.icon || ClipboardList;
   const [seg, setSeg] = useState("active");
   const tour = usePageTour("requests");
 
@@ -82,7 +85,7 @@ export function RequestsList({ requests, onOpen, onCreateRequest }) {
         // quiet footer line. Same data and same click target as the JobCard it replaces.
         <button key={r.id} type="button" className="req-row" onClick={() => onOpen(r.id)}>
           <span className="req-row-head">
-            <span className={"req-row-icon" + (statusPresentation(r.status).tone === "amber" ? " req-row-icon-amber" : "")} aria-hidden="true"><ClipboardList size={19} /></span>
+            <span className={"req-row-icon" + (statusPresentation(r.status).tone === "amber" ? " req-row-icon-amber" : "")} aria-hidden="true">{(() => { const Icon = categoryIcon(r.serviceId); return <Icon size={19} />; })()}</span>
             <span className="req-row-text">
               <strong>{serviceInfo(r.serviceId).name}</strong>
               <small>{`${whenLabel(r.answers.when)} · ${fmtDate(r.createdAt)}`}</small>
