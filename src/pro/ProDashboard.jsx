@@ -33,6 +33,7 @@ import { updateProProfile } from "../lib/pros";
 import { greetingLine } from "../home/useHomeContext.js";
 import { PageTour } from "../ui/PageTour.jsx";
 import { usePageTour } from "../ui/usePageTour.js";
+import { requestTitle } from "../lib/requestTitle.js";
 
 // PageTour.jsx steps (2026-10-03) — the availability control and the lead list.
 const PRO_TODAY_TOUR_STEPS = [
@@ -149,7 +150,7 @@ export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled }) {
         return (
           <JobCard
             key={r.id}
-            title={serviceInfo(r.serviceId).name}
+            title={requestTitle(r, serviceInfo, t.navRequests)}
             badge={isNewLead(r.id) && <Badge tone="amber">{t.newBadge}</Badge>}
             subtitle={`${whenLabel(r.answers.when)} · ${r.answers.budget ? `€${r.answers.budget}` : t.budgetFlexible}${municipality ? ` · ${municipality}` : ""}`}
             footer={<button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>}

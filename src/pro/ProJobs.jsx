@@ -14,6 +14,7 @@ import { Badge, Rating, JobCard } from "../design-system";
 import { interpolate } from "../lib/homeStrings.js";
 import { PageTour } from "../ui/PageTour.jsx";
 import { usePageTour } from "../ui/usePageTour.js";
+import { requestTitle } from "../lib/requestTitle.js";
 
 // PageTour.jsx steps (2026-10-03) — the three-way split and the job list itself.
 const PRO_JOBS_TOUR_STEPS = [
@@ -60,7 +61,7 @@ export function ProJobs({ sent, booked, completed, proId, onOpenJob }) {
           <JobCard
             key={r.id}
             onClick={onOpenJob ? () => onOpenJob(r) : undefined}
-            title={serviceInfo(r.serviceId).name}
+            title={requestTitle(r, serviceInfo, t.navRequests)}
             badge={<Badge tone={badge.tone}>{t[badge.labelKey]}</Badge>}
             subtitle={`${t.yourQuoteLabel} €${fmt(myQuote?.price ?? 0)}`}
           >

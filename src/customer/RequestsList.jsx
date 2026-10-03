@@ -16,6 +16,7 @@ import { StatusPill } from "../requests";
 import { PageTour } from "../ui/PageTour.jsx";
 import { usePageTour } from "../ui/usePageTour.js";
 import { OPEN_STATUSES, statusPresentation } from "../lib/requestStatus.js";
+import { requestTitle } from "../lib/requestTitle.js";
 
 // PageTour.jsx steps (2026-10-03) — the real header action and the Active/History split.
 const REQUESTS_TOUR_STEPS = [
@@ -87,7 +88,7 @@ export function RequestsList({ requests, onOpen, onCreateRequest }) {
           <span className="req-row-head">
             <span className={"req-row-icon" + (statusPresentation(r.status).tone === "amber" ? " req-row-icon-amber" : "")} aria-hidden="true">{(() => { const Icon = categoryIcon(r.serviceId); return <Icon size={19} />; })()}</span>
             <span className="req-row-text">
-              <strong>{serviceInfo(r.serviceId).name}</strong>
+              <strong>{requestTitle(r, serviceInfo, t.myRequestsTitle)}</strong>
               <small>{`${whenLabel(r.answers.when)} · ${fmtDate(r.createdAt)}`}</small>
             </span>
             <StatusPill status={r.status} />

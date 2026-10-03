@@ -17,6 +17,7 @@ import { InvoiceSheet } from "./InvoiceSheet.jsx";
 import { ReportSheet } from "./ReportSheet.jsx";
 import { timelineSteps } from "../lib/requestStatus.js";
 import { interpolate } from "../lib/homeStrings.js";
+import { requestTitle } from "../lib/requestTitle.js";
 
 export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
@@ -30,13 +31,12 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
   // sheet's quotes_ready state offers.
   const [acceptingId, setAcceptingId] = useState(null);
   const [completing, setCompleting] = useState(false);
-  const info = serviceInfo(request.serviceId);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
   const steps = timelineSteps(request.status);
 
   return (
     <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
-      <div className="sheet-title">{info.name}</div>
+      <div className="sheet-title">{requestTitle(request, serviceInfo, t.navRequests)}</div>
       <div className="sheet-sub">{whenLabel(request.answers.when)} {"·"} "{request.answers.details}"</div>
       {steps && (
         <Timeline steps={steps.map((s) => ({ ...s, label: t[s.labelKey] }))} />
