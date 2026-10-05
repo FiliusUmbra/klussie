@@ -96,6 +96,13 @@ export const CALM_CSS = `
 .profile-head .h1{font-size:22px !important;}
 
 /* ProDashboard.jsx — greeting header and the availability control (2026-10-03). */
+.pro-setup{background:var(--amber-bg);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px;}
+.pro-setup-title{font:600 14px var(--font-body);color:var(--ink);margin-bottom:8px;}
+.pro-setup-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
+.pro-setup-list li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);}
+.pro-setup-list li span{flex:1;min-width:0;}
+.pro-setup-done{color:var(--ink-soft);}
+.pro-setup-done svg{color:var(--forest);}
 .pro-hello .h1{font:600 26px/1.15 var(--font-display);}
 .pro-pause-btn{display:flex;align-items:center;justify-content:center;gap:8px;}
 .pro-availability{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;text-align:center;background:var(--amber-bg);border:1px solid var(--line);border-radius:16px;}

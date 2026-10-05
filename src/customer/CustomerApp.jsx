@@ -29,6 +29,7 @@ import { TODAY_LABELS } from "../lib/dailyStrings.js";
 import { MyHomeScreen } from "../home/MyHomeScreen.jsx";
 import { CustomerOnboarding } from "../home/CustomerOnboarding.jsx";
 import { useHomeTour } from "../home/useHomeTour.js";
+import { TourGateContext } from "../ui/tourGate.js";
 import { MessagesList } from "../messaging/MessagesList.jsx";
 import { ConversationSheet } from "../messaging/ConversationSheet.jsx";
 import { AppNav } from "../ui/AppNav.jsx";
@@ -363,7 +364,7 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
   };
 
   return (
-    <>
+    <TourGateContext.Provider value={{ blocked: tour.open }}>
       <AppNav
         // "today" is the real landing tab; "discover" (Help) stays reachable from there
         // (and from My Home's own "report a problem") but deliberately isn't its own
@@ -508,6 +509,6 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
           onClose={() => { setOpenConversation(null); refreshConversations().catch(() => {}); }}
         />
       )}
-    </>
+    </TourGateContext.Provider>
   );
 }

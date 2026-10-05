@@ -30,6 +30,7 @@ import { BusinessApp } from "./BusinessApp.jsx";
 import { SendQuoteSheet } from "./SendQuoteSheet.jsx";
 import { ProOnboarding } from "./ProOnboarding.jsx";
 import { useProTour } from "./useProTour.js";
+import { TourGateContext } from "../ui/tourGate.js";
 import { offeredCategoryIds } from "../lib/proStatus.js";
 import { grossEarnings } from "../lib/billing.js";
 import { unreadTotal } from "../lib/conversationSelectors.js";
@@ -176,7 +177,7 @@ export function ProApp({ showToast }) {
   };
 
   return (
-    <>
+    <TourGateContext.Provider value={{ blocked: tour.open }}>
       <AppNav
         tab={tab}
         setTab={setTab}
@@ -188,7 +189,7 @@ export function ProApp({ showToast }) {
           { id: "profile", label: t.navProfile, icon: User },
         ]}
       >
-        {tab === "dashboard" && <ProDashboard leads={leads} onQuote={(l) => setQuoteLead(l)} proInfo={proInfo} onPauseToggled={refreshLeads} />}
+        {tab === "dashboard" && <ProDashboard leads={leads} onQuote={(l) => setQuoteLead(l)} proInfo={proInfo} onPauseToggled={refreshLeads} offeredServiceCount={offeredServiceIds.length} onSetupServices={() => setTab("business")} onSetupCity={() => setTab("profile")} />}
         {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} onOpenJob={setOpenJob} />}
         {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
         {tab === "profile" && (
@@ -234,6 +235,6 @@ export function ProApp({ showToast }) {
           onClose={() => { setOpenConversation(null); refreshConversations().catch(() => {}); }}
         />
       )}
-    </>
+    </TourGateContext.Provider>
   );
 }

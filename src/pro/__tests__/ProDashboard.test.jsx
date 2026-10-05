@@ -6,7 +6,7 @@
 // describe block — see this component's own header for why. No test file existed for this
 // component before this session.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { LangContext } from "../../lib/lang";
 import { ProDashboard } from "../ProDashboard.jsx";
 import { updateProProfile } from "../../lib/pros";
@@ -23,9 +23,10 @@ const t = new Proxy({}, { get: (_, key) => String(key) });
 let proProfile = { paused: false, pro_type: "certified" };
 let authUser = { id: "pro-1" };
 let refreshProfile = vi.fn();
+let authProfile = { city: "Brussels" };
 
 vi.mock("../../lib/auth.jsx", () => ({
-  useAuth: () => ({ user: authUser, proProfile, refreshProfile }),
+  useAuth: () => ({ user: authUser, proProfile, refreshProfile, profile: authProfile }),
 }));
 
 const ctx = {
@@ -53,6 +54,7 @@ beforeEach(() => {
   proProfile = { paused: false, pro_type: "certified" };
   authUser = { id: "pro-1" };
   refreshProfile = vi.fn();
+  authProfile = { city: "Brussels" };
   vi.mocked(updateProProfile).mockReset();
 });
 
@@ -207,5 +209,39 @@ describe("ProDashboard visual reform + tour wiring", () => {
     expect(screen.getByText(/≈€180/)).toBeTruthy();
     expect(screen.queryByText(/≈€250/)).toBeNull();
     expect(screen.getByText(/·\s*€250/)).toBeTruthy();
+  });
+});
+
+describe("ProDashboard — new-professional setup guidance (live review item 11)", () => {
+  const renderSetup = (props) => render(
+    <LangContext.Provider value={ctx}>
+      <ProDashboard leads={[]} onQuote={vi.fn()} proInfo={{ name: "Pierre" }} {...props} />
+    </LangContext.Provider>
+  );
+
+  it("guides a professional with no services and no city to both, instead of telling them to request a service as a customer", () => {
+    authProfile = { city: "" };
+    const onSetupServices = vi.fn(); const onSetupCity = vi.fn();
+    renderSetup({ offeredServiceCount: 0, onSetupServices, onSetupCity });
+    expect(screen.getByTestId("pro-setup")).toBeTruthy();
+    fireEvent.click(screen.getByText("proSetupGoServices")); expect(onSetupServices).toHaveBeenCalled();
+    fireEvent.click(screen.getByText("proSetupGoCity")); expect(onSetupCity).toHaveBeenCalled();
+  });
+
+  it("only asks for what is still missing", () => {
+    authProfile = { city: "Brussels" };
+    renderSetup({ offeredServiceCount: 0, onSetupServices: vi.fn(), onSetupCity: vi.fn() });
+    expect(screen.getByText("proSetupGoServices")).toBeTruthy();
+    expect(screen.queryByText("proSetupGoCity")).toBeNull();
+  });
+
+  it("shows no setup card once services and city are both set, or when the count is unknown", () => {
+    authProfile = { city: "Brussels" };
+    renderSetup({ offeredServiceCount: 2 });
+    expect(screen.queryByTestId("pro-setup")).toBeNull();
+    cleanup();
+    authProfile = { city: "" };
+    renderSetup({});
+    expect(screen.getByTestId("pro-setup")).toBeTruthy(); // city missing is still known
   });
 });
