@@ -18,6 +18,7 @@
 // first) would let a customer "see" a document whose file was never actually stored.
 import { supabase } from "./supabaseClient";
 import { uuidv7 } from "./ids.js";
+import { documentFileName } from "./documentFileName.js";
 
 // Matches the TTL every other private-bucket signed-URL caller in this codebase already
 // uses (src/lib/householdItems.js, requestPhotos.js, serviceRecords.js) — one convention,
@@ -119,9 +120,14 @@ export async function fetchDocumentsForAsset(assetId) {
  * fetchDocumentsForAsset() above, had no try/catch of its own around the `await` --
  * only the resolved `{error}` shape was actually handled. Closed the same way.
  */
-export async function getDocumentUrl(storageBucket, storagePath) {
+export async function getDocumentUrl(storageBucket, storagePath, { download = false } = {}) {
   try {
-    const { data, error } = await supabase.storage.from(storageBucket).createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
+    // `download` asks Storage to serve it as an attachment under its real file name — the
+    // fallback for a format the browser can't preview (2026-10-04 live review, item 4).
+    const bucket = supabase.storage.from(storageBucket);
+    const { data, error } = download
+      ? await bucket.createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS, { download: documentFileName({ storagePath }) })
+      : await bucket.createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
     if (error) {
       console.warn("document signed URL unavailable:", error.message);
       return null;
