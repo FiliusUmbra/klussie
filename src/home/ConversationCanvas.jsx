@@ -31,6 +31,7 @@ function ProfessionalCard({ conversation, t, fmt, proBadgeLabel }) {
             {proBadgeLabel(conversation.pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(conversation.pro.badgeTier)}</Badge>}
           </div>
           <TrustBadge
+            newLabel={t.proNewBadge}
             rating={conversation.pro.rating}
             reviewCount={conversation.pro.reviews}
             score={trustScore(conversation.pro)}

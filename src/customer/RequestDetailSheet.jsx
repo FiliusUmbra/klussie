@@ -6,7 +6,7 @@
 // platform-fee/net-payout breakdown at all — see Payments Slice A's own reconciliation
 // note where the booked-quote card is rendered, below.
 import { useState } from "react";
-import { Ban, Check, Clock, MessageCircle, ShieldCheck, MapPin, Loader2 } from "lucide-react";
+import { Ban, Check, Clock, MessageCircle, ShieldCheck, ClipboardCheck, MapPin, Loader2 } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, Button, Rating, PriceTag, QuoteCard, TrustBadge, Timeline, Drawer } from "../design-system";
@@ -118,7 +118,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                     <Avatar url={pro.avatarUrl} initials={pro.initials} />
                     <div style={{ flex: 1 }}>
                       <div className="quote-name">{pro.name || t.proFallbackName} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
-                    <TrustBadge rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} />
+                    <TrustBadge newLabel={t.proNewBadge} rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} />
                   </div>
                   </button>
                   <PriceTag amount={q.price} fmt={fmt} />
@@ -165,7 +165,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
                 <Avatar url={pro.avatarUrl} initials={pro.initials} />
-                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
+                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge newLabel={t.proNewBadge} rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
@@ -212,7 +212,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
               <Avatar url={pro.avatarUrl} initials={pro.initials} />
-              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
+              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge newLabel={t.proNewBadge} rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
@@ -228,7 +228,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                 The professional's own real fee, when one applies, is disclosed to them
                 directly (src/pro/ProJobDetailSheet.jsx) — this was never information the
                 customer's own price depended on either way. */}
-            <div className="fineprint" style={{ marginTop: 10 }}><ShieldCheck size={12} /> {t.guaranteeNote}</div>
+            <div className="fineprint" style={{ marginTop: 10 }}><ClipboardCheck size={12} /> {t.guaranteeNote}</div>
             {/* Found by code audit: no busy state, no await, no catch at all -- a real
                 refusal (complete_engagement()'s own refusal, a network error) used to
                 leave the button sitting there tappable again with no feedback at all

@@ -22,3 +22,27 @@ describe("Rating", () => {
     expect(screen.getByRole("img", { name: "3 out of 5 stars" })).toBeTruthy();
   });
 });
+
+// Live review 2026-10-04, item 17: a professional with no reviews showed "0 stars / 0 reviews /
+// Trustscore 0", which reads as a poor record rather than an absent one.
+describe("TrustBadge — new professionals", () => {
+  it("shows the New label instead of zeros when there are no reviews", async () => {
+    const { TrustBadge } = await import("../domain.jsx");
+    const { render, screen } = await import("@testing-library/react");
+    render(<TrustBadge rating={0} reviewCount={0} score={0} scoreLabel="Trust" newLabel="New on Klussie" />);
+    expect(screen.getByTestId("trust-new").textContent).toBe("New on Klussie");
+    expect(screen.queryByText(/Trust/)).toBeNull();
+  });
+
+  it("still shows the real rating and score once there are reviews, and when no label is supplied", async () => {
+    const { TrustBadge } = await import("../domain.jsx");
+    const { render, screen } = await import("@testing-library/react");
+    const { unmount } = render(<TrustBadge rating={4.5} reviewCount={12} score={90} scoreLabel="Trust" newLabel="New on Klussie" />);
+    expect(screen.queryByTestId("trust-new")).toBeNull();
+    expect(screen.getByText(/12/)).toBeTruthy();
+    unmount();
+    render(<TrustBadge rating={0} reviewCount={0} score={0} scoreLabel="Trust" />);
+    expect(screen.queryByTestId("trust-new")).toBeNull();
+  });
+});
+

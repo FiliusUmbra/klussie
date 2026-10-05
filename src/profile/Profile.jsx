@@ -63,7 +63,7 @@ export function Profile({
           avatarUrl={proInfo.avatarUrl}
           initials={proInfo.initials}
           name={proInfo.name || t.proFallbackName}
-          subtitle={<TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: proInfo.rating })} />}
+          subtitle={<TrustBadge newLabel={t.proNewBadge} rating={proInfo.rating} reviewCount={proInfo.reviews} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: proInfo.rating })} />}
         />
       )}
 
