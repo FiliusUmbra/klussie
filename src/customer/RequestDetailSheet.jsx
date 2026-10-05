@@ -21,7 +21,7 @@ import { requestTitle } from "../lib/requestTitle.js";
 import { invoiceTotals, VAT_RATE } from "../lib/billing.js";
 
 export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage, onWithdraw }) {
-  const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
+  const { t, fmt, serviceInfo, proBadgeLabel, whenLabel, BASE_SERVICES } = useLang();
   const { user } = useAuth();
   const [showInvoice, setShowInvoice] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -36,6 +36,10 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
   // what it will do before it does it.
   const [confirmingWithdraw, setConfirmingWithdraw] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  // The catalog's professional count for this service (platform-wide, not per location —
+  // the copy says so). Unknown (catalog not loaded / service missing) is NOT treated as zero.
+  const serviceStat = (BASE_SERVICES || []).find((svc) => svc.id === request.serviceId);
+  const noProsForService = serviceStat != null && serviceStat.pros === 0;
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
   const steps = timelineSteps(request.status);
 
@@ -57,7 +61,15 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
       )}
 
       {request.status === "collecting" && (
-        <div className="empty-block"><Clock size={22} color="var(--ink-soft)" /><p>{t.waitingMsg}</p></div>
+        // Live review 2026-10-04, item 9: this used to promise "quotes usually within minutes"
+        // unconditionally, even right after the intake itself had said nobody nearby offered
+        // the service. The catalog's own per-service professional count is the one real signal
+        // available here: zero means nobody can answer, and the screen says so and points at the
+        // withdraw-and-retry path below rather than promising anything.
+        <div className="empty-block" data-testid="waiting-state">
+          <Clock size={22} color="var(--ink-soft)" />
+          <p>{noProsForService ? t.waitingNoProsMsg : t.waitingMsg}</p>
+        </div>
       )}
 
       {/* Found live during a UX review, 2026-09-07: `cancelled` had no branch here at

@@ -392,3 +392,30 @@ describe("RequestDetailSheet — the price basis a customer sees before acceptin
   });
 });
 
+// 2026-10-04 live review, item 9: the waiting state promised quick quotes even when nobody
+// offered the service.
+describe("RequestDetailSheet — the waiting state is honest about who can answer", () => {
+  const COLLECTING = { ...BOOKED_REQUEST, status: "collecting", bookedProId: null, quotes: [] };
+  const renderWith = (BASE_SERVICES) => render(
+    <LangContext.Provider value={{ ...ctx, BASE_SERVICES }}>
+      <RequestDetailSheet request={COLLECTING} onClose={vi.fn()} onAccept={vi.fn()} onComplete={vi.fn()} onReview={vi.fn()} onWithdraw={vi.fn()} />
+    </LangContext.Provider>
+  );
+
+  it("says nobody offers the service, and offers the withdraw path, when the catalog shows zero professionals", () => {
+    renderWith([{ id: "svc-1", pros: 0 }]);
+    expect(screen.getByTestId("waiting-state").textContent).toBe("waitingNoProsMsg");
+    expect(screen.getByText("requestWithdrawBtn")).toBeTruthy();
+  });
+
+  it("uses the non-promising waiting copy when professionals exist", () => {
+    renderWith([{ id: "svc-1", pros: 4 }]);
+    expect(screen.getByTestId("waiting-state").textContent).toBe("waitingMsg");
+  });
+
+  it("does not claim zero when the catalog doesn't know the service", () => {
+    renderWith([]);
+    expect(screen.getByTestId("waiting-state").textContent).toBe("waitingMsg");
+  });
+});
+
