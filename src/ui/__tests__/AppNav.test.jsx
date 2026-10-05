@@ -66,3 +66,23 @@ describe("AppNav — FAB", () => {
     expect(setTab).toHaveBeenCalledWith("messages");
   });
 });
+
+// Live review 2026-10-04, item 14: at desktop width the sidebar AND the bottom bar showed
+// together, and the sidebar had no new-request action.
+describe("AppNav — one primary navigation per breakpoint", () => {
+  it("shows a New request action in the desktop sidebar when a fab is given, wired to the same handler", () => {
+    const onClick = vi.fn();
+    renderNav({ fab: { icon: Plus, label: "New request", onClick } });
+    const sidebar = document.querySelector(".app-sidebar");
+    const btn = sidebar.querySelector(".sidebar-fab");
+    expect(btn.textContent).toContain("New request");
+    fireEvent.click(btn);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no sidebar action when no fab is given (Operator and every existing caller are unchanged)", () => {
+    renderNav();
+    expect(document.querySelector(".sidebar-fab")).toBeNull();
+  });
+});
+
