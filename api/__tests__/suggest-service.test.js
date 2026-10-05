@@ -178,6 +178,44 @@ describe("suggest-service handler", () => {
     expect(translateMock).not.toHaveBeenCalled();
   });
 
+  // Live review 2026-10-04, item 8.
+  it("retries once when the AI call fails transiently, and succeeds on the second attempt", async () => {
+    reasonMock.mockRejectedValueOnce(new Error("overloaded")).mockResolvedValueOnce({ outcome: "match", matchedServiceId: "svc-1", confidence: 0.9 });
+    const { req, res } = fakeReqRes({ body: VALID_BODY });
+    await handler(req, res);
+    expect(reasonMock).toHaveBeenCalledTimes(2);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ outcome: "match", matchedServiceId: "svc-1" });
+  });
+
+  it("never returns a matched id that isn't in the catalog — resolves a name-shaped one, retries a hallucinated one", async () => {
+    reasonMock.mockResolvedValueOnce({ outcome: "match", matchedServiceId: "cleaning", confidence: 0.9 }); // the service NAME
+    const named = fakeReqRes({ body: VALID_BODY });
+    await handler(named.req, named.res);
+    expect(named.res.body).toEqual({ outcome: "match", matchedServiceId: "svc-1" });
+
+    reasonMock.mockReset();
+    reasonMock.mockResolvedValueOnce({ outcome: "match", matchedServiceId: "svc-invented", confidence: 0.9 })
+      .mockResolvedValueOnce({ outcome: "match", matchedServiceId: "svc-1", confidence: 0.9 });
+    const invented = fakeReqRes({ body: VALID_BODY });
+    await handler(invented.req, invented.res);
+    expect(invented.res.body).toEqual({ outcome: "match", matchedServiceId: "svc-1" });
+    expect(reasonMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("tags each failure with a stable code so the failing phase can be told apart", async () => {
+    reasonMock.mockRejectedValue(new Error("anthropic down"));
+    const ai = fakeReqRes({ body: VALID_BODY });
+    await handler(ai.req, ai.res);
+    expect(ai.res.body.code).toBe("ai_unavailable");
+
+    reasonMock.mockReset();
+    reasonMock.mockResolvedValue({ outcome: "match", matchedServiceId: "svc-invented", confidence: 0.4 });
+    const unusable = fakeReqRes({ body: VALID_BODY });
+    await handler(unusable.req, unusable.res);
+    expect(unusable.res.body.code).toBe("unusable_classification");
+  });
+
   it("returns a generic 500 when the AI classification call itself fails", async () => {
     reasonMock.mockRejectedValue(new Error("anthropic down"));
     const { req, res } = fakeReqRes({ body: VALID_BODY });

@@ -180,6 +180,15 @@ describe("getDocumentUrl", () => {
     expect(url).toBe("https://staging.example/signed");
   });
 
+  it("asks Storage to serve it as an attachment under its own file name when downloading", async () => {
+    const createSignedUrl = vi.fn(() => Promise.resolve({ data: { signedUrl: "https://staging.example/dl" }, error: null }));
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrl });
+
+    await getDocumentUrl("documents", "ws-1/doc-1/TEST%20notes.txt", { download: true });
+
+    expect(createSignedUrl).toHaveBeenCalledWith("ws-1/doc-1/TEST%20notes.txt", 3600, { download: "TEST notes.txt" });
+  });
+
   it("returns null, not a throw, when signing fails", async () => {
     const createSignedUrl = vi.fn(() => Promise.resolve({ data: null, error: new Error("not found") }));
     vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrl });

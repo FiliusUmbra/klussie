@@ -265,6 +265,7 @@ export function MyItemsPanel({
           t={t}
           ownerId={ownerId}
           propertyId={propertyId}
+          rooms={rooms}
           item={activeSheet.item}
           onClose={() => setActiveSheet(null)}
           onSaved={onRefresh}

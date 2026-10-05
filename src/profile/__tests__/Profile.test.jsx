@@ -71,8 +71,11 @@ describe("Profile — customer variant, workspace switching", () => {
       { workspace_id: "ws-1", workspace_name: "My Home", workspace_type: "personal" },
       { workspace_id: "ws-2", workspace_name: "Cathy's Cleaning Co", workspace_type: "professional" },
     ], { onReplayTour: vi.fn() });
-    expect(screen.getByText("My Home")).toBeTruthy();
-    expect(screen.getByText("Cathy's Cleaning Co")).toBeTruthy();
+    // Each option names its kind — a household, a family and a business are never confusable
+    // (live review 2026-10-04, item 16). The name already says "Home", so only the kind that
+    // adds information is appended.
+    expect(screen.getByText("My Home · workspaceKindHome")).toBeTruthy();
+    expect(screen.getByText("Cathy's Cleaning Co · workspaceKindBusiness")).toBeTruthy();
     expect(screen.queryByText("workspaceSwitchLabel")).toBeNull();
     // getAllByRole, not getByRole: Profile.jsx now also renders a language-switcher
     // <select> beside this one (brought in 2026-09-30 from the parallel "Klussie via
@@ -172,8 +175,8 @@ describe("Profile — pro variant, workspace switching", () => {
       { workspace_id: "ws-pro", workspace_name: "Pierre's Painting", workspace_type: "professional" },
       { workspace_id: "ws-personal", workspace_name: "My Home", workspace_type: "personal" },
     ]);
-    expect(screen.getByText("Pierre's Painting")).toBeTruthy();
-    expect(screen.getByText("My Home")).toBeTruthy();
+    expect(screen.getByText("Pierre's Painting · workspaceKindBusiness")).toBeTruthy();
+    expect(screen.getByText("My Home · workspaceKindHome")).toBeTruthy();
     expect(screen.queryByText("workspaceSwitchLabel")).toBeNull();
     // getAllByRole, not getByRole: see the customer-variant test above.
     fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "ws-personal" } });

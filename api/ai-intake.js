@@ -27,6 +27,11 @@ const ANALYSIS_TOOL = {
       problem: { type: "string", description: "Short (few words) title for the problem, in the customer's language." },
       description: { type: "string", description: "A clear, complete restatement of the job for a professional to read, in the customer's language." },
       urgency: { type: "string", enum: ["low", "medium", "high"] },
+      timeWindow: {
+        type: ["string", "null"],
+        enum: ["this_week", "next_week", "flexible", null],
+        description: "When the customer SAID they want the job done: 'this_week', 'next_week' (e.g. 'volgende week', 'next week'), or 'flexible' (no hurry / any time). null if they stated no timing at all — never guess from urgency.",
+      },
       confidence: { type: "number", description: "0-100 confidence in this classification overall." },
       estimatedDurationMinutes: {
         type: ["object", "null"],
@@ -100,6 +105,7 @@ Rules:
 - If confidence is at or above ${CONFIDENCE_THRESHOLD}, return an empty followUpQuestions array.
 - If confidence is below ${CONFIDENCE_THRESHOLD}, ask at most 2 short, concrete follow-up questions with 2-4 answer options each — the kind of question that would meaningfully raise your confidence, never generic ones.
 - If photos are attached, describe what you actually see in visionNotes, extract any visible text into ocrText, and note any recognizable brand into brandDetected. If there are no photos, leave these null.
+- If the customer states WHEN they want the job done (this week, next week, whenever), put it in timeWindow exactly as stated, and keep it consistent with the description you write. Never move a stated timing to a different window.
 - estimatedBudget should be a realistic EUR range for the Belgian market, or null if you truly can't estimate.`;
 }
 

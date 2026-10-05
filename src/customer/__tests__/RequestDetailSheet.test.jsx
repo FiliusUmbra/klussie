@@ -309,3 +309,113 @@ describe("RequestDetailSheet — ServiceRecordSummary (WP 3.2)", () => {
     expect(screen.queryByText("serviceRecordApproveBtn")).toBeNull();
   });
 });
+
+// 2026-10-04 live review, item 5: the professional's quote message was fetched but never
+// shown on the customer's quote cards.
+describe("RequestDetailSheet — the professional's quote message", () => {
+  const withMessage = (status, bookedProId) => ({
+    ...BOOKED_REQUEST, status, bookedProId,
+    quotes: [{ ...BOOKED_REQUEST.quotes[0], message: "  Includes parts. Excludes wall repair.  " }],
+  });
+
+  it("shows the message on each open quote, before the customer accepts", () => {
+    renderSheet({ request: withMessage("quotes_ready", null) });
+    expect(screen.getByTestId("quote-message").textContent).toBe('"Includes parts. Excludes wall repair."');
+  });
+
+  it("keeps showing it on the booked quote", () => {
+    renderSheet({ request: withMessage("booked", "pro-1") });
+    expect(screen.getByTestId("quote-message")).toBeTruthy();
+  });
+
+  it("renders nothing extra for a quote with no message", () => {
+    renderSheet({ request: { ...BOOKED_REQUEST, status: "quotes_ready", bookedProId: null } });
+    expect(screen.queryByTestId("quote-message")).toBeNull();
+  });
+});
+
+// 2026-10-04 live review, item 10: no way to take back a request that hadn't been booked.
+describe("RequestDetailSheet — withdrawing a request", () => {
+  const COLLECTING = { ...BOOKED_REQUEST, status: "collecting", bookedProId: null, quotes: [] };
+
+  it("offers withdrawal only while the request is collecting or has quotes waiting, and only when a handler exists", () => {
+    renderSheet({ request: COLLECTING, onWithdraw: vi.fn() });
+    expect(screen.getByText("requestWithdrawBtn")).toBeTruthy();
+    document.body.innerHTML = "";
+    renderSheet({ request: BOOKED_REQUEST, onWithdraw: vi.fn() });
+    expect(screen.queryByText("requestWithdrawBtn")).toBeNull();
+    document.body.innerHTML = "";
+    renderSheet({ request: COLLECTING });
+    expect(screen.queryByText("requestWithdrawBtn")).toBeNull();
+  });
+
+  it("states the consequences and asks again before withdrawing — nothing happens on the first tap", () => {
+    const onWithdraw = vi.fn(() => Promise.resolve());
+    renderSheet({ request: COLLECTING, onWithdraw });
+    fireEvent.click(screen.getByText("requestWithdrawBtn"));
+    expect(screen.getByText("requestWithdrawConfirmBody")).toBeTruthy();
+    expect(onWithdraw).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("requestWithdrawKeepBtn"));
+    expect(screen.queryByText("requestWithdrawConfirmBody")).toBeNull();
+  });
+
+  it("withdraws on confirmation and closes the page", async () => {
+    const onWithdraw = vi.fn(() => Promise.resolve());
+    const onClose = vi.fn();
+    renderSheet({ request: COLLECTING, onWithdraw, onClose });
+    fireEvent.click(screen.getByText("requestWithdrawBtn"));
+    fireEvent.click(screen.getByText("requestWithdrawConfirmBtn"));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(onWithdraw).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays open and re-enables the button when the withdrawal is refused", async () => {
+    const onWithdraw = vi.fn(() => Promise.reject(new Error("already booked")));
+    const onClose = vi.fn();
+    renderSheet({ request: COLLECTING, onWithdraw, onClose });
+    fireEvent.click(screen.getByText("requestWithdrawBtn"));
+    fireEvent.click(screen.getByText("requestWithdrawConfirmBtn"));
+    await waitFor(() => expect(screen.getByText("requestWithdrawConfirmBtn").closest("button").disabled).toBe(false));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+// 2026-10-04 live review, item 7: the customer saw €1 on the quote and acceptance but €1.21 on
+// the demo invoice. The basis is now stated before commitment, from the same invoiceTotals().
+describe("RequestDetailSheet — the price basis a customer sees before accepting", () => {
+  it("states the quote is excl. VAT and the illustrative total, on open and booked quotes alike", () => {
+    renderSheet({ request: { ...BOOKED_REQUEST, status: "quotes_ready", bookedProId: null } });
+    expect(screen.getByTestId("price-basis").textContent).toBe("quotePriceBasisNote");
+    document.body.innerHTML = "";
+    renderSheet({ request: BOOKED_REQUEST });
+    expect(screen.getByTestId("price-basis")).toBeTruthy();
+  });
+});
+
+// 2026-10-04 live review, item 9: the waiting state promised quick quotes even when nobody
+// offered the service.
+describe("RequestDetailSheet — the waiting state is honest about who can answer", () => {
+  const COLLECTING = { ...BOOKED_REQUEST, status: "collecting", bookedProId: null, quotes: [] };
+  const renderWith = (BASE_SERVICES) => render(
+    <LangContext.Provider value={{ ...ctx, BASE_SERVICES }}>
+      <RequestDetailSheet request={COLLECTING} onClose={vi.fn()} onAccept={vi.fn()} onComplete={vi.fn()} onReview={vi.fn()} onWithdraw={vi.fn()} />
+    </LangContext.Provider>
+  );
+
+  it("says nobody offers the service, and offers the withdraw path, when the catalog shows zero professionals", () => {
+    renderWith([{ id: "svc-1", pros: 0 }]);
+    expect(screen.getByTestId("waiting-state").textContent).toBe("waitingNoProsMsg");
+    expect(screen.getByText("requestWithdrawBtn")).toBeTruthy();
+  });
+
+  it("uses the non-promising waiting copy when professionals exist", () => {
+    renderWith([{ id: "svc-1", pros: 4 }]);
+    expect(screen.getByTestId("waiting-state").textContent).toBe("waitingMsg");
+  });
+
+  it("does not claim zero when the catalog doesn't know the service", () => {
+    renderWith([]);
+    expect(screen.getByTestId("waiting-state").textContent).toBe("waitingMsg");
+  });
+});
+

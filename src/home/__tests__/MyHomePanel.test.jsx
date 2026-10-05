@@ -189,8 +189,7 @@ describe("MyHomePanel — HomeBuilderSection actions", () => {
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Washing machine" } });
     fireEvent.click(screen.getByText("Next"));
     fireEvent.click(screen.getByText("Skip")); // photo
-    fireEvent.click(screen.getByText("Skip")); // brand
-    fireEvent.click(screen.getByText("Skip")); // model
+    fireEvent.click(screen.getByText("Skip")); // brand and model
 
     expect(screen.getByText("Anything else to add?")).toBeTruthy();
     // The real room picker, pre-selected to the room the customer just came from.

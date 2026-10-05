@@ -57,7 +57,7 @@ describe("SuggestServiceSheet — a real match", () => {
     expect(screen.queryByText("suggestServiceSentMsg")).toBeNull();
   });
 
-  it("surfaces the generic failure message when attaching a real match fails, not a silent success", async () => {
+  it("says the match was found but couldn't be added — a different message from failing to understand the description (live review item 8)", async () => {
     vi.mocked(suggestService).mockResolvedValue({ outcome: "match", matchedServiceId: "svc-7" });
     const onMatched = vi.fn().mockRejectedValue(new Error("network error"));
     renderSheet({ onMatched });
@@ -65,8 +65,11 @@ describe("SuggestServiceSheet — a real match", () => {
 
     fireEvent.click(screen.getByText("suggestServiceSubmitBtn"));
 
-    await waitFor(() => expect(screen.getByText("suggestServiceFailed")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("suggestServiceAttachFailed")).toBeTruthy());
+    expect(screen.queryByText("suggestServiceFailed")).toBeNull();
     expect(screen.queryByText("suggestServiceMatchedMsg")).toBeNull();
+    // The description stays put so a retry is one tap.
+    expect(screen.getByLabelText("suggestServiceDescriptionLabel").value).toBe("I clean gutters");
   });
 });
 

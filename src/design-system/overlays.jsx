@@ -4,7 +4,8 @@
 // source of truth). Modal is a centered dialog for short confirmations and for the
 // first-login tour, where a full-height drawer would be more chrome than the moment
 // calls for.
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
+import { associateFieldLabels, nameDialogFromTitle } from "./a11y.js";
 import { X } from "lucide-react";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -63,6 +64,24 @@ function useFocusTrap(panelRef, active) {
   }, [panelRef, active]);
 }
 
+// Names the dialog from its title and connects field labels to their controls, and keeps doing
+// so as the dialog's content changes (live review 2026-10-04, item 13). See a11y.js.
+function useDialogAccessibility(panelRef, explicitlyLabelled) {
+  const prefix = useId().replace(/:/g, "");
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return undefined;
+    const wire = () => {
+      if (!explicitlyLabelled) nameDialogFromTitle(panel, prefix);
+      associateFieldLabels(panel, prefix);
+    };
+    wire();
+    const observer = new MutationObserver(wire);
+    observer.observe(panel, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [panelRef, explicitlyLabelled, prefix]);
+}
+
 // `variant="page"` (2026-10-03, the no-sliding-sheets mandate + the drafted Request screen):
 // the same focus-trapped, Escape-closable dialog, but presented as a full-screen page
 // instead of a bottom sheet — no scrim, no grabber, no rounded top edge. Optional, so
@@ -70,6 +89,7 @@ function useFocusTrap(panelRef, active) {
 export function Drawer({ children, onClose, closeLabel = "Close", labelledBy, describedBy, variant }) {
   const panelRef = useRef(null);
   useFocusTrap(panelRef, true);
+  useDialogAccessibility(panelRef, Boolean(labelledBy));
 
   return (
     <div
@@ -109,6 +129,7 @@ export function Drawer({ children, onClose, closeLabel = "Close", labelledBy, de
 export function Modal({ children, onClose, closeLabel = "Close", labelledBy, describedBy }) {
   const panelRef = useRef(null);
   useFocusTrap(panelRef, true);
+  useDialogAccessibility(panelRef, Boolean(labelledBy));
 
   return (
     <div

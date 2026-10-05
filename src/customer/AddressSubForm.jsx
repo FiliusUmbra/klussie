@@ -29,7 +29,7 @@ export function AddressSubForm({ t, address, onChange }) {
           <button
             key={pt}
             type="button"
-            className={"chip" + (address.propertyType === pt ? " chip-on" : "")}
+            aria-pressed={!!(address.propertyType === pt)} className={"chip" + (address.propertyType === pt ? " chip-on" : "")}
             onClick={() => onChange({ ...address, propertyType: pt })}
           >
             {t[`propertyType_${pt}`]}

@@ -7,6 +7,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 vi.mock("../../lib/propertyTwin.js", () => ({
   fetchPropertyTwin: vi.fn(),
+  fetchDisclosedLocation: vi.fn(),
 }));
 // ProServiceRecordSection (WP 3.1/3.3) self-fetches whenever job.status === "completed" —
 // mocked the same way fetchPropertyTwin is above, so the every-other-status tests below
@@ -23,7 +24,7 @@ vi.mock("../../lib/acquisitionFees.js", () => ({
   confirmAcquisitionFeePaymentReceived: vi.fn(),
 }));
 
-import { fetchPropertyTwin } from "../../lib/propertyTwin.js";
+import { fetchPropertyTwin, fetchDisclosedLocation } from "../../lib/propertyTwin.js";
 import { fetchServiceRecordForRequest } from "../../lib/serviceRecords.js";
 import {
   fetchMyAcquisitionFeeAssessments,
@@ -60,6 +61,8 @@ function renderSheet({ job: jobOverrides, ...rest } = {}) {
 beforeEach(() => {
   fetchPropertyTwin.mockReset();
   fetchPropertyTwin.mockResolvedValue({ property: null, locations: [], assets: [], documents: [] });
+  fetchDisclosedLocation.mockReset();
+  fetchDisclosedLocation.mockResolvedValue(null);
   fetchServiceRecordForRequest.mockReset();
   fetchServiceRecordForRequest.mockResolvedValue(null);
   fetchMyAcquisitionFeeAssessments.mockReset();
@@ -357,3 +360,41 @@ describe("ProJobDetailSheet — ProServiceRecordSection (WP 3.1 + WP 3.3)", () =
     await waitFor(() => expect(screen.getByText("srWriteItUpBtn")).toBeTruthy());
   });
 });
+
+// 2026-10-04 live review, item 6: after the customer shared the address and confirmed the
+// booking, the professional's job detail still showed no street/number/postcode.
+describe("ProJobDetailSheet — the address the customer shared", () => {
+  const engaged = { engagementId: "eng-1" };
+
+  it("shows street, number, postcode and municipality once the database returns them", async () => {
+    fetchDisclosedLocation.mockResolvedValue({ street: "Teststraat", houseNumber: "1", postcode: "1000", municipality: "Brussel", quotePrepNotes: "Ring twice" });
+    renderSheet({ job: engaged });
+    await waitFor(() => expect(screen.getByText("Teststraat 1")).toBeTruthy());
+    expect(screen.getByText("1000 Brussel")).toBeTruthy();
+    expect(screen.getByText("Ring twice")).toBeTruthy();
+    expect(fetchDisclosedLocation).toHaveBeenCalledWith("req-1");
+  });
+
+  it("says plainly that the address appears after the customer shares it, when nothing is disclosed yet", async () => {
+    renderSheet({ job: engaged });
+    await waitFor(() => expect(screen.getByText("jobAddressWaiting")).toBeTruthy());
+  });
+
+  it("never asks for or shows an address for a quote that has no engagement (privacy before acceptance)", () => {
+    renderSheet({});
+    expect(fetchDisclosedLocation).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("job-address")).toBeNull();
+  });
+});
+
+describe("ProJobDetailSheet — the professional's own submitted quote message", () => {
+  it("shows what the professional told the customer", () => {
+    renderSheet({ job: { quotes: [{ id: "q-1", price: 1, message: "TEST only. No real work." }] } });
+    expect(screen.getByTestId("my-quote-message").textContent).toBe('"TEST only. No real work."');
+  });
+  it("shows nothing for a quote with no message", () => {
+    renderSheet({});
+    expect(screen.queryByTestId("my-quote-message")).toBeNull();
+  });
+});
+

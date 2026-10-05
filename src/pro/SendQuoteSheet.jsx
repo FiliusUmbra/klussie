@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Drawer } from "../design-system";
+import { interpolate } from "../lib/homeStrings.js";
 import { JobDetailsSummary, AiAnalysisSummary, RequestPhotosStrip } from "../requests";
 
 // Fallback price when the lead names a service this client's catalog doesn't have — a
@@ -22,8 +23,13 @@ export function SendQuoteSheet({ lead, onClose, onSubmit }) {
   // (0) and typing a bare "-" used to send `Number("-")` (NaN) straight to submit_quote()
   // -- no client-side floor, no guard at all, on the one number that flows into
   // billing.js's own platformFee()/netPayout() and the customer's own invoice.
-  const [price, setPrice] = useState(String(service?.base || FALLBACK_QUOTE_PRICE));
-  const [msg, setMsg] = useState(t.defaultProMessage);
+  // Both start EMPTY (2026-10-04 live review, item 19): a pre-filled €120 and a pre-written
+  // "available this week" read as the professional's own considered offer even when they
+  // were only defaults. The typical price is shown as a hint and the suggested message is
+  // one tap away, so sending either is always a deliberate act.
+  const typicalPrice = service?.base || FALLBACK_QUOTE_PRICE;
+  const [price, setPrice] = useState("");
+  const [msg, setMsg] = useState("");
   // Found by code audit, 2026-09-11: no busy state at all here -- unlike every other
   // async submit button in this codebase (AiIntakeSheet.jsx's own canSubmit already
   // folds in !submitting; RequestDetailSheet.jsx's accept/approve/complete buttons
@@ -62,11 +68,15 @@ export function SendQuoteSheet({ lead, onClose, onSubmit }) {
       <label className="field-label">{t.yourPriceLabel}</label>
       <div className="search" style={{ marginBottom: 18 }}>
         <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>€</span>
-        <input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
+        <input type="number" min="0" step="0.01" value={price} placeholder={String(typicalPrice)} onChange={(e) => setPrice(e.target.value)} />
       </div>
+      <p className="fineprint" style={{ justifyContent: "flex-start", marginTop: -12, marginBottom: 18 }}>{interpolate(t.quotePriceHint, { price: typicalPrice })}</p>
 
       <label className="field-label">{t.messageToCustomerLabel}</label>
-      <textarea className="textarea" rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} />
+      <textarea className="textarea" rows={3} value={msg} placeholder={t.defaultProMessage} onChange={(e) => setMsg(e.target.value)} />
+      {msg.trim() === "" && (
+        <button type="button" className="btn-secondary" style={{ width: "auto", padding: "8px 14px", marginTop: 8 }} onClick={() => setMsg(t.defaultProMessage)}>{t.quoteUseSuggestion}</button>
+      )}
 
       {/* Payments Slice A / UX redesign — disclosed before commitment (the decision
           table's own requirement), but only the general policy, not a computed rate: no

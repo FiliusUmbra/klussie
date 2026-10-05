@@ -29,8 +29,14 @@ const MESSAGES_TOUR_STEPS = [
   { id: "messages-first", titleKey: "pageTourMessagesStep1Title", bodyKey: "pageTourMessagesStep1Body" },
   { id: "messages-filter", titleKey: "pageTourMessagesStep2Title", bodyKey: "pageTourMessagesStep2Body" },
 ];
+// The professional's own wording (live review 2026-10-04, item 12): the customer copy talked
+// about "your professional" and accepting a quote, which is backwards on the pro side.
+const MESSAGES_TOUR_STEPS_PRO = [
+  { id: "messages-first", titleKey: "pageTourMessagesProStep1Title", bodyKey: "pageTourMessagesProStep1Body" },
+  { id: "messages-filter", titleKey: "pageTourMessagesProStep2Title", bodyKey: "pageTourMessagesProStep2Body" },
+];
 
-export function MessagesList({ conversations, onOpen, hasRequests, onViewRequests, onCreateRequest }) {
+export function MessagesList({ conversations, onOpen, hasRequests, onViewRequests, onCreateRequest, role = "customer" }) {
   const { t, serviceInfo, fmtDate, langCode } = useLang();
   const [filter, setFilter] = useState("all");
   const tour = usePageTour("messages");
@@ -43,7 +49,7 @@ export function MessagesList({ conversations, onOpen, hasRequests, onViewRequest
         <div className="h1">{t.messagesTitle}</div>
         <button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button>
       </div>
-      {tour.open && conversations.length > 0 && <PageTour steps={MESSAGES_TOUR_STEPS} onFinish={tour.finish} />}
+      {tour.open && conversations.length > 0 && <PageTour steps={role === "pro" ? MESSAGES_TOUR_STEPS_PRO : MESSAGES_TOUR_STEPS} onFinish={tour.finish} />}
       {conversations.length > 0 && (
         <div className="messages-filter" data-tour="messages-filter" role="group" aria-label={t.messagesTitle}>
           {[["all", t.messagesFilterAll], ["unread", t.messagesFilterUnread]].map(([id, label]) => (
@@ -65,7 +71,7 @@ export function MessagesList({ conversations, onOpen, hasRequests, onViewRequest
       {conversations.length === 0 && (
         <div className="empty-block">
           <MessageCircle size={26} color="var(--ink-soft)" />
-          <p>{t.messagesEmpty}</p>
+          <p>{role === "pro" ? t.messagesEmptyPro : t.messagesEmpty}</p>
           {emptyAction && (
             <Button variant="secondary" style={{ width: "auto", padding: "9px 16px" }} onClick={emptyAction}>
               {emptyActionLabel}

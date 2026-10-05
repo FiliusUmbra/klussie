@@ -278,7 +278,14 @@ export function QuoteCard({ children, booked = false, className = "" }) {
 // repeated across quote cards, pro dashboards, and public pro profiles. `score` is
 // optional: some contexts (e.g. ProProfile's own header) show only rating + review
 // count, without the trust score.
-export function TrustBadge({ rating, reviewCount, score, scoreLabel, fmt, ratingLabel }) {
+export function TrustBadge({ rating, reviewCount, score, scoreLabel, fmt, ratingLabel, newLabel }) {
+  // A professional with no reviews is NEW, not "0 stars / trust 0" (live review 2026-10-04,
+  // item 17 — a zero reads as a poor record, not an absent one). Only when the caller supplies
+  // the translated label; every caller that doesn't renders exactly as before.
+  const unrated = reviewCount === 0 || (reviewCount == null && !rating);
+  if (unrated && newLabel) {
+    return <div className="quote-rating" data-testid="trust-new">{newLabel}</div>;
+  }
   return (
     <div className="quote-rating">
       <Rating value={rating} size={11} label={ratingLabel} /> {rating}

@@ -86,7 +86,7 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
             {activeCity && <p className="myhome-hero-city">{activeCity}</p>}
             <HomeStatRow items={homeCtx.items} homeProfile={homeCtx.homeProfile} maintenance={homeCtx.maintenance} requests={requests} />
             <div className="myhome-hero-actions">
-              <PropertySwitcher properties={properties} activePropertyId={activePropertyId} onSelect={selectProperty} />
+              <PropertySwitcher t={t} properties={properties} activePropertyId={activePropertyId} onSelect={selectProperty} />
               <button type="button" className="myhome-header-add" onClick={() => setAddPropertyOpen(true)}>
                 <Plus size={13} aria-hidden="true" /> {t.addPropertyBtn}
               </button>

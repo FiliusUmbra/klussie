@@ -56,34 +56,48 @@ describe("SendQuoteSheet", () => {
   // non-numeric quote straight into billing.js's own platformFee()/netPayout() math and
   // the customer's own invoice.
   describe("a real, positive price is required before Send Quote can be tapped", () => {
-    it("starts enabled with the catalog's own base price pre-filled", () => {
+    // 2026-10-04 live review, item 19: a pre-filled price and message read as the
+    // professional's own deliberate offer. Both now start empty; the typical price is only
+    // a hint and the suggested message needs a tap.
+    it("starts with NO price filled in — Send stays disabled until the professional types one", () => {
       renderSheet();
-      expect(screen.getByText("sendQuoteSubmit").closest("button").disabled).toBe(false);
+      expect(screen.getByText("sendQuoteSubmit").closest("button").disabled).toBe(true);
+      expect(screen.getByPlaceholderText("75")).toBeTruthy();
+      expect(screen.getByText("quotePriceHint")).toBeTruthy();
     });
 
     it("disables submit for a price of zero", () => {
       renderSheet();
-      fireEvent.change(screen.getByDisplayValue("75"), { target: { value: "0" } });
+      fireEvent.change(screen.getByPlaceholderText("75"), { target: { value: "0" } });
       expect(screen.getByText("sendQuoteSubmit").closest("button").disabled).toBe(true);
     });
 
     it("disables submit for a negative price", () => {
       renderSheet();
-      fireEvent.change(screen.getByDisplayValue("75"), { target: { value: "-50" } });
+      fireEvent.change(screen.getByPlaceholderText("75"), { target: { value: "-50" } });
       expect(screen.getByText("sendQuoteSubmit").closest("button").disabled).toBe(true);
     });
 
-    it("disables submit when the field is cleared entirely, rather than silently sending zero", () => {
+    it("enables submit for a real positive price", () => {
       renderSheet();
-      fireEvent.change(screen.getByDisplayValue("75"), { target: { value: "" } });
-      expect(screen.getByText("sendQuoteSubmit").closest("button").disabled).toBe(true);
+      fireEvent.change(screen.getByPlaceholderText("75"), { target: { value: "90" } });
+      expect(screen.getByText("sendQuoteSubmit").closest("button").disabled).toBe(false);
     });
 
     it("passes the real numeric price through on submit, never the raw string", () => {
       const { onSubmit } = renderSheet();
-      fireEvent.change(screen.getByDisplayValue("75"), { target: { value: "120.50" } });
+      fireEvent.change(screen.getByPlaceholderText("75"), { target: { value: "120.50" } });
       fireEvent.click(screen.getByText("sendQuoteSubmit"));
-      expect(onSubmit).toHaveBeenCalledWith(120.5, "defaultProMessage");
+      expect(onSubmit).toHaveBeenCalledWith(120.5, "");
+    });
+
+    it("offers the suggested message as a one-tap action, never pre-filled", () => {
+      const { onSubmit } = renderSheet();
+      expect(screen.getByPlaceholderText("defaultProMessage").value).toBe("");
+      fireEvent.click(screen.getByText("quoteUseSuggestion"));
+      fireEvent.change(screen.getByPlaceholderText("75"), { target: { value: "80" } });
+      fireEvent.click(screen.getByText("sendQuoteSubmit"));
+      expect(onSubmit).toHaveBeenCalledWith(80, "defaultProMessage");
     });
   });
 
@@ -99,6 +113,7 @@ describe("SendQuoteSheet", () => {
       let resolveSubmit;
       const onSubmit = vi.fn(() => new Promise((resolve) => { resolveSubmit = resolve; }));
       renderSheet(onSubmit);
+      fireEvent.change(screen.getByPlaceholderText("75"), { target: { value: "80" } });
       const button = screen.getByText("sendQuoteSubmit").closest("button");
 
       fireEvent.click(button);

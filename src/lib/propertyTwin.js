@@ -47,3 +47,37 @@ export async function fetchPropertyTwin(propertyId) {
     documents: documents || [],
   };
 }
+
+/**
+ * The exact address a customer explicitly shared with this professional for one job
+ * (`api.disclosed_location_for_job()`, migration 0236 — live review 2026-10-04, item 6: the
+ * professional's job detail never showed it even after the customer's consent). Returns
+ * null — never throws — when nothing has been shared, the caller isn't the performing
+ * professional, or the function isn't deployed yet: "no address to show" is the correct
+ * fallback in every one of those cases, and the screen says so rather than failing.
+ */
+export async function fetchDisclosedLocation(requestId) {
+  if (!requestId) return null;
+  try {
+    const { data, error } = await supabase.schema("api").rpc("disclosed_location_for_job", { p_request_id: requestId });
+    if (error) {
+      console.warn("disclosed job location unavailable:", error.message);
+      return null;
+    }
+    const row = data?.[0];
+    if (!row) return null;
+    return {
+      street: row.street || "",
+      houseNumber: row.house_number || "",
+      postcode: row.postcode || "",
+      municipality: row.municipality || "",
+      country: row.country || "",
+      propertyType: row.property_type || null,
+      quotePrepNotes: row.quote_prep_notes || "",
+    };
+  } catch (err) {
+    console.warn("disclosed job location unavailable:", err.message);
+    return null;
+  }
+}
+

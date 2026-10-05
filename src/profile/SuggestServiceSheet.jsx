@@ -32,8 +32,15 @@ export function SuggestServiceSheet({ t, workspaceId, locale, onClose, onMatched
     if (!description.trim()) return;
     setBusy(true);
     setError("");
+    let outcome;
     try {
-      const outcome = await suggestService({ workspaceId, description: description.trim(), locale });
+      outcome = await suggestService({ workspaceId, description: description.trim(), locale });
+    } catch {
+      setError(t.suggestServiceFailed);
+      setBusy(false);
+      return;
+    }
+    try {
       if (outcome.outcome === "match") {
         // Same write the chip picker itself uses (Profile.jsx's own saveServices) — a
         // real match is an ordinary "pro offers this" write, never a suggestion.
@@ -41,7 +48,11 @@ export function SuggestServiceSheet({ t, workspaceId, locale, onClose, onMatched
       }
       setResult(outcome);
     } catch {
-      setError(t.suggestServiceFailed);
+      // Live review 2026-10-04, item 8: a failure to ATTACH a service Klussie did find was
+      // reported with the same text as a failure to understand the description, so the
+      // professional retyped a description that had worked. Different problem, different
+      // message, and the description stays in the box for a retry either way.
+      setError(t.suggestServiceAttachFailed);
     } finally {
       setBusy(false);
     }

@@ -25,21 +25,17 @@
 // this reconciliation happened, so there was nothing to preserve, only a demo display to
 // stop showing.
 //
-// netEarnings()/PLATFORM_COMMISSION_RATE's OWN 12% REMAINS, AS A NAMED, DELIBERATE GAP
+// THE FLEXI TRACKER'S FLAT 12% IS GONE TOO (live review 2026-10-04, item 7)
 //
-// The flexi-job tracker below (ProApp.jsx's own earnedGross) is the one remaining
-// consumer of a flat-rate deduction, and it is now equally inaccurate for the same
-// reason — but unlike the customer-facing fee breakdown, it makes no claim to a
-// counterparty; it is a professional's own rough progress estimate against a personal
-// Belgian tax threshold, already labelled "demo figure" at FLEXI_TAX_FREE_THRESHOLD's own
-// definition. Replacing it correctly means a real product decision this reconciliation
-// pass does not make on its own — whether "earned" should mean gross quote value (no
-// deduction, since most jobs now have none) or something that reads real acquisition-fee
-// assessments per job — not a mechanical constant swap. Named here rather than silently
-// left as though it were still correct.
-
-/** Share of a booked quote the flexi-job tracker estimates as commission — see this file's own header for why this is a known-approximate figure, not the real per-job fee. */
-export const PLATFORM_COMMISSION_RATE = 0.12;
+// netEarnings() used to take a flat 12% off every job for the flexi-job tracker, which is
+// the same superseded figure removed from the customer card above — and it contradicted the
+// quote form, which (correctly) says the introduction fee is 5%, capped at €75, first job
+// with a customer only. The Billing screen therefore told a professional two different
+// things about their platform costs. The tracker now counts the GROSS quoted value of
+// booked and completed jobs (grossEarnings()): the Belgian flexi ceiling is measured on
+// income, not on income after an estimated platform cost, so gross is also the conservative
+// reading for a tax-threshold bar. Its note says plainly what it counts and that the real
+// introduction fee applies only to some jobs. No tax or accounting treatment is claimed.
 
 /** Belgian standard VAT rate, applied on the demo invoice. */
 export const VAT_RATE = 0.21;
@@ -80,17 +76,14 @@ export function typicalPriceRange(base) {
 }
 
 /**
- * What a professional has earned across their booked and completed jobs, after
- * commission — the figure the flexi-job tracker measures against the ceiling.
- *
- * Deliberately unrounded, matching the behaviour this replaced: it feeds a progress
- * percentage and a single rounded display figure, never an invoice line, so rounding
- * each job individually would only introduce drift the tracker doesn't need.
+ * The gross quoted value of the jobs a professional has booked or completed — what the
+ * flexi-job tracker measures against the ceiling. Unrounded on purpose: it feeds a progress
+ * percentage and a single rounded display figure, never an invoice line.
  */
-export function netEarnings(jobs, proId) {
+export function grossEarnings(jobs, proId) {
   return jobs.reduce((sum, request) => {
     const quote = request.quotes.find((q) => q.proId === proId);
-    return sum + (quote ? quote.price * (1 - PLATFORM_COMMISSION_RATE) : 0);
+    return sum + (quote ? quote.price : 0);
   }, 0);
 }
 

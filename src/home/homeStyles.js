@@ -301,6 +301,9 @@ export const HOME_CSS = `
 }
 .maintenance-row-title, .document-row-caption{ flex:1; min-width:0; }
 .maintenance-row-due, .document-row-validity{ font-size:11.5px; color:var(--ink-soft); flex:none; }
+.document-row-filename{ display:block; font-size:11.5px; color:var(--ink-soft); overflow-wrap:anywhere; margin-top:2px; }
+.document-row-actions{ flex-wrap:wrap; align-items:center; }
+.document-row-buttons{ display:flex; gap:var(--space-2); flex:none; }
 
 /* Maintenance resolution slice — ItemDetailSheet's own actionable rows (Mark done/Cancel
    task for an open task, a status badge/line for a settled one) sit below the existing

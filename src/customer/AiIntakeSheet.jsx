@@ -85,6 +85,9 @@ export function AiIntakeSheet({
   const [changingService, setChangingService] = useState(false);
   const [editDescription, setEditDescription] = useState(seeded.description);
   const [editBudget, setEditBudget] = useState(seeded.budget);
+  // Klussie's own estimate stays flagged as such until the customer changes it (item 19 of
+  // the 2026-10-04 live review: a prefilled amount must not read as the customer's intent).
+  const [budgetIsEstimate, setBudgetIsEstimate] = useState(!!seeded.budgetIsEstimate);
   const [editCity, setEditCity] = useState(profile?.city || "");
   const [editWhen, setEditWhen] = useState(seeded.when);
   const [location, setLocation] = useState(null);
@@ -140,6 +143,7 @@ export function AiIntakeSheet({
     setEditServiceId(next.serviceId);
     setEditDescription(next.description);
     setEditBudget(next.budget);
+    setBudgetIsEstimate(!!next.budgetIsEstimate);
     setEditWhen(next.when);
   };
 
@@ -217,7 +221,7 @@ export function AiIntakeSheet({
     setError("");
     try {
       await onSubmitted(buildIntakeRequest({
-        edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, city: editCity, when: editWhen, location, assetId },
+        edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, budgetIsEstimate, city: editCity, when: editWhen, location, assetId },
         result,
         baseServices: BASE_SERVICES,
         photos: photos.map((p) => p.file),
@@ -285,7 +289,7 @@ export function AiIntakeSheet({
           />
 
           <div className="ai-input-row">
-            <button type="button" className={"chip" + (listening ? " chip-on" : "")} onClick={toggleListening} disabled={!isSpeechRecognitionSupported()}>
+            <button type="button" aria-pressed={!!(listening)} className={"chip" + (listening ? " chip-on" : "")} onClick={toggleListening} disabled={!isSpeechRecognitionSupported()}>
               <Mic size={14} /> {listening ? t.aiListening : t.aiSpeakBtn}
             </button>
             <button type="button" className="chip" onClick={() => photoInputRef.current.click()}>
@@ -367,13 +371,13 @@ export function AiIntakeSheet({
             <div className="chiprow" style={{ marginBottom: 14 }}>
               {/* No onClick, not `disabled` — a disabled button picks up the browser's
                   own dimmed styling, which would read as broken rather than confirmed. */}
-              <button type="button" className="chip chip-on" style={{ cursor: "default" }}>{serviceInfo(editServiceId).name}</button>
+              <button type="button" className="chip chip-on" aria-pressed="true" style={{ cursor: "default" }}>{serviceInfo(editServiceId).name}</button>
               <button type="button" className="chip" onClick={() => setChangingService(true)}>{t.intentChange}</button>
             </div>
           ) : (
             <div className="chiprow" style={{ marginBottom: 14 }}>
               {BASE_SERVICES.map((s) => (
-                <button key={s.id} type="button" className={"chip" + (editServiceId === s.id ? " chip-on" : "")} onClick={() => { setEditServiceId(s.id); setChangingService(false); }}>
+                <button key={s.id} type="button" aria-pressed={!!(editServiceId === s.id)} className={"chip" + (editServiceId === s.id ? " chip-on" : "")} onClick={() => { setEditServiceId(s.id); setChangingService(false); }}>
                   {serviceInfo(s.id).name}
                 </button>
               ))}
@@ -393,7 +397,7 @@ export function AiIntakeSheet({
           <label className="field-label">{t.whenLabel}</label>
           <div className="chiprow">
             {WHEN_PREFS.map((w) => (
-              <button key={w} type="button" className={"chip" + (editWhen === w ? " chip-on" : "")} onClick={() => setEditWhen(w)}>{whenLabel(w)}</button>
+              <button key={w} type="button" aria-pressed={!!(editWhen === w)} className={"chip" + (editWhen === w ? " chip-on" : "")} onClick={() => setEditWhen(w)}>{whenLabel(w)}</button>
             ))}
           </div>
 
@@ -409,8 +413,9 @@ export function AiIntakeSheet({
           <label className="field-label">{t.budgetLabel}</label>
           <div className="search" style={{ marginBottom: 18 }}>
             <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>€</span>
-            <input placeholder={t.budgetPlaceholder} value={editBudget} onChange={(e) => setEditBudget(e.target.value)} />
+            <input placeholder={t.budgetPlaceholder} value={editBudget} onChange={(e) => { setEditBudget(e.target.value); setBudgetIsEstimate(false); }} />
           </div>
+          {budgetIsEstimate && editBudget !== "" && <p className="fineprint" style={{ justifyContent: "flex-start", marginTop: -12, marginBottom: 18 }}>{t.budgetEstimateHint}</p>}
 
           {photos.length > 0 && (
             <div className="portfolio-grid" style={{ marginBottom: 14 }}>
