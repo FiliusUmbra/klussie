@@ -1,6 +1,6 @@
 // Dialog naming and field-label wiring (live review 2026-10-04, item 13): unnamed dialogs and
 // registration inputs with no accessible name.
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { useState } from "react";
 import { Drawer, Modal } from "../overlays.jsx";
