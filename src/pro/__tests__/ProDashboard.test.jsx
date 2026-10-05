@@ -200,4 +200,12 @@ describe("ProDashboard visual reform + tour wiring", () => {
     renderDashboard();
     expect(document.querySelector('[data-tour="pro-pause"]')).toBeTruthy();
   });
+  it("marks a budget that is only Klussie's estimate with a leading ≈, so it never reads as the customer's own figure", () => {
+    const est = { ...LEAD, id: "req-est", answers: { ...LEAD.answers, budget: "180", aiAnalysis: { budgetIsEstimate: true } } };
+    const real = { ...LEAD, id: "req-real", answers: { ...LEAD.answers, budget: "250", aiAnalysis: { budgetIsEstimate: false } } };
+    renderDashboard([est, real]);
+    expect(screen.getByText(/≈€180/)).toBeTruthy();
+    expect(screen.queryByText(/≈€250/)).toBeNull();
+    expect(screen.getByText(/·\s*€250/)).toBeTruthy();
+  });
 });

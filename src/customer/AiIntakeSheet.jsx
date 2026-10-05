@@ -85,6 +85,9 @@ export function AiIntakeSheet({
   const [changingService, setChangingService] = useState(false);
   const [editDescription, setEditDescription] = useState(seeded.description);
   const [editBudget, setEditBudget] = useState(seeded.budget);
+  // Klussie's own estimate stays flagged as such until the customer changes it (item 19 of
+  // the 2026-10-04 live review: a prefilled amount must not read as the customer's intent).
+  const [budgetIsEstimate, setBudgetIsEstimate] = useState(!!seeded.budgetIsEstimate);
   const [editCity, setEditCity] = useState(profile?.city || "");
   const [editWhen, setEditWhen] = useState(seeded.when);
   const [location, setLocation] = useState(null);
@@ -140,6 +143,7 @@ export function AiIntakeSheet({
     setEditServiceId(next.serviceId);
     setEditDescription(next.description);
     setEditBudget(next.budget);
+    setBudgetIsEstimate(!!next.budgetIsEstimate);
     setEditWhen(next.when);
   };
 
@@ -217,7 +221,7 @@ export function AiIntakeSheet({
     setError("");
     try {
       await onSubmitted(buildIntakeRequest({
-        edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, city: editCity, when: editWhen, location, assetId },
+        edited: { serviceId: editServiceId, description: editDescription, budget: editBudget, budgetIsEstimate, city: editCity, when: editWhen, location, assetId },
         result,
         baseServices: BASE_SERVICES,
         photos: photos.map((p) => p.file),
@@ -409,8 +413,9 @@ export function AiIntakeSheet({
           <label className="field-label">{t.budgetLabel}</label>
           <div className="search" style={{ marginBottom: 18 }}>
             <span style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>€</span>
-            <input placeholder={t.budgetPlaceholder} value={editBudget} onChange={(e) => setEditBudget(e.target.value)} />
+            <input placeholder={t.budgetPlaceholder} value={editBudget} onChange={(e) => { setEditBudget(e.target.value); setBudgetIsEstimate(false); }} />
           </div>
+          {budgetIsEstimate && editBudget !== "" && <p className="fineprint" style={{ justifyContent: "flex-start", marginTop: -12, marginBottom: 18 }}>{t.budgetEstimateHint}</p>}
 
           {photos.length > 0 && (
             <div className="portfolio-grid" style={{ marginBottom: 14 }}>

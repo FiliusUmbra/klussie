@@ -152,7 +152,7 @@ export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled }) {
             key={r.id}
             title={requestTitle(r, serviceInfo, t.navRequests)}
             badge={isNewLead(r.id) && <Badge tone="amber">{t.newBadge}</Badge>}
-            subtitle={`${whenLabel(r.answers.when)} · ${r.answers.budget ? `€${r.answers.budget}` : t.budgetFlexible}${municipality ? ` · ${municipality}` : ""}`}
+            subtitle={`${whenLabel(r.answers.when)} · ${r.answers.budget ? `${r.answers.aiAnalysis?.budgetIsEstimate ? "≈" : ""}€${r.answers.budget}` : t.budgetFlexible}${municipality ? ` · ${municipality}` : ""}`}
             footer={<button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>}
           >
             <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>
