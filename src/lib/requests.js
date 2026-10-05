@@ -428,6 +428,17 @@ export async function fetchProJobs(proId, workspaceId) {
 
   const engagementByRequest = new Map((engagements || []).map((e) => [e.request_id, e]));
 
+  // The professional's own quote messages (api.my_quote_messages(), migration 0236 — live
+  // review item 5). Best-effort: until that migration is applied, or if the read fails, the
+  // job simply shows no message rather than failing the whole jobs list.
+  const messageByQuote = new Map();
+  try {
+    const { data: msgRows, error: msgError } = await supabase.schema("api").rpc("my_quote_messages", { p_workspace_id: workspaceId });
+    if (!msgError) (msgRows || []).forEach((m) => messageByQuote.set(m.id, m.message));
+  } catch {
+    // Same best-effort reasoning as above.
+  }
+
   const requestIds = [...new Set((quotes || []).map((q) => q.request_id))];
   const requests = await Promise.all(
     requestIds.map(async (id) => {
@@ -465,7 +476,7 @@ export async function fetchProJobs(proId, workspaceId) {
     return {
       id: q.request_id,
       serviceId: request?.service_id ?? null,
-      quotes: [{ id: q.id, proId: myProId ?? proId, price: Number(q.price), status: q.status }],
+      quotes: [{ id: q.id, proId: myProId ?? proId, price: Number(q.price), status: q.status, message: messageByQuote.get(q.id) ?? null }],
       status: request?.status ?? q.status,
       bookedProId: engagement ? (myProId ?? proId) : null,
       engaged: Boolean(engagement),

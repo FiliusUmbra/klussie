@@ -535,10 +535,24 @@ describe("fetchProJobs", () => {
     expect(result.booked.map((r) => r.id)).toEqual(["req-booked"]);
     expect(result.completed.map((r) => r.id)).toEqual(["req-done"]);
 
-    expect(result.booked[0].quotes).toEqual([{ id: "q-booked", proId: "pro-1", price: 80, status: "accepted" }]);
+    expect(result.booked[0].quotes).toEqual([{ id: "q-booked", proId: "pro-1", price: 80, status: "accepted", message: null }]);
     expect(result.completed[0].review).toEqual({ stars: 5, text: "Great work" });
     expect(result.sent[0].bookedProId).toBeNull();
     expect(result.booked[0].bookedProId).toBe("pro-1");
+  });
+
+  it("carries the professional's own quote message through when api.my_quote_messages returns it, and degrades quietly when it can't", async () => {
+    const base = {
+      my_quotes: () => ({ data: [{ id: "q-1", request_id: "req-1", price: 1, status: "sent" }], error: null }),
+      my_engagements: () => ({ data: [], error: null }),
+      resolve_request: () => ({ data: [{ id: "req-1", service_id: "svc-1", status: "collecting" }], error: null }),
+      resolve_workspace_owner_auth_ids: () => ({ data: [{ workspace_id: "ws-1", auth_user_id: "pro-1" }], error: null }),
+    };
+    mockApi({ ...base, my_quote_messages: () => ({ data: [{ id: "q-1", message: "TEST only" }], error: null }) });
+    expect((await fetchProJobs("pro-1", "ws-1")).sent[0].quotes[0].message).toBe("TEST only");
+
+    mockApi({ ...base, my_quote_messages: () => ({ data: null, error: new Error("function does not exist") }) });
+    expect((await fetchProJobs("pro-1", "ws-1")).sent[0].quotes[0].message).toBeNull();
   });
 
   it("propagates a my_quotes error", async () => {

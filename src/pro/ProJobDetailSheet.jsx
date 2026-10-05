@@ -20,7 +20,7 @@ import { useLang } from "../lib/lang";
 import { Badge, PriceTag, Timeline, Button, Drawer } from "../design-system";
 import { timelineSteps, statusPresentation } from "../lib/requestStatus.js";
 import { documentTypeLabelKey } from "../lib/documents.js";
-import { fetchPropertyTwin } from "../lib/propertyTwin.js";
+import { fetchPropertyTwin, fetchDisclosedLocation } from "../lib/propertyTwin.js";
 import { interpolate } from "../lib/homeStrings.js";
 import {
   fetchMyAcquisitionFeeAssessments,
@@ -33,6 +33,8 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
   const { t, fmt, serviceInfo } = useLang();
   const [twin, setTwin] = useState(null);
   const [twinLoading, setTwinLoading] = useState(Boolean(job.propertyId));
+  // undefined = still loading, null = nothing shared (or not allowed), object = the address.
+  const [address, setAddress] = useState(undefined);
   const [feeAssessment, setFeeAssessment] = useState(null);
   const [feeActionPending, setFeeActionPending] = useState(false);
   const [feeActionError, setFeeActionError] = useState(false);
@@ -79,6 +81,17 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
       setFeeActionPending(false);
     }
   }
+
+  // The exact address the customer explicitly shared (live review item 6). Only asked for
+  // once an engagement exists; the database returns it to the performing professional
+  // alone and only after the customer's consent, so a quote that is merely pending, or any
+  // other provider, gets null here.
+  useEffect(() => {
+    let cancelled = false;
+    if (!job.engagementId) return undefined;
+    fetchDisclosedLocation(job.id).then((a) => { if (!cancelled) setAddress(a); });
+    return () => { cancelled = true; };
+  }, [job.engagementId, job.id]);
 
   useEffect(() => {
     // No property attached to this job at all: the initial state above (twin = null,
@@ -134,6 +147,9 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
         </div>
         {myQuote && <PriceTag amount={myQuote.price} fmt={fmt} />}
       </div>
+      {/* The professional's own submitted message (live review item 5 — a submitted quote
+          could be inspected for price and status but not for what it actually said). */}
+      {myQuote?.message?.trim() && <p className="quote-msg" data-testid="my-quote-message">"{myQuote.message.trim()}"</p>}
 
       {/* Payments Slice A (WP A5) — "show the professional the exact proposed fee and
           its basis before commitment" (decision table). Renders nothing at all for the
@@ -187,6 +203,26 @@ export function ProJobDetailSheet({ job, customerName, onMessage, onClose, works
         <Button variant="secondary" icon={MessageCircle} style={{ marginTop: 12, width: "100%" }} onClick={onMessage}>
           {t.messageCustomerBtn}
         </Button>
+      )}
+
+      {job.engagementId && (
+        <div className="job-address" data-testid="job-address" style={{ marginTop: 16 }}>
+          <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <MapPin size={15} />
+            {t.jobAddressTitle}
+          </div>
+          {address === undefined ? (
+            <p className="ticket-sub">{t.myItemsLoading}</p>
+          ) : address ? (
+            <address className="job-address-lines" style={{ fontStyle: "normal" }}>
+              {(address.street || address.houseNumber) && <div>{[address.street, address.houseNumber].filter(Boolean).join(" ")}</div>}
+              {(address.postcode || address.municipality) && <div>{[address.postcode, address.municipality].filter(Boolean).join(" ")}</div>}
+              {address.quotePrepNotes && <div className="ticket-sub">{address.quotePrepNotes}</div>}
+            </address>
+          ) : (
+            <p className="ticket-sub">{t.jobAddressWaiting}</p>
+          )}
+        </div>
       )}
 
       <div className="section-title" style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 6 }}>
