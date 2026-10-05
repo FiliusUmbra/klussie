@@ -11,17 +11,20 @@ import { Today } from './FamilyParts.jsx';
 import { ListsAndChores, FamilyCalendar, FamilyPeople } from './FamilyPanels.jsx';
 import { FAMILY_CSS } from './familyStyles.js';
 const SECTIONS = [['today',Sun],['lists',ListChecks],['chores',CheckCheck],['calendar',CalendarDays],['people',Users]];
-export function FamilyApp({ onClose, initialId }) {
+export function FamilyApp({ onClose, initialId, section, onSectionChange }) {
   const { user } = useAuth();
-  return <FamilySpace key={`${user.id}:${initialId || ''}`} onClose={onClose} initialId={initialId} />;
+  return <FamilySpace key={`${user.id}:${initialId || ''}`} onClose={onClose} initialId={initialId} routedSection={section} onSectionChange={onSectionChange} />;
 }
-function FamilySpace({ onClose, initialId }) {
+function FamilySpace({ onClose, initialId, routedSection, onSectionChange }) {
   const { langCode, fmtDate, LANGS } = useLang();
   const { profile, refreshProfile } = useAuth();
   const f = familyStrings(langCode);
   const state = useFamily(initialId);
   const { selected, setSelected, groups, data, error, busy, refresh, run, ready } = state;
-  const [section,setSection] = useState('today');
+  // Route-driven when App.jsx supplies one (live review 2026-10-04, item 15), local otherwise.
+  const [localSection,setLocalSection] = useState('today');
+  const section = routedSection || localSection;
+  const setSection = (next) => { if (onSectionChange) onSectionChange(next); else setLocalSection(next); };
   const [selectedList,setSelectedList] = useState(null);
   const [editor,setEditor] = useState(null);
   const [actionError,setActionError] = useState('');

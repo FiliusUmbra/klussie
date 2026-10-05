@@ -12,6 +12,7 @@ import { AppShell } from "./shell/AppShell.jsx";
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ProtectedRoute, PublicOnlyRoute, SessionRedirect } from "./auth/AuthRoutes.jsx";
 import { customerDestination, customerPath } from "./lib/customerNavigation.js";
+import { proTabFromPath, proPath, isFamilyPath, familySectionFromPath, familyPath } from "./lib/proNavigation.js";
 
 // 2026-09-30 — "Customer navigation continuity," brought in from the parallel "Klussie
 // via ChatGPT" pass: dedicated addresses for Today/Help/My Home (+Items)/Requests/
@@ -25,7 +26,11 @@ function SignedInShell() {
   const navigate = useNavigate();
   return (
     <AppShell
-      familyRoute={location.pathname === "/app/family"}
+      familyRoute={isFamilyPath(location.pathname)}
+      familySection={familySectionFromPath(location.pathname)}
+      onFamilySectionChange={(section) => { const path = familyPath(section); if (path !== location.pathname) navigate(path); }}
+      proTab={proTabFromPath(location.pathname)}
+      onProNavigate={(tab) => { const path = proPath(tab); if (path !== location.pathname) navigate(path); }}
       customerDestination={customerDestination(location.pathname)}
       onCustomerNavigate={(tab, section) => {
         const path = customerPath(tab, section);

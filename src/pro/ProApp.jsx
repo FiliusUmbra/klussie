@@ -35,7 +35,7 @@ import { offeredCategoryIds } from "../lib/proStatus.js";
 import { grossEarnings } from "../lib/billing.js";
 import { unreadTotal } from "../lib/conversationSelectors.js";
 
-export function ProApp({ showToast }) {
+export function ProApp({ showToast, tab: routedTab, onNavigate }) {
   // Platform Activation Slice 1, WP 1.10 — fmtDate added for MyBusinessPanel.jsx's own
   // reuse of MyItemsPanel.jsx, which formats maintenance due-dates and document validity
   // dates the same way ConversationHome.jsx's own customer surface already does.
@@ -48,7 +48,11 @@ export function ProApp({ showToast }) {
   // read filter, so it threads into fetchConversations/subscribeToConversationsForUser too.
   const workspaceId = activeWorkspace?.workspace_id;
   const tour = useProTour();
-  const [tab, setTab] = useState("dashboard");
+  // The active tab comes from the address bar when App.jsx supplies one (routedTab/onNavigate —
+  // live review 2026-10-04, item 15), and from local state for every caller that does not.
+  const [localTab, setLocalTab] = useState("dashboard");
+  const tab = routedTab || localTab;
+  const setTab = (next) => { if (onNavigate) onNavigate(next); else setLocalTab(next); };
   const [quoteLead, setQuoteLead] = useState(null);
   const [leads, setLeads] = useState(null);
   const [jobs, setJobs] = useState(null);
