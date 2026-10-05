@@ -18,6 +18,7 @@ import { ReportSheet } from "./ReportSheet.jsx";
 import { timelineSteps } from "../lib/requestStatus.js";
 import { interpolate } from "../lib/homeStrings.js";
 import { requestTitle } from "../lib/requestTitle.js";
+import { invoiceTotals, VAT_RATE } from "../lib/billing.js";
 
 export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage, onWithdraw }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
@@ -110,6 +111,8 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                   </button>
                   <PriceTag amount={q.price} fmt={fmt} />
                 </div>
+                <p className="fineprint" style={{ justifyContent: "flex-start", margin: "4px 0 0" }} data-testid="price-basis">{interpolate(t.quotePriceBasisNote, { total: fmt(invoiceTotals(q.price).total), rate: Math.round(VAT_RATE * 100) })}</p>
+
                 {/* The professional's own words (scope, conditions, exclusions — the quote
                     has no separate structured fields, this message is where they live).
                     2026-10-04 live review, item 5: it was fetched but never shown, so a
@@ -201,6 +204,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
+            <p className="fineprint" style={{ justifyContent: "flex-start", margin: "4px 0 0" }} data-testid="price-basis">{interpolate(t.quotePriceBasisNote, { total: fmt(invoiceTotals(bookedQuote.price).total), rate: Math.round(VAT_RATE * 100) })}</p>
             {bookedQuote.message?.trim() && <p className="quote-msg" data-testid="quote-message">"{bookedQuote.message.trim()}"</p>}
             <div className="ticket-divider" />
             {/* Payments Slice A — platformFee()/netPayout() (a flat 12% on every job)

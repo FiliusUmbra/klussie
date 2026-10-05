@@ -31,7 +31,7 @@ import { SendQuoteSheet } from "./SendQuoteSheet.jsx";
 import { ProOnboarding } from "./ProOnboarding.jsx";
 import { useProTour } from "./useProTour.js";
 import { offeredCategoryIds } from "../lib/proStatus.js";
-import { netEarnings } from "../lib/billing.js";
+import { grossEarnings } from "../lib/billing.js";
 import { unreadTotal } from "../lib/conversationSelectors.js";
 
 export function ProApp({ showToast }) {
@@ -135,7 +135,7 @@ export function ProApp({ showToast }) {
     return <LoadingScreen />;
   }
 
-  const earnedGross = netEarnings([...jobs.booked, ...jobs.completed], user.id);
+  const earnedGross = grossEarnings([...jobs.booked, ...jobs.completed], user.id);
 
   // Same shape as CustomerApp.jsx's own submitReview() fix: this was fire-and-forget
   // from its own JSX call site (no await, no catch) and had none of its own either, so

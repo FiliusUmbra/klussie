@@ -380,3 +380,15 @@ describe("RequestDetailSheet — withdrawing a request", () => {
   });
 });
 
+// 2026-10-04 live review, item 7: the customer saw €1 on the quote and acceptance but €1.21 on
+// the demo invoice. The basis is now stated before commitment, from the same invoiceTotals().
+describe("RequestDetailSheet — the price basis a customer sees before accepting", () => {
+  it("states the quote is excl. VAT and the illustrative total, on open and booked quotes alike", () => {
+    renderSheet({ request: { ...BOOKED_REQUEST, status: "quotes_ready", bookedProId: null } });
+    expect(screen.getByTestId("price-basis").textContent).toBe("quotePriceBasisNote");
+    document.body.innerHTML = "";
+    renderSheet({ request: BOOKED_REQUEST });
+    expect(screen.getByTestId("price-basis")).toBeTruthy();
+  });
+});
+
