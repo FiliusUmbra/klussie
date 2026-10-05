@@ -19,7 +19,7 @@ import { timelineSteps } from "../lib/requestStatus.js";
 import { interpolate } from "../lib/homeStrings.js";
 import { requestTitle } from "../lib/requestTitle.js";
 
-export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage }) {
+export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage, onWithdraw }) {
   const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
   const { user } = useAuth();
   const [showInvoice, setShowInvoice] = useState(false);
@@ -31,6 +31,10 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
   // sheet's quotes_ready state offers.
   const [acceptingId, setAcceptingId] = useState(null);
   const [completing, setCompleting] = useState(false);
+  // Withdrawal confirms inline (no second sheet — the no-sliding-sheets rule) and says
+  // what it will do before it does it.
+  const [confirmingWithdraw, setConfirmingWithdraw] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
   const steps = timelineSteps(request.status);
 
@@ -61,6 +65,30 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
           cancelled request's own detail sheet showed nothing past the title and
           subtitle. See requestStatus.js's own PRESENTATION table for the matching
           badge-label gap this same review found and closed. */}
+      {onWithdraw && (request.status === "collecting" || request.status === "quotes_ready") && (
+        <div className="request-withdraw" data-testid="request-withdraw">
+          {!confirmingWithdraw ? (
+            <button type="button" className="btn-secondary" onClick={() => setConfirmingWithdraw(true)}>{t.requestWithdrawBtn}</button>
+          ) : (
+            <div className="empty-block" role="alertdialog" aria-label={t.requestWithdrawBtn}>
+              <p>{t.requestWithdrawConfirmBody}</p>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={withdrawing}
+                onClick={async () => {
+                  setWithdrawing(true);
+                  try { await onWithdraw(); onClose(); } catch { /* toasted by withdrawRequest() */ } finally { setWithdrawing(false); }
+                }}
+              >
+                {withdrawing ? <Loader2 size={15} className="spin" /> : null} {t.requestWithdrawConfirmBtn}
+              </button>
+              <button type="button" className="btn-secondary" disabled={withdrawing} onClick={() => setConfirmingWithdraw(false)}>{t.requestWithdrawKeepBtn}</button>
+            </div>
+          )}
+        </div>
+      )}
+
       {request.status === "cancelled" && (
         <div className="empty-block"><Ban size={22} color="var(--ink-soft)" /><p>{t.requestCancelledMsg}</p></div>
       )}
@@ -82,6 +110,11 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                   </button>
                   <PriceTag amount={q.price} fmt={fmt} />
                 </div>
+                {/* The professional's own words (scope, conditions, exclusions — the quote
+                    has no separate structured fields, this message is where they live).
+                    2026-10-04 live review, item 5: it was fetched but never shown, so a
+                    customer chose between prices with none of the context behind them. */}
+                {q.message?.trim() && <p className="quote-msg" data-testid="quote-message">"{q.message.trim()}"</p>}
                 {/* Found by code audit: no busy state at all -- a real refusal (a race
                     with another quote already accepted, a status that moved on) used
                     to leave this button sitting there, tappable again, with nothing
@@ -121,6 +154,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
+            {bookedQuote.message?.trim() && <p className="quote-msg" data-testid="quote-message">"{bookedQuote.message.trim()}"</p>}
             <div className="ticket-divider" />
             <div className="quote-msg" style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               <MapPin size={14} style={{ marginTop: 2, flexShrink: 0 }} />
@@ -167,6 +201,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
+            {bookedQuote.message?.trim() && <p className="quote-msg" data-testid="quote-message">"{bookedQuote.message.trim()}"</p>}
             <div className="ticket-divider" />
             {/* Payments Slice A — platformFee()/netPayout() (a flat 12% on every job)
                 removed: superseded by the real acquisition-fee model (5%, capped at €75,

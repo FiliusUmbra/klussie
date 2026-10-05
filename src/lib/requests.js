@@ -557,6 +557,25 @@ export async function acceptQuote(quoteId, customerId) {
   if (error) throw error;
 }
 
+/**
+ * Withdraws a request that hasn't been booked yet (`api.withdraw_request()`, 0146 — it
+ * had no client caller until the 2026-10-04 live review, item 10: a customer who spotted
+ * wrong timing or changed their mind had no way to take a request back). The database
+ * only allows it while the request is still collecting or has quotes waiting
+ * (`work.withdraw_request()` raises past that point), so a stale screen gets a real error
+ * rather than silently withdrawing a booked job. requestId is a work.requests id.
+ */
+export async function withdrawRequest(requestId, customerId) {
+  const { error } = await supabase.schema("api").rpc("withdraw_request", {
+    p_request_id: requestId,
+    p_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: customerId,
+  });
+  if (error) throw error;
+}
+
 // Beta-completion slice (0182/0183) — the disclosure-consent action itself.
 // requestId is a work.requests id (the customer's own reshaped request), same restraint
 // as markComplete() below: the engagement id is resolved here, at action time, rather

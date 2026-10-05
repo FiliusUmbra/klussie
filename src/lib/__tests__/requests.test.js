@@ -26,6 +26,7 @@ import {
   fetchProJobs,
   sendQuote,
   acceptQuote,
+  withdrawRequest,
   approveLocationDisclosure,
   markComplete,
   submitReview,
@@ -740,6 +741,20 @@ describe("acceptQuote", () => {
   it("throws on a Supabase error", async () => {
     mockApi({ accept_quote: () => ({ error: new Error("update failed") }) });
     await expect(acceptQuote("quote-1", "cust-1")).rejects.toThrow("update failed");
+  });
+});
+
+describe("withdrawRequest", () => {
+  it("calls api.withdraw_request with the work request and the real customer identity", async () => {
+    const rpc = mockApi({ withdraw_request: () => ({ error: null }) });
+    await withdrawRequest("req-1", "cust-1");
+    const call = rpc.mock.calls.find(([name]) => name === "withdraw_request");
+    expect(call[1]).toMatchObject({ p_request_id: "req-1", p_actor_type: "person", p_actor_ref: "cust-1" });
+  });
+
+  it("throws when the database refuses (e.g. the request is already booked)", async () => {
+    mockApi({ withdraw_request: () => ({ error: new Error("past the point a withdrawal applies") }) });
+    await expect(withdrawRequest("req-1", "cust-1")).rejects.toThrow("past the point");
   });
 });
 
