@@ -371,6 +371,20 @@ describe("ItemDetailSheet — Maintenance (filtered from the already-fetched wor
     expect(screen.queryByText("Filter change")).toBeNull();
   });
 
+  it("never offers Mark done / Cancel on a projected next occurrence — it has no obligation to complete (live-review bug: every attempt failed)", async () => {
+    const maintenance = [
+      { id: "sch-1", scheduleId: "sch-1", assetId: "asset-1", title: "Recurring check", status: "open", dueOn: "2030-01-01", isOverdue: false, projected: true },
+    ];
+    vi.mocked(fetchMaintenanceSchedules).mockResolvedValueOnce([
+      { id: "sch-1", assetId: "asset-1", title: "Recurring check", recurrence: "3 mons", nextDueOn: "2030-01-01", active: true },
+    ]);
+    await renderDetail({ maintenance });
+    expect(screen.getByText("Recurring check")).toBeTruthy();
+    expect(screen.queryByText("Klaar melden")).toBeNull();
+    expect(screen.queryByText("itemDetailMaintenanceMarkDone")).toBeNull();
+    expect(completeMaintenanceObligation).not.toHaveBeenCalled();
+  });
+
   it("shows a loading line while the workspace-wide list has not resolved yet (maintenance is null)", async () => {
     // Not renderDetail() here on purpose -- that helper waits for BOTH document/history
     // fetches to settle, but this test's own point is that the workspace-wide maintenance

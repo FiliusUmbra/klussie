@@ -416,7 +416,10 @@ export function ItemDetailSheet({
   // fetch once (src/lib/maintenance.js's own fetchMaintenanceObligations()) — every row
   // already carries its own assetId, so this narrows to one item without a second fetch.
   const itemMaintenance = (maintenance || [])
-    .filter((m) => m.assetId === item.id)
+    // `projected` entries are a schedule's next occurrence before it has become a real
+    // obligation — they have no obligation id to complete or cancel, so they belong in the
+    // schedule list below (Stop future reminders only), never here.
+    .filter((m) => m.assetId === item.id && !m.projected)
     .map((m) => (maintenanceOverrides[m.id] ? { ...m, ...maintenanceOverrides[m.id] } : m));
 
   // Recurring Maintenance Activation slice. A schedule whose next occurrence is already

@@ -193,6 +193,13 @@ export function mergeMaintenanceWithSchedules(maintenance, schedules) {
       title: s.title,
       description: s.description,
       source: "schedule",
+      // A projection of a schedule's next occurrence, NOT a real obligation: there is no
+      // work.maintenance_obligations row behind it until the schedule actually comes due
+      // (0205's nightly job). Anything that acts on an obligation by id (mark done,
+      // cancel) must skip these — their id is the schedule's own, and the completion RPC
+      // rightly says "does not exist" for it (found in the 2026-10-04 live review: every
+      // "Klaar melden" on a not-yet-due recurring task failed).
+      projected: true,
       dueOn: s.nextDueOn,
       status: "open",
       isOverdue: false,
@@ -206,6 +213,23 @@ export function mergeMaintenanceWithSchedules(maintenance, schedules) {
     if (a.status !== "open" && b.status === "open") return 1;
     if (a.status === "open") return new Date(a.dueOn) - new Date(b.dueOn);
     return 0;
+  });
+}
+
+/**
+ * Narrows a workspace-wide maintenance list to one property: an obligation belongs to the
+ * property when its asset is one of that property's items or its location is one of that
+ * property's rooms. Found in the 2026-10-04 live review: an empty second property listed
+ * (and counted) maintenance attached to an appliance in the first, because the list was
+ * fetched per workspace and never scoped. An obligation attached to neither an asset nor
+ * a location is genuinely workspace-level and is kept for every property.
+ */
+export function maintenanceForProperty(maintenance, assetIds, locationIds) {
+  if (!maintenance) return maintenance;
+  return maintenance.filter((m) => {
+    if (m.assetId) return assetIds.has(m.assetId);
+    if (m.locationId) return locationIds.has(m.locationId);
+    return true;
   });
 }
 

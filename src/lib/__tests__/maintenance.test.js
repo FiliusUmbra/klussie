@@ -13,7 +13,7 @@ vi.mock("../supabaseClient", () => ({
 
 import {
   fetchMaintenanceObligations, createMaintenanceObligation, completeMaintenanceObligation, cancelMaintenanceObligation,
-  fetchMaintenanceSchedules, createMaintenanceSchedule, cancelMaintenanceSchedule, mergeMaintenanceWithSchedules,
+  fetchMaintenanceSchedules, createMaintenanceSchedule, cancelMaintenanceSchedule, mergeMaintenanceWithSchedules, maintenanceForProperty,
   propertyHealthStatus,
 } from "../maintenance.js";
 
@@ -339,7 +339,7 @@ describe("mergeMaintenanceWithSchedules", () => {
     expect(merged).toEqual([{
       id: "sch-1", assetId: "asset-1", locationId: null, scheduleId: "sch-1",
       title: "Descale the machine", description: null, source: "schedule",
-      dueOn: "2026-12-01", status: "open", isOverdue: false,
+      projected: true, dueOn: "2026-12-01", status: "open", isOverdue: false,
       completedAt: null, cancelledAt: null, cancellationReason: null,
     }]);
   });
@@ -389,7 +389,7 @@ describe("mergeMaintenanceWithSchedules", () => {
   it("treats a null/undefined maintenance list the same as empty, never throwing", () => {
     expect(mergeMaintenanceWithSchedules(null, [schedule()])).toEqual([{
       id: "sch-1", assetId: "asset-1", locationId: null, scheduleId: "sch-1",
-      title: "Descale the machine", description: null, source: "schedule",
+      title: "Descale the machine", description: null, source: "schedule", projected: true,
       dueOn: "2026-12-01", status: "open", isOverdue: false,
       completedAt: null, cancelledAt: null, cancellationReason: null,
     }]);
@@ -436,5 +436,26 @@ describe("propertyHealthStatus", () => {
       obligation({ id: "ob-1" }),
       obligation({ id: "ob-2", status: "completed", isOverdue: true }),
     ])).toEqual({ status: "good", overdueCount: 0, openCount: 1 });
+  });
+});
+
+describe("maintenanceForProperty", () => {
+  const rows = [
+    { id: "a", assetId: "asset-home", locationId: null },
+    { id: "b", assetId: "asset-holiday", locationId: null },
+    { id: "c", assetId: null, locationId: "room-home" },
+    { id: "d", assetId: null, locationId: "room-holiday" },
+    { id: "e", assetId: null, locationId: null },
+  ];
+  it("keeps only obligations on this property's items or rooms, plus workspace-level ones", () => {
+    const out = maintenanceForProperty(rows, new Set(["asset-home"]), new Set(["room-home"]));
+    expect(out.map((m) => m.id)).toEqual(["a", "c", "e"]);
+  });
+  it("shows nothing from another property for an empty property (the live-review bug)", () => {
+    const out = maintenanceForProperty(rows, new Set(), new Set());
+    expect(out.map((m) => m.id)).toEqual(["e"]);
+  });
+  it("passes null (still loading) through unchanged", () => {
+    expect(maintenanceForProperty(null, new Set(), new Set())).toBeNull();
   });
 });
