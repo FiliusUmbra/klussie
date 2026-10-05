@@ -191,7 +191,7 @@ export function ProApp({ showToast }) {
       >
         {tab === "dashboard" && <ProDashboard leads={leads} onQuote={(l) => setQuoteLead(l)} proInfo={proInfo} onPauseToggled={refreshLeads} offeredServiceCount={offeredServiceIds.length} onSetupServices={() => setTab("business")} onSetupCity={() => setTab("profile")} />}
         {tab === "jobs" && <ProJobs sent={jobs.sent} booked={jobs.booked} completed={jobs.completed} proId={user.id} onOpenJob={setOpenJob} />}
-        {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} />}
+        {tab === "messages" && <MessagesList conversations={conversations} onOpen={setOpenConversation} role="pro" />}
         {tab === "profile" && (
           <Profile variant="pro" proInfo={proInfo} completedCount={jobs.completed.length} onProfileSaved={refreshProInfo} onReplayTour={tour.replay} />
         )}
