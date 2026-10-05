@@ -36,7 +36,11 @@ import { createHouseholdItem, createAsset, setHouseholdItemPhoto } from "../lib/
 import { flattenLocationsForPicker } from "../lib/homeInventory.js";
 import { interpolate } from "../lib/homeStrings.js";
 
-const STEPS = ["what", "photo", "brand", "model", "extra"];
+// Four steps, not five (live review 2026-10-04, item 16: basic inventory capture took five
+// transitions). Brand and model are one screen now — a person reading a nameplate reads both
+// together — and "Save now" is offered from the second step on, so the common case (a name
+// and maybe a photo) never has to walk the optional screens at all.
+const STEPS = ["what", "photo", "brandmodel", "extra"];
 
 // The Photo step's own full-size picker/preview — identical markup to ItemFormSheet.jsx's
 // own item-photo-picker, reused here since the two forms show the exact same one-photo
@@ -188,24 +192,19 @@ export function ItemAddWizard({ t, ownerId, propertyId, rooms, initialLocationId
           </>
         )}
 
-        {step === "brand" && (
+        {step === "brandmodel" && (
           <>
-            <h2 className="tour-title">{t.itemBrandLabel}</h2>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <div className="search" style={{ flex: 1, marginTop: 4 }}>
-                <input autoFocus aria-label={t.itemBrandLabel} value={brand} onChange={(e) => setBrand(e.target.value)} />
-              </div>
-              <PhotoMiniButton t={t} preview={photoPreview} onPick={() => photoInputRef.current.click()} />
-            </div>
-          </>
-        )}
-
-        {step === "model" && (
-          <>
-            <h2 className="tour-title">{t.itemModelLabel}</h2>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <div className="search" style={{ flex: 1, marginTop: 4 }}>
-                <input autoFocus aria-label={t.itemModelLabel} value={model} onChange={(e) => setModel(e.target.value)} />
+            <h2 className="tour-title">{t.itemWizardBrandModelTitle}</h2>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <label className="field-label" htmlFor="wizard-item-brand">{t.itemBrandLabel}</label>
+                <div className="search" style={{ marginTop: 4 }}>
+                  <input id="wizard-item-brand" autoFocus value={brand} onChange={(e) => setBrand(e.target.value)} />
+                </div>
+                <label className="field-label" htmlFor="wizard-item-model">{t.itemModelLabel}</label>
+                <div className="search" style={{ marginTop: 4 }}>
+                  <input id="wizard-item-model" value={model} onChange={(e) => setModel(e.target.value)} />
+                </div>
               </div>
               <PhotoMiniButton t={t} preview={photoPreview} onPick={() => photoInputRef.current.click()} />
             </div>
@@ -276,6 +275,9 @@ export function ItemAddWizard({ t, ownerId, propertyId, rooms, initialLocationId
           </button>
           <div className="tour-nav">
             {stepIndex > 0 && <button type="button" className="tour-link" onClick={goBack}>{t.tourBack}</button>}
+            {!isLastStep && step !== "what" && canSaveItem({ name }) && (
+              <button type="button" className="tour-link" disabled={busy} onClick={submit}>{t.itemSaveNow}</button>
+            )}
             {!isLastStep && step !== "what" && (
               <button type="button" className="tour-link tour-skip" onClick={skip}>{t.tourSkip}</button>
             )}

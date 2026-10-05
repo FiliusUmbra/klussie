@@ -17,10 +17,11 @@ vi.mock("../../lib/householdItems.js", () => ({
   updateHouseholdItem: vi.fn(() => Promise.resolve({ id: "legacy-1" })),
   deleteHouseholdItem: vi.fn(() => Promise.resolve()),
   updateAsset: vi.fn(() => Promise.resolve({ id: "asset-1", photoPath: null })),
+  moveAsset: vi.fn(() => Promise.resolve()),
   retireAsset: vi.fn(() => Promise.resolve()),
 }));
 
-import { updateHouseholdItem, deleteHouseholdItem, updateAsset, retireAsset } from "../../lib/householdItems.js";
+import { updateHouseholdItem, deleteHouseholdItem, updateAsset, retireAsset, moveAsset } from "../../lib/householdItems.js";
 import { ItemFormSheet } from "../ItemFormSheet.jsx";
 
 const t = {
@@ -47,10 +48,10 @@ beforeEach(() => {
 });
 
 describe("ItemFormSheet — room field, edit only", () => {
-  // Real rooms are never offered here even when given — ItemAddWizard.jsx's own "extra"
-  // step is the only place the real room picker appears now; edit keeps its own
-  // free-text/suggested-chips shape regardless of what rooms exist.
-  it("always shows the free-text/suggested-chips room UI, never a real-room picker", () => {
+  // With no real rooms to pick (none given) the free-text/suggested-chips field remains —
+  // there is nothing to select. With real rooms it becomes the same existing-room picker the
+  // add wizard and the Move action use (live review 2026-10-04, item 16) — see below.
+  it("shows the free-text/suggested-chips room UI when there are no real rooms to pick", () => {
     render(<ItemFormSheet t={t} ownerId="owner-1" propertyId="prop-1" item={ITEM} onClose={() => {}} onSaved={() => {}} />);
 
     expect(screen.queryByRole("option", { name: "Kitchen" })).toBeNull();
@@ -184,3 +185,40 @@ describe("ItemFormSheet — photo object URL lifecycle", () => {
     expect(URL.revokeObjectURL).not.toHaveBeenCalled();
   });
 });
+
+describe("ItemFormSheet — existing-room picker (live review item 16)", () => {
+  const ROOMS = [
+    { id: "loc-1", name: "Kitchen", type: "kitchen", children: [] },
+    { id: "loc-2", name: "Garage", type: null, children: [] },
+  ];
+  const renderWithRooms = (item = { ...ITEM, locationId: "loc-1" }) => render(
+    <ItemFormSheet t={{ ...t, itemRoomNone: "No room", itemRoomAddHint: "Add rooms in My Items." }} ownerId="owner-1" propertyId="prop-1" item={item} rooms={ROOMS} onClose={() => {}} onSaved={() => Promise.resolve()} />
+  );
+
+  it("offers the customer's real rooms (and an explicit none) with a hint where to add one — no preset chips or free text", () => {
+    renderWithRooms();
+    const select = screen.getByLabelText("Room");
+    expect(select.tagName).toBe("SELECT");
+    expect(select.value).toBe("loc-1");
+    expect(screen.getByRole("option", { name: "Garage" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "No room" })).toBeTruthy();
+    expect(screen.getByText("Add rooms in My Items.")).toBeTruthy();
+    expect(screen.queryByText(t.itemRoomBathroom)).toBeNull();
+  });
+
+  it("performs the real move when the room changes, after saving the item", async () => {
+    renderWithRooms();
+    fireEvent.change(screen.getByLabelText("Room"), { target: { value: "loc-2" } });
+    fireEvent.click(screen.getByText("Save changes"));
+    await waitFor(() => expect(moveAsset).toHaveBeenCalledWith("asset-1", "loc-2", "owner-1"));
+    expect(updateAsset).toHaveBeenCalledWith("asset-1", expect.objectContaining({ room: "Garage" }));
+  });
+
+  it("does not move anything when the room was left alone", async () => {
+    renderWithRooms();
+    fireEvent.click(screen.getByText("Save changes"));
+    await waitFor(() => expect(updateAsset).toHaveBeenCalled());
+    expect(moveAsset).not.toHaveBeenCalled();
+  });
+});
+
