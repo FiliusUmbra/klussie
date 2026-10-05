@@ -56,7 +56,7 @@ export function AddTestimonialSheet({ proId, onClose, onAdded }) {
   };
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.addTestimonialBtn}</div>
 
       <label className="field-label">{t.clientNameLabel}</label>

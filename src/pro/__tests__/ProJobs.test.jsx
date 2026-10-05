@@ -15,6 +15,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { LangContext } from "../../lib/lang";
 import { ProJobs } from "../ProJobs.jsx";
 
+// PageTour.jsx / usePageTour.js have their own tests — held closed here so these stay on
+// the page's own concerns; the tour wiring is asserted separately below.
+const tourState = vi.hoisted(() => ({ open: false, replay: vi.fn() }));
+vi.mock("../../ui/usePageTour.js", () => ({ usePageTour: () => ({ open: tourState.open, finish: vi.fn(), replay: tourState.replay }) }));
+
 const t = new Proxy({}, { get: (_, key) => String(key) });
 const ctx = { t, fmt: (n) => String(n), serviceInfo: (id) => ({ name: `service:${id}`, blurb: "" }) };
 
@@ -93,5 +98,15 @@ describe("ProJobs", () => {
     );
     fireEvent.click(screen.getByText("segDone (1)"));
     expect(screen.getByText("noReviewYet")).toBeTruthy();
+  });
+});
+
+describe("ProJobs tour wiring", () => {
+  it("anchors the tour on the segments and the list, and offers a replay", () => {
+    renderJobs(vi.fn());
+    expect(document.querySelector('[data-tour="pro-jobs-segments"]')).toBeTruthy();
+    expect(document.querySelector('[data-tour="pro-jobs-list"]')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("helpReplayTour"));
+    expect(tourState.replay).toHaveBeenCalled();
   });
 });

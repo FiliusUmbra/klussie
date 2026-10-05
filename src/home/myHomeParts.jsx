@@ -12,6 +12,7 @@ import { Avatar, Rating } from "../design-system";
 import { fetchRequestPhotos } from "../lib/requestPhotos";
 import { interpolate } from "../lib/homeStrings.js";
 import { statusPresentation } from "../lib/requestStatus.js";
+import { requestTitle } from "../lib/requestTitle.js";
 
 /**
  * What klussie knows about the property, as a calm header rather than a stat dashboard.
@@ -113,7 +114,7 @@ export function HomeTimelineCard({ t, event, serviceInfo, fmtDate, onOpenRequest
       <span className="timeline-card-dot" aria-hidden="true" />
       <button type="button" className="timeline-card" onClick={() => onOpenRequest(request.id)}>
         <div className="timeline-card-head">
-          <span className="timeline-card-title">{serviceInfo(request.serviceId).name}</span>
+          <span className="timeline-card-title">{requestTitle(request, serviceInfo, t.navRequests)}</span>
           <span className="timeline-card-date">{fmtDate(request.createdAt)}</span>
         </div>
 
@@ -154,7 +155,7 @@ export function ActiveWorkCard({ t, request, serviceInfo, fmtDate, onOpenRequest
       <span className="timeline-card-dot" aria-hidden="true" />
       <button type="button" className="timeline-card" onClick={() => onOpenRequest(request.id)}>
         <div className="timeline-card-head">
-          <span className="timeline-card-title">{serviceInfo(request.serviceId).name}</span>
+          <span className="timeline-card-title">{requestTitle(request, serviceInfo, t.navRequests)}</span>
           <span className="timeline-card-date">{fmtDate(request.createdAt)}</span>
         </div>
         <span className="timeline-card-status">{labelKey ? t[labelKey] : request.status}</span>

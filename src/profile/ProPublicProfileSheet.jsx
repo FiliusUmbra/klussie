@@ -43,7 +43,7 @@ export function ProPublicProfileSheet({ proId, onClose }) {
 
   if (proInfo === null && proInfoLoadError) {
     return (
-      <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+      <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
         <div className="empty-block">
           <p>{t.catalogLoadFailed}</p>
           <button type="button" className="btn-secondary" onClick={loadProInfo}>{t.retryBtn}</button>
@@ -53,11 +53,11 @@ export function ProPublicProfileSheet({ proId, onClose }) {
   }
 
   if (!proInfo) {
-    return <Drawer onClose={onClose} closeLabel={t.closeBtn}><LoadingScreen /></Drawer>;
+    return <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page"><LoadingScreen /></Drawer>;
   }
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="profile-head">
         <Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" />
         <div>

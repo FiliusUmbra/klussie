@@ -12,7 +12,7 @@ export function ReviewSheet({ onClose, onSubmit }) {
   const [stars, setStars] = useState(5);
   const [text, setText] = useState("");
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.reviewTitle}</div>
       <div className="star-picker">
         {[1, 2, 3, 4, 5].map((i) => (

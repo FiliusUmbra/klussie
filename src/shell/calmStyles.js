@@ -95,6 +95,14 @@ export const CALM_CSS = `
 .profile-head .avatar-lg{width:76px;height:76px;font:600 30px var(--font-display);background:linear-gradient(135deg,var(--sage),var(--forest));}
 .profile-head .h1{font-size:22px !important;}
 
+/* ProDashboard.jsx — greeting header and the availability control (2026-10-03). */
+.pro-hello .h1{font:600 26px/1.15 var(--font-display);}
+.pro-pause-btn{display:flex;align-items:center;justify-content:center;gap:8px;}
+.pro-availability{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;text-align:center;background:var(--amber-bg);border:1px solid var(--line);border-radius:16px;}
+.pro-availability p{margin:0;font-size:13px;line-height:1.5;color:var(--ink);}
+.pro-availability-icon{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:var(--surface);color:var(--amber-dark);}
+.pro-availability .btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;}
+
 .messages-filter{display:flex;gap:8px;margin-bottom:14px;}
 .messages-filter-pill{min-height:44px;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font:600 12px var(--font-body);cursor:pointer;}
 .messages-filter-pill-on{background:var(--forest);border-color:var(--forest);color:#fff;}

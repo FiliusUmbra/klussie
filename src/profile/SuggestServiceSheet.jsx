@@ -49,7 +49,7 @@ export function SuggestServiceSheet({ t, workspaceId, locale, onClose, onMatched
 
   if (result) {
     return (
-      <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+      <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
         <div className="sheet-title">{t.suggestServiceTitle}</div>
         <div className="empty-block">
           <Check size={22} color="var(--forest)" />
@@ -61,7 +61,7 @@ export function SuggestServiceSheet({ t, workspaceId, locale, onClose, onMatched
   }
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.suggestServiceTitle}</div>
       <p className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 14 }}>{t.suggestServiceHint}</p>
 

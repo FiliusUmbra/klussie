@@ -63,7 +63,7 @@ export function DocumentUploadSheet({ t, propertyId, assetId, workspaceId, actor
   };
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.documentFormAddTitle}</div>
 
       <label className="field-label" htmlFor="document-file">{t.documentFormFileLabel}</label>

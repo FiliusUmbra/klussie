@@ -11,6 +11,11 @@ import { LangContext } from "../../lib/lang";
 import { ProDashboard } from "../ProDashboard.jsx";
 import { updateProProfile } from "../../lib/pros";
 
+// PageTour.jsx / usePageTour.js have their own tests — held closed here so these stay on
+// the dashboard's own concerns; the tour wiring is asserted separately below.
+const tourState = vi.hoisted(() => ({ open: false, replay: vi.fn() }));
+vi.mock("../../ui/usePageTour.js", () => ({ usePageTour: () => ({ open: tourState.open, finish: vi.fn(), replay: tourState.replay }) }));
+
 vi.mock("../../lib/pros", () => ({ updateProProfile: vi.fn() }));
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
@@ -175,5 +180,24 @@ describe("ProDashboard", () => {
         Storage.prototype.getItem = original;
       }
     });
+  });
+});
+
+describe("ProDashboard visual reform + tour wiring", () => {
+  it("greets the pro by first name with a time-of-day greeting", () => {
+    renderDashboard();
+    expect(screen.getByText(/^(greetMorning|greetAfternoon|greetEvening)$|homeGreetName/)).toBeTruthy();
+  });
+  it("anchors the tour on the availability control and the lead list, and offers a replay", () => {
+    renderDashboard();
+    expect(document.querySelector('[data-tour="pro-pause"]')).toBeTruthy();
+    expect(document.querySelector('[data-tour="pro-leads"]')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("helpReplayTour"));
+    expect(tourState.replay).toHaveBeenCalled();
+  });
+  it("anchors the same tour step on the paused card when the profile is paused", () => {
+    proProfile = { paused: true, pro_type: "certified" };
+    renderDashboard();
+    expect(document.querySelector('[data-tour="pro-pause"]')).toBeTruthy();
   });
 });

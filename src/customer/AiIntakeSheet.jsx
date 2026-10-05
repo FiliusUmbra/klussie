@@ -241,7 +241,7 @@ export function AiIntakeSheet({
   const selectCategory = (id) => setSelectedCategoryId((cur) => (cur === id ? null : id));
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <IntakeSteps t={t} stage={stage} />
 
       {stage === "compose" && (

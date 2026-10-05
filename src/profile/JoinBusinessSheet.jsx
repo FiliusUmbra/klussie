@@ -75,7 +75,7 @@ export function JoinBusinessSheet({ t, actorRef, onClose }) {
 
   if (sent) {
     return (
-      <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+      <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
         <div className="sheet-title">{t.joinBusinessTitle}</div>
         <div className="empty-block">
           <Check size={22} color="var(--forest)" />
@@ -87,7 +87,7 @@ export function JoinBusinessSheet({ t, actorRef, onClose }) {
   }
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.joinBusinessTitle}</div>
 
       <label className="field-label" htmlFor="join-business-search">{t.joinBusinessSearchLabel}</label>

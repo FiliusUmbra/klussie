@@ -29,9 +29,15 @@ export const APP_CSS = `
    Unchanged from before the phone-frame removal: real, active usage in
    WorkspaceSwitcher.jsx, PropertySwitcher.jsx and ProJobs.jsx, none of which moved. */
 .role-switch{ display:flex; align-items:center; gap:10px; }
-.segmented{ display:flex; background:rgba(255,255,255,0.08); border-radius:999px; padding:3px; }
-.segmented button{ border:none; background:none; color:#c9d6cd; font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:999px; cursor:pointer; font-family:var(--font-body); }
-.segmented .seg-on{ background:var(--surface); color:var(--forest); }
+/* Found live, 2026-10-03: this control was written for the old dark phone-frame header
+   (pale #c9d6cd labels on a translucent-white track) but every real caller now sits on the
+   light paper background — Requests, Pro Jobs, the property switcher, business and
+   become-a-pro tabs — where the inactive labels measured ~1.4:1, effectively invisible.
+   Restyled for the light app (the drafted pill tabs): sage track, ink-soft inactive text,
+   white active pill. Also lifts the buttons to the 44px touch-target floor. */
+.segmented{ display:flex; background:var(--sage-bg); border-radius:999px; padding:3px; }
+.segmented button{ border:none; background:none; color:var(--ink-soft); font-size:12.5px; font-weight:600; padding:6px 14px; min-height:44px; border-radius:999px; cursor:pointer; font-family:var(--font-body); }
+.segmented .seg-on{ background:var(--surface); color:var(--forest); box-shadow:0 1px 2px rgba(31,77,58,0.12); }
 /* LanguageSwitcher.jsx's own two variants — also restored here for the same reason.
    UX redesign, 2026-09-28 — the plain (non-light) variant below is no longer reachable:
    the dark .topbar it was built for is gone, and AppShell.jsx now always passes "light"
@@ -173,7 +179,7 @@ export const APP_CSS = `
 .badge-forest{ background:var(--forest); color:#fff; }
 .badge-amber{ background:var(--amber-bg); color:var(--amber-dark); }
 
-.ticket{ position:relative; width:100%; display:block; text-align:start; background:var(--surface); border:1px solid var(--line-soft); box-shadow:var(--shadow-card); border-radius:16px; margin-bottom:14px; cursor:pointer; font-family:var(--font-body); overflow:hidden; }
+.ticket{ position:relative; width:100%; display:block; text-align:start; background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-card); border-radius:16px; margin-bottom:14px; cursor:pointer; font-family:var(--font-body); overflow:hidden; }
 .tear{ height:1px; background:var(--line-soft); }
 .ticket-body{ padding:14px 16px 16px; }
 .ticket-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:5px; }
@@ -189,9 +195,9 @@ export const APP_CSS = `
    own header comment calls out as worth seeing without opening anything, so the title gives
    way here, not the badge: truncated with an ellipsis rather than the badge losing pixels off
    its own edge with no indication anything was cut off at all. */
-.ticket-title{ font-family:var(--font-display); font-size:15.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.ticket-title{ font-family:var(--font-body); font-size:14px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .ticket-sub{ font-size:11.5px; color:var(--ink-soft); }
-.ticket-divider{ border-top:1.5px dashed var(--line-strong); margin:11px 0; }
+.ticket-divider{ border-top:1px solid var(--line-soft); margin:11px 0; }
 .ticket-foot{ display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft); }
 /* Found by a later audit, 2026-09-11: a "this card leads forward" chevron, same
    meaning as myHomeParts.jsx's own .timeline-card-chevron (which does get flipped) —
@@ -345,6 +351,14 @@ export const APP_CSS = `
 .sheet-close{ position:absolute; top:12px; inset-inline-end:16px; background:var(--surface); border:1px solid var(--line); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); }
 .sheet-close::after{ content:""; position:absolute; inset:-8px; }
 .sheet-scroll{ overflow-y:auto; max-height:calc(88vh - 40px); padding-top:8px; }
+/* Drawer variant="page" — a full-screen page, not a bottom sheet (overlays.jsx's own note). */
+.sheet-overlay-page{ background:var(--paper); align-items:stretch; justify-content:center; }
+.sheet-page{ max-height:none; height:100%; max-width:720px; border-radius:0; box-shadow:none; padding:calc(14px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; }
+.sheet-page .sheet-grabber{ display:none; }
+.sheet-page .sheet-scroll{ flex:1; max-height:none; padding-top:36px; }
+.sheet-page .sheet-scroll:has(> .chat-input-row){ display:flex; flex-direction:column; overflow:hidden; }
+.sheet-page .sheet-scroll:has(> .chat-input-row) .chat-scroll{ flex:1; min-height:0; max-height:none; }
+.sheet-page .sheet-close{ top:calc(12px + env(safe-area-inset-top, 0px)); }
 .sheet-icon-lg{ width:44px; height:44px; border-radius:13px; background:var(--sage-bg); display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
 .sheet-title{ font-family:var(--font-display); font-size:19px; font-weight:600; color:var(--ink); margin-bottom:4px; }
 .sheet-sub{ font-size:12.5px; color:var(--ink-soft); margin-bottom:12px; display:flex; align-items:center; gap:4px; flex-wrap:wrap; }

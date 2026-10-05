@@ -152,7 +152,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
   };
 
   return (
-    <Drawer onClose={onClose} closeLabel={t.closeBtn}>
+    <Drawer onClose={onClose} closeLabel={t.closeBtn} variant="page">
       <div className="sheet-title">{t.itemEditTitle}</div>
 
       <label className="field-label" htmlFor="item-name">{t.itemNameLabel}</label>

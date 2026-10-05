@@ -113,3 +113,16 @@ describe("RequestsList tour wiring", () => {
     expect(tourState.replay).toHaveBeenCalled();
   });
 });
+
+describe("RequestsList category icon", () => {
+  it("uses the service's own category icon when the catalog knows it, and falls back to the clipboard otherwise", () => {
+    const Icon = (props) => <svg data-testid="cat-icon" {...props} />;
+    const withCatalog = { ...ctx, CATS: [{ id: "heating", icon: Icon }], BASE_SERVICES: [{ id: "svc-1", cat: "heating" }] };
+    const { unmount } = render(<LangContext.Provider value={withCatalog}><RequestsList requests={[request()]} onOpen={() => {}} /></LangContext.Provider>);
+    expect(screen.getByTestId("cat-icon")).toBeTruthy();
+    unmount();
+    render(<LangContext.Provider value={ctx}><RequestsList requests={[request()]} onOpen={() => {}} /></LangContext.Provider>);
+    expect(screen.queryByTestId("cat-icon")).toBeNull();
+    expect(document.querySelector(".req-row-icon svg")).toBeTruthy();
+  });
+});
