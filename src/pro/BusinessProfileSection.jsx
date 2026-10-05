@@ -145,7 +145,7 @@ export function BusinessProfileSection({ offeredServiceIds, onServicesChange }) 
             <div className="ticket-sub" style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}><c.icon size={12} /> {catName(c.id)}</div>
             <div className="chiprow" style={{ paddingBottom: 4 }}>
               {services.map((s) => (
-                <button key={s.id} className={"chip" + (selected.includes(s.id) && !locked ? " chip-on" : "") + (locked ? " chip-locked" : "")} disabled={locked} onClick={() => !locked && toggle(s.id)}>
+                <button key={s.id} aria-pressed={!!(selected.includes(s.id) && !locked)} className={"chip" + (selected.includes(s.id) && !locked ? " chip-on" : "") + (locked ? " chip-locked" : "")} disabled={locked} onClick={() => !locked && toggle(s.id)}>
                   {serviceInfo(s.id).name}
                 </button>
               ))}
@@ -161,11 +161,11 @@ export function BusinessProfileSection({ offeredServiceIds, onServicesChange }) 
       <div className="section-title">{t.portfolioTitle}</div>
       <div className="portfolio-grid">
         {(portfolioItems || []).map((item) => (
-          <button key={item.id} type="button" className="portfolio-thumb" onClick={() => setEditingPortfolioItem(item)}>
+          <button key={item.id} type="button" className="portfolio-thumb" aria-label={item.caption || t.portfolioTitle} onClick={() => setEditingPortfolioItem(item)}>
             <img src={item.image_url} alt={item.caption || ""} />
           </button>
         ))}
-        <button type="button" className="portfolio-thumb portfolio-add" disabled={uploadingPhoto} onClick={() => portfolioFileRef.current.click()}>
+        <button type="button" className="portfolio-thumb portfolio-add" aria-label={t.homePhotoAction} disabled={uploadingPhoto} onClick={() => portfolioFileRef.current.click()}>
           <Camera size={20} />
         </button>
         <input ref={portfolioFileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePortfolioUpload} />

@@ -166,7 +166,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
           <button
             key={c.id}
             type="button"
-            className={"chip" + (category === c.id ? " chip-on" : "")}
+            aria-pressed={!!(category === c.id)} className={"chip" + (category === c.id ? " chip-on" : "")}
             onClick={() => setCategory(c.id)}
           >
             {t[c.labelKey]}
@@ -184,7 +184,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
           <button
             key={r.id}
             type="button"
-            className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
+            aria-pressed={!!(room === t[r.labelKey])} className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
             onClick={() => setRoom(room === t[r.labelKey] ? "" : t[r.labelKey])}
           >
             {t[r.labelKey]}

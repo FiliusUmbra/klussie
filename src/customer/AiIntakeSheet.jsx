@@ -289,7 +289,7 @@ export function AiIntakeSheet({
           />
 
           <div className="ai-input-row">
-            <button type="button" className={"chip" + (listening ? " chip-on" : "")} onClick={toggleListening} disabled={!isSpeechRecognitionSupported()}>
+            <button type="button" aria-pressed={!!(listening)} className={"chip" + (listening ? " chip-on" : "")} onClick={toggleListening} disabled={!isSpeechRecognitionSupported()}>
               <Mic size={14} /> {listening ? t.aiListening : t.aiSpeakBtn}
             </button>
             <button type="button" className="chip" onClick={() => photoInputRef.current.click()}>
@@ -371,13 +371,13 @@ export function AiIntakeSheet({
             <div className="chiprow" style={{ marginBottom: 14 }}>
               {/* No onClick, not `disabled` — a disabled button picks up the browser's
                   own dimmed styling, which would read as broken rather than confirmed. */}
-              <button type="button" className="chip chip-on" style={{ cursor: "default" }}>{serviceInfo(editServiceId).name}</button>
+              <button type="button" className="chip chip-on" aria-pressed="true" style={{ cursor: "default" }}>{serviceInfo(editServiceId).name}</button>
               <button type="button" className="chip" onClick={() => setChangingService(true)}>{t.intentChange}</button>
             </div>
           ) : (
             <div className="chiprow" style={{ marginBottom: 14 }}>
               {BASE_SERVICES.map((s) => (
-                <button key={s.id} type="button" className={"chip" + (editServiceId === s.id ? " chip-on" : "")} onClick={() => { setEditServiceId(s.id); setChangingService(false); }}>
+                <button key={s.id} type="button" aria-pressed={!!(editServiceId === s.id)} className={"chip" + (editServiceId === s.id ? " chip-on" : "")} onClick={() => { setEditServiceId(s.id); setChangingService(false); }}>
                   {serviceInfo(s.id).name}
                 </button>
               ))}
@@ -397,7 +397,7 @@ export function AiIntakeSheet({
           <label className="field-label">{t.whenLabel}</label>
           <div className="chiprow">
             {WHEN_PREFS.map((w) => (
-              <button key={w} type="button" className={"chip" + (editWhen === w ? " chip-on" : "")} onClick={() => setEditWhen(w)}>{whenLabel(w)}</button>
+              <button key={w} type="button" aria-pressed={!!(editWhen === w)} className={"chip" + (editWhen === w ? " chip-on" : "")} onClick={() => setEditWhen(w)}>{whenLabel(w)}</button>
             ))}
           </div>
 

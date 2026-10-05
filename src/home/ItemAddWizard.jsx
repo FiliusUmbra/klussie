@@ -172,7 +172,7 @@ export function ItemAddWizard({ t, ownerId, propertyId, rooms, initialLocationId
             <label className="field-label">{t.itemCategoryLabel}</label>
             <div className="chiprow">
               {ITEM_CATEGORIES.map((c) => (
-                <button key={c.id} type="button" className={"chip" + (category === c.id ? " chip-on" : "")} onClick={() => setCategory(c.id)}>
+                <button key={c.id} type="button" aria-pressed={!!(category === c.id)} className={"chip" + (category === c.id ? " chip-on" : "")} onClick={() => setCategory(c.id)}>
                   {t[c.labelKey]}
                 </button>
               ))}
@@ -243,7 +243,7 @@ export function ItemAddWizard({ t, ownerId, propertyId, rooms, initialLocationId
                     <button
                       key={r.id}
                       type="button"
-                      className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
+                      aria-pressed={!!(room === t[r.labelKey])} className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
                       onClick={() => setRoom(room === t[r.labelKey] ? "" : t[r.labelKey])}
                     >
                       {t[r.labelKey]}

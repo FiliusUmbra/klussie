@@ -231,10 +231,10 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfir
     <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailAddMaintenanceAction}</div>
       <div className="chiprow" style={{ marginBottom: 14 }}>
-        <button type="button" className={"chip" + (mode === "once" ? " chip-on" : "")} onClick={() => setMode("once")}>
+        <button type="button" aria-pressed={!!(mode === "once")} className={"chip" + (mode === "once" ? " chip-on" : "")} onClick={() => setMode("once")}>
           {t.itemDetailScheduleModeOnce}
         </button>
-        <button type="button" className={"chip" + (mode === "recurring" ? " chip-on" : "")} onClick={() => setMode("recurring")}>
+        <button type="button" aria-pressed={!!(mode === "recurring")} className={"chip" + (mode === "recurring" ? " chip-on" : "")} onClick={() => setMode("recurring")}>
           {t.itemDetailScheduleModeRecurring}
         </button>
       </div>
@@ -268,7 +268,7 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfir
               <button
                 key={opt.value}
                 type="button"
-                className={"chip" + (recurrence === opt.value ? " chip-on" : "")}
+                aria-pressed={!!(recurrence === opt.value)} className={"chip" + (recurrence === opt.value ? " chip-on" : "")}
                 onClick={() => setRecurrence(opt.value)}
               >
                 {t[opt.labelKey]}
