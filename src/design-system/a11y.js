@@ -17,7 +17,7 @@ function ensureId(el, prefix, n) {
  * Connects every bare `label.field-label` to the first form control that follows it before the
  * next label, via `for`/`id`. Labels already connected (`for` set, or wrapping a control) are
  * left alone, as are controls that already carry their own aria-label / aria-labelledby.
- * Returns how many labels it connected.
+ * Chip groups get role="group" named by their label. Returns how many labels it connected.
  */
 export function associateFieldLabels(root, prefix = "a11y") {
   let n = 0;
@@ -26,6 +26,15 @@ export function associateFieldLabels(root, prefix = "a11y") {
     let sib = label.nextElementSibling;
     while (sib && !sib.matches("label.field-label")) {
       const control = sib.matches(CONTROL) ? sib : sib.querySelector(CONTROL);
+      // A chip group (a row of toggle buttons with no form control) is named by the label
+      // above it: role="group" + aria-labelledby, so each chip is announced in context.
+      if (!control && sib.querySelector("button.chip") && !sib.hasAttribute("role") && !sib.hasAttribute("aria-labelledby")) {
+        n += 1;
+        if (!label.id) label.id = `${prefix}-grp-${n}`;
+        sib.setAttribute("role", "group");
+        sib.setAttribute("aria-labelledby", label.id);
+        return;
+      }
       if (control) {
         if (!control.hasAttribute("aria-label") && !control.hasAttribute("aria-labelledby")) {
           n += 1;

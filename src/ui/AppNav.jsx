@@ -13,11 +13,15 @@
 // header row naming the current destination plus a button opening a plain, centered
 // Modal list of the other five — not a bottom sheet (this codebase's own standing "no
 // sliding Drawer/bottom-sheet menus" rule), and not a second bottom bar.
-import { Fragment, useState } from "react";
+import { Fragment, useContext, useState } from "react";
 import { Menu } from "lucide-react";
 import { Modal } from "../design-system";
+import { LangContext } from "../lib/lang";
 
 export function AppNav({ tab, setTab, items, variant = "tabbar", fab, children }) {
+  // Optional on purpose: the landmark name is translated when a language context exists and
+  // falls back to English when it does not (OperatorApp's tests, and any bare render).
+  const lang = useContext(LangContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const current = items.find((it) => it.id === tab);
   // Splits the flat items around the FAB rather than appending it — a trailing FAB
@@ -29,7 +33,7 @@ export function AppNav({ tab, setTab, items, variant = "tabbar", fab, children }
 
   return (
     <>
-      <nav className="app-sidebar" aria-label="Primary">
+      <nav className="app-sidebar" aria-label={lang?.t?.navPrimaryAria || "Main navigation"}>
         {fab && (
           <button type="button" className="sidebar-fab" onClick={fab.onClick}>
             <fab.icon size={17} strokeWidth={2.2} aria-hidden="true" /> {fab.label}
