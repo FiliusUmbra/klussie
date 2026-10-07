@@ -68,7 +68,11 @@ export const APP_CSS = `
 
    dvh rather than vh so mobile browser chrome collapsing doesn't leave a gap (the exact
    reason the old .phone rule already used it). */
-.app-shell{ min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; background:var(--paper); font-family:var(--font-body); }
+/* Live review 2026-10-04, item 14: this was min-height only, so the shell grew with its
+   content, .content never became the scroller, and the bottom tab bar ended up at the very
+   bottom of the DOCUMENT — below the fold on any long screen. A real height makes .content
+   the one scroll area and keeps the tab bar (mobile) / sidebar (desktop) always in view. */
+.app-shell{ height:100vh; height:100dvh; display:flex; flex-direction:column; background:var(--paper); font-family:var(--font-body); }
 .app-shell.lang-ar, .app-shell.lang-fa{ --font-body:'Noto Sans Arabic', sans-serif; --font-display:'Noto Sans Arabic', sans-serif; }
 .app-shell.lang-zh{ --font-body:'Noto Sans SC', sans-serif; --font-display:'Noto Sans SC', sans-serif; }
 
@@ -96,6 +100,10 @@ export const APP_CSS = `
 
 .app-body{ flex:1; display:flex; min-height:0; }
 .app-sidebar{ display:none; }
+/* The sidebar's own primary action — the desktop counterpart of the mobile tab bar's raised
+   button, so a new request is always one visible click away at every width. */
+.sidebar-fab{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:44px; margin-bottom:var(--space-3); padding:10px 14px; border:none; border-radius:12px; background:var(--forest); color:#fff; font:600 13.5px var(--font-body); cursor:pointer; }
+.sidebar-fab:hover{ background:var(--forest-dark); }
 
 .view{ flex:1; display:flex; flex-direction:column; min-height:0; min-width:0; }
 .content{ flex:1; overflow-y:auto; }
@@ -103,7 +111,10 @@ export const APP_CSS = `
 
 /* ---- desktop: a real sidebar and a real content width, not a scaled-up phone ---- */
 @media (min-width:768px){
-  .tabbar{ display:none; }
+  /* ".view >" for specificity: the base .tabbar rule further down this file also sets
+     display:flex and, at equal specificity, came later and won — so desktop showed the
+     sidebar AND the bottom bar together (live review 2026-10-04, item 14). */
+  .view > .tabbar{ display:none; }
   .app-sidebar{
     display:flex; flex-direction:column; gap:2px; flex-shrink:0; width:232px;
     padding:var(--space-4) var(--space-3); background:var(--surface); border-right:1px solid var(--line);

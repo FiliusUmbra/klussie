@@ -428,6 +428,17 @@ export async function fetchProJobs(proId, workspaceId) {
 
   const engagementByRequest = new Map((engagements || []).map((e) => [e.request_id, e]));
 
+  // The professional's own quote messages (api.my_quote_messages(), migration 0236 — live
+  // review item 5). Best-effort: until that migration is applied, or if the read fails, the
+  // job simply shows no message rather than failing the whole jobs list.
+  const messageByQuote = new Map();
+  try {
+    const { data: msgRows, error: msgError } = await supabase.schema("api").rpc("my_quote_messages", { p_workspace_id: workspaceId });
+    if (!msgError) (msgRows || []).forEach((m) => messageByQuote.set(m.id, m.message));
+  } catch {
+    // Same best-effort reasoning as above.
+  }
+
   const requestIds = [...new Set((quotes || []).map((q) => q.request_id))];
   const requests = await Promise.all(
     requestIds.map(async (id) => {
@@ -465,7 +476,7 @@ export async function fetchProJobs(proId, workspaceId) {
     return {
       id: q.request_id,
       serviceId: request?.service_id ?? null,
-      quotes: [{ id: q.id, proId: myProId ?? proId, price: Number(q.price), status: q.status }],
+      quotes: [{ id: q.id, proId: myProId ?? proId, price: Number(q.price), status: q.status, message: messageByQuote.get(q.id) ?? null }],
       status: request?.status ?? q.status,
       bookedProId: engagement ? (myProId ?? proId) : null,
       engaged: Boolean(engagement),
@@ -550,6 +561,25 @@ export async function acceptQuote(quoteId, customerId) {
     p_conversation_event_id: uuidv7(),
     p_customer_participant_event_id: uuidv7(),
     p_pro_participant_event_id: uuidv7(),
+    p_correlation_id: uuidv7(),
+    p_actor_type: "person",
+    p_actor_ref: customerId,
+  });
+  if (error) throw error;
+}
+
+/**
+ * Withdraws a request that hasn't been booked yet (`api.withdraw_request()`, 0146 — it
+ * had no client caller until the 2026-10-04 live review, item 10: a customer who spotted
+ * wrong timing or changed their mind had no way to take a request back). The database
+ * only allows it while the request is still collecting or has quotes waiting
+ * (`work.withdraw_request()` raises past that point), so a stale screen gets a real error
+ * rather than silently withdrawing a booked job. requestId is a work.requests id.
+ */
+export async function withdrawRequest(requestId, customerId) {
+  const { error } = await supabase.schema("api").rpc("withdraw_request", {
+    p_request_id: requestId,
+    p_event_id: uuidv7(),
     p_correlation_id: uuidv7(),
     p_actor_type: "person",
     p_actor_ref: customerId,

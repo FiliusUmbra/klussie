@@ -23,7 +23,7 @@
 //    settings page a scroll away from the leads it affects was the actual bug, not a
 //    layout preference.
 import { useEffect, useState } from "react";
-import { TrendingUp, BadgeCheck, Pause, Play, HelpCircle } from "lucide-react";
+import { TrendingUp, BadgeCheck, Pause, Play, HelpCircle, Check, Circle } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, JobCard } from "../design-system";
@@ -77,9 +77,17 @@ function useSeenLeadIds(proId, leadIds) {
   return (id) => !seen.has(id);
 }
 
-export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled }) {
+export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled, offeredServiceCount, onSetupServices, onSetupCity }) {
   const { t, serviceInfo, whenLabel } = useLang();
-  const { proProfile, user, refreshProfile } = useAuth();
+  const { proProfile, user, refreshProfile, profile } = useAuth();
+  // New-professional setup (live review 2026-10-04, item 11): leads only ever appear for a
+  // professional with at least one service AND an operating city, and the dashboard used to
+  // tell a new one to "request a service as a customer" instead. `offeredServiceCount` is
+  // optional so every existing caller is unaffected; the card only shows when it is known to
+  // be incomplete.
+  const hasServices = offeredServiceCount === undefined ? true : offeredServiceCount > 0;
+  const hasCity = !!profile?.city?.trim();
+  const setupIncomplete = !hasServices || !hasCity;
   const tour = usePageTour("proToday");
   const isNewLead = useSeenLeadIds(user.id, leads.map((r) => r.id));
   const [pausing, setPausing] = useState(false);
@@ -122,6 +130,24 @@ export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled }) {
           Same toggle, same copy; only the presentation moved. */}
       <div className="hello pro-hello"><div><div className="eyebrow">{t.proWelcome}</div><div className="h1">{greetingLine(t, proInfo.name)}</div></div><div className="daily-heading-actions"><button type="button" className="icon-btn" aria-label={t.helpReplayTour} onClick={tour.replay}><HelpCircle size={18} aria-hidden="true" /></button><Avatar url={proInfo.avatarUrl} initials={proInfo.initials} /></div></div>
 
+      {setupIncomplete && (
+        <div className="pro-setup" data-testid="pro-setup">
+          <div className="pro-setup-title">{t.proSetupTitle}</div>
+          <ul className="pro-setup-list">
+            <li className={hasServices ? "pro-setup-done" : ""}>
+              {hasServices ? <Check size={15} aria-hidden="true" /> : <Circle size={15} aria-hidden="true" />}
+              <span>{t.proSetupServices}</span>
+              {!hasServices && onSetupServices && <button type="button" className="maintenance-row-action" onClick={onSetupServices}>{t.proSetupGoServices}</button>}
+            </li>
+            <li className={hasCity ? "pro-setup-done" : ""}>
+              {hasCity ? <Check size={15} aria-hidden="true" /> : <Circle size={15} aria-hidden="true" />}
+              <span>{t.proSetupCity}</span>
+              {!hasCity && onSetupCity && <button type="button" className="maintenance-row-action" onClick={onSetupCity}>{t.proSetupGoCity}</button>}
+            </li>
+          </ul>
+        </div>
+      )}
+
       {proProfile.paused ? (
         <div className="pro-availability pro-availability-paused" data-tour="pro-pause" style={{ marginBottom: 16 }}>
           <span className="pro-availability-icon" aria-hidden="true"><Pause size={18} /></span>
@@ -152,7 +178,7 @@ export function ProDashboard({ leads, onQuote, proInfo, onPauseToggled }) {
             key={r.id}
             title={requestTitle(r, serviceInfo, t.navRequests)}
             badge={isNewLead(r.id) && <Badge tone="amber">{t.newBadge}</Badge>}
-            subtitle={`${whenLabel(r.answers.when)} · ${r.answers.budget ? `€${r.answers.budget}` : t.budgetFlexible}${municipality ? ` · ${municipality}` : ""}`}
+            subtitle={`${whenLabel(r.answers.when)} · ${r.answers.budget ? `${r.answers.aiAnalysis?.budgetIsEstimate ? "≈" : ""}€${r.answers.budget}` : t.budgetFlexible}${municipality ? ` · ${municipality}` : ""}`}
             footer={<button className="btn-secondary" onClick={() => onQuote(r)}>{t.sendQuoteBtn}</button>}
           >
             <p className="quote-msg" style={{ margin: "8px 0" }}>"{r.answers.details}"</p>

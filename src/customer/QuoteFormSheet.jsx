@@ -61,7 +61,7 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
       <label className="field-label">{t.whenLabel}</label>
       <div className="chiprow">
         {WHEN_PREFS.map((w) => (
-          <button key={w} className={"chip" + (whenPref === w ? " chip-on" : "")} onClick={() => setWhenPref(w)}>{whenLabel(w)}</button>
+          <button key={w} aria-pressed={!!(whenPref === w)} className={"chip" + (whenPref === w ? " chip-on" : "")} onClick={() => setWhenPref(w)}>{whenLabel(w)}</button>
         ))}
       </div>
 
@@ -78,14 +78,14 @@ export function QuoteFormSheet({ service, onClose, onSubmit }) {
               )}
               {f.type === "boolean" && (
                 <div className="chiprow">
-                  <button type="button" className={"chip" + (fields[f.key] === true ? " chip-on" : "")} onClick={() => setField(f.key, true)}>{t.yesLabel}</button>
-                  <button type="button" className={"chip" + (fields[f.key] === false ? " chip-on" : "")} onClick={() => setField(f.key, false)}>{t.noLabel}</button>
+                  <button type="button" aria-pressed={!!(fields[f.key] === true)} className={"chip" + (fields[f.key] === true ? " chip-on" : "")} onClick={() => setField(f.key, true)}>{t.yesLabel}</button>
+                  <button type="button" aria-pressed={!!(fields[f.key] === false)} className={"chip" + (fields[f.key] === false ? " chip-on" : "")} onClick={() => setField(f.key, false)}>{t.noLabel}</button>
                 </div>
               )}
               {f.type === "select" && (
                 <div className="chiprow">
                   {f.options.map((o) => (
-                    <button type="button" key={o.value} className={"chip" + (fields[f.key] === o.value ? " chip-on" : "")} onClick={() => setField(f.key, o.value)}>{t[o.label]}</button>
+                    <button type="button" key={o.value} aria-pressed={!!(fields[f.key] === o.value)} className={"chip" + (fields[f.key] === o.value ? " chip-on" : "")} onClick={() => setField(f.key, o.value)}>{t[o.label]}</button>
                   ))}
                 </div>
               )}

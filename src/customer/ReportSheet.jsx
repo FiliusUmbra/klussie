@@ -45,7 +45,7 @@ export function ReportSheet({ reporterId, reportedWorkspaceId, requestId, onClos
           <label className="field-label">{t.reportReasonLabel}</label>
           <div className="chiprow">
             {REPORT_REASONS.map((r) => (
-              <button key={r} className={"chip" + (reason === r ? " chip-on" : "")} onClick={() => setReason(r)}>{t[reportReasonLabelKey(r)]}</button>
+              <button key={r} aria-pressed={!!(reason === r)} className={"chip" + (reason === r ? " chip-on" : "")} onClick={() => setReason(r)}>{t[reportReasonLabelKey(r)]}</button>
             ))}
           </div>
 

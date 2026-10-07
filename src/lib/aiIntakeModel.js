@@ -19,6 +19,8 @@ export const AI_FOLLOWUP_ROUND_LIMIT = 2;
 // Confidence bands for the badge on the review screen. Named rather than inline so the
 // thresholds can be argued about in one place — they are a claim about how sure klussie
 // is being to a customer, not a styling detail.
+import { WHEN_PREFS } from "./requestStatus.js";
+
 const CONFIDENCE_HIGH = 85;
 const CONFIDENCE_MEDIUM = 60;
 
@@ -35,7 +37,13 @@ export function editableFromResult(res) {
     serviceId: res?.matchedServiceId || null,
     description: res?.description || "",
     budget: res?.estimatedBudget ? String(res.estimatedBudget.max ?? res.estimatedBudget.min ?? "") : "",
-    when: res?.urgency === "low" ? "flexible" : "this_week",
+    // The timing the customer actually stated wins over the urgency heuristic (found in
+    // the 2026-10-04 live review: "next week" survived in the prose but the saved timing
+    // defaulted to "this week"). Urgency is only the fallback when nothing was stated.
+    when: WHEN_PREFS.includes(res?.timeWindow) ? res.timeWindow : res?.urgency === "low" ? "flexible" : "this_week",
+    // The budget above is Klussie's own estimate, not something the customer typed — kept
+    // flagged until they change it, so it never masquerades as their intent downstream.
+    budgetIsEstimate: !!res?.estimatedBudget,
   };
 }
 
@@ -99,7 +107,7 @@ export function buildIntakeRequest({ edited, result, baseServices, photos }) {
     categoryId: baseServices.find((s) => s.id === edited.serviceId)?.cat,
     details: edited.description,
     detailsJson: result?.structuredFields || {},
-    aiAnalysis: { ...result, matchedServiceId: edited.serviceId },
+    aiAnalysis: { ...result, matchedServiceId: edited.serviceId, budgetIsEstimate: !!edited.budgetIsEstimate && !!edited.budget },
     whenPref: edited.when,
     budget: edited.budget,
     city: edited.city,

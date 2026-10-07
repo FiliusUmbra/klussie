@@ -84,7 +84,7 @@ export function ServiceLocationField({ workspaceId, onChange }) {
           <button
             key={p.id}
             type="button"
-            className={"chip" + (selectedId === p.id ? " chip-on" : "")}
+            aria-pressed={!!(selectedId === p.id)} className={"chip" + (selectedId === p.id ? " chip-on" : "")}
             onClick={() => selectProperty(p.id)}
           >
             {/* Found by code audit, 2026-09-11: marginRight was physical -- for an
@@ -98,7 +98,7 @@ export function ServiceLocationField({ workspaceId, onChange }) {
         ))}
         <button
           type="button"
-          className={"chip" + (selectedId === "one_time" ? " chip-on" : "")}
+          aria-pressed={!!(selectedId === "one_time")} className={"chip" + (selectedId === "one_time" ? " chip-on" : "")}
           onClick={() => selectProperty("one_time")}
         >
           <Plus size={13} style={{ marginInlineEnd: 4 }} />

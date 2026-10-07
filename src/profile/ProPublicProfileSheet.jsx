@@ -62,7 +62,7 @@ export function ProPublicProfileSheet({ proId, onClose }) {
         <Avatar url={proInfo.avatarUrl} initials={proInfo.initials} size="lg" />
         <div>
           <div className="h1" style={{ fontSize: 19 }}>{proInfo.name || t.proFallbackName}</div>
-          <TrustBadge rating={proInfo.rating} reviewCount={proInfo.reviews} score={trustScore(proInfo)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: proInfo.rating })} />
+          <TrustBadge newLabel={t.proNewBadge} rating={proInfo.rating} reviewCount={proInfo.reviews} score={trustScore(proInfo)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: proInfo.rating })} />
         </div>
       </div>
       <div className="chiprow" style={{ marginTop: 4 }}>

@@ -250,6 +250,10 @@ async function loadDocuments(propertyId) {
       validFrom: row.valid_from,
       validUntil: row.valid_until,
       caption: row.caption,
+      // Needed to name and open the file (a property-level document used to list with
+      // no filename and no way to retrieve it — 2026-10-04 live review, item 4).
+      storageBucket: row.storage_bucket,
+      storagePath: row.storage_path,
     }));
   } catch (err) {
     console.warn("documents unavailable, continuing without them:", err.message);

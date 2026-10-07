@@ -15,15 +15,20 @@ vi.mock("../../lib/auth.jsx", () => ({ useAuth: () => useAuthMock() }));
 vi.mock("../../lib/homeInventory.js", () => ({
   fetchHomeProfile: vi.fn(),
   fetchMyProperties: vi.fn(),
+  flattenLocationsForPicker: (rooms) => rooms.flatMap((r) => [{ id: r.id }, ...(r.children || [])]),
 }));
 vi.mock("../../lib/householdItems.js", () => ({ fetchHouseholdItems: vi.fn(() => Promise.resolve([])) }));
 vi.mock("../../lib/maintenance.js", () => ({
   fetchMaintenanceObligations: vi.fn(() => Promise.resolve([])),
   fetchMaintenanceSchedules: vi.fn(() => Promise.resolve([])),
-  mergeMaintenanceWithSchedules: vi.fn(() => []),
+  mergeMaintenanceWithSchedules: vi.fn((obligations) => obligations),
+  maintenanceForProperty: (m, assetIds, locationIds) =>
+    m.filter((x) => (x.assetId ? assetIds.has(x.assetId) : x.locationId ? locationIds.has(x.locationId) : true)),
 }));
 
 import { fetchHomeProfile, fetchMyProperties } from "../../lib/homeInventory.js";
+import { fetchMaintenanceObligations } from "../../lib/maintenance.js";
+import { fetchHouseholdItems } from "../../lib/householdItems.js";
 import { usePropertyTwin } from "../usePropertyTwin.js";
 
 const HOME = { id: "p1", name: "My Home" };
@@ -93,5 +98,21 @@ describe("usePropertyTwin — properties list and active selection", () => {
 
     await waitFor(() => expect(result.current.homeProfile?.property).toEqual(HOME));
     expect(fetchHomeProfile).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("usePropertyTwin — maintenance is scoped to the active property", () => {
+  it("shows only maintenance on the active property's items, never another property's", async () => {
+    vi.mocked(fetchMyProperties).mockResolvedValue([HOME, HOLIDAY]);
+    vi.mocked(fetchHomeProfile).mockImplementation((id) => Promise.resolve(HOME_PROFILE(id === "p2" ? HOLIDAY : HOME)));
+    vi.mocked(fetchMaintenanceObligations).mockResolvedValue([{ id: "m1", assetId: "asset-home", status: "open" }]);
+    vi.mocked(fetchHouseholdItems).mockImplementation((_o, _w, propertyId) =>
+      Promise.resolve(propertyId === "p1" ? [{ id: "asset-home" }] : []));
+
+    const { result } = renderHook(() => usePropertyTwin());
+    await waitFor(() => expect(result.current.maintenance).toEqual([{ id: "m1", assetId: "asset-home", status: "open" }]));
+
+    act(() => result.current.selectProperty("p2"));
+    await waitFor(() => expect(result.current.maintenance).toEqual([]));
   });
 });

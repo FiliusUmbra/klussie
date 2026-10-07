@@ -231,10 +231,10 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfir
     <Modal onClose={onCancel} closeLabel={t.closeBtn}>
       <div className="sheet-title" style={{ marginTop: 0 }}>{t.itemDetailAddMaintenanceAction}</div>
       <div className="chiprow" style={{ marginBottom: 14 }}>
-        <button type="button" className={"chip" + (mode === "once" ? " chip-on" : "")} onClick={() => setMode("once")}>
+        <button type="button" aria-pressed={!!(mode === "once")} className={"chip" + (mode === "once" ? " chip-on" : "")} onClick={() => setMode("once")}>
           {t.itemDetailScheduleModeOnce}
         </button>
-        <button type="button" className={"chip" + (mode === "recurring" ? " chip-on" : "")} onClick={() => setMode("recurring")}>
+        <button type="button" aria-pressed={!!(mode === "recurring")} className={"chip" + (mode === "recurring" ? " chip-on" : "")} onClick={() => setMode("recurring")}>
           {t.itemDetailScheduleModeRecurring}
         </button>
       </div>
@@ -268,7 +268,7 @@ function AddMaintenanceModal({ t, busy, error, onCancel, onConfirmOnce, onConfir
               <button
                 key={opt.value}
                 type="button"
-                className={"chip" + (recurrence === opt.value ? " chip-on" : "")}
+                aria-pressed={!!(recurrence === opt.value)} className={"chip" + (recurrence === opt.value ? " chip-on" : "")}
                 onClick={() => setRecurrence(opt.value)}
               >
                 {t[opt.labelKey]}
@@ -416,7 +416,10 @@ export function ItemDetailSheet({
   // fetch once (src/lib/maintenance.js's own fetchMaintenanceObligations()) — every row
   // already carries its own assetId, so this narrows to one item without a second fetch.
   const itemMaintenance = (maintenance || [])
-    .filter((m) => m.assetId === item.id)
+    // `projected` entries are a schedule's next occurrence before it has become a real
+    // obligation — they have no obligation id to complete or cancel, so they belong in the
+    // schedule list below (Stop future reminders only), never here.
+    .filter((m) => m.assetId === item.id && !m.projected)
     .map((m) => (maintenanceOverrides[m.id] ? { ...m, ...maintenanceOverrides[m.id] } : m));
 
   // Recurring Maintenance Activation slice. A schedule whose next occurrence is already

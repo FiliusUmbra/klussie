@@ -18,11 +18,11 @@
 // before this, which meant WP 1.8's own reloadToken addition made trust refetch every
 // time a room or item was added, a coupling that was never intended. useHomeContext.js
 // now fetches trust in its own effect, mount-only again, as it was before that coupling.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
-import { fetchHomeProfile, fetchMyProperties } from "../lib/homeInventory.js";
+import { fetchHomeProfile, fetchMyProperties, flattenLocationsForPicker } from "../lib/homeInventory.js";
 import { fetchHouseholdItems } from "../lib/householdItems.js";
-import { fetchMaintenanceObligations, fetchMaintenanceSchedules, mergeMaintenanceWithSchedules } from "../lib/maintenance.js";
+import { fetchMaintenanceObligations, fetchMaintenanceSchedules, mergeMaintenanceWithSchedules, maintenanceForProperty } from "../lib/maintenance.js";
 
 export function usePropertyTwin() {
   const { profile, activeWorkspace } = useAuth();
@@ -43,7 +43,8 @@ export function usePropertyTwin() {
   // renders a different thing for each, so they must not collapse into one value.
   const [items, setItems] = useState(null);
   const [itemsError, setItemsError] = useState(null);
-  const [maintenance, setMaintenance] = useState(null);
+  // Workspace-wide as fetched; `maintenance` below is the active property's slice of it.
+  const [allMaintenance, setAllMaintenance] = useState(null);
 
   // Home foundation slice — the full list of the caller's own home-kind properties
   // (migration 0225 filters out one-time addresses), and which one is active. null means
@@ -120,11 +121,24 @@ export function usePropertyTwin() {
     let cancelled = false;
     Promise.all([fetchMaintenanceObligations(workspaceId), fetchMaintenanceSchedules(workspaceId)]).then(
       ([obligations, schedules]) => {
-        if (!cancelled) setMaintenance(mergeMaintenanceWithSchedules(obligations, schedules));
+        if (!cancelled) setAllMaintenance(mergeMaintenanceWithSchedules(obligations, schedules));
       }
     );
     return () => { cancelled = true; };
   }, [workspaceId, reloadToken]);
+
+  // Scoped to the active property (2026-10-04 live review: an empty second property showed
+  // the first property's appliance maintenance). Stays null — "still loading" — until the
+  // property's own items and rooms are known, so nothing from another property flashes up
+  // first.
+  const maintenance = useMemo(() => {
+    if (allMaintenance === null || items === null || homeProfile === null) return null;
+    return maintenanceForProperty(
+      allMaintenance,
+      new Set(items.map((i) => i.id)),
+      new Set(flattenLocationsForPicker(homeProfile.rooms || []).map((r) => r.id))
+    );
+  }, [allMaintenance, items, homeProfile]);
 
   return {
     ownerId,

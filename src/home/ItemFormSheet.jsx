@@ -52,9 +52,10 @@ import { useState, useRef } from "react";
 import { Camera, X, Trash2 } from "lucide-react";
 import { Drawer, Modal, Button } from "../design-system";
 import { ITEM_CATEGORIES, SUGGESTED_ROOMS, DEFAULT_ITEM_CATEGORY, canSaveItem } from "../lib/itemCategories.js";
-import { updateHouseholdItem, deleteHouseholdItem, updateAsset, retireAsset } from "../lib/householdItems.js";
+import { updateHouseholdItem, deleteHouseholdItem, updateAsset, retireAsset, moveAsset } from "../lib/householdItems.js";
+import { flattenLocationsForPicker } from "../lib/homeInventory.js";
 
-export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }) {
+export function ItemFormSheet({ t, ownerId, propertyId, item, rooms, onClose, onSaved }) {
   // The caller's own auth id doubles as ADR-0019's actor_ref — public.profiles.id
   // references auth.users.id directly (0001), so ownerId already IS that value; no
   // separate prop is threaded down just to carry the same id under a second name.
@@ -63,6 +64,14 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
   const [name, setName] = useState(item.name || "");
   const [category, setCategory] = useState(item.category || DEFAULT_ITEM_CATEGORY);
   const [room, setRoom] = useState(item.room || "");
+  // Live review 2026-10-04, item 16: the add wizard and the Move action offered the
+  // customer's real rooms while this form offered preset names plus a free-text box, so it
+  // was unclear whether you were choosing a room or inventing a label. When real rooms exist
+  // this form now uses the same existing-room picker; changing it performs the real move.
+  // With no real rooms (or the legacy path) it keeps the free-text field — nothing to pick.
+  const roomOptions = usingRealContract ? flattenLocationsForPicker(rooms || []) : [];
+  const useRoomPicker = roomOptions.length > 0;
+  const [locationId, setLocationId] = useState(item.locationId || "");
   const [brand, setBrand] = useState(item.brand || "");
   const [model, setModel] = useState(item.model || "");
   const [purchasedOn, setPurchasedOn] = useState(item.purchasedOn || "");
@@ -103,7 +112,8 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
     setError("");
     setBusy(true);
     try {
-      const fields = { name, category, room, brand, model, purchasedOn, notes };
+      const pickedRoom = useRoomPicker ? roomOptions.find((opt) => opt.id === locationId)?.name || "" : room;
+      const fields = { name, category, room: pickedRoom, brand, model, purchasedOn, notes };
       if (usingRealContract) {
         // This form has no inputs for serial number/installed date/expected service
         // life/warranty end/condition — passing the item's OWN current values for them
@@ -117,6 +127,9 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
           warrantyExpiresOn: item.warrantyExpiresOn, condition: item.condition,
           ...fields,
         });
+        if (useRoomPicker && (locationId || "") !== (item.locationId || "")) {
+          await moveAsset(item.id, locationId || null, actorRef);
+        }
       } else {
         await updateHouseholdItem(item.id, { ownerId, ...fields });
       }
@@ -166,7 +179,7 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
           <button
             key={c.id}
             type="button"
-            className={"chip" + (category === c.id ? " chip-on" : "")}
+            aria-pressed={!!(category === c.id)} className={"chip" + (category === c.id ? " chip-on" : "")}
             onClick={() => setCategory(c.id)}
           >
             {t[c.labelKey]}
@@ -175,25 +188,37 @@ export function ItemFormSheet({ t, ownerId, propertyId, item, onClose, onSaved }
       </div>
 
       <label className="field-label" htmlFor="item-room">{t.itemRoomLabel}</label>
-      {/* Free text with suggestions, always — the column itself has always accepted
-          anything, so a fixed vocabulary would still refuse "zolderkamer" here
-          regardless. See this file's own header for why edit never offers the real-room
-          picker ItemAddWizard.jsx's create flow does. */}
-      <div className="chiprow">
-        {SUGGESTED_ROOMS.map((r) => (
-          <button
-            key={r.id}
-            type="button"
-            className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
-            onClick={() => setRoom(room === t[r.labelKey] ? "" : t[r.labelKey])}
-          >
-            {t[r.labelKey]}
-          </button>
-        ))}
-      </div>
-      <div className="search" style={{ marginBottom: 14 }}>
-        <input id="item-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder={t.itemRoomPlaceholder} />
-      </div>
+      {useRoomPicker ? (
+        <>
+          <div className="search" style={{ marginBottom: 6 }}>
+            <select id="item-room" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+              <option value="">{t.itemRoomNone}</option>
+              {roomOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <p className="fineprint" style={{ justifyContent: "flex-start", marginBottom: 14 }}>{t.itemRoomAddHint}</p>
+        </>
+      ) : (
+        <>
+          <div className="chiprow">
+            {SUGGESTED_ROOMS.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                aria-pressed={!!(room === t[r.labelKey])} className={"chip" + (room === t[r.labelKey] ? " chip-on" : "")}
+                onClick={() => setRoom(room === t[r.labelKey] ? "" : t[r.labelKey])}
+              >
+                {t[r.labelKey]}
+              </button>
+            ))}
+          </div>
+          <div className="search" style={{ marginBottom: 14 }}>
+            <input id="item-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder={t.itemRoomPlaceholder} />
+          </div>
+        </>
+      )}
 
       <label className="field-label" htmlFor="item-brand">{t.itemBrandLabel}</label>
       <div className="search" style={{ marginBottom: 14 }}>

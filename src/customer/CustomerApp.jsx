@@ -14,6 +14,7 @@ import {
   createServiceRequest,
   fetchCustomerRequests,
   acceptQuote as acceptQuoteApi,
+  withdrawRequest as withdrawRequestApi,
   approveLocationDisclosure as approveLocationDisclosureApi,
   markComplete as markCompleteApi,
   submitReview as submitReviewApi,
@@ -28,6 +29,7 @@ import { TODAY_LABELS } from "../lib/dailyStrings.js";
 import { MyHomeScreen } from "../home/MyHomeScreen.jsx";
 import { CustomerOnboarding } from "../home/CustomerOnboarding.jsx";
 import { useHomeTour } from "../home/useHomeTour.js";
+import { TourGateContext } from "../ui/tourGate.js";
 import { MessagesList } from "../messaging/MessagesList.jsx";
 import { ConversationSheet } from "../messaging/ConversationSheet.jsx";
 import { AppNav } from "../ui/AppNav.jsx";
@@ -294,6 +296,26 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
     showToast(t.toastBooked);
   };
 
+  // Live review item 10 — taking back a request before it is booked. Same shape as
+  // acceptQuote() above: the toast and re-throw on a real refusal, a best-effort refresh
+  // once the withdrawal itself is confirmed (a failed refresh must not read as a failed
+  // withdrawal).
+  const withdrawRequest = async (requestId) => {
+    try {
+      await withdrawRequestApi(requestId, user.id);
+    } catch (err) {
+      console.warn("withdrawRequest failed:", err.message);
+      showToast(t.toastRequestWithdrawFailed);
+      throw err;
+    }
+    try {
+      await refresh();
+    } catch {
+      // Best-effort; the request was already withdrawn regardless.
+    }
+    showToast(t.toastRequestWithdrawn);
+  };
+
   // Same real gap as acceptQuote() above.
   const markComplete = async (requestId) => {
     try {
@@ -342,7 +364,7 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
   };
 
   return (
-    <>
+    <TourGateContext.Provider value={{ blocked: tour.open }}>
       <AppNav
         // "today" is the real landing tab; "discover" (Help) stays reachable from there
         // (and from My Home's own "report a problem") but deliberately isn't its own
@@ -465,6 +487,7 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
             onAccept={acceptQuote}
             onApproveDisclosure={() => approveLocationDisclosure(openRequestObj.id)}
             onComplete={() => markComplete(openRequestObj.id)}
+            onWithdraw={() => withdrawRequest(openRequestObj.id)}
             onReview={() => { setOpenRequest(null); setReviewFor(openRequestObj.id); }}
             onMessage={requestConversation ? () => { setOpenConversation(requestConversation); setOpenRequest(null); } : undefined}
           />
@@ -486,6 +509,6 @@ export function CustomerApp({ showToast, onBecomePro, onFamily, destination, onN
           onClose={() => { setOpenConversation(null); refreshConversations().catch(() => {}); }}
         />
       )}
-    </>
+    </TourGateContext.Provider>
   );
 }

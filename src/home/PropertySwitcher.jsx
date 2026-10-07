@@ -8,12 +8,12 @@
 // already established for a professional's own first property. My Home has no creation
 // entry point of its own on purpose — Profile is where every other "add a thing to my
 // account" action already lives (become a pro, join a business).
-export function PropertySwitcher({ properties, activePropertyId, onSelect }) {
+export function PropertySwitcher({ properties, activePropertyId, onSelect, t }) {
   if (!properties || properties.length < 2) return null;
 
   return (
     <div className="role-switch">
-      <div className="segmented">
+      <div className="segmented" role="group" aria-label={t?.propertySwitchAria}>
         {properties.map((p) => (
           <button
             key={p.id}

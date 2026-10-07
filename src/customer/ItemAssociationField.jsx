@@ -56,7 +56,7 @@ export function ItemAssociationField({ ownerId, workspaceId, onChange }) {
       <div className="chiprow">
         <button
           type="button"
-          className={"chip" + (selectedId === null ? " chip-on" : "")}
+          aria-pressed={!!(selectedId === null)} className={"chip" + (selectedId === null ? " chip-on" : "")}
           onClick={() => setSelectedId(null)}
         >
           {t.itemAssociationNone}
@@ -65,7 +65,7 @@ export function ItemAssociationField({ ownerId, workspaceId, onChange }) {
           <button
             key={item.id}
             type="button"
-            className={"chip" + (selectedId === item.id ? " chip-on" : "")}
+            aria-pressed={!!(selectedId === item.id)} className={"chip" + (selectedId === item.id ? " chip-on" : "")}
             onClick={() => setSelectedId(item.id)}
           >
             {/* Found by code audit, 2026-09-11: marginRight was physical -- see

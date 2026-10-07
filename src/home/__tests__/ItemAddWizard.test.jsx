@@ -20,7 +20,7 @@ const t = {
   itemWizardExtraTitle: "Anything else to add?",
   itemNameLabel: "Name", itemNamePlaceholder: "e.g. washing machine",
   itemCategoryLabel: "Category", itemRoomLabel: "Room", itemRoomPlaceholder: "e.g. kitchen", itemRoomNone: "No room chosen",
-  itemBrandLabel: "Brand", itemModelLabel: "Model",
+  itemBrandLabel: "Brand", itemModelLabel: "Model", itemWizardBrandModelTitle: "Brand and model", itemSaveNow: "Save now",
   itemPhotoLabel: "Photo", itemPhotoAdd: "Add photo", itemPhotoRemove: "Remove photo",
   itemPurchasedLabel: "Purchased on", itemNotesLabel: "Notes",
   itemSaveNew: "Save item", itemSaveFailed: "Couldn't save this item.",
@@ -58,7 +58,7 @@ describe("ItemAddWizard — one question per screen", () => {
     expect(screen.getByText("Next").disabled).toBe(false);
   });
 
-  it("walks through photo, brand and model in order, ending on the extra-details step", () => {
+  it("walks through photo, then brand-and-model together, ending on the extra-details step", () => {
     render(<ItemAddWizard t={t} ownerId="owner-1" onClose={() => {}} onSaved={() => {}} />);
 
     whatStep("Boiler");
@@ -66,10 +66,10 @@ describe("ItemAddWizard — one question per screen", () => {
     expect(screen.getByText("A photo of the nameplate")).toBeTruthy();
 
     skip();
-    expect(screen.getByText("Brand")).toBeTruthy();
-
-    skip();
-    expect(screen.getByText("Model")).toBeTruthy();
+    // Brand and model share one screen (live review 2026-10-04, item 16: five steps -> four).
+    expect(screen.getByText("Brand and model")).toBeTruthy();
+    expect(screen.getByLabelText("Brand")).toBeTruthy();
+    expect(screen.getByLabelText("Model")).toBeTruthy();
 
     skip();
     expect(screen.getByText("Anything else to add?")).toBeTruthy();
@@ -97,11 +97,11 @@ describe("ItemAddWizard — one question per screen", () => {
 
   it("shows the step progress, updating as steps advance", () => {
     render(<ItemAddWizard t={t} ownerId="owner-1" onClose={() => {}} onSaved={() => {}} />);
-    expect(screen.getByText("Step 1 of 5")).toBeTruthy();
+    expect(screen.getByText("Step 1 of 4")).toBeTruthy();
 
     whatStep("Boiler");
     next();
-    expect(screen.getByText("Step 2 of 5")).toBeTruthy();
+    expect(screen.getByText("Step 2 of 4")).toBeTruthy();
   });
 });
 
@@ -110,8 +110,7 @@ describe("ItemAddWizard — create, real contract vs legacy", () => {
     whatStep("Boiler");
     next(); // photo
     skip();
-    skip(); // brand
-    skip(); // model
+    skip(); // brand and model
     fireEvent.click(screen.getByText("Save item")); // extra
     await waitFor(() => {});
   }
@@ -148,8 +147,7 @@ describe("ItemAddWizard — create, real contract vs legacy", () => {
     next(); // photo
     const file = new File(["x"], "boiler.jpg", { type: "image/jpeg" });
     fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
-    next(); // brand
-    next(); // model
+    next(); // brand and model
     next(); // extra
     fireEvent.click(screen.getByText("Save item"));
 
@@ -163,7 +161,6 @@ describe("ItemAddWizard — room picker on the extra-details step", () => {
   async function toExtraStep() {
     whatStep("Boiler");
     next();
-    skip();
     skip();
     skip();
   }
@@ -225,7 +222,6 @@ describe("ItemAddWizard — save failure", () => {
     next();
     skip();
     skip();
-    skip();
     fireEvent.click(screen.getByText("Save item"));
 
     await waitFor(() => expect(screen.getByText("Couldn't save this item.")).toBeTruthy());
@@ -269,5 +265,27 @@ describe("ItemAddWizard — photo object URL lifecycle", () => {
     expect(screen.getByText("Brand")).toBeTruthy();
     // Exactly one file input exists for the whole wizard, shared across steps.
     expect(document.querySelectorAll('input[type="file"]').length).toBe(1);
+  });
+});
+
+// Live review 2026-10-04, item 16: basic inventory capture should not need every screen.
+describe("ItemAddWizard — Save now", () => {
+  it("is not offered on the name step, and appears once there is a name", () => {
+    render(<ItemAddWizard t={t} ownerId="owner-1" propertyId="prop-1" onClose={() => {}} onSaved={() => {}} />);
+    expect(screen.queryByText("Save now")).toBeNull();
+    whatStep("Boiler");
+    next();
+    expect(screen.getByText("Save now")).toBeTruthy();
+  });
+
+  it("saves immediately from the photo step with just a name, skipping the optional screens", async () => {
+    const onSaved = vi.fn(() => Promise.resolve());
+    render(<ItemAddWizard t={t} ownerId="owner-1" propertyId="prop-1" onClose={() => {}} onSaved={onSaved} />);
+    whatStep("Boiler");
+    next();
+    fireEvent.click(screen.getByText("Save now"));
+    await waitFor(() => expect(createAsset).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(createAsset).mock.calls[0][0]).toMatchObject({ name: "Boiler", propertyId: "prop-1" });
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 });

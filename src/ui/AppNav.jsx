@@ -30,6 +30,11 @@ export function AppNav({ tab, setTab, items, variant = "tabbar", fab, children }
   return (
     <>
       <nav className="app-sidebar" aria-label="Primary">
+        {fab && (
+          <button type="button" className="sidebar-fab" onClick={fab.onClick}>
+            <fab.icon size={17} strokeWidth={2.2} aria-hidden="true" /> {fab.label}
+          </button>
+        )}
         {items.map((it) => (
           <button
             key={it.id}

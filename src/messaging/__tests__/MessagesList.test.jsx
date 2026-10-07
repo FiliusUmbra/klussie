@@ -150,3 +150,21 @@ describe("MessagesList tour wiring", () => {
     expect(tourState.replay).toHaveBeenCalled();
   });
 });
+
+// 2026-10-04 live review, item 12: the professional's Messages used customer wording.
+describe("MessagesList — role-specific copy", () => {
+  const renderRole = (role, conversations = []) => render(
+    <LangContext.Provider value={{ t, serviceInfo: () => ({ name: "" }), fmtDate: () => "", langCode: "en" }}>
+      <MessagesList conversations={conversations} onOpen={() => {}} role={role} />
+    </LangContext.Provider>
+  );
+  it("uses the customer empty text by default and the professional's own text for role=pro", () => {
+    renderRole("customer");
+    expect(screen.getByText("messagesEmpty")).toBeTruthy();
+    document.body.innerHTML = "";
+    renderRole("pro");
+    expect(screen.getByText("messagesEmptyPro")).toBeTruthy();
+    expect(screen.queryByText("messagesEmpty")).toBeNull();
+  });
+});
+

@@ -26,6 +26,7 @@ describe("editableFromResult", () => {
       description: "Kitchen tap dripping",
       budget: "150",
       when: "this_week",
+      budgetIsEstimate: true,
     });
   });
 
@@ -56,7 +57,34 @@ describe("editableFromResult", () => {
       description: "",
       budget: "",
       when: "this_week",
+      budgetIsEstimate: false,
     });
+  });
+
+  // 2026-10-04 live review, item 3: "next week" survived in the prose but the saved
+  // timing defaulted to "this week".
+  it("keeps the timing the customer stated, over the urgency heuristic", () => {
+    expect(editableFromResult({ urgency: "high", timeWindow: "next_week" }).when).toBe("next_week");
+    expect(editableFromResult({ urgency: "low", timeWindow: "this_week" }).when).toBe("this_week");
+    expect(editableFromResult({ urgency: "medium", timeWindow: "flexible" }).when).toBe("flexible");
+  });
+
+  it("ignores a timing value outside the three real windows and falls back to urgency", () => {
+    expect(editableFromResult({ urgency: "low", timeWindow: "tomorrow" }).when).toBe("flexible");
+    expect(editableFromResult({ urgency: "medium", timeWindow: null }).when).toBe("this_week");
+  });
+});
+
+describe("budget estimate flag (live review item 19)", () => {
+  it("flags an AI-seeded budget as an estimate, and not a blank one", () => {
+    expect(editableFromResult({ estimatedBudget: { max: 200 } }).budgetIsEstimate).toBe(true);
+    expect(editableFromResult({}).budgetIsEstimate).toBe(false);
+  });
+  it("records on the request whether the saved budget is still Klussie's estimate", () => {
+    const base = { result: { a: 1 }, baseServices: [{ id: "s", cat: "c" }], photos: [] };
+    expect(buildIntakeRequest({ ...base, edited: { serviceId: "s", budget: "200", budgetIsEstimate: true } }).aiAnalysis.budgetIsEstimate).toBe(true);
+    expect(buildIntakeRequest({ ...base, edited: { serviceId: "s", budget: "200", budgetIsEstimate: false } }).aiAnalysis.budgetIsEstimate).toBe(false);
+    expect(buildIntakeRequest({ ...base, edited: { serviceId: "s", budget: "", budgetIsEstimate: true } }).aiAnalysis.budgetIsEstimate).toBe(false);
   });
 });
 

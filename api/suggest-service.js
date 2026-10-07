@@ -160,7 +160,7 @@ export default async function handler(req, res) {
   ]);
   if (catErr || svcErr) {
     console.error("suggest-service catalog read error:", catErr?.message || svcErr?.message);
-    res.status(500).json({ error: "Could not read the service catalog. Please try again." });
+    res.status(500).json({ error: "Could not read the service catalog. Please try again.", code: "catalog_unreadable" });
     return;
   }
 
@@ -180,28 +180,57 @@ export default async function handler(req, res) {
     describeCatalogForPrompt(categories || [], servicesForPrompt),
   ].join("\n");
 
-  let classification;
-  try {
-    classification = await reason({
-      systemPrompt,
-      text: description,
-      toolSchema: SUGGESTION_TOOL,
-      maxTokens: 512,
-    });
-  } catch (err) {
-    console.error("suggest-service classification error:", err.message);
-    res.status(500).json({ error: "Klussie could not classify this service right now. Please try again." });
+  // Live review 2026-10-04, item 8: a plain "how do I fix leaking taps and pipes" failed twice
+  // with the generic client message. The model call is the one step here that is
+  // non-deterministic, and two ways it can return something unusable were not handled: a
+  // 'match' whose id isn't in the catalog (a hallucinated or name-shaped id, which the client
+  // then failed to attach), and an incomplete 'new'. Each is now validated against the real
+  // catalog and retried once before giving up, and every failure carries a stable `code` so
+  // the failing phase is identifiable from the network tab instead of a uniform generic error.
+  const catalogIds = new Set(servicesForPrompt.map((s) => s.id));
+  const resolveMatchId = (raw) => {
+    if (!raw || typeof raw !== "string") return null;
+    if (catalogIds.has(raw)) return raw;
+    const lower = raw.trim().toLowerCase();
+    const byId = servicesForPrompt.find((s) => s.id.toLowerCase() === lower);
+    if (byId) return byId.id;
+    const byName = servicesForPrompt.find((s) => (s.name || "").trim().toLowerCase() === lower);
+    return byName ? byName.id : null;
+  };
+  const isCompleteNew = (c) =>
+    c && c.categoryId && c.proposedName && c.proposedBlurb && c.proposedMode && c.proposedBasePrice != null;
+
+  const MAX_ATTEMPTS = 2;
+  let classification = null;
+  let matchedId = null;
+  let aiFailed = false;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const result = await reason({ systemPrompt, text: description, toolSchema: SUGGESTION_TOOL, maxTokens: 512 });
+      aiFailed = false;
+      if (result.outcome === "match") {
+        const id = resolveMatchId(result.matchedServiceId);
+        if (id) { classification = result; matchedId = id; break; }
+      } else if (isCompleteNew(result)) {
+        classification = result;
+        break;
+      }
+      console.error("suggest-service: unusable classification (attempt " + attempt + ")", result);
+    } catch (err) {
+      aiFailed = true;
+      console.error("suggest-service classification error (attempt " + attempt + "):", err.message);
+    }
+  }
+
+  if (!classification) {
+    res.status(500).json(aiFailed
+      ? { error: "Klussie could not classify this service right now. Please try again.", code: "ai_unavailable" }
+      : { error: "Klussie could not work out how to categorize this service. Please try again.", code: "unusable_classification" });
     return;
   }
 
-  if (classification.outcome === "match" && classification.matchedServiceId) {
-    res.status(200).json({ outcome: "match", matchedServiceId: classification.matchedServiceId });
-    return;
-  }
-
-  if (!classification.categoryId || !classification.proposedName || !classification.proposedBlurb || !classification.proposedMode || classification.proposedBasePrice == null) {
-    console.error("suggest-service: AI returned an incomplete 'new' classification", classification);
-    res.status(500).json({ error: "Klussie could not work out how to categorize this service. Please try again." });
+  if (matchedId) {
+    res.status(200).json({ outcome: "match", matchedServiceId: matchedId });
     return;
   }
 
@@ -221,7 +250,7 @@ export default async function handler(req, res) {
     translations = Object.fromEntries(translatedPairs);
   } catch (err) {
     console.error("suggest-service translation error:", err.message);
-    res.status(500).json({ error: "Klussie could not translate this service into every language. Please try again." });
+    res.status(500).json({ error: "Klussie could not translate this service into every language. Please try again.", code: "translation_failed" });
     return;
   }
 
@@ -250,7 +279,7 @@ export default async function handler(req, res) {
     // catalog.suggest_service_for_caller() raises for a caller who isn't a real member
     // of the given workspace.
     const status = writeError.code === "42501" ? 403 : 500;
-    res.status(status).json({ error: "Could not record this suggestion. Please try again." });
+    res.status(status).json({ error: "Could not record this suggestion. Please try again.", code: status === 403 ? "not_a_member" : "write_failed" });
     return;
   }
 

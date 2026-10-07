@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import { hasSeenPageTour, markPageTourSeen } from "../lib/pageTourPrefs.js";
+import { useTourGate } from "./tourGate.js";
 
 export function usePageTour(pageId) {
   const { user } = useAuth();
@@ -11,7 +12,9 @@ export function usePageTour(pageId) {
   const [replaying, setReplaying] = useState(false);
 
   const seen = hasSeenPageTour(user?.id, pageId);
-  const open = replaying || (!seen && !closed);
+  const { blocked } = useTourGate();
+  // A tour that is already showing never gets pulled away; a not-yet-shown one waits its turn.
+  const open = replaying || (!seen && !closed && !blocked);
 
   const finish = () => {
     setClosed(true);

@@ -25,7 +25,7 @@
 // a third or fourth real workspace existed. A native select stays one control regardless
 // of how many memberships a person has.
 import { useAuth } from "../lib/auth.jsx";
-import { humanWorkspaceName } from "../lib/workspaceContext.js";
+import { workspaceOptionLabel } from "../lib/workspaceContext.js";
 
 export function WorkspaceSwitcher({ t, onSelect }) {
   const { workspaceMemberships, activeWorkspace, setActiveWorkspaceId } = useAuth();
@@ -38,13 +38,13 @@ export function WorkspaceSwitcher({ t, onSelect }) {
     <div className="role-switch">
       <select
         className="place-picker"
-        aria-label={humanWorkspaceName(activeWorkspace || workspaceMemberships[0], t)}
+        aria-label={t.workspaceSwitchAria}
         value={activeId}
         onChange={(event) => { setActiveWorkspaceId(event.target.value); onSelect?.(); }}
       >
         {workspaceMemberships.map((m) => (
           <option key={m.workspace_id} value={m.workspace_id}>
-            {humanWorkspaceName(m, t)}
+            {workspaceOptionLabel(m, t)}
           </option>
         ))}
       </select>

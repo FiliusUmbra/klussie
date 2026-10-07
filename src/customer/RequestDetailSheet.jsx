@@ -6,7 +6,7 @@
 // platform-fee/net-payout breakdown at all — see Payments Slice A's own reconciliation
 // note where the booked-quote card is rendered, below.
 import { useState } from "react";
-import { Ban, Check, Clock, MessageCircle, ShieldCheck, MapPin, Loader2 } from "lucide-react";
+import { Ban, Check, Clock, MessageCircle, ShieldCheck, ClipboardCheck, MapPin, Loader2 } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { useAuth } from "../lib/auth.jsx";
 import { Avatar, Badge, Button, Rating, PriceTag, QuoteCard, TrustBadge, Timeline, Drawer } from "../design-system";
@@ -18,9 +18,10 @@ import { ReportSheet } from "./ReportSheet.jsx";
 import { timelineSteps } from "../lib/requestStatus.js";
 import { interpolate } from "../lib/homeStrings.js";
 import { requestTitle } from "../lib/requestTitle.js";
+import { invoiceTotals, VAT_RATE } from "../lib/billing.js";
 
-export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage }) {
-  const { t, fmt, serviceInfo, proBadgeLabel, whenLabel } = useLang();
+export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclosure, onComplete, onReview, onMessage, onWithdraw }) {
+  const { t, fmt, serviceInfo, proBadgeLabel, whenLabel, BASE_SERVICES } = useLang();
   const { user } = useAuth();
   const [showInvoice, setShowInvoice] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -31,6 +32,14 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
   // sheet's quotes_ready state offers.
   const [acceptingId, setAcceptingId] = useState(null);
   const [completing, setCompleting] = useState(false);
+  // Withdrawal confirms inline (no second sheet — the no-sliding-sheets rule) and says
+  // what it will do before it does it.
+  const [confirmingWithdraw, setConfirmingWithdraw] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  // The catalog's professional count for this service (platform-wide, not per location —
+  // the copy says so). Unknown (catalog not loaded / service missing) is NOT treated as zero.
+  const serviceStat = (BASE_SERVICES || []).find((svc) => svc.id === request.serviceId);
+  const noProsForService = serviceStat != null && serviceStat.pros === 0;
   const bookedQuote = request.quotes.find((q) => q.proId === request.bookedProId);
   const steps = timelineSteps(request.status);
 
@@ -52,7 +61,15 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
       )}
 
       {request.status === "collecting" && (
-        <div className="empty-block"><Clock size={22} color="var(--ink-soft)" /><p>{t.waitingMsg}</p></div>
+        // Live review 2026-10-04, item 9: this used to promise "quotes usually within minutes"
+        // unconditionally, even right after the intake itself had said nobody nearby offered
+        // the service. The catalog's own per-service professional count is the one real signal
+        // available here: zero means nobody can answer, and the screen says so and points at the
+        // withdraw-and-retry path below rather than promising anything.
+        <div className="empty-block" data-testid="waiting-state">
+          <Clock size={22} color="var(--ink-soft)" />
+          <p>{noProsForService ? t.waitingNoProsMsg : t.waitingMsg}</p>
+        </div>
       )}
 
       {/* Found live during a UX review, 2026-09-07: `cancelled` had no branch here at
@@ -61,6 +78,30 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
           cancelled request's own detail sheet showed nothing past the title and
           subtitle. See requestStatus.js's own PRESENTATION table for the matching
           badge-label gap this same review found and closed. */}
+      {onWithdraw && (request.status === "collecting" || request.status === "quotes_ready") && (
+        <div className="request-withdraw" data-testid="request-withdraw">
+          {!confirmingWithdraw ? (
+            <button type="button" className="btn-secondary" onClick={() => setConfirmingWithdraw(true)}>{t.requestWithdrawBtn}</button>
+          ) : (
+            <div className="empty-block" role="alertdialog" aria-label={t.requestWithdrawBtn}>
+              <p>{t.requestWithdrawConfirmBody}</p>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={withdrawing}
+                onClick={async () => {
+                  setWithdrawing(true);
+                  try { await onWithdraw(); onClose(); } catch { /* toasted by withdrawRequest() */ } finally { setWithdrawing(false); }
+                }}
+              >
+                {withdrawing ? <Loader2 size={15} className="spin" /> : null} {t.requestWithdrawConfirmBtn}
+              </button>
+              <button type="button" className="btn-secondary" disabled={withdrawing} onClick={() => setConfirmingWithdraw(false)}>{t.requestWithdrawKeepBtn}</button>
+            </div>
+          )}
+        </div>
+      )}
+
       {request.status === "cancelled" && (
         <div className="empty-block"><Ban size={22} color="var(--ink-soft)" /><p>{t.requestCancelledMsg}</p></div>
       )}
@@ -77,11 +118,18 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                     <Avatar url={pro.avatarUrl} initials={pro.initials} />
                     <div style={{ flex: 1 }}>
                       <div className="quote-name">{pro.name || t.proFallbackName} {proBadgeLabel(pro.badgeTier) && <Badge tone="forest">{proBadgeLabel(pro.badgeTier)}</Badge>}</div>
-                    <TrustBadge rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} />
+                    <TrustBadge newLabel={t.proNewBadge} rating={pro.rating} reviewCount={pro.reviews} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} />
                   </div>
                   </button>
                   <PriceTag amount={q.price} fmt={fmt} />
                 </div>
+                <p className="fineprint" style={{ justifyContent: "flex-start", margin: "4px 0 0" }} data-testid="price-basis">{interpolate(t.quotePriceBasisNote, { total: fmt(invoiceTotals(q.price).total), rate: Math.round(VAT_RATE * 100) })}</p>
+
+                {/* The professional's own words (scope, conditions, exclusions — the quote
+                    has no separate structured fields, this message is where they live).
+                    2026-10-04 live review, item 5: it was fetched but never shown, so a
+                    customer chose between prices with none of the context behind them. */}
+                {q.message?.trim() && <p className="quote-msg" data-testid="quote-message">"{q.message.trim()}"</p>}
                 {/* Found by code audit: no busy state at all -- a real refusal (a race
                     with another quote already accepted, a status that moved on) used
                     to leave this button sitting there, tappable again, with nothing
@@ -117,10 +165,11 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
                 <Avatar url={pro.avatarUrl} initials={pro.initials} />
-                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
+                <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge newLabel={t.proNewBadge} rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
+            {bookedQuote.message?.trim() && <p className="quote-msg" data-testid="quote-message">"{bookedQuote.message.trim()}"</p>}
             <div className="ticket-divider" />
             <div className="quote-msg" style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               <MapPin size={14} style={{ marginTop: 2, flexShrink: 0 }} />
@@ -163,10 +212,12 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
             <div className="quote-top">
               <button type="button" className="quote-top-link" onClick={() => setOpenProId(pro.id)}>
               <Avatar url={pro.avatarUrl} initials={pro.initials} />
-              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
+              <div style={{ flex: 1 }}><div className="quote-name">{pro.name || t.proFallbackName}</div><TrustBadge newLabel={t.proNewBadge} rating={pro.rating} score={trustScore(pro)} scoreLabel={t.trustScoreLabel} fmt={fmt} ratingLabel={interpolate(t.ratingLabel, { value: pro.rating })} /></div>
               </button>
               <PriceTag amount={bookedQuote.price} fmt={fmt} />
             </div>
+            <p className="fineprint" style={{ justifyContent: "flex-start", margin: "4px 0 0" }} data-testid="price-basis">{interpolate(t.quotePriceBasisNote, { total: fmt(invoiceTotals(bookedQuote.price).total), rate: Math.round(VAT_RATE * 100) })}</p>
+            {bookedQuote.message?.trim() && <p className="quote-msg" data-testid="quote-message">"{bookedQuote.message.trim()}"</p>}
             <div className="ticket-divider" />
             {/* Payments Slice A — platformFee()/netPayout() (a flat 12% on every job)
                 removed: superseded by the real acquisition-fee model (5%, capped at €75,
@@ -177,7 +228,7 @@ export function RequestDetailSheet({ request, onClose, onAccept, onApproveDisclo
                 The professional's own real fee, when one applies, is disclosed to them
                 directly (src/pro/ProJobDetailSheet.jsx) — this was never information the
                 customer's own price depended on either way. */}
-            <div className="fineprint" style={{ marginTop: 10 }}><ShieldCheck size={12} /> {t.guaranteeNote}</div>
+            <div className="fineprint" style={{ marginTop: 10 }}><ClipboardCheck size={12} /> {t.guaranteeNote}</div>
             {/* Found by code audit: no busy state, no await, no catch at all -- a real
                 refusal (complete_engagement()'s own refusal, a network error) used to
                 leave the button sitting there tappable again with no feedback at all

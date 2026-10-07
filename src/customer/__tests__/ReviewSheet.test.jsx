@@ -14,7 +14,7 @@ import { ReviewSheet } from "../ReviewSheet.jsx";
 const t = {
   closeBtn: "Sluiten", reviewTitle: "Beoordeel je ervaring", howDidItGo: "Hoe ging het?",
   submitReviewBtn: "Beoordeling versturen", defaultReviewText: "Prima service.",
-  reviewStarLabelOne: "Geef 1 ster", reviewStarLabel: "Geef {n} sterren",
+  reviewStarLabelOne: "Geef 1 ster", reviewStarLabel: "Geef {n} sterren", reviewChooseRating: "Kies een beoordeling.",
 };
 
 function renderSheet(onSubmit = () => {}) {
@@ -48,3 +48,33 @@ describe("ReviewSheet — star-picker accessible names", () => {
     expect(onSubmit).toHaveBeenCalledWith({ stars: 3, text: "Prima service." });
   });
 });
+
+// Live review 2026-10-04, item 17: five stars were preselected and Send was available at once,
+// so a customer could publish a rating they never chose.
+describe("ReviewSheet — a deliberate rating is required", () => {
+  it("starts with no rating chosen and Send disabled, saying why", () => {
+    renderSheet();
+    expect(screen.getAllByRole("radio").every((r) => r.getAttribute("aria-checked") === "false")).toBe(true);
+    expect(screen.getByText("Beoordeling versturen").closest("button").disabled).toBe(true);
+    expect(screen.getByText("Kies een beoordeling.")).toBeTruthy();
+  });
+
+  it("is one single-value control: exactly the chosen star is checked", () => {
+    renderSheet();
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[2]);
+    expect(radios.map((r) => r.getAttribute("aria-checked"))).toEqual(["false", "false", "true", "false", "false"]);
+    expect(screen.getByRole("radiogroup")).toBeTruthy();
+  });
+
+  it("enables Send only once a rating is chosen", () => {
+    const onSubmit = vi.fn();
+    renderSheet(onSubmit);
+    fireEvent.click(screen.getByText("Beoordeling versturen"));
+    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole("radio")[3]);
+    fireEvent.click(screen.getByText("Beoordeling versturen"));
+    expect(onSubmit).toHaveBeenCalledWith({ stars: 4, text: "Prima service." });
+  });
+});
+

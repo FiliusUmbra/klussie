@@ -114,3 +114,14 @@ export function humanWorkspaceName(membership, t) {
   if (membership.workspace_name) return membership.workspace_name;
   return membership.workspace_type === "personal" ? t.workspaceFallbackHome : t.workspaceFallbackBusiness;
 }
+
+
+// "Name · Kind" so a household, a family and a business are never confusable (live review
+// 2026-10-04, item 16: selecting the family workspace silently switched to family mode). The
+// kind is skipped when the name already says it ("My Home" would otherwise read "My Home · Home").
+const KIND_KEY = { personal: "workspaceKindHome", family: "workspaceKindFamily", professional: "workspaceKindBusiness" };
+export function workspaceOptionLabel(m, t) {
+  const name = humanWorkspaceName(m, t);
+  const kind = t[KIND_KEY[m.workspace_type]];
+  return kind && kind.toLowerCase() !== name.toLowerCase() ? `${name} · ${kind}` : name;
+}

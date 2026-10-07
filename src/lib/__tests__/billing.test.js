@@ -9,12 +9,11 @@
 // that no longer exists.
 import { describe, it, expect } from "vitest";
 import {
-  PLATFORM_COMMISSION_RATE,
   VAT_RATE,
   FLEXI_TAX_FREE_THRESHOLD,
   invoiceTotals,
   typicalPriceRange,
-  netEarnings,
+  grossEarnings,
   flexiProgressPct,
 } from "../billing.js";
 
@@ -22,7 +21,6 @@ describe("rates", () => {
   it("holds the published figures the UI quotes to users", () => {
     // Changing any of these changes what klussie charges. They are pinned so that a
     // change is a deliberate edit to this test, never an accident in a component.
-    expect(PLATFORM_COMMISSION_RATE).toBe(0.12);
     expect(VAT_RATE).toBe(0.21);
     expect(FLEXI_TAX_FREE_THRESHOLD).toBe(18440);
   });
@@ -58,24 +56,26 @@ describe("typicalPriceRange", () => {
   });
 });
 
-describe("netEarnings", () => {
+// Live review 2026-10-04, item 7: the tracker's invented flat 12% platform cost contradicted
+// the real introduction fee (5%, capped at €75, first job per customer). It now counts gross.
+describe("grossEarnings", () => {
   const job = (proId, price) => ({ quotes: [{ proId, price }] });
 
   it("counts only this professional's own quote on each job", () => {
     const jobs = [job("me", 100), job("someone-else", 500)];
-    expect(netEarnings(jobs, "me")).toBeCloseTo(88, 10);
+    expect(grossEarnings(jobs, "me")).toBe(100);
   });
 
   it("ignores a job this professional never quoted on", () => {
-    expect(netEarnings([{ quotes: [] }], "me")).toBe(0);
+    expect(grossEarnings([{ quotes: [] }], "me")).toBe(0);
   });
 
   it("returns nothing for a professional with no jobs at all", () => {
-    expect(netEarnings([], "me")).toBe(0);
+    expect(grossEarnings([], "me")).toBe(0);
   });
 
-  it("sums across jobs after commission", () => {
-    expect(netEarnings([job("me", 100), job("me", 200)], "me")).toBeCloseTo(264, 10);
+  it("sums the quoted price across jobs, with no invented platform deduction", () => {
+    expect(grossEarnings([job("me", 100), job("me", 200)], "me")).toBe(300);
   });
 });
 

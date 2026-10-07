@@ -6,7 +6,10 @@
 // has storage (0016) and My Home is derived from real requests. They are deleted rather
 // than left unused, because a component that says "not built yet" is exactly the kind of
 // stale claim that outlives the condition it described.
-import { documentTypeLabelKey } from "../lib/documents.js";
+import { useState } from "react";
+import { FileText, Download } from "lucide-react";
+import { documentTypeLabelKey, getDocumentUrl } from "../lib/documents.js";
+import { documentFileName } from "../lib/documentFileName.js";
 import { interpolate } from "../lib/homeStrings.js";
 import { isPastLocalDate } from "../lib/dates.js";
 import { Badge } from "../design-system";
@@ -70,6 +73,7 @@ export function DocumentRowContent({ t, fmtDate, doc }) {
           return doc.issuer ? `${label} — ${doc.issuer}` : label;
         })()}
       </span>
+      {documentFileName(doc) && <span className="document-row-filename">{documentFileName(doc)}</span>}
       {doc.validUntil && (
         <span className="document-row-validity">
           {expired ? (
@@ -89,13 +93,51 @@ export function DocumentRowContent({ t, fmtDate, doc }) {
 // the "real bug found live 2026-08-28" caption fallback stays fixed in one place rather
 // than risking a second, independently-drifting copy.
 export function DocumentList({ t, fmtDate, documents }) {
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState("");
+
+  // Real retrieval (2026-10-04 live review, item 4: the row showed only a type label, and
+  // tapping it did nothing). "Open" shows it in a new tab; "Download" serves it as an
+  // attachment under its own file name — the fallback for any format a browser can't
+  // preview — so an unsupported format still ends in a usable file, not a dead row.
+  const retrieve = async (doc, download) => {
+    setError("");
+    setBusyId(doc.id);
+    try {
+      const url = await getDocumentUrl(doc.storageBucket, doc.storagePath, { download });
+      if (!url) throw new Error("no signed url");
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      setError(t.itemDetailDocumentOpenFailed);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
-    <ul className="document-list">
-      {documents.map((doc) => (
-        <li key={doc.id} className="document-row">
-          <DocumentRowContent t={t} fmtDate={fmtDate} doc={doc} />
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="document-list">
+        {documents.map((doc) => {
+          const retrievable = !!doc.storagePath && !!doc.storageBucket;
+          return (
+            <li key={doc.id} className="document-row document-row-actions">
+              <FileText size={14} aria-hidden="true" className="item-detail-document-icon" />
+              <span className="item-detail-document-content"><DocumentRowContent t={t} fmtDate={fmtDate} doc={doc} /></span>
+              {retrievable && (
+                <span className="document-row-buttons">
+                  <button type="button" className="maintenance-row-action" disabled={busyId === doc.id} onClick={() => retrieve(doc, false)}>
+                    {t.documentOpenAction}
+                  </button>
+                  <button type="button" className="maintenance-row-action" disabled={busyId === doc.id} onClick={() => retrieve(doc, true)} aria-label={t.documentDownloadAction}>
+                    <Download size={13} aria-hidden="true" /> {t.documentDownloadAction}
+                  </button>
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {error && <div className="fineprint" role="alert" style={{ color: "#b3432f", justifyContent: "flex-start" }}>{error}</div>}
+    </>
   );
 }

@@ -64,7 +64,7 @@ const TOAST_DURATION_MS = 2600;
 // component's own local `familyEntry` state and CustomerApp's own local tab state keep
 // working exactly as before), and supplied only by App.jsx's <SignedInShell>, which turns
 // them into real browser URLs and Back-button support.
-export function AppShell({ familyRoute = false, onOpenFamily, onLeaveFamily, customerDestination, onCustomerNavigate }) {
+export function AppShell({ familyRoute = false, onOpenFamily, onLeaveFamily, customerDestination, onCustomerNavigate, proTab, onProNavigate, familySection, onFamilySectionChange }) {
   // Found live during a UX review, 2026-09-12: this had nowhere to live but memory --
   // every reload reverted to Dutch, for every one of the 10 shipped locales, no matter
   // what a customer had explicitly picked. getPreferredLangCode() (langPreference.js)
@@ -199,6 +199,8 @@ export function AppShell({ familyRoute = false, onOpenFamily, onLeaveFamily, cus
     // while looking at one.
     body = (
       <FamilyApp
+        section={familySection}
+        onSectionChange={onFamilySectionChange}
         initialId={familyEntryMatches && familyEntry.familyId ? familyEntry.familyId : activeWorkspace?.workspace_type === "family" ? activeWorkspace.workspace_id : undefined}
         onClose={() => {
           setFamilyEntry(null);
@@ -223,7 +225,7 @@ export function AppShell({ familyRoute = false, onOpenFamily, onLeaveFamily, cus
     body = <OperatorApp />;
   } else if (effectiveRole === "pro") {
     body = proProfile ? (
-      <ProApp showToast={showToast} />
+      <ProApp showToast={showToast} tab={proTab} onNavigate={onProNavigate} />
     ) : (
       <BecomeProPrompt onStart={() => setBecomeProOpen(true)} />
     );
