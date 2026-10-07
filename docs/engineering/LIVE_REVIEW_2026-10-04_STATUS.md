@@ -56,5 +56,5 @@ Cross-language translation (`api/translate-message.js` exists and is exercised i
 ## Follow-up (2026-10-07)
 
 - Chip groups (service selection, timing, category…) are now `role="group"` named by their label — closes the "chip groups still have no group label" gap noted under item 13.
-- The sidebar landmark ("Primary") is now a translated "Main navigation" (`navPrimaryAria`, 10 locales; English fallback without a language context).
+- The sidebar landmark ("Primary") is now a translated "Main navigation" (`navPrimaryAria`, 10 locales; English fallback without a language context).- **Public professional profile now shows what the professional does** (their services, as chips under the bio) — the showcase priority. Needs **migration 0237** (`api.public_pro_services(uuid[])`, read-only, returns only `(pro_id, service_id)`, signed-in callers only, capped at 100 ids; `public.pro_services` itself stays workspace-member-only). Until it is applied the section is simply omitted. Structural SQL check: `supabase/tests/public_pro_services.sql`. **Apply to staging with 0236, then check as a customer that opening a pro's profile from a quote lists their services.**
 

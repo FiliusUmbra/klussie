@@ -81,6 +81,26 @@ export function initialsFrom(name) {
 // and are deliberately NOT switched (see IMPLEMENTATION_ROADMAP.md §14). workspaceId is
 // useAuth().activeWorkspace?.workspace_id (WP 03.09); falls back to the pre-Epic-03 pro_id
 // filter when absent, the same row set workspace_id was backfilled from (WP 03.06/03.07).
+/**
+ * The services a professional offers, as a customer may see them on the public profile
+ * (`api.public_pro_services()`, migration 0237 — public.pro_services is workspace-member-only
+ * under RLS, so a customer's own read of it returns nothing). Never throws: until that
+ * migration is applied, or on any failure, the profile simply omits the section.
+ */
+export async function fetchPublicProServices(proId) {
+  try {
+    const { data, error } = await supabase.schema("api").rpc("public_pro_services", { p_pro_ids: [proId] });
+    if (error) {
+      console.warn("public pro services unavailable:", error.message);
+      return [];
+    }
+    return (data ?? []).filter((r) => r.pro_id === proId).map((r) => r.service_id);
+  } catch (err) {
+    console.warn("public pro services unavailable:", err.message);
+    return [];
+  }
+}
+
 export async function fetchProServices(proId, workspaceId) {
   const query = supabase.from("pro_services").select("service_id");
   const scoped = workspaceId ? query.eq("workspace_id", workspaceId) : query.eq("pro_id", proId);

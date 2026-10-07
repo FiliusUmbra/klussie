@@ -5,18 +5,19 @@
 import { useState, useEffect } from "react";
 import { useLang } from "../lib/lang";
 import { Avatar, Badge, Rating, QuoteCard, TrustBadge, Drawer } from "../design-system";
-import { fetchPublicProInfo, fetchReviewsForPro, trustScore } from "../lib/pros";
+import { fetchPublicProInfo, fetchReviewsForPro, fetchPublicProServices, trustScore } from "../lib/pros";
 import { fetchPortfolioItems } from "../lib/portfolio";
 import { fetchTestimonials } from "../lib/testimonials";
 import { LoadingScreen } from "../ui/Loading.jsx";
 import { interpolate } from "../lib/homeStrings.js";
 
 export function ProPublicProfileSheet({ proId, onClose }) {
-  const { t, fmt, proBadgeLabel } = useLang();
+  const { t, fmt, proBadgeLabel, serviceInfo } = useLang();
   const [proInfo, setProInfo] = useState(null);
   const [portfolioItems, setPortfolioItems] = useState(null);
   const [reviews, setReviews] = useState(null);
   const [testimonials, setTestimonials] = useState(null);
+  const [services, setServices] = useState(null);
   // Found by code audit: fetchPublicProInfo() throws on a real Postgres error, and the
   // whole sheet's render gates on proInfo below -- with no catch here, a real failure
   // left proInfo null forever, so a customer tapping a pro's name/avatar
@@ -38,6 +39,7 @@ export function ProPublicProfileSheet({ proId, onClose }) {
     fetchPortfolioItems(proId).then(setPortfolioItems).catch(() => setPortfolioItems([]));
     fetchReviewsForPro(proId).then(setReviews).catch(() => setReviews([]));
     fetchTestimonials(proId).then(setTestimonials).catch(() => setTestimonials([]));
+    fetchPublicProServices(proId).then(setServices);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proId]);
 
@@ -70,6 +72,20 @@ export function ProPublicProfileSheet({ proId, onClose }) {
         {proInfo.isCertified && <Badge tone="sage">{t.certifiedBadge}</Badge>}
       </div>
       {proInfo.bio && <p className="sheet-blurb">{proInfo.bio}</p>}
+
+      {/* What this professional does — the fact a customer weighing a quote wants next to
+          the price (showcase priority). Omitted entirely when unknown or empty: never an
+          empty heading, and a service the catalog can't name is skipped rather than blank. */}
+      {services && services.some((id) => serviceInfo(id)?.name) && (
+        <>
+          <div className="section-title">{t.proOffersTitle}</div>
+          <ul className="chiprow" style={{ listStyle: "none", padding: 0, margin: "0 0 8px" }} data-testid="pro-services">
+            {services.filter((id) => serviceInfo(id)?.name).map((id) => (
+              <li key={id} className="chip" style={{ cursor: "default" }}>{serviceInfo(id).name}</li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {portfolioItems && portfolioItems.length > 0 && (
         <>

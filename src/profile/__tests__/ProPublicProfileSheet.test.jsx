@@ -11,9 +11,11 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const fetchPublicProInfoMock = vi.fn();
 const fetchReviewsForProMock = vi.fn();
+const fetchPublicProServicesMock = vi.fn();
 vi.mock("../../lib/pros", () => ({
   fetchPublicProInfo: (...args) => fetchPublicProInfoMock(...args),
   fetchReviewsForPro: (...args) => fetchReviewsForProMock(...args),
+  fetchPublicProServices: (...args) => fetchPublicProServicesMock(...args),
   trustScore: () => 80,
 }));
 const fetchPortfolioItemsMock = vi.fn();
@@ -29,7 +31,8 @@ import { LangContext } from "../../lib/lang";
 import { ProPublicProfileSheet } from "../ProPublicProfileSheet.jsx";
 
 const t = new Proxy({}, { get: (_, key) => String(key) });
-const ctx = { t, fmt: (n) => String(n), proBadgeLabel: () => null };
+const SERVICE_NAMES = { "svc-1": "Painting", "svc-2": "Small repairs" };
+const ctx = { t, fmt: (n) => String(n), proBadgeLabel: () => null, serviceInfo: (id) => ({ name: SERVICE_NAMES[id] || "" }) };
 
 const PRO_INFO = { name: "Pierre Pro", initials: "PP", avatarUrl: null, rating: 4.8, reviews: 12, badgeTier: null, isCertified: false, bio: "" };
 
@@ -42,6 +45,7 @@ function renderSheet(proId = "pro-1") {
 }
 
 beforeEach(() => {
+  fetchPublicProServicesMock.mockReset().mockResolvedValue([]);
   fetchPublicProInfoMock.mockReset().mockResolvedValue({ "pro-1": PRO_INFO });
   fetchPortfolioItemsMock.mockReset().mockResolvedValue([]);
   fetchReviewsForProMock.mockReset().mockResolvedValue([]);
@@ -79,3 +83,30 @@ describe("ProPublicProfileSheet — initial load", () => {
     expect(screen.getByText("noReviewsYet")).toBeTruthy();
   });
 });
+
+// Showcase: what the professional actually does, next to the rating and portfolio.
+describe("ProPublicProfileSheet — services offered", () => {
+  it("lists the services the professional offers, by their catalog names", async () => {
+    fetchPublicProServicesMock.mockResolvedValue(["svc-1", "svc-2"]);
+    renderSheet();
+    await waitFor(() => expect(screen.getByTestId("pro-services")).toBeTruthy());
+    expect(screen.getByText("Painting")).toBeTruthy();
+    expect(screen.getByText("Small repairs")).toBeTruthy();
+    expect(screen.getByText("proOffersTitle")).toBeTruthy();
+  });
+
+  it("shows no heading at all when none are known (or the read is unavailable)", async () => {
+    renderSheet();
+    await waitFor(() => expect(screen.getByText("Pierre Pro")).toBeTruthy());
+    expect(screen.queryByText("proOffersTitle")).toBeNull();
+    expect(screen.queryByTestId("pro-services")).toBeNull();
+  });
+
+  it("skips a service the catalog can't name rather than rendering a blank chip", async () => {
+    fetchPublicProServicesMock.mockResolvedValue(["svc-1", "svc-unknown"]);
+    renderSheet();
+    await waitFor(() => expect(screen.getByTestId("pro-services")).toBeTruthy());
+    expect(screen.getByTestId("pro-services").querySelectorAll("li")).toHaveLength(1);
+  });
+});
+
