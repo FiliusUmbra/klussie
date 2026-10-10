@@ -28,6 +28,7 @@ import { MyHomePanel } from "./MyHomePanel.jsx";
 import { MyItemsPanel } from "./MyItemsPanel.jsx";
 import { PropertySwitcher } from "./PropertySwitcher.jsx";
 import { HomeStatRow } from "./HomeStatRow.jsx";
+import { usePropertyPhoto } from "./usePropertyPhoto.js";
 import { PageTour } from "../ui/PageTour.jsx";
 import { usePageTour } from "../ui/usePageTour.js";
 import { AddPropertySheet } from "../profile/AddPropertySheet.jsx";
@@ -62,6 +63,7 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
   const tour = usePageTour("myHome");
   const homeCtx = useHomeContext({ t, profile, requests });
   const { properties, activePropertyId, selectProperty, workspaceId, refreshItems } = homeCtx;
+  const photoUrl = usePropertyPhoto(activePropertyId);
   const openRequest = onOpenRequest || (() => {});
   const reportProblem = onReportProblem || (() => {});
 
@@ -80,7 +82,9 @@ export function MyHomeScreen({ requests = [], onOpenRequest, onReportProblem, ac
             cover stands in for the property photo — the Street View hero is deferred — and
             the stat row is the same real-data strip Today's card shows. */}
         <div className="myhome-header" data-tour="myhome-hero">
-          <div className="myhome-hero-cover" aria-hidden="true"><House size={56} strokeWidth={1.3} /></div>
+          <div className="myhome-hero-cover" aria-hidden="true">
+            {photoUrl ? <img className="myhome-hero-photo" src={photoUrl} alt="" /> : <House size={56} strokeWidth={1.3} />}
+          </div>
           <div className="myhome-hero-body">
             {activeName && <h1 className="myhome-header-name">{activeName}</h1>}
             {activeCity && <p className="myhome-hero-city">{activeCity}</p>}
