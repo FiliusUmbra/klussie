@@ -47,7 +47,9 @@ export const CALM_CSS = `
    stand-in for the deferred property photo (see that file's own header). */
 .today-card{display:block;width:100%;padding:0;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-card);text-align:start;font-family:var(--font-body);cursor:pointer;}
 .today-card-cover{display:flex;align-items:flex-end;justify-content:flex-end;height:92px;padding:0 16px;background:linear-gradient(135deg,var(--sage),var(--forest));color:rgba(255,255,255,0.55);}
+.today-card-cover{position:relative;}
 .today-card-cover svg{margin-bottom:-10px;}
+.today-card-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .today-card-body{display:block;padding:14px 16px 16px;}
 .today-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
 .today-card-head strong{font:600 16px var(--font-display);color:var(--ink);}
