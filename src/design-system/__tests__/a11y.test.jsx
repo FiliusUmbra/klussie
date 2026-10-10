@@ -25,11 +25,20 @@ describe("associateFieldLabels", () => {
     expect(lb.getAttribute("for")).toBe(root.querySelector("textarea").id);
   });
 
-  it("leaves a label with no following control (a chip group) and an already-connected label alone", () => {
+  it("leaves an already-connected label, and a label with nothing after it, alone", () => {
     const root = document.createElement("div");
-    root.innerHTML = '<label class="field-label">Group</label><button class="chip">x</button><label class="field-label" for="z">Z</label><input id="z">';
+    root.innerHTML = '<label class="field-label">Lonely</label><label class="field-label" for="z">Z</label><input id="z">';
     expect(associateFieldLabels(root, "t")).toBe(0);
     expect(root.querySelector("label").hasAttribute("for")).toBe(false);
+  });
+
+  it("names a chip group by the label above it (role=group + aria-labelledby)", () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<label class="field-label">Category</label><div class="chiprow"><button class="chip">A</button><button class="chip">B</button></div>';
+    associateFieldLabels(root, "t");
+    const group = root.querySelector(".chiprow");
+    expect(group.getAttribute("role")).toBe("group");
+    expect(group.getAttribute("aria-labelledby")).toBe(root.querySelector("label").id);
   });
 
   it("does not override a control that already carries its own accessible name", () => {

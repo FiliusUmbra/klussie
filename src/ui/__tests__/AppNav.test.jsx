@@ -7,6 +7,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { House, MessageCircle, Plus, Sun, User } from "lucide-react";
 import { AppNav } from "../AppNav.jsx";
+import { LangContext } from "../../lib/lang";
 
 const ITEMS = [
   { id: "today", label: "Today", icon: Sun },
@@ -83,6 +84,20 @@ describe("AppNav — one primary navigation per breakpoint", () => {
   it("has no sidebar action when no fab is given (Operator and every existing caller are unchanged)", () => {
     renderNav();
     expect(document.querySelector(".sidebar-fab")).toBeNull();
+  });
+});
+
+describe("AppNav — landmark name", () => {
+  it("is translated when a language context exists, English otherwise", () => {
+    renderNav();
+    expect(document.querySelector(".app-sidebar").getAttribute("aria-label")).toBe("Main navigation");
+    document.body.innerHTML = "";
+    render(
+      <LangContext.Provider value={{ t: { navPrimaryAria: "Hoofdnavigatie" } }}>
+        <AppNav tab="today" setTab={() => {}} items={ITEMS}><div>c</div></AppNav>
+      </LangContext.Provider>
+    );
+    expect(document.querySelector(".app-sidebar").getAttribute("aria-label")).toBe("Hoofdnavigatie");
   });
 });
 
