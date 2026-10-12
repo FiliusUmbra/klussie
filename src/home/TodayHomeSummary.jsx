@@ -15,6 +15,7 @@ import { useLang } from '../lib/lang';
 import { usePropertyTwin } from './usePropertyTwin.js';
 import { homeStats } from './homeStats.js';
 import { HomeStatRow } from './HomeStatRow.jsx';
+import { usePropertyPhoto } from './usePropertyPhoto.js';
 import { TODAY_CARD } from '../lib/dailyStrings.js';
 
 const UPCOMING_LIMIT = 2;
@@ -25,13 +26,16 @@ export function TodayHomeSummary({ requests, onOpenHome }) {
   const twin = usePropertyTwin();
   const s = homeStats({ ...twin, requests });
   const property = twin.properties?.find((p) => p.id === twin.activePropertyId) || twin.properties?.[0];
+  const photoUrl = usePropertyPhoto(property?.id);
   const name = property?.name || twin.homeProfile?.property?.name;
   const city = twin.homeProfile?.property?.municipality;
   const soon = (s.open || []).filter((m) => m.dueOn).slice(0, UPCOMING_LIMIT);
 
   return <>
     <button type="button" className="today-card" data-tour="today-myhome" onClick={onOpenHome}>
-      <span className="today-card-cover" aria-hidden="true"><House size={44} strokeWidth={1.4} /></span>
+      <span className="today-card-cover" aria-hidden="true">
+        {photoUrl ? <img className="today-card-photo" src={photoUrl} alt="" /> : <House size={44} strokeWidth={1.4} />}
+      </span>
       <span className="today-card-body">
         <span className="today-card-head">
           <strong>{name || ''}</strong>

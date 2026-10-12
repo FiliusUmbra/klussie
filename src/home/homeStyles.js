@@ -340,7 +340,9 @@ export const HOME_CSS = `
    switcher itself) are reused as-is; this only lays out the row it sits in. */
 .myhome-header{ background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow-card); overflow:hidden; }
 .myhome-hero-cover{ display:flex; align-items:flex-end; justify-content:flex-end; height:110px; padding:0 18px; background:linear-gradient(135deg,var(--sage),var(--forest)); color:rgba(255,255,255,0.5); }
+.myhome-hero-cover{ position:relative; }
 .myhome-hero-cover svg{ margin-bottom:-12px; }
+.myhome-hero-photo{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 .myhome-hero-body{ padding:14px 16px 12px; }
 .myhome-header .role-switch{ margin:0; }
 .myhome-header-name{ margin:0; font:600 21px var(--font-display); color:var(--ink); }
